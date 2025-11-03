@@ -1,1 +1,7 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/parse-adventure-from-json.ts';
+import '@/ai/flows/generate-monster-encounters.ts';
+import '@/ai/flows/translate-adventure-to-spanish.ts';
+import '@/ai/flows/ai-dungeon-master-parser.ts';

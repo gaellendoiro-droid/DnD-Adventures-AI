@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "character-1",
+      "description": "Brave female warrior with a large sword and heavy armor.",
+      "imageUrl": "https://images.unsplash.com/photo-1759157757147-ca561c9cb629?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmYW50YXN5JTIwd2FycmlvcnxlbnwwfHx8fDE3NjIxNTI2ODh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fantasy warrior"
+    },
+    {
+      "id": "character-2",
+      "description": "Wise old male mage in robes, casting a spell.",
+      "imageUrl": "https://images.unsplash.com/photo-1595991443260-d3d334edd283?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxmYW50YXN5JTIwd2l6YXJkfGVufDB8fHx8MTc2MjE2NzExMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fantasy wizard"
+    },
+    {
+      "id": "character-3",
+      "description": "Stealthy female rogue with daggers, cloaked in shadows.",
+      "imageUrl": "https://picsum.photos/seed/char3/200/200",
+      "imageHint": "fantasy rogue"
+    },
+    {
+      "id": "character-4",
+      "description": "Male cleric in shining armor, holding a holy symbol.",
+      "imageUrl": "https://images.unsplash.com/photo-1572337382669-5896358c14fe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxmYW50YXN5JTIwY2xlcmljfGVufDB8fHx8MTc2MjE1MjY4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fantasy cleric"
+    }
+  ]
 }
