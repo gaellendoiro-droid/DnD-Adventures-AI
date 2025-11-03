@@ -6,7 +6,7 @@ import { Dices } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DiceRollerProps {
-  onRoll: (result: string) => void;
+  onRoll: (roll: { result: number, sides: number }) => void;
 }
 
 const dice = [4, 6, 8, 10, 12, 20, 100];
@@ -24,7 +24,7 @@ export function DiceRoller({ onRoll }: DiceRollerProps) {
     const result = Math.floor(Math.random() * sides) + 1;
     const rollString = `Tirada d${sides}: ${result}`;
     
-    onRoll(rollString);
+    onRoll({result, sides});
 
     toast({
       title: "🎲 Tirada de Dado",

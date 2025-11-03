@@ -37,3 +37,15 @@ export interface GameMessage {
   content: string | React.ReactNode;
   timestamp: string;
 }
+
+export interface DiceRoll {
+  id: string;
+  roller: string; // Character name or "DM"
+  diceType: number; // e.g., 20 for a d20
+  result: number;
+  modifier?: number;
+  finalResult?: number;
+  outcome: 'crit' | 'success' | 'fail' | 'pifia' | 'neutral';
+  timestamp: Date;
+  description?: string;
+}

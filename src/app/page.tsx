@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Character, GameMessage } from "@/lib/types";
+import type { Character, GameMessage, DiceRoll } from "@/lib/types";
 import { initialParty, initialMessages } from "@/lib/data";
 import { AppHeader } from "@/components/layout/app-header";
 import { GameLayout } from "@/components/game/game-layout";
-import { PartyPanel } from "@/components/game/party-panel";
+import { MainMenu } from "@/components/game/main-menu";
+import { LeftPanel } from "@/components/layout/left-panel";
 import { CharacterSheet } from "@/components/game/character-sheet";
 import { ChatPanel } from "@/components/game/chat-panel";
-import { MainMenu } from "@/components/game/main-menu";
 import { aiDungeonMasterParser } from "@/ai/flows/ai-dungeon-master-parser";
 import { generateCharacterAction } from "@/ai/flows/generate-character-action";
 import { dungeonMasterOocParser } from "@/ai/flows/dungeon-master-ooc-parser";
@@ -16,6 +16,7 @@ import { dungeonMasterOocParser } from "@/ai/flows/dungeon-master-ooc-parser";
 export default function Home() {
   const [party, setParty] = useState<Character[]>(initialParty);
   const [messages, setMessages] = useState<GameMessage[]>([]);
+  const [diceRolls, setDiceRolls] = useState<DiceRoll[]>([]);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
     party.find(c => c.controlledBy === 'Player') || null
   );
@@ -46,6 +47,19 @@ export default function Home() {
       },
     ]);
   };
+  
+  const addDiceRoll = (roll: Omit<DiceRoll, 'id' | 'timestamp'>) => {
+    const newRoll = {
+      ...roll,
+      id: Date.now().toString() + Math.random(),
+      timestamp: new Date(),
+    };
+    setDiceRolls((prevRolls) => [newRoll, ...prevRolls]);
+    addMessage({
+      sender: "System",
+      content: `${roll.roller} ha sacado un ${roll.result} en un d${roll.diceType}.`,
+    });
+  }
 
   const handleSendMessage = async (content: string) => {
     addMessage({ sender: "Player", content });
@@ -117,12 +131,18 @@ export default function Home() {
     }
   };
 
-  const handleDiceRoll = (roll: string) => {
-    addMessage({ sender: "System", content: roll });
+  const handleDiceRoll = (roll: { result: number, sides: number }) => {
+    addDiceRoll({
+      roller: selectedCharacter?.name ?? 'Player',
+      diceType: roll.sides,
+      result: roll.result,
+      outcome: 'neutral'
+    });
   };
   
   const handleNewGame = () => {
     setMessages([]);
+    setDiceRolls([]);
     setParty(initialParty);
     setGameState("Initial state: The party is in the Yawning Portal inn.");
     setSelectedCharacter(initialParty.find(c => c.controlledBy === 'Player') || null);
@@ -143,11 +163,12 @@ export default function Home() {
       <AppHeader onGoToMenu={handleGoToMenu} showMenuButton={gameStarted} />
       {gameStarted ? (
         <GameLayout
-          partyPanel={
-            <PartyPanel
+          leftPanel={
+            <LeftPanel
               party={party}
               selectedCharacterId={selectedCharacter?.id}
               onSelectCharacter={setSelectedCharacter}
+              diceRolls={diceRolls}
             />
           }
           characterSheet={<CharacterSheet character={selectedCharacter} />}

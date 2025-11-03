@@ -13,7 +13,7 @@ import { Bot } from "lucide-react";
 interface ChatPanelProps {
   messages: GameMessage[];
   onSendMessage: (content: string) => void;
-  onDiceRoll: (roll: string) => void;
+  onDiceRoll: (roll: { result: number; sides: number }) => void;
   isThinking: boolean;
 }
 
