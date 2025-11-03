@@ -27,6 +27,8 @@ export default function Home() {
       setTimeout(() => {
         setMessages(initialMessages);
       }, 1000);
+    } else {
+        setMessages([]);
     }
   }, [gameStarted]);
 
@@ -109,10 +111,14 @@ export default function Home() {
   const handleNewGame = () => {
     setGameStarted(true);
   };
+  
+  const handleGoToMenu = () => {
+    setGameStarted(false);
+  }
 
   return (
     <div className="flex flex-col h-svh bg-background text-foreground dark:bg-background dark:text-foreground">
-      <AppHeader />
+      <AppHeader onGoToMenu={handleGoToMenu} showMenuButton={gameStarted} />
       {gameStarted ? (
         <GameLayout
           partyPanel={
