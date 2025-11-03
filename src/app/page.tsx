@@ -21,16 +21,16 @@ export default function Home() {
   const [isDMThinking, setIsDMThinking] = useState(false);
   const [gameState, setGameState] = useState("Initial state: The party is in the Yawning Portal inn.");
   const [gameStarted, setGameStarted] = useState(false);
+  const [gameInProgress, setGameInProgress] = useState(false);
 
   useEffect(() => {
-    if (gameStarted) {
-      setTimeout(() => {
-        setMessages(initialMessages);
-      }, 1000);
-    } else {
-        setMessages([]);
+    if (gameStarted && !gameInProgress) {
+      setMessages(initialMessages);
+      setGameInProgress(true);
+    } else if (!gameStarted) {
+      // Don't clear messages when just going to menu
     }
-  }, [gameStarted]);
+  }, [gameStarted, gameInProgress]);
 
   const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>) => {
     setMessages((prevMessages) => [
@@ -109,12 +109,21 @@ export default function Home() {
   };
   
   const handleNewGame = () => {
+    setMessages([]);
+    setParty(initialParty);
+    setGameState("Initial state: The party is in the Yawning Portal inn.");
+    setSelectedCharacter(initialParty.find(c => c.controlledBy === 'Player') || null);
+    setGameInProgress(false); // This will trigger the useEffect to set initial messages
     setGameStarted(true);
   };
   
   const handleGoToMenu = () => {
     setGameStarted(false);
   }
+
+  const handleContinueGame = () => {
+    setGameStarted(true);
+  };
 
   return (
     <div className="flex flex-col h-svh bg-background text-foreground dark:bg-background dark:text-foreground">
@@ -138,7 +147,7 @@ export default function Home() {
           />
         </GameLayout>
       ) : (
-        <MainMenu onNewGame={handleNewGame} />
+        <MainMenu onNewGame={handleNewGame} onContinueGame={handleContinueGame} gameInProgress={gameInProgress} />
       )}
     </div>
   );
