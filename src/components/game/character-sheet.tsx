@@ -1,7 +1,6 @@
 "use client";
 
 import type { Character } from "@/lib/types";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
@@ -54,14 +53,6 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
     <ScrollArea className="h-full">
       <div className="p-4 space-y-6">
         <div className="flex flex-col items-center space-y-4">
-          <Avatar className="h-24 w-24 border-2 border-primary">
-            <AvatarImage
-              src={character.avatarUrl}
-              alt={character.name}
-              data-ai-hint={character.avatarHint}
-            />
-            <AvatarFallback>{character.name.charAt(0)}</AvatarFallback>
-          </Avatar>
           <div className="text-center">
             <h2 className="text-2xl font-headline font-bold">
               {character.name}

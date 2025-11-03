@@ -2,7 +2,6 @@
 
 import type { Character } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "../ui/scroll-area";
 import { CardHeader, CardTitle } from "../ui/card";
@@ -39,10 +38,6 @@ export function PartyPanel({
               tabIndex={0}
               onKeyDown={(e) => e.key === 'Enter' && onSelectCharacter(character)}
             >
-              <Avatar className="h-12 w-12 border-2 border-muted">
-                <AvatarImage src={character.avatarUrl} alt={character.name} data-ai-hint={character.avatarHint} />
-                <AvatarFallback>{character.name.charAt(0)}</AvatarFallback>
-              </Avatar>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <p className="font-semibold">{character.name}</p>
