@@ -3,17 +3,21 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send } from "lucide-react";
+import { Send, Dices } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { DiceRoller } from "./dice-roller";
 
 interface PlayerInputProps {
   onSendMessage: (content: string) => void;
+  onDiceRoll: (roll: { result: number; sides: number }) => void;
   disabled?: boolean;
 }
 
-export function PlayerInput({ onSendMessage, disabled = false }: PlayerInputProps) {
+export function PlayerInput({ onSendMessage, onDiceRoll, disabled = false }: PlayerInputProps) {
   const [inputValue, setInputValue] = useState("");
   const { toast } = useToast();
+  const [isDicePopoverOpen, setIsDicePopoverOpen] = useState(false);
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,8 +43,9 @@ export function PlayerInput({ onSendMessage, disabled = false }: PlayerInputProp
   };
 
   return (
-    <div className="mt-4 space-y-2">
+    <div className="space-y-2">
       <form onSubmit={handleSubmit} className="flex items-start gap-2">
+        <DiceRoller onRoll={onDiceRoll} onPopoverOpenChange={setIsDicePopoverOpen}/>
         <Textarea
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
@@ -48,9 +53,9 @@ export function PlayerInput({ onSendMessage, disabled = false }: PlayerInputProp
           placeholder={disabled ? "El DM está pensando..." : "¿Qué quieres hacer?"}
           className="flex-1 resize-none"
           rows={1}
-          disabled={disabled}
+          disabled={disabled || isDicePopoverOpen}
         />
-        <Button type="submit" size="icon" aria-label="Enviar acción" disabled={disabled}>
+        <Button type="submit" size="icon" aria-label="Enviar acción" disabled={disabled || isDicePopoverOpen}>
           <Send className="h-5 w-5" />
         </Button>
       </form>

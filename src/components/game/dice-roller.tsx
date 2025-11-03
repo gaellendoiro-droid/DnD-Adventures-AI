@@ -4,20 +4,34 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dices } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface DiceRollerProps {
   onRoll: (roll: { result: number, sides: number }) => void;
+  onPopoverOpenChange?: (open: boolean) => void;
 }
 
 const dice = [4, 6, 8, 10, 12, 20, 100];
 
-export function DiceRoller({ onRoll }: DiceRollerProps) {
+export function DiceRoller({ onRoll, onPopoverOpenChange }: DiceRollerProps) {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  const handleOpenChange = (newOpenState: boolean) => {
+    setOpen(newOpenState);
+    if(onPopoverOpenChange) {
+        onPopoverOpenChange(newOpenState);
+    }
+  }
 
   const rollDice = (sides: number) => {
     if (!isClient) return;
@@ -30,29 +44,30 @@ export function DiceRoller({ onRoll }: DiceRollerProps) {
       title: "🎲 Tirada de Dado",
       description: rollString,
     });
+    handleOpenChange(false);
   };
 
   return (
-    <div className="mb-4">
-      <div className="flex items-center gap-2 mb-2">
-        <Dices className="h-5 w-5 text-muted-foreground" />
-        <h4 className="text-sm font-semibold text-muted-foreground">
-          Tirar Dados
-        </h4>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {dice.map((sides) => (
-          <Button
-            key={sides}
-            variant="outline"
-            size="sm"
-            onClick={() => rollDice(sides)}
-            className="flex-grow md:flex-grow-0"
-          >
-            d{sides}
-          </Button>
-        ))}
-      </div>
-    </div>
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="icon" aria-label="Tirar dados">
+            <Dices className="h-5 w-5" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto">
+        <div className="grid grid-cols-4 gap-2">
+            {dice.map((sides) => (
+            <Button
+                key={sides}
+                variant="outline"
+                size="sm"
+                onClick={() => rollDice(sides)}
+            >
+                d{sides}
+            </Button>
+            ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -59,8 +59,7 @@ export function ChatPanel({
       </ScrollArea>
       <Separator />
       <div className="p-4 bg-background/50 rounded-b-lg">
-        <DiceRoller onRoll={onDiceRoll} />
-        <PlayerInput onSendMessage={onSendMessage} disabled={isThinking} />
+        <PlayerInput onSendMessage={onSendMessage} disabled={isThinking} onDiceRoll={onDiceRoll} />
       </div>
     </div>
   );
