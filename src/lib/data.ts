@@ -1,10 +1,4 @@
 import type { Character, GameMessage } from "./types";
-import { PlaceHolderImages } from "./placeholder-images";
-
-const character1Image = PlaceHolderImages.find(img => img.id === 'character-1');
-const character2Image = PlaceHolderImages.find(img => img.id === 'character-2');
-const character3Image = PlaceHolderImages.find(img => img.id === 'character-3');
-const character4Image = PlaceHolderImages.find(img => img.id === 'character-4');
 
 export const initialParty: Character[] = [
   {
@@ -13,8 +7,6 @@ export const initialParty: Character[] = [
     race: "Elfo",
     class: "Guerrero",
     level: 1,
-    avatarUrl: character1Image?.imageUrl ?? '',
-    avatarHint: character1Image?.imageHint ?? 'fantasy warrior',
     color: '#3b82f6', // blue-500
     abilityScores: {
       fuerza: 16,
@@ -25,6 +17,7 @@ export const initialParty: Character[] = [
       carisma: 8,
     },
     hp: { current: 12, max: 12 },
+    ac: 16,
     skills: [
       { name: "Acrobacias", proficient: true },
       { name: "Atletismo", proficient: true },
@@ -38,8 +31,6 @@ export const initialParty: Character[] = [
     race: "Humana",
     class: "Maga",
     level: 1,
-    avatarUrl: character2Image?.imageUrl ?? '',
-    avatarHint: character2Image?.imageHint ?? 'fantasy wizard',
     color: '#8b5cf6', // violet-500
     abilityScores: {
       fuerza: 8,
@@ -50,6 +41,7 @@ export const initialParty: Character[] = [
       carisma: 10,
     },
     hp: { current: 8, max: 8 },
+    ac: 12,
     skills: [
       { name: "Arcano", proficient: true },
       { name: "Historia", proficient: true },
@@ -63,8 +55,6 @@ export const initialParty: Character[] = [
     race: "Mediano",
     class: "Pícaro",
     level: 1,
-    avatarUrl: character3Image?.imageUrl ?? '',
-    avatarHint: character3Image?.imageHint ?? 'fantasy rogue',
     color: '#10b981', // emerald-500
     abilityScores: {
       fuerza: 10,
@@ -75,6 +65,7 @@ export const initialParty: Character[] = [
       carisma: 13,
     },
     hp: { current: 9, max: 9 },
+    ac: 14,
     skills: [
       { name: "Engaño", proficient: true },
       { name: "Juego de Manos", proficient: false },
@@ -88,8 +79,6 @@ export const initialParty: Character[] = [
     race: "Enano",
     class: "Clérigo",
     level: 1,
-    avatarUrl: character4Image?.imageUrl ?? '',
-    avatarHint: character4Image?.imageHint ?? 'fantasy cleric',
     color: '#f97316', // orange-500
     abilityScores: {
       fuerza: 15,
@@ -100,6 +89,7 @@ export const initialParty: Character[] = [
       carisma: 10,
     },
     hp: { current: 11, max: 11 },
+    ac: 18,
     skills: [
       { name: "Medicina", proficient: true },
       { name: "Perspicacia", proficient: true },

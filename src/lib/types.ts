@@ -18,8 +18,6 @@ export interface Character {
   race: string;
   class: string;
   level: number;
-  avatarUrl: string;
-  avatarHint: string;
   color: string;
   abilityScores: AbilityScores;
   skills: Skill[];
@@ -27,6 +25,7 @@ export interface Character {
     current: number;
     max: number;
   };
+  ac: number;
   controlledBy: "Player" | "AI";
 }
 

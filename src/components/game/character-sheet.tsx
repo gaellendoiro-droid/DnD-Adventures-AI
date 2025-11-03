@@ -19,6 +19,7 @@ import {
   BookOpen,
   Sparkles,
   Heart,
+  ShieldCheck,
 } from "lucide-react";
 import { Badge } from "../ui/badge";
 
@@ -65,19 +66,29 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
 
         <Separator />
 
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Heart className="w-5 h-5 text-destructive" />
-            <h3 className="font-semibold">Puntos de Golpe</h3>
-          </div>
-          <Progress
-            value={(character.hp.current / character.hp.max) * 100}
-            className="h-4"
-          />
-          <p className="text-right text-sm font-mono mt-1">
-            {character.hp.current} / {character.hp.max}
-          </p>
+        <div className="grid grid-cols-2 gap-4 text-center">
+            <div>
+                 <div className="flex items-center justify-center gap-2 mb-1">
+                    <Heart className="w-5 h-5 text-destructive" />
+                    <h3 className="font-semibold text-sm text-muted-foreground">Puntos de Golpe</h3>
+                </div>
+                <p className="font-bold text-xl font-mono">
+                    {character.hp.current} / {character.hp.max}
+                </p>
+                <Progress
+                    value={(character.hp.current / character.hp.max) * 100}
+                    className="h-2 mt-2"
+                />
+            </div>
+             <div>
+                <div className="flex items-center justify-center gap-2 mb-1">
+                    <ShieldCheck className="w-5 h-5 text-blue-400" />
+                    <h3 className="font-semibold text-sm text-muted-foreground">Clase de Armadura</h3>
+                </div>
+                <p className="font-bold text-xl">{character.ac}</p>
+            </div>
         </div>
+
 
         <Card>
           <CardHeader>
