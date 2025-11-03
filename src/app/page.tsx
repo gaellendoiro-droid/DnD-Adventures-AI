@@ -13,6 +13,7 @@ import { aiDungeonMasterParser } from "@/ai/flows/ai-dungeon-master-parser";
 import { generateCharacterAction } from "@/ai/flows/generate-character-action";
 import { dungeonMasterOocParser } from "@/ai/flows/dungeon-master-ooc-parser";
 import { parseAdventureFromJson } from "@/ai/flows/parse-adventure-from-json";
+import { translateAdventureToSpanish } from "@/ai/flows/translate-adventure-to-spanish";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
@@ -172,10 +173,18 @@ export default function Home() {
         const parsedAdventure = await parseAdventureFromJson({ adventureJson: jsonContent });
         
         setGameState(JSON.stringify(parsedAdventure.adventureData));
-        setMessages([]); // Clear previous messages
+        setMessages([]);
+
+        toast({ title: "Traduciendo aventura...", description: "Un momento, por favor." });
+
+        const [translatedTitle, translatedSummary] = await Promise.all([
+          translateAdventureToSpanish({ adventureText: parsedAdventure.adventureTitle }),
+          translateAdventureToSpanish({ adventureText: parsedAdventure.adventureSummary }),
+        ]);
+
         addMessage({
           sender: 'DM',
-          content: `¡Aventura cargada! Título: ${parsedAdventure.adventureTitle}. ${parsedAdventure.adventureSummary}. ¿Listos para empezar?`
+          content: `¡Aventura cargada! Título: ${translatedTitle.translatedAdventureText}. ${translatedSummary.translatedAdventureText}. ¿Listos para empezar?`
         });
 
         setDiceRolls([]);
@@ -185,14 +194,14 @@ export default function Home() {
         setGameInProgress(false);
         setGameStarted(true);
 
-        toast({ title: "¡Aventura cargada!", description: "La nueva aventura está lista para jugar." });
+        toast({ title: "¡Aventura cargada y traducida!", description: "La nueva aventura está lista para jugar en español." });
 
       } catch (error) {
-        console.error("Error parsing adventure file:", error);
+        console.error("Error parsing or translating adventure file:", error);
         toast({
           variant: 'destructive',
           title: "Error al cargar la aventura",
-          description: "No se pudo procesar el archivo. Asegúrate de que sea un JSON válido.",
+          description: "No se pudo procesar o traducir el archivo. Asegúrate de que sea un JSON válido.",
         });
       }
     };
