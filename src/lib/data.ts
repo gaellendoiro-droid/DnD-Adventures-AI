@@ -29,6 +29,7 @@ export const initialParty: Character[] = [
       { name: "Atletismo", proficient: true },
       { name: "Percepción", proficient: false },
     ],
+    controlledBy: "Player",
   },
   {
     id: "2",
@@ -52,6 +53,7 @@ export const initialParty: Character[] = [
       { name: "Historia", proficient: true },
       { name: "Investigación", proficient: false },
     ],
+    controlledBy: "AI",
   },
   {
     id: "3",
@@ -75,6 +77,7 @@ export const initialParty: Character[] = [
       { name: "Juego de Manos", proficient: false },
       { name: "Sigilo", proficient: true },
     ],
+    controlledBy: "AI",
   },
   {
     id: "4",
@@ -98,6 +101,7 @@ export const initialParty: Character[] = [
       { name: "Perspicacia", proficient: true },
       { name: "Religión", proficient: false },
     ],
+    controlledBy: "AI",
   },
 ];
 

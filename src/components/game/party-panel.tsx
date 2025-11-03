@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "../ui/scroll-area";
 import { CardHeader, CardTitle } from "../ui/card";
-import { Users } from "lucide-react";
+import { Users, User, Bot } from "lucide-react";
 
 interface PartyPanelProps {
   party: Character[];
@@ -44,7 +44,14 @@ export function PartyPanel({
                 <AvatarFallback>{character.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <p className="font-semibold">{character.name}</p>
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold">{character.name}</p>
+                  {character.controlledBy === 'Player' ? (
+                    <User className="h-4 w-4 text-blue-500" title="Jugador" />
+                  ) : (
+                    <Bot className="h-4 w-4 text-green-500" title="IA" />
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                     <Progress value={(character.hp.current / character.hp.max) * 100} className="h-2" />
                     <span className="text-xs font-mono text-muted-foreground">

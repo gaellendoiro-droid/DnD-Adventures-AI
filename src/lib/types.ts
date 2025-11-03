@@ -26,6 +26,7 @@ export interface Character {
     current: number;
     max: number;
   };
+  controlledBy: "Player" | "AI";
 }
 
 export interface GameMessage {
