@@ -17,7 +17,7 @@ export function DiceLogPanel({ diceRolls }: DiceLogPanelProps) {
         <Dices className="w-6 h-6" />
         <CardTitle className="font-headline text-xl">Registro de Tiradas</CardTitle>
       </CardHeader>
-      <ScrollArea className="h-full px-2">
+      <ScrollArea className="px-2">
         <div className="p-2 space-y-3">
           {diceRolls.length === 0 ? (
             <p className="text-sm text-center text-muted-foreground p-4">

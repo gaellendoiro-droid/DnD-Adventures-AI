@@ -24,7 +24,7 @@ export function PartyPanel({
         <Users className="w-6 h-6" />
         <CardTitle className="font-headline text-xl">Grupo</CardTitle>
       </CardHeader>
-      <ScrollArea className="h-full px-2">
+      <ScrollArea className="px-2">
         <div className="p-2 space-y-2">
           {party.map((character) => (
             <div

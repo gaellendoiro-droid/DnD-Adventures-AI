@@ -20,7 +20,7 @@ export function LeftPanel({
 }: LeftPanelProps) {
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-[3] overflow-auto">
+      <div className="flex-shrink-0">
         <PartyPanel
           party={party}
           selectedCharacterId={selectedCharacterId}
@@ -28,7 +28,7 @@ export function LeftPanel({
         />
       </div>
       <Separator className="my-2" />
-      <div className="flex-[2] overflow-auto">
+      <div className="flex-grow overflow-y-auto">
         <DiceLogPanel diceRolls={diceRolls} />
       </div>
     </div>
