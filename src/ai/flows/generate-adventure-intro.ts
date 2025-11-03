@@ -29,15 +29,19 @@ const prompt = ai.definePrompt({
   name: 'generateAdventureIntroPrompt',
   input: {schema: GenerateAdventureIntroInputSchema},
   output: {schema: GenerateAdventureIntroOutputSchema},
-  prompt: `You are an expert Dungeon Master for a D&D 5e game. Your task is to craft an immersive and engaging introduction for the players based on the adventure's title and summary. Do not reveal too much information. Instead, set the scene, create atmosphere, and suggest a few starting points or questions for the players to consider. The response MUST be in Spanish.
+  prompt: `You are an expert Dungeon Master for a D&D 5e game. Your task is to craft an immersive and engaging introduction for the players based on the adventure's title and summary. The response MUST be in Spanish.
 
 Adventure Title: {{{adventureTitle}}}
 Adventure Summary: {{{adventureSummary}}}
 
 Based on this, generate a compelling introductory narration to kick off the game.
+1.  Do not reveal too much information about the plot.
+2.  Set the scene and create a rich atmosphere.
+3.  End with a description of the characters' immediate surroundings.
+4.  Finish by asking the players what they want to do, suggesting a few starting options.
 
 Response: {
-  "narration": "Your immersive introductory narration in Spanish."
+  "narration": "Your immersive introductory narration in Spanish, ending with the location description and a question to the players."
 }`,
 });
 
