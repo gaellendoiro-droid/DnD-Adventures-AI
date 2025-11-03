@@ -31,9 +31,10 @@ export function PartyPanel({
               key={character.id}
               onClick={() => onSelectCharacter(character)}
               className={cn(
-                "flex items-center space-x-4 p-2 rounded-lg cursor-pointer transition-colors hover:bg-secondary",
-                character.id === selectedCharacterId && "bg-secondary border border-primary/50"
+                "flex items-center space-x-4 p-2 rounded-lg cursor-pointer transition-colors hover:bg-secondary border-l-4",
+                character.id === selectedCharacterId ? "bg-secondary border-primary/80" : "border-transparent"
               )}
+              style={{ borderLeftColor: character.id === selectedCharacterId ? '' : character.color }}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => e.key === 'Enter' && onSelectCharacter(character)}
