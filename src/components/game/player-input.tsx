@@ -8,14 +8,16 @@ import { useToast } from "@/hooks/use-toast";
 
 interface PlayerInputProps {
   onSendMessage: (content: string) => void;
+  disabled?: boolean;
 }
 
-export function PlayerInput({ onSendMessage }: PlayerInputProps) {
+export function PlayerInput({ onSendMessage, disabled = false }: PlayerInputProps) {
   const [inputValue, setInputValue] = useState("");
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (disabled) return;
     const message = inputValue.trim();
     if (message) {
       onSendMessage(message);
@@ -42,11 +44,12 @@ export function PlayerInput({ onSendMessage }: PlayerInputProps) {
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="¿Qué quieres hacer?"
+        placeholder={disabled ? "El DM está pensando..." : "¿Qué quieres hacer?"}
         className="flex-1 resize-none"
         rows={1}
+        disabled={disabled}
       />
-      <Button type="submit" size="icon" aria-label="Enviar acción">
+      <Button type="submit" size="icon" aria-label="Enviar acción" disabled={disabled}>
         <Send className="h-5 w-5" />
       </Button>
     </form>
