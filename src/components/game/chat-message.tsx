@@ -36,7 +36,7 @@ const senderInfo = {
 };
 
 export function ChatMessage({ message }: ChatMessageProps) {
-  const { sender, senderName, content, timestamp } = message;
+  const { sender, senderName, content, timestamp, characterColor } = message;
   const info = senderInfo[sender];
   const Icon = info.icon;
 
@@ -51,6 +51,17 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const isPlayer = sender === "Player";
   const displayName = sender === "Character" && senderName ? senderName : info.name;
 
+  const bubbleStyle =
+    sender === "Character" && characterColor
+      ? { backgroundColor: characterColor, color: 'white' }
+      : {};
+
+  const bubbleClassName =
+    sender === "Character"
+      ? "text-primary-foreground rounded-b-none"
+      : info.bubbleClassName;
+
+
   return (
     <div
       className={cn("flex gap-3 my-4", isPlayer ? "justify-end" : "justify-start")}
@@ -60,8 +71,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
         <div
           className={cn(
             "p-3 rounded-lg shadow-sm w-fit",
-            info.bubbleClassName
+            bubbleClassName
           )}
+          style={bubbleStyle}
         >
           {typeof content === 'string' ? <p className="leading-relaxed">{content}</p> : content}
         </div>

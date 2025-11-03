@@ -20,6 +20,7 @@ export interface Character {
   level: number;
   avatarUrl: string;
   avatarHint: string;
+  color: string;
   abilityScores: AbilityScores;
   skills: Skill[];
   hp: {
@@ -33,6 +34,7 @@ export interface GameMessage {
   id: string;
   sender: "DM" | "Player" | "System" | "Character";
   senderName?: string;
+  characterColor?: string;
   content: string | React.ReactNode;
   timestamp: string;
 }

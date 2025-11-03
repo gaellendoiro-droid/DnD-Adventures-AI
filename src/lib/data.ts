@@ -15,6 +15,7 @@ export const initialParty: Character[] = [
     level: 1,
     avatarUrl: character1Image?.imageUrl ?? '',
     avatarHint: character1Image?.imageHint ?? 'fantasy warrior',
+    color: '#3b82f6', // blue-500
     abilityScores: {
       fuerza: 16,
       destreza: 14,
@@ -39,6 +40,7 @@ export const initialParty: Character[] = [
     level: 1,
     avatarUrl: character2Image?.imageUrl ?? '',
     avatarHint: character2Image?.imageHint ?? 'fantasy wizard',
+    color: '#8b5cf6', // violet-500
     abilityScores: {
       fuerza: 8,
       destreza: 14,
@@ -63,6 +65,7 @@ export const initialParty: Character[] = [
     level: 1,
     avatarUrl: character3Image?.imageUrl ?? '',
     avatarHint: character3Image?.imageHint ?? 'fantasy rogue',
+    color: '#10b981', // emerald-500
     abilityScores: {
       fuerza: 10,
       destreza: 17,
@@ -87,6 +90,7 @@ export const initialParty: Character[] = [
     level: 1,
     avatarUrl: character4Image?.imageUrl ?? '',
     avatarHint: character4Image?.imageHint ?? 'fantasy cleric',
+    color: '#f97316', // orange-500
     abilityScores: {
       fuerza: 15,
       destreza: 8,

@@ -81,6 +81,7 @@ export default function Home() {
             addMessage({
               sender: 'Character',
               senderName: character.name,
+              characterColor: character.color,
               content: characterActionResponse.action,
             });
           }
