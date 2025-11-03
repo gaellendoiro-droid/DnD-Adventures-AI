@@ -73,6 +73,10 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, gameInPro
               Cargar Aventura (JSON)
             </Button>
             <Button size="lg" variant="secondary" disabled>
+              <Upload className="mr-2 h-5 w-5" />
+              Cargar Partida
+            </Button>
+            <Button size="lg" variant="secondary" disabled>
               <Save className="mr-2 h-5 w-5" />
               Guardar Partida
             </Button>
