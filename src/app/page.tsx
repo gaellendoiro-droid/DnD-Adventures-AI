@@ -11,6 +11,7 @@ import { ChatPanel } from "@/components/game/chat-panel";
 import { MainMenu } from "@/components/game/main-menu";
 import { aiDungeonMasterParser } from "@/ai/flows/ai-dungeon-master-parser";
 import { generateCharacterAction } from "@/ai/flows/generate-character-action";
+import { dungeonMasterOocParser } from "@/ai/flows/dungeon-master-ooc-parser";
 
 export default function Home() {
   const [party, setParty] = useState<Character[]>(initialParty);
@@ -51,48 +52,60 @@ export default function Home() {
     setIsDMThinking(true);
 
     try {
-      const playerCharacter = party.find(c => c.controlledBy === 'Player');
-      const locationDescription = messages.filter(m => m.sender === 'DM').slice(-1)[0]?.content as string;
+      if (content.startsWith('//')) {
+        // Out-of-character message to DM
+        const oocQuery = content.substring(2).trim();
+        const oocResponse = await dungeonMasterOocParser({
+          playerQuery: oocQuery,
+          gameState: gameState,
+        });
+        if (oocResponse.dmReply) {
+          addMessage({ sender: "DM", content: `(OOC) ${oocResponse.dmReply}` });
+        }
+      } else {
+        // In-character action
+        const playerCharacter = party.find(c => c.controlledBy === 'Player');
+        const locationDescription = messages.filter(m => m.sender === 'DM').slice(-1)[0]?.content as string;
 
-      const dmResponse = await aiDungeonMasterParser({
-        playerAction: content,
-        gameState: gameState,
-        locationDescription: locationDescription,
-        characterStats: JSON.stringify(playerCharacter),
-      });
+        const dmResponse = await aiDungeonMasterParser({
+          playerAction: content,
+          gameState: gameState,
+          locationDescription: locationDescription,
+          characterStats: JSON.stringify(playerCharacter),
+        });
 
-      if (dmResponse.narration) {
-        addMessage({ sender: "DM", content: dmResponse.narration });
-      }
-      
-      if(dmResponse.updatedGameState) {
-        setGameState(dmResponse.updatedGameState);
-      }
+        if (dmResponse.narration) {
+          addMessage({ sender: "DM", content: dmResponse.narration });
+        }
+        
+        if(dmResponse.updatedGameState) {
+          setGameState(dmResponse.updatedGameState);
+        }
 
-      // TODO: Implement character stats and location updates
-      
-      // Generate NPC actions
-      for (const character of party) {
-        if (character.controlledBy === 'AI') {
-          const characterActionResponse = await generateCharacterAction({
-            characterName: character.name,
-            characterClass: character.class,
-            characterRace: character.race,
-            dmNarration: dmResponse.narration,
-            playerAction: content,
-          });
-
-          if (characterActionResponse.action) {
-            addMessage({
-              sender: 'Character',
-              senderName: character.name,
-              characterColor: character.color,
-              content: characterActionResponse.action,
+        // TODO: Implement character stats and location updates
+        
+        // Generate NPC actions
+        for (const character of party) {
+          if (character.controlledBy === 'AI') {
+            const characterActionResponse = await generateCharacterAction({
+              characterName: character.name,
+              characterClass: character.class,
+              characterRace: character.race,
+              dmNarration: dmResponse.narration,
+              playerAction: content,
             });
+
+            if (characterActionResponse.action) {
+              addMessage({
+                sender: 'Character',
+                senderName: character.name,
+                characterColor: character.color,
+                content: characterActionResponse.action,
+              });
+            }
           }
         }
       }
-
     } catch (error) {
       console.error("Error during AI turn:", error);
       addMessage({

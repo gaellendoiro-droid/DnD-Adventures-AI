@@ -39,19 +39,24 @@ export function PlayerInput({ onSendMessage, disabled = false }: PlayerInputProp
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-start gap-2 mt-4">
-      <Textarea
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={disabled ? "El DM está pensando..." : "¿Qué quieres hacer?"}
-        className="flex-1 resize-none"
-        rows={1}
-        disabled={disabled}
-      />
-      <Button type="submit" size="icon" aria-label="Enviar acción" disabled={disabled}>
-        <Send className="h-5 w-5" />
-      </Button>
-    </form>
+    <div className="mt-4 space-y-2">
+      <form onSubmit={handleSubmit} className="flex items-start gap-2">
+        <Textarea
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={disabled ? "El DM está pensando..." : "¿Qué quieres hacer?"}
+          className="flex-1 resize-none"
+          rows={1}
+          disabled={disabled}
+        />
+        <Button type="submit" size="icon" aria-label="Enviar acción" disabled={disabled}>
+          <Send className="h-5 w-5" />
+        </Button>
+      </form>
+      <p className="text-xs text-muted-foreground px-1">
+        Para hablar con el DM fuera de personaje, empieza tu mensaje con <code className="font-mono bg-muted px-1 py-0.5 rounded-sm">//</code>.
+      </p>
+    </div>
   );
 }

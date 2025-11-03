@@ -6,3 +6,4 @@ import '@/ai/flows/generate-monster-encounters.ts';
 import '@/ai/flows/translate-adventure-to-spanish.ts';
 import '@/ai/flows/ai-dungeon-master-parser.ts';
 import '@/ai/flows/generate-character-action.ts';
+import '@/ai/flows/dungeon-master-ooc-parser.ts';
