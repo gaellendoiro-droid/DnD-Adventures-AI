@@ -7,3 +7,4 @@ import '@/ai/flows/translate-adventure-to-spanish.ts';
 import '@/ai/flows/ai-dungeon-master-parser.ts';
 import '@/ai/flows/generate-character-action.ts';
 import '@/ai/flows/dungeon-master-ooc-parser.ts';
+import '@/ai/flows/generate-adventure-intro.ts';

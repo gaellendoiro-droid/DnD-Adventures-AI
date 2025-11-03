@@ -14,6 +14,7 @@ import { generateCharacterAction } from "@/ai/flows/generate-character-action";
 import { dungeonMasterOocParser } from "@/ai/flows/dungeon-master-ooc-parser";
 import { parseAdventureFromJson } from "@/ai/flows/parse-adventure-from-json";
 import { translateAdventureToSpanish } from "@/ai/flows/translate-adventure-to-spanish";
+import { generateAdventureIntro } from "@/ai/flows/generate-adventure-intro";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
@@ -177,26 +178,31 @@ export default function Home() {
         setGameState(JSON.stringify(parsedAdventure.adventureData));
         setMessages([]);
 
-        toast({ title: "Traduciendo aventura...", description: "Un momento, por favor." });
+        toast({ title: "Traduciendo y preparando la introducción...", description: "Un momento, por favor." });
 
         const [translatedTitle, translatedSummary] = await Promise.all([
           translateAdventureToSpanish({ adventureText: parsedAdventure.adventureTitle }),
           translateAdventureToSpanish({ adventureText: parsedAdventure.adventureSummary }),
         ]);
 
+        const introNarration = await generateAdventureIntro({
+          adventureTitle: translatedTitle.translatedAdventureText,
+          adventureSummary: translatedSummary.translatedAdventureText,
+        });
+
         addMessage({
           sender: 'DM',
-          content: `¡Aventura cargada! Título: ${translatedTitle.translatedAdventureText}. ${translatedSummary.translatedAdventureText}. ¿Listos para empezar?`
+          content: introNarration.narration,
         });
 
         setDiceRolls([]);
         setParty(initialParty);
         setSelectedCharacter(initialParty.find(c => c.controlledBy === 'Player') || null);
         
-        setGameInProgress(true); // Set to true to show game screen
+        setGameInProgress(true);
         setGameStarted(true);
 
-        toast({ title: "¡Aventura cargada y traducida!", description: "La nueva aventura está lista para jugar en español." });
+        toast({ title: "¡Aventura cargada y lista!", description: "La nueva aventura está lista para jugar." });
 
       } catch (error) {
         console.error("Error parsing or translating adventure file:", error);
