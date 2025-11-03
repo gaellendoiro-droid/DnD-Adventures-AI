@@ -19,12 +19,12 @@ export function ChatPanel({
   onSendMessage,
   onDiceRoll,
 }: ChatPanelProps) {
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({
-        top: scrollAreaRef.current.scrollHeight,
+    if (scrollViewportRef.current) {
+      scrollViewportRef.current.scrollTo({
+        top: scrollViewportRef.current.scrollHeight,
         behavior: "smooth",
       });
     }
@@ -32,8 +32,8 @@ export function ChatPanel({
 
   return (
     <div className="flex flex-col h-full bg-card rounded-lg shadow-sm border">
-      <ScrollArea className="flex-1 p-4" viewportRef={scrollAreaRef}>
-        <div className="space-y-4">
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4" ref={scrollViewportRef}>
           {messages.map((msg) => (
             <ChatMessage key={msg.id} message={msg} />
           ))}
