@@ -14,7 +14,7 @@ export interface Skill {
 
 export interface Character {
   id: string;
-  name: string;
+  name:string;
   race: string;
   class: string;
   level: number;
@@ -31,7 +31,8 @@ export interface Character {
 
 export interface GameMessage {
   id: string;
-  sender: "DM" | "Player" | "System";
+  sender: "DM" | "Player" | "System" | "Character";
+  senderName?: string;
   content: string | React.ReactNode;
   timestamp: string;
 }

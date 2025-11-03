@@ -9,6 +9,7 @@ import { PartyPanel } from "@/components/game/party-panel";
 import { CharacterSheet } from "@/components/game/character-sheet";
 import { ChatPanel } from "@/components/game/chat-panel";
 import { aiDungeonMasterParser } from "@/ai/flows/ai-dungeon-master-parser";
+import { generateCharacterAction } from "@/ai/flows/generate-character-action";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Home() {
@@ -21,89 +22,84 @@ export default function Home() {
   const [gameState, setGameState] = useState("Initial state: The party is in the Yawning Portal inn.");
 
   useEffect(() => {
-    // Set initial messages after a short delay to simulate the DM starting the game.
     setTimeout(() => {
       setMessages(initialMessages);
     }, 1000);
   }, []);
 
+  const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>) => {
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      {
+        ...message,
+        id: Date.now().toString() + Math.random(),
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      },
+    ]);
+  };
+
   const handleSendMessage = async (content: string) => {
-    const newMessage: GameMessage = {
-      id: Date.now().toString(),
-      sender: "Player",
-      content,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
+    addMessage({ sender: "Player", content });
     setIsDMThinking(true);
 
     try {
       const playerCharacter = party.find(c => c.controlledBy === 'Player');
       const locationDescription = messages.filter(m => m.sender === 'DM').slice(-1)[0]?.content as string;
 
-      const response = await aiDungeonMasterParser({
+      const dmResponse = await aiDungeonMasterParser({
         playerAction: content,
         gameState: gameState,
         locationDescription: locationDescription,
         characterStats: JSON.stringify(playerCharacter),
       });
 
-      if (response.narration) {
-        const dmMessage: GameMessage = {
-          id: Date.now().toString() + "-dm",
-          sender: "DM",
-          content: response.narration,
-          timestamp: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        };
-        setMessages((prevMessages) => [...prevMessages, dmMessage]);
+      if (dmResponse.narration) {
+        addMessage({ sender: "DM", content: dmResponse.narration });
       }
       
-      if(response.updatedGameState) {
-        setGameState(response.updatedGameState);
+      if(dmResponse.updatedGameState) {
+        setGameState(dmResponse.updatedGameState);
       }
 
       // TODO: Implement character stats and location updates
-      if (response.updatedCharacterStats) {
-        // Find and update character
-      }
-      if (response.nextLocationDescription) {
-        // We can add a new message with the new location description
+      
+      // Generate NPC actions
+      for (const character of party) {
+        if (character.controlledBy === 'AI') {
+          const characterActionResponse = await generateCharacterAction({
+            characterName: character.name,
+            characterClass: character.class,
+            characterRace: character.race,
+            dmNarration: dmResponse.narration,
+            playerAction: content,
+          });
+
+          if (characterActionResponse.action) {
+            addMessage({
+              sender: 'Character',
+              senderName: character.name,
+              content: characterActionResponse.action,
+            });
+          }
+        }
       }
 
     } catch (error) {
-      console.error("Error calling AI Dungeon Master:", error);
-      const errorMessage: GameMessage = {
-        id: Date.now().toString() + "-error",
+      console.error("Error during AI turn:", error);
+      addMessage({
         sender: "System",
-        content: "El Dungeon Master está confundido y no puede responder ahora mismo.",
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      setMessages((prevMessages) => [...prevMessages, errorMessage]);
+        content: "El Dungeon Master o uno de los personajes está confundido y no puede responder ahora mismo.",
+      });
     } finally {
       setIsDMThinking(false);
     }
   };
 
   const handleDiceRoll = (roll: string) => {
-    const newMessage: GameMessage = {
-      id: Date.now().toString(),
-      sender: "System",
-      content: roll,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
+    addMessage({ sender: "System", content: roll });
   };
 
   return (
