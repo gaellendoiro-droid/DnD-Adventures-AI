@@ -3,7 +3,7 @@
 import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Save, Upload, Gamepad2 } from 'lucide-react';
+import { Play, Save, Upload, Gamepad2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface MainMenuProps {
@@ -11,9 +11,10 @@ interface MainMenuProps {
   onContinueGame: () => void;
   onLoadAdventure: (file: File) => void;
   gameInProgress: boolean;
+  isLoading?: boolean;
 }
 
-export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, gameInProgress }: MainMenuProps) {
+export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, gameInProgress, isLoading = false }: MainMenuProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -52,12 +53,12 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, gameInPro
         <CardContent>
           <div className="flex flex-col space-y-4">
             {gameInProgress && (
-              <Button size="lg" onClick={onContinueGame}>
+              <Button size="lg" onClick={onContinueGame} disabled={isLoading}>
                 <Gamepad2 className="mr-2 h-5 w-5" />
                 Continuar Partida
               </Button>
             )}
-            <Button size="lg" variant={gameInProgress ? 'secondary' : 'default'} onClick={onNewGame}>
+            <Button size="lg" variant={gameInProgress ? 'secondary' : 'default'} onClick={onNewGame} disabled={isLoading}>
               <Play className="mr-2 h-5 w-5" />
               Nueva Partida
             </Button>
@@ -67,10 +68,15 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, gameInPro
               onChange={handleFileChange}
               accept="application/json"
               className="hidden"
+              disabled={isLoading}
             />
-            <Button size="lg" variant="secondary" onClick={handleLoadClick}>
-              <Upload className="mr-2 h-5 w-5" />
-              Cargar Aventura (JSON)
+            <Button size="lg" variant="secondary" onClick={handleLoadClick} disabled={isLoading}>
+              {isLoading ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                <Upload className="mr-2 h-5 w-5" />
+              )}
+              {isLoading ? 'Cargando Aventura...' : 'Cargar Aventura (JSON)'}
             </Button>
             <Button size="lg" variant="secondary" disabled>
               <Upload className="mr-2 h-5 w-5" />

@@ -27,6 +27,7 @@ export default function Home() {
   const [gameState, setGameState] = useState("Initial state: The party is in the Yawning Portal inn.");
   const [gameStarted, setGameStarted] = useState(false);
   const [gameInProgress, setGameInProgress] = useState(false);
+  const [isLoadingAdventure, setIsLoadingAdventure] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -168,6 +169,7 @@ export default function Home() {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
+        setIsLoadingAdventure(true);
         const jsonContent = e.target?.result as string;
         toast({ title: "Procesando aventura...", description: "La IA está analizando el archivo JSON." });
         const parsedAdventure = await parseAdventureFromJson({ adventureJson: jsonContent });
@@ -191,7 +193,7 @@ export default function Home() {
         setParty(initialParty);
         setSelectedCharacter(initialParty.find(c => c.controlledBy === 'Player') || null);
         
-        setGameInProgress(false);
+        setGameInProgress(true); // Set to true to show game screen
         setGameStarted(true);
 
         toast({ title: "¡Aventura cargada y traducida!", description: "La nueva aventura está lista para jugar en español." });
@@ -203,6 +205,8 @@ export default function Home() {
           title: "Error al cargar la aventura",
           description: "No se pudo procesar o traducir el archivo. Asegúrate de que sea un JSON válido.",
         });
+      } finally {
+        setIsLoadingAdventure(false);
       }
     };
     reader.readAsText(file);
@@ -236,6 +240,7 @@ export default function Home() {
           onContinueGame={handleContinueGame}
           onLoadAdventure={handleLoadAdventure}
           gameInProgress={gameInProgress} 
+          isLoading={isLoadingAdventure}
         />
       )}
     </div>
