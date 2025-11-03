@@ -79,7 +79,7 @@ export const initialMessages: GameMessage[] = [
     {
         id: 'welcome-1',
         sender: 'DM',
-        content: "¡Saludos, aventureros! Se reúnen en la posada 'El Portal Bostezante', famosa en toda la Costa de la Espada. El aire huele a estofado y madera vieja. Un murmullo de conversaciones llena la sala común, pero una figura encapuchada en una esquina oscura les hace señas. ¿Qué hacen?",
+        content: "Se encuentran en 'El Portal Bostezante', una posada legendaria en el corazón de la Costa de la Espada. El aire está cargado con el aroma de estofado de carne y el humo de la leña crepitante en el hogar. Un murmullo constante de conversaciones y risas llena la sala común. Podrían acercarse a la barra y charlar con el posadero, buscar una mesa libre para planificar su siguiente paso, o quizás averiguar más sobre la figura solitaria y encapuchada que les observa desde una esquina oscura. El ambiente es un hervidero de oportunidades y peligros latentes. ¿Qué hacen?",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     }
 ]
