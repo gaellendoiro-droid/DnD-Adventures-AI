@@ -12,6 +12,8 @@ import { ChatPanel } from "@/components/game/chat-panel";
 import { aiDungeonMasterParser } from "@/ai/flows/ai-dungeon-master-parser";
 import { generateCharacterAction } from "@/ai/flows/generate-character-action";
 import { dungeonMasterOocParser } from "@/ai/flows/dungeon-master-ooc-parser";
+import { parseAdventureFromJson } from "@/ai/flows/parse-adventure-from-json";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const [party, setParty] = useState<Character[]>(initialParty);
@@ -24,15 +26,18 @@ export default function Home() {
   const [gameState, setGameState] = useState("Initial state: The party is in the Yawning Portal inn.");
   const [gameStarted, setGameStarted] = useState(false);
   const [gameInProgress, setGameInProgress] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (gameStarted && !gameInProgress) {
-      setMessages(initialMessages);
+      if (messages.length === 0) {
+        setMessages(initialMessages);
+      }
       setGameInProgress(true);
     } else if (!gameStarted) {
       // Don't clear messages when just going to menu
     }
-  }, [gameStarted, gameInProgress]);
+  }, [gameStarted, gameInProgress, messages.length]);
 
   const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>) => {
     setMessages((prevMessages) => [
@@ -146,7 +151,7 @@ export default function Home() {
     setParty(initialParty);
     setGameState("Initial state: The party is in the Yawning Portal inn.");
     setSelectedCharacter(initialParty.find(c => c.controlledBy === 'Player') || null);
-    setGameInProgress(false); // This will trigger the useEffect to set initial messages
+    setGameInProgress(false);
     setGameStarted(true);
   };
   
@@ -156,6 +161,42 @@ export default function Home() {
 
   const handleContinueGame = () => {
     setGameStarted(true);
+  };
+
+  const handleLoadAdventure = async (file: File) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const jsonContent = e.target?.result as string;
+        toast({ title: "Procesando aventura...", description: "La IA está analizando el archivo JSON." });
+        const parsedAdventure = await parseAdventureFromJson({ adventureJson: jsonContent });
+        
+        setGameState(JSON.stringify(parsedAdventure.adventureData));
+        setMessages([]); // Clear previous messages
+        addMessage({
+          sender: 'DM',
+          content: `¡Aventura cargada! Título: ${parsedAdventure.adventureTitle}. ${parsedAdventure.adventureSummary}. ¿Listos para empezar?`
+        });
+
+        setDiceRolls([]);
+        setParty(initialParty);
+        setSelectedCharacter(initialParty.find(c => c.controlledBy === 'Player') || null);
+        
+        setGameInProgress(false);
+        setGameStarted(true);
+
+        toast({ title: "¡Aventura cargada!", description: "La nueva aventura está lista para jugar." });
+
+      } catch (error) {
+        console.error("Error parsing adventure file:", error);
+        toast({
+          variant: 'destructive',
+          title: "Error al cargar la aventura",
+          description: "No se pudo procesar el archivo. Asegúrate de que sea un JSON válido.",
+        });
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -181,7 +222,12 @@ export default function Home() {
           />
         </GameLayout>
       ) : (
-        <MainMenu onNewGame={handleNewGame} onContinueGame={handleContinueGame} gameInProgress={gameInProgress} />
+        <MainMenu 
+          onNewGame={handleNewGame} 
+          onContinueGame={handleContinueGame}
+          onLoadAdventure={handleLoadAdventure}
+          gameInProgress={gameInProgress} 
+        />
       )}
     </div>
   );

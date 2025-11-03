@@ -43,9 +43,9 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert D&D game master. Your task is to parse adventure data from a JSON format and provide a structured output.
 
   Here is the adventure data in JSON format:
-  ```json
+  \`\`\`
   {{{adventureJson}}}
-  ```
+  \`\`\`
 
   Based on the JSON data, extract the adventure title, create a brief summary, and parse the rest of the adventure data into a structured format that can be used by the application.
   Make your adventureData output be valid JSON.
