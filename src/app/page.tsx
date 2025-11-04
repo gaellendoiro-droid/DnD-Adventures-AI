@@ -113,22 +113,23 @@ export default function Home() {
         // TODO: Implement character stats updates
         
         // Generate NPC actions
-        for (const character of party) {
-          if (character.controlledBy === 'AI') {
-            const characterActionResponse = await generateCharacterAction({
-              characterName: character.name,
-              characterClass: character.class,
-              characterRace: character.race,
-              dmNarration: dmResponse.narration,
-              playerAction: content,
-            });
+        const aiCharacters = party.filter(c => c.controlledBy === 'AI').map(c => ({id: c.id, name: c.name, class: c.class, race: c.race }));
+        
+        const characterActionsResponse = await generateCharacterAction({
+          characters: aiCharacters,
+          dmNarration: dmResponse.narration,
+          playerAction: content,
+        });
 
-            if (characterActionResponse.action) {
+        if (characterActionsResponse.actions && characterActionsResponse.actions.length > 0) {
+          for (const action of characterActionsResponse.actions) {
+            const character = party.find(c => c.id === action.characterId);
+            if (character && action.action) {
               addMessage({
                 sender: 'Character',
                 senderName: character.name,
                 characterColor: character.color,
-                content: characterActionResponse.action,
+                content: action.action,
               });
             }
           }
