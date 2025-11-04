@@ -29,7 +29,7 @@ const prompt = ai.definePrompt({
   name: 'translateAdventureToSpanishPrompt',
   input: {schema: TranslateAdventureToSpanishInputSchema},
   output: {schema: TranslateAdventureToSpanishOutputSchema},
-  prompt: `Translate the following D&D adventure text from English to Spanish. It is very important that you DO NOT translate proper nouns (names of people, places, items, etc.).\n\n{{adventureText}}`,
+  prompt: `Translate the following D&D adventure text from English to Spanish. It is very important that you DO NOT translate proper nouns (names of people, places, items, etc.).\n\n{{{adventureText}}}`,
 });
 
 const translateAdventureToSpanishFlow = ai.defineFlow(
