@@ -16,6 +16,7 @@ import { parseAdventureFromJson } from "@/ai/flows/parse-adventure-from-json";
 import { translateAdventureToSpanish } from "@/ai/flows/translate-adventure-to-spanish";
 import { generateAdventureIntro } from "@/ai/flows/generate-adventure-intro";
 import { detectLanguage } from "@/ai/flows/detect-language";
+import { markdownToHtml } from "@/ai/flows/markdown-to-html";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
@@ -99,7 +100,8 @@ export default function Home() {
         });
 
         if (dmResponse.narration) {
-          addMessage({ sender: "DM", content: dmResponse.narration });
+            const { html } = await markdownToHtml({ markdown: dmResponse.narration });
+            addMessage({ sender: "DM", content: html, originalContent: dmResponse.narration });
         }
         
         if(dmResponse.updatedGameState) {

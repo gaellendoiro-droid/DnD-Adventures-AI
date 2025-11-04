@@ -35,6 +35,7 @@ export interface GameMessage {
   senderName?: string;
   characterColor?: string;
   content: string | React.ReactNode;
+  originalContent?: string; // Store the raw markdown here
   timestamp: string;
 }
 

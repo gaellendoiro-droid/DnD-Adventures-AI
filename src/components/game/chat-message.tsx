@@ -40,7 +40,7 @@ const senderInfo = {
 };
 
 export function ChatMessage({ message }: ChatMessageProps) {
-  const { sender, senderName, content, timestamp, characterColor } = message;
+  const { sender, senderName, content, timestamp, characterColor, originalContent } = message;
   const info = senderInfo[sender];
   const Icon = info.icon;
 
@@ -51,7 +51,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const { toast } = useToast();
 
   const handleAudioToggle = async () => {
-    if (typeof content !== 'string') return;
+    const textToSpeak = originalContent || (typeof content === 'string' ? content : '');
+    if (!textToSpeak) return;
 
     if (isPlaying) {
       if (audioRef.current) {
@@ -69,7 +70,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
     setIsGeneratingAudio(true);
     try {
-      const response = await generateDmNarrationAudio({ narrationText: content });
+      const response = await generateDmNarrationAudio({ narrationText: textToSpeak });
       setAudioDataUri(response.audioDataUri);
     } catch (error) {
       console.error("Error generating narration audio:", error);
@@ -145,16 +146,21 @@ export function ChatMessage({ message }: ChatMessageProps) {
           {displayName} @ {timestamp}
         </span>
         <div className="flex items-end gap-2">
-          <div
+           <div
             className={cn(
-              "p-3 rounded-lg shadow-sm w-fit",
-              bubbleClassName
+              "p-3 rounded-lg shadow-sm w-fit prose prose-sm dark:prose-invert",
+              bubbleClassName,
+              "prose-p:m-0 prose-headings:m-0"
             )}
             style={bubbleStyle}
           >
-            {typeof content === 'string' ? <p className="leading-relaxed">{content}</p> : content}
+            {typeof content === 'string' && (sender === 'DM' || sender === 'System') ? (
+              <div className="leading-relaxed" dangerouslySetInnerHTML={{ __html: content }} />
+            ) : (
+              <p className="leading-relaxed">{content as string}</p>
+            )}
           </div>
-          {sender === "DM" && typeof content === 'string' && (
+          {sender === "DM" && (
              <Button
                 variant="ghost"
                 size="icon"

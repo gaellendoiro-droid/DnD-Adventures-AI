@@ -19,7 +19,7 @@ const AiDungeonMasterParserInputSchema = z.object({
 export type AiDungeonMasterParserInput = z.infer<typeof AiDungeonMasterParserInputSchema>;
 
 const AiDungeonMasterParserOutputSchema = z.object({
-  narration: z.string().describe('The AI Dungeon Master narration in response to the player action.'),
+  narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown."),
   updatedGameState: z.string().optional().describe('The updated game state, if any.'),
   nextLocationDescription: z.string().optional().describe('A description of the next location, if the player moved.'),
   updatedCharacterStats: z.string().optional().describe('The updated character stats, if any.'),
@@ -37,6 +37,8 @@ const aiDungeonMasterParserPrompt = ai.definePrompt({
   prompt: `You are an AI Dungeon Master for a D&D 5e game. Your goal is to be a descriptive and engaging storyteller, while being faithful to the game's state. You MUST ALWAYS reply in Spanish. It is very important that you DO NOT translate proper nouns (names of people, places, items, etc.).
 
 You MUST be faithful to the information provided in the gameState. The gameState is the absolute source of truth for the world, including locations, characters, and events. You must IGNORE any prior knowledge you have about D&D adventures and rely ONLY on the gameState provided. Do not invent new names for places or characters if they are described in the gameState. The player character's stats are provided separately and should not be confused with NPCs in the gameState.
+
+Your narration should be formatted using Markdown for emphasis and readability. Use paragraphs, bold text, and other formatting to make the story engaging.
 
 Here is the current game state: {{{gameState}}}
 Here is the description of the current location: {{{locationDescription}}}
