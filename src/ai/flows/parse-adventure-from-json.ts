@@ -21,9 +21,9 @@ export type ParseAdventureFromJsonInput = z.infer<
 >;
 
 const ParseAdventureFromJsonOutputSchema = z.object({
-  adventureTitle: z.string().describe('The title of the adventure.'),
-  adventureSummary: z.string().describe('A brief summary of the adventure.'),
-  adventureData: z.any().describe('Parsed adventure data in a structured format.'),
+  adventureTitle: z.string().describe('The title of the adventure, extracted from the JSON content.'),
+  adventureSummary: z.string().describe('A brief summary of the adventure, generated from the JSON content.'),
+  adventureData: z.any().describe('The entire valid JSON adventure data.'),
 });
 
 export type ParseAdventureFromJsonOutput = z.infer<
@@ -39,22 +39,18 @@ export async function parseAdventureFromJson(
 const prompt = ai.definePrompt({
   name: 'parseAdventureFromJsonPrompt',
   input: {schema: ParseAdventureFromJsonInputSchema},
-  output: {schema: ParseAdventureFromJsonOutputSchema},
-  prompt: `You are an expert D&D game master. Your task is to parse adventure data from a JSON format and provide a structured output.
+  output: {schema: z.object({
+    adventureTitle: z.string().describe('The title of the adventure, extracted from the JSON content.'),
+    adventureSummary: z.string().describe('A brief summary of the adventure, generated from the JSON content.'),
+  })},
+  prompt: `You are an expert D&D game master. Your task is to process adventure data from a JSON format.
 
   Here is the adventure data in JSON format:
   \`\`\`json
   {{{adventureJson}}}
   \`\`\`
 
-  Based on the JSON data, extract the adventure title, create a brief summary, and parse the rest of the adventure data into a structured format that can be used by the application.
-  Make your adventureData output be valid JSON.
-  Here's an example:
-  {
-  "adventureTitle": "Title of the Adventure",
-  "adventureSummary": "A brief summary of the adventure.",
-   "adventureData": { "exampleKey": "exampleValue" }
-  }
+  From the content of this JSON, please extract the adventure's main title and generate a concise summary (2-3 sentences) of what the adventure is about.
   `,
 });
 
@@ -65,7 +61,25 @@ const parseAdventureFromJsonFlow = ai.defineFlow(
     outputSchema: ParseAdventureFromJsonOutputSchema,
   },
   async input => {
+    // First, validate if the input is valid JSON
+    let adventureData;
+    try {
+      adventureData = JSON.parse(input.adventureJson);
+    } catch (e) {
+      throw new Error("Invalid JSON provided for the adventure.");
+    }
+
+    // Then, extract title and summary using the AI prompt
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error("Could not extract adventure title and summary.");
+    }
+    
+    // Return the extracted info plus the full, original JSON data.
+    return {
+      adventureTitle: output.adventureTitle,
+      adventureSummary: output.adventureSummary,
+      adventureData: adventureData,
+    };
   }
 );
