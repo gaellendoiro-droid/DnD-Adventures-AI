@@ -29,7 +29,7 @@ const prompt = ai.definePrompt({
   name: 'generateAdventureIntroPrompt',
   input: {schema: GenerateAdventureIntroInputSchema},
   output: {schema: GenerateAdventureIntroOutputSchema},
-  prompt: `You are an expert Dungeon Master for a D&D 5e game. Your task is to craft an immersive and engaging introduction for the players based on the adventure's title and summary. The response MUST be in Spanish.
+  prompt: `You are an expert Dungeon Master for a D&D 5e game. Your task is to craft an immersive and engaging introduction for the players based on the adventure's title and summary. The response MUST be in Spanish. It is very important that you DO NOT translate proper nouns (names of people, places, etc.) from the title or summary.
 
 Adventure Title: {{{adventureTitle}}}
 Adventure Summary: {{{adventureSummary}}}
