@@ -36,7 +36,7 @@ export function ChatPanel({
 
   return (
     <div className="flex flex-col h-full bg-card rounded-lg shadow-sm border">
-      <ScrollArea className="flex-1 p-4" ref={scrollViewportRef}>
+      <ScrollArea className="flex-1 p-4" viewportRef={scrollViewportRef}>
         <div className="space-y-4">
           {messages.map((msg) => (
             <ChatMessage key={msg.id} message={msg} />
