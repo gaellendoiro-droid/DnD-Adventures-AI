@@ -212,9 +212,11 @@ export default function Home() {
           adventureSummary: adventureSummary,
         });
 
+        const { html } = await markdownToHtml({ markdown: introNarration.narration });
         addMessage({
           sender: 'DM',
-          content: introNarration.narration,
+          content: html,
+          originalContent: introNarration.narration,
         });
         setLocationDescription(introNarration.narration);
 
