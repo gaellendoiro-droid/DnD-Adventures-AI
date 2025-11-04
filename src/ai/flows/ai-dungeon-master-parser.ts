@@ -40,7 +40,10 @@ You MUST be faithful to the information provided in the gameState. The gameState
 
 Your narration should be formatted using Markdown for emphasis and readability. Use paragraphs, bold text, and other formatting to make the story engaging.
 
-Here is the current game state: {{{gameState}}}
+Here is the current game state in JSON format:
+\`\`\`json
+{{{gameState}}}
+\`\`\`
 Here is the description of the current location: {{{locationDescription}}}
 Here are the player character stats: {{{characterStats}}}
 
