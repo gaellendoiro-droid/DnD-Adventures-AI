@@ -13,9 +13,7 @@ import { aiDungeonMasterParser } from "@/ai/flows/ai-dungeon-master-parser";
 import { generateCharacterAction } from "@/ai/flows/generate-character-action";
 import { dungeonMasterOocParser } from "@/ai/flows/dungeon-master-ooc-parser";
 import { parseAdventureFromJson } from "@/ai/flows/parse-adventure-from-json";
-import { translateAdventureToSpanish } from "@/ai/flows/translate-adventure-to-spanish";
 import { generateAdventureIntro } from "@/ai/flows/generate-adventure-intro";
-import { detectLanguage } from "@/ai/flows/detect-language";
 import { markdownToHtml } from "@/ai/flows/markdown-to-html";
 import { useToast } from "@/hooks/use-toast";
 
@@ -189,27 +187,11 @@ export default function Home() {
         setGameState(JSON.stringify(parsedAdventure.adventureData));
         setMessages([]);
 
-        // Detect language
-        const { languageCode } = await detectLanguage({ text: parsedAdventure.adventureTitle });
-        
-        let adventureTitle = parsedAdventure.adventureTitle;
-        let adventureSummary = parsedAdventure.adventureSummary;
-
-        if (languageCode === 'en') {
-          toast({ title: "Traduciendo y preparando la introducción...", description: "Un momento, por favor." });
-          const [translatedTitle, translatedSummary] = await Promise.all([
-            translateAdventureToSpanish({ adventureText: parsedAdventure.adventureTitle }),
-            translateAdventureToSpanish({ adventureText: parsedAdventure.adventureSummary }),
-          ]);
-          adventureTitle = translatedTitle.translatedAdventureText;
-          adventureSummary = translatedSummary.translatedAdventureText;
-        } else {
-          toast({ title: "Preparando la introducción...", description: "Un momento, por favor." });
-        }
+        toast({ title: "Preparando la introducción...", description: "Un momento, por favor." });
         
         const introNarration = await generateAdventureIntro({
-          adventureTitle: adventureTitle,
-          adventureSummary: adventureSummary,
+          adventureTitle: parsedAdventure.adventureTitle,
+          adventureSummary: parsedAdventure.adventureSummary,
         });
 
         const { html } = await markdownToHtml({ markdown: introNarration.narration });
@@ -235,7 +217,7 @@ export default function Home() {
         toast({
           variant: 'destructive',
           title: "Error al cargar la aventura",
-          description: "No se pudo procesar o traducir el archivo. Asegúrate de que sea un JSON válido.",
+          description: "No se pudo procesar el archivo. Asegúrate de que sea un JSON válido.",
         });
       } finally {
         setIsLoading(false);
