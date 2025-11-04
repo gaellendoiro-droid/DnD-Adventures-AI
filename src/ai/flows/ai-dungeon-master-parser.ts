@@ -44,14 +44,7 @@ const aiDungeonMasterParserPrompt = ai.definePrompt({
 
   The player's action is: {{{playerAction}}}
 
-  Based on the player's action and the current game state, narrate what happens next. Be descriptive and engaging. If applicable, update the game state, character stats or location description. If the player changes locations, you must provide a new location description.
-
-  Response:{
-    "narration": "The AI Dungeon Master narration in response to the player action.",
-    "updatedGameState": "The updated game state, if any.",
-    "nextLocationDescription": "A description of the next location, if the player moved.",
-    "updatedCharacterStats": "The updated character stats, if any."
-  }`,
+  Based on the player's action and the current game state, narrate what happens next. Be descriptive and engaging. If applicable, update the game state, character stats or location description. If the player changes locations, you must provide a new location description for the 'nextLocationDescription' field.`,
 });
 
 const aiDungeonMasterParserFlow = ai.defineFlow(

@@ -27,6 +27,7 @@ export default function Home() {
   );
   const [isDMThinking, setIsDMThinking] = useState(false);
   const [gameState, setGameState] = useState("Initial state: The party is in the Yawning Portal inn.");
+  const [locationDescription, setLocationDescription] = useState("You are in the Yawning Portal inn.");
   const [gameStarted, setGameStarted] = useState(false);
   const [gameInProgress, setGameInProgress] = useState(false);
   const [isLoadingAdventure, setIsLoadingAdventure] = useState(false);
@@ -36,6 +37,7 @@ export default function Home() {
     if (gameStarted && !gameInProgress) {
       if (messages.length === 0) {
         setMessages(initialMessages);
+        setLocationDescription("Se encuentran en 'El Portal Bostezante', una posada legendaria en el corazón de la Costa de la Espada. El aire está cargado con el aroma de estofado de carne y el humo de la leña crepitante en el hogar. Un murmullo constante de conversaciones y risas llena la sala común. Podrían acercarse a la barra y charlar con el posadero, buscar una mesa libre para planificar su siguiente paso, o quizás averiguar más sobre la figura solitaria y encapuchada que les observa desde una esquina oscura. El ambiente es un hervidero de oportunidades y peligros latentes. ¿Qué hacen?");
       }
       setGameInProgress(true);
     } else if (!gameStarted) {
@@ -88,7 +90,6 @@ export default function Home() {
       } else {
         // In-character action
         const playerCharacter = party.find(c => c.controlledBy === 'Player');
-        const locationDescription = messages.filter(m => m.sender === 'DM').slice(-1)[0]?.content as string;
 
         const dmResponse = await aiDungeonMasterParser({
           playerAction: content,
@@ -104,8 +105,12 @@ export default function Home() {
         if(dmResponse.updatedGameState) {
           setGameState(dmResponse.updatedGameState);
         }
+        
+        if (dmResponse.nextLocationDescription) {
+          setLocationDescription(dmResponse.nextLocationDescription);
+        }
 
-        // TODO: Implement character stats and location updates
+        // TODO: Implement character stats updates
         
         // Generate NPC actions
         for (const character of party) {
@@ -154,6 +159,7 @@ export default function Home() {
     setDiceRolls([]);
     setParty(initialParty);
     setGameState("Initial state: The party is in the Yawning Portal inn.");
+    setLocationDescription("You are in the Yawning Portal inn.");
     setSelectedCharacter(initialParty.find(c => c.controlledBy === 'Player') || null);
     setGameInProgress(false);
     setGameStarted(true);
@@ -207,6 +213,8 @@ export default function Home() {
           sender: 'DM',
           content: introNarration.narration,
         });
+        setLocationDescription(introNarration.narration);
+
 
         setDiceRolls([]);
         setParty(initialParty);
@@ -238,6 +246,7 @@ export default function Home() {
       messages,
       diceRolls,
       gameState,
+      locationDescription,
     };
 
     const jsonString = JSON.stringify(saveData, null, 2);
