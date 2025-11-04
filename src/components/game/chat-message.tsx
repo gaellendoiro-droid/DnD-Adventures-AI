@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import type { GameMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Bot, User, Cog, Swords, Play, Loader2 } from "lucide-react";
+import { Bot, User, Cog, Swords, Play, Loader2, Square } from "lucide-react";
 import { generateDmNarrationAudio } from "@/ai/flows/generate-dm-narration-audio";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "../ui/button";
@@ -46,11 +46,22 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
 
-  const handlePlayAudio = async () => {
+  const handleAudioToggle = async () => {
     if (typeof content !== 'string') return;
+
+    if (isPlaying) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        setIsPlaying(false);
+      }
+      return;
+    }
+
     if (audioDataUri) {
       audioRef.current?.play();
       return;
@@ -72,6 +83,28 @@ export function ChatMessage({ message }: ChatMessageProps) {
     }
   };
   
+  React.useEffect(() => {
+    const audio = audioRef.current;
+    
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    
+    if (audio) {
+      audio.addEventListener('play', handlePlay);
+      audio.addEventListener('pause', handlePause);
+      audio.addEventListener('ended', handlePause);
+    }
+    
+    return () => {
+      if (audio) {
+        audio.removeEventListener('play', handlePlay);
+        audio.removeEventListener('pause', handlePause);
+        audio.removeEventListener('ended', handlePause);
+      }
+    };
+  }, [audioRef]);
+
+
   React.useEffect(() => {
     if (audioDataUri && audioRef.current) {
       audioRef.current.src = audioDataUri;
@@ -122,16 +155,18 @@ export function ChatMessage({ message }: ChatMessageProps) {
              <Button
                 variant="ghost"
                 size="icon"
-                onClick={handlePlayAudio}
+                onClick={handleAudioToggle}
                 disabled={isGeneratingAudio}
                 className="flex-shrink-0"
               >
                 {isGeneratingAudio ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
+                ) : isPlaying ? (
+                  <Square className="h-5 w-5" />
                 ) : (
                   <Play className="h-5 w-5" />
                 )}
-                <span className="sr-only">Reproducir narración</span>
+                <span className="sr-only">{isPlaying ? 'Detener narración' : 'Reproducir narración'}</span>
               </Button>
           )}
         </div>
