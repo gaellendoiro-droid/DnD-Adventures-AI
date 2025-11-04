@@ -13,7 +13,6 @@ import { aiDungeonMasterParser } from "@/ai/flows/ai-dungeon-master-parser";
 import { generateCharacterAction } from "@/ai/flows/generate-character-action";
 import { dungeonMasterOocParser } from "@/ai/flows/dungeon-master-ooc-parser";
 import { parseAdventureFromJson } from "@/ai/flows/parse-adventure-from-json";
-import { generateAdventureIntro } from "@/ai/flows/generate-adventure-intro";
 import { markdownToHtml } from "@/ai/flows/markdown-to-html";
 import { useToast } from "@/hooks/use-toast";
 
@@ -183,25 +182,36 @@ export default function Home() {
         toast({ title: "Procesando aventura...", description: "La IA está analizando el archivo JSON." });
         
         const parsedAdventure = await parseAdventureFromJson({ adventureJson: jsonContent });
-        
-        setGameState(JSON.stringify(parsedAdventure.adventureData));
+        const newGameState = JSON.stringify(parsedAdventure.adventureData);
+        setGameState(newGameState);
         setMessages([]);
-
+        
         toast({ title: "Preparando la introducción...", description: "Un momento, por favor." });
         
-        const introNarration = await generateAdventureIntro({
-          adventureTitle: parsedAdventure.adventureTitle,
-          adventureSummary: parsedAdventure.adventureSummary,
+        const playerCharacter = party.find(c => c.controlledBy === 'Player');
+        const introResponse = await aiDungeonMasterParser({
+          playerAction: "Comenzar la aventura.",
+          gameState: newGameState,
+          locationDescription: parsedAdventure.adventureSummary,
+          characterStats: JSON.stringify(playerCharacter),
         });
 
-        const { html } = await markdownToHtml({ markdown: introNarration.narration });
-        addMessage({
-          sender: 'DM',
-          content: html,
-          originalContent: introNarration.narration,
-        });
-        setLocationDescription(introNarration.narration);
-
+        if (introResponse.narration) {
+          const { html } = await markdownToHtml({ markdown: introResponse.narration });
+          addMessage({
+            sender: 'DM',
+            content: html,
+            originalContent: introResponse.narration,
+          });
+        }
+        
+        if (introResponse.updatedGameState) {
+          setGameState(introResponse.updatedGameState);
+        }
+        
+        if (introResponse.nextLocationDescription) {
+          setLocationDescription(introResponse.nextLocationDescription);
+        }
 
         setDiceRolls([]);
         setParty(initialParty);
@@ -213,7 +223,7 @@ export default function Home() {
         toast({ title: "¡Aventura cargada y lista!", description: "La nueva aventura está lista para jugar." });
 
       } catch (error) {
-        console.error("Error parsing or translating adventure file:", error);
+        console.error("Error parsing or starting adventure:", error);
         toast({
           variant: 'destructive',
           title: "Error al cargar la aventura",
