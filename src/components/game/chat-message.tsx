@@ -139,8 +139,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
     <div
       className={cn("flex gap-3 my-4", isPlayer ? "justify-end" : "justify-start")}
     >
-      {!isPlayer && <Icon className={cn("h-6 w-6 flex-shrink-0 mt-1", info.iconClassName)} />}
+      {!isPlayer && <Icon className={cn("h-6 w-6 flex-shrink-0 mt-7", info.iconClassName)} />}
       <div className={cn("flex flex-col max-w-[75%]", isPlayer ? "items-end" : "items-start")}>
+        <span className="text-xs text-muted-foreground mb-1 px-1">
+          {displayName} @ {timestamp}
+        </span>
         <div className="flex items-end gap-2">
           <div
             className={cn(
@@ -170,11 +173,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
               </Button>
           )}
         </div>
-        <span className="text-xs text-muted-foreground mt-1 px-1">
-          {displayName} @ {timestamp}
-        </span>
       </div>
-      {isPlayer && <Icon className={cn("h-6 w-6 flex-shrink-0 mt-1", info.iconClassName)} />}
+      {isPlayer && <Icon className={cn("h-6 w-6 flex-shrink-0 mt-7", info.iconClassName)} />}
       <audio ref={audioRef} className="hidden" />
     </div>
   );
