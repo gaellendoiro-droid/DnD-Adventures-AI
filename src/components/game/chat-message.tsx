@@ -1,8 +1,12 @@
 "use client";
 
+import React, { useState } from "react";
 import type { GameMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Bot, User, Cog, Swords } from "lucide-react";
+import { Bot, User, Cog, Swords, Play, Loader2 } from "lucide-react";
+import { generateDmNarrationAudio } from "@/ai/flows/generate-dm-narration-audio";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "../ui/button";
 
 interface ChatMessageProps {
   message: GameMessage;
@@ -40,6 +44,42 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const info = senderInfo[sender];
   const Icon = info.icon;
 
+  const [audioDataUri, setAudioDataUri] = useState<string | null>(null);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const { toast } = useToast();
+
+  const handlePlayAudio = async () => {
+    if (typeof content !== 'string') return;
+    if (audioDataUri) {
+      audioRef.current?.play();
+      return;
+    }
+
+    setIsGeneratingAudio(true);
+    try {
+      const response = await generateDmNarrationAudio({ narrationText: content });
+      setAudioDataUri(response.audioDataUri);
+    } catch (error) {
+      console.error("Error generating narration audio:", error);
+      toast({
+        variant: "destructive",
+        title: "Error de audio",
+        description: "No se pudo generar la narración de audio.",
+      });
+    } finally {
+      setIsGeneratingAudio(false);
+    }
+  };
+  
+  React.useEffect(() => {
+    if (audioDataUri && audioRef.current) {
+      audioRef.current.src = audioDataUri;
+      audioRef.current.play();
+    }
+  }, [audioDataUri]);
+
+
   if (sender === "System") {
     return (
       <div className="flex justify-center items-center gap-2 my-2">
@@ -68,20 +108,39 @@ export function ChatMessage({ message }: ChatMessageProps) {
     >
       {!isPlayer && <Icon className={cn("h-6 w-6 flex-shrink-0 mt-1", info.iconClassName)} />}
       <div className={cn("flex flex-col max-w-[75%]", isPlayer ? "items-end" : "items-start")}>
-        <div
-          className={cn(
-            "p-3 rounded-lg shadow-sm w-fit",
-            bubbleClassName
+        <div className="flex items-end gap-2">
+          <div
+            className={cn(
+              "p-3 rounded-lg shadow-sm w-fit",
+              bubbleClassName
+            )}
+            style={bubbleStyle}
+          >
+            {typeof content === 'string' ? <p className="leading-relaxed">{content}</p> : content}
+          </div>
+          {sender === "DM" && typeof content === 'string' && (
+             <Button
+                variant="ghost"
+                size="icon"
+                onClick={handlePlayAudio}
+                disabled={isGeneratingAudio}
+                className="flex-shrink-0"
+              >
+                {isGeneratingAudio ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Play className="h-5 w-5" />
+                )}
+                <span className="sr-only">Reproducir narración</span>
+              </Button>
           )}
-          style={bubbleStyle}
-        >
-          {typeof content === 'string' ? <p className="leading-relaxed">{content}</p> : content}
         </div>
         <span className="text-xs text-muted-foreground mt-1 px-1">
           {displayName} @ {timestamp}
         </span>
       </div>
       {isPlayer && <Icon className={cn("h-6 w-6 flex-shrink-0 mt-1", info.iconClassName)} />}
+      <audio ref={audioRef} className="hidden" />
     </div>
   );
 }

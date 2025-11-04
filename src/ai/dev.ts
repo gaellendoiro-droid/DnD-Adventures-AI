@@ -9,3 +9,4 @@ import '@/ai/flows/generate-character-action.ts';
 import '@/ai/flows/dungeon-master-ooc-parser.ts';
 import '@/ai/flows/generate-adventure-intro.ts';
 import '@/ai/flows/detect-language.ts';
+import '@/ai/flows/generate-dm-narration-audio.ts';
