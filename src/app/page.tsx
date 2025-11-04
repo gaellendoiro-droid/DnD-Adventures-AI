@@ -15,6 +15,7 @@ import { dungeonMasterOocParser } from "@/ai/flows/dungeon-master-ooc-parser";
 import { parseAdventureFromJson } from "@/ai/flows/parse-adventure-from-json";
 import { translateAdventureToSpanish } from "@/ai/flows/translate-adventure-to-spanish";
 import { generateAdventureIntro } from "@/ai/flows/generate-adventure-intro";
+import { detectLanguage } from "@/ai/flows/detect-language";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
@@ -179,16 +180,27 @@ export default function Home() {
         setGameState(JSON.stringify(parsedAdventure.adventureData));
         setMessages([]);
 
-        toast({ title: "Traduciendo y preparando la introducción...", description: "Un momento, por favor." });
+        // Detect language
+        const { languageCode } = await detectLanguage({ text: parsedAdventure.adventureTitle });
+        
+        let adventureTitle = parsedAdventure.adventureTitle;
+        let adventureSummary = parsedAdventure.adventureSummary;
 
-        const [translatedTitle, translatedSummary] = await Promise.all([
-          translateAdventureToSpanish({ adventureText: parsedAdventure.adventureTitle }),
-          translateAdventureToSpanish({ adventureText: parsedAdventure.adventureSummary }),
-        ]);
-
+        if (languageCode === 'en') {
+          toast({ title: "Traduciendo y preparando la introducción...", description: "Un momento, por favor." });
+          const [translatedTitle, translatedSummary] = await Promise.all([
+            translateAdventureToSpanish({ adventureText: parsedAdventure.adventureTitle }),
+            translateAdventureToSpanish({ adventureText: parsedAdventure.adventureSummary }),
+          ]);
+          adventureTitle = translatedTitle.translatedAdventureText;
+          adventureSummary = translatedSummary.translatedAdventureText;
+        } else {
+          toast({ title: "Preparando la introducción...", description: "Un momento, por favor." });
+        }
+        
         const introNarration = await generateAdventureIntro({
-          adventureTitle: translatedTitle.translatedAdventureText,
-          adventureSummary: translatedSummary.translatedAdventureText,
+          adventureTitle: adventureTitle,
+          adventureSummary: adventureSummary,
         });
 
         addMessage({
