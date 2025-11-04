@@ -30,7 +30,7 @@ export default function Home() {
   const [locationDescription, setLocationDescription] = useState("You are in the Yawning Portal inn.");
   const [gameStarted, setGameStarted] = useState(false);
   const [gameInProgress, setGameInProgress] = useState(false);
-  const [isLoadingAdventure, setIsLoadingAdventure] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -178,7 +178,7 @@ export default function Home() {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
-        setIsLoadingAdventure(true);
+        setIsLoading(true);
         const jsonContent = e.target?.result as string;
         toast({ title: "Procesando aventura...", description: "La IA está analizando el archivo JSON." });
         
@@ -234,7 +234,7 @@ export default function Home() {
           description: "No se pudo procesar o traducir el archivo. Asegúrate de que sea un JSON válido.",
         });
       } finally {
-        setIsLoadingAdventure(false);
+        setIsLoading(false);
       }
     };
     reader.readAsText(file);
@@ -267,6 +267,49 @@ export default function Home() {
     })
   };
 
+  const handleLoadGame = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        setIsLoading(true);
+        const jsonContent = e.target?.result as string;
+        const saveData = JSON.parse(jsonContent);
+
+        // Basic validation
+        if (!saveData.party || !saveData.messages || !saveData.gameState) {
+          throw new Error("El archivo de guardado no es válido.");
+        }
+
+        // Restore state
+        setParty(saveData.party);
+        setMessages(saveData.messages);
+        setDiceRolls(saveData.diceRolls || []);
+        setGameState(saveData.gameState);
+        setLocationDescription(saveData.locationDescription || "");
+        setSelectedCharacter(saveData.party.find((c: Character) => c.controlledBy === 'Player') || null);
+
+        setGameInProgress(true);
+        setGameStarted(true);
+
+        toast({
+          title: "Partida cargada",
+          description: "¡Tu aventura continúa!",
+        });
+
+      } catch (error) {
+        console.error("Error loading save file:", error);
+        toast({
+          variant: 'destructive',
+          title: "Error al cargar la partida",
+          description: "No se pudo procesar el archivo. Asegúrate de que sea un archivo de guardado válido.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="flex flex-col h-svh bg-background text-foreground dark:bg-background dark:text-foreground">
       <AppHeader onGoToMenu={handleGoToMenu} showMenuButton={gameStarted} />
@@ -294,9 +337,10 @@ export default function Home() {
           onNewGame={handleNewGame} 
           onContinueGame={handleContinueGame}
           onLoadAdventure={handleLoadAdventure}
+          onLoadGame={handleLoadGame}
           onSaveGame={handleSaveGame}
           gameInProgress={gameInProgress} 
-          isLoading={isLoadingAdventure}
+          isLoading={isLoading}
         />
       )}
     </div>

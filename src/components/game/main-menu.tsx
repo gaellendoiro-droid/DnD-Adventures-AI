@@ -10,24 +10,30 @@ interface MainMenuProps {
   onNewGame: () => void;
   onContinueGame: () => void;
   onLoadAdventure: (file: File) => void;
+  onLoadGame: (file: File) => void;
   onSaveGame: () => void;
   gameInProgress: boolean;
   isLoading?: boolean;
 }
 
-export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onSaveGame, gameInProgress, isLoading = false }: MainMenuProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGame, onSaveGame, gameInProgress, isLoading = false }: MainMenuProps) {
+  const adventureInputRef = useRef<HTMLInputElement>(null);
+  const saveGameInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const handleLoadClick = () => {
-    fileInputRef.current?.click();
+  const handleLoadAdventureClick = () => {
+    adventureInputRef.current?.click();
+  };
+  
+  const handleLoadGameClick = () => {
+    saveGameInputRef.current?.click();
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, handler: (file: File) => void) => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.type === 'application/json') {
-        onLoadAdventure(file);
+        handler(file);
       } else {
         toast({
           variant: 'destructive',
@@ -37,8 +43,8 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onSaveGam
       }
     }
     // Reset file input to allow uploading the same file again
-    if(fileInputRef.current) {
-        fileInputRef.current.value = '';
+    if(event.target) {
+        event.target.value = '';
     }
   };
 
@@ -63,15 +69,23 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onSaveGam
               <Play className="mr-2 h-5 w-5" />
               Nueva Partida
             </Button>
-             <input
+            <input
               type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
+              ref={adventureInputRef}
+              onChange={(e) => handleFileChange(e, onLoadAdventure)}
               accept="application/json"
               className="hidden"
               disabled={isLoading}
             />
-            <Button size="lg" variant="secondary" onClick={handleLoadClick} disabled={isLoading}>
+            <input
+              type="file"
+              ref={saveGameInputRef}
+              onChange={(e) => handleFileChange(e, onLoadGame)}
+              accept="application/json"
+              className="hidden"
+              disabled={isLoading}
+            />
+            <Button size="lg" variant="secondary" onClick={handleLoadAdventureClick} disabled={isLoading}>
               {isLoading ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               ) : (
@@ -79,7 +93,7 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onSaveGam
               )}
               {isLoading ? 'Cargando Aventura...' : 'Cargar Aventura (JSON)'}
             </Button>
-            <Button size="lg" variant="secondary" disabled>
+            <Button size="lg" variant="secondary" onClick={handleLoadGameClick} disabled={isLoading}>
               <Upload className="mr-2 h-5 w-5" />
               Cargar Partida
             </Button>
