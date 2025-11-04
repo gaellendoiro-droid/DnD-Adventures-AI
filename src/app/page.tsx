@@ -173,6 +173,7 @@ export default function Home() {
         setIsLoadingAdventure(true);
         const jsonContent = e.target?.result as string;
         toast({ title: "Procesando aventura...", description: "La IA está analizando el archivo JSON." });
+        
         const parsedAdventure = await parseAdventureFromJson({ adventureJson: jsonContent });
         
         setGameState(JSON.stringify(parsedAdventure.adventureData));
@@ -218,6 +219,32 @@ export default function Home() {
     reader.readAsText(file);
   };
 
+  const handleSaveGame = () => {
+    const saveData = {
+      savedAt: new Date().toISOString(),
+      party,
+      messages,
+      diceRolls,
+      gameState,
+    };
+
+    const jsonString = JSON.stringify(saveData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    link.download = `dnd-adventure-save-${timestamp}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast({
+        title: "Partida guardada",
+        description: "El archivo de guardado se ha descargado en tu dispositivo."
+    })
+  };
+
   return (
     <div className="flex flex-col h-svh bg-background text-foreground dark:bg-background dark:text-foreground">
       <AppHeader onGoToMenu={handleGoToMenu} showMenuButton={gameStarted} />
@@ -245,6 +272,7 @@ export default function Home() {
           onNewGame={handleNewGame} 
           onContinueGame={handleContinueGame}
           onLoadAdventure={handleLoadAdventure}
+          onSaveGame={handleSaveGame}
           gameInProgress={gameInProgress} 
           isLoading={isLoadingAdventure}
         />

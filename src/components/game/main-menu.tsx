@@ -10,11 +10,12 @@ interface MainMenuProps {
   onNewGame: () => void;
   onContinueGame: () => void;
   onLoadAdventure: (file: File) => void;
+  onSaveGame: () => void;
   gameInProgress: boolean;
   isLoading?: boolean;
 }
 
-export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, gameInProgress, isLoading = false }: MainMenuProps) {
+export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onSaveGame, gameInProgress, isLoading = false }: MainMenuProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -82,7 +83,7 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, gameInPro
               <Upload className="mr-2 h-5 w-5" />
               Cargar Partida
             </Button>
-            <Button size="lg" variant="secondary" disabled>
+            <Button size="lg" variant="secondary" onClick={onSaveGame} disabled={!gameInProgress || isLoading}>
               <Save className="mr-2 h-5 w-5" />
               Guardar Partida
             </Button>
