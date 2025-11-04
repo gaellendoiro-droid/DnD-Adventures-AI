@@ -51,7 +51,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const { toast } = useToast();
 
   const handleAudioToggle = async () => {
-    const textToSpeak = originalContent || (typeof content === 'string' ? content : '');
+    const textToSpeak = originalContent || (typeof content === 'string' ? content.replace(/<[^>]*>?/gm, '') : '');
     if (!textToSpeak) return;
 
     if (isPlaying) {
@@ -117,7 +117,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   if (sender === "System") {
     return (
       <div className="flex justify-center items-center gap-2 my-2">
-        <p className={cn(info.bubbleClassName, "text-center")}>{content}</p>
+        <p className={cn(info.bubbleClassName, "text-center")}>{content as string}</p>
       </div>
     );
   }
@@ -148,14 +148,14 @@ export function ChatMessage({ message }: ChatMessageProps) {
         <div className="flex items-end gap-2">
            <div
             className={cn(
-              "p-3 rounded-lg shadow-sm w-fit prose prose-sm dark:prose-invert",
+              "p-3 rounded-lg shadow-sm w-fit prose prose-sm dark:prose-invert max-w-full",
               bubbleClassName,
               "prose-p:m-0 prose-headings:m-0"
             )}
             style={bubbleStyle}
           >
-            {typeof content === 'string' && (sender === 'DM' || sender === 'System') ? (
-              <div className="leading-relaxed" dangerouslySetInnerHTML={{ __html: content }} />
+            {sender === 'DM' ? (
+              <div className="leading-relaxed" dangerouslySetInnerHTML={{ __html: content as string }} />
             ) : (
               <p className="leading-relaxed">{content as string}</p>
             )}
