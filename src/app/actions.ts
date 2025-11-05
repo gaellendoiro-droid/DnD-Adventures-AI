@@ -65,7 +65,7 @@ export async function runDungeonMasterTurn(
 ) {
 
   const characterStatsString = playerCharacter ? JSON.stringify(playerCharacter, (key, value) => {
-    // Exclude color from the stringified JSON
+    // Exclude color and personality from the stringified JSON
     if (key === 'color' || key === 'personality') {
       return undefined;
     }
