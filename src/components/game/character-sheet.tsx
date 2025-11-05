@@ -102,29 +102,27 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
         </div>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="py-4">
             <CardTitle className="text-lg font-headline">
               Habilidades
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+            <div className="grid grid-cols-3 gap-x-2 gap-y-4">
               {Object.entries(character.abilityScores).map(([key, value]) => (
-                <div key={key} className="flex items-center space-x-3">
+                <div key={key} className="flex flex-col items-center text-center">
                   <div className="p-2 bg-secondary rounded-md">
                     {abilityIcons[key as keyof typeof abilityIcons]}
                   </div>
-                  <div>
-                    <p className="text-sm capitalize text-muted-foreground">
-                      {key}
-                    </p>
-                    <p className="font-bold text-lg">
-                      {value}{" "}
-                      <span className="text-sm font-mono text-muted-foreground">
-                        ({getModifier(value)})
-                      </span>
-                    </p>
-                  </div>
+                  <p className="text-xs capitalize text-muted-foreground mt-1">
+                      {key.substring(0,3)}
+                  </p>
+                  <p className="font-bold text-base">
+                      {value}
+                  </p>
+                  <p className="text-xs font-mono text-muted-foreground">
+                    ({getModifier(value)})
+                  </p>
                 </div>
               ))}
             </div>
