@@ -96,7 +96,7 @@ export async function runDungeonMasterTurn(
   }
 
   let parsedStats: Partial<Character> | null = null;
-  if (dmResponse.updatedCharacterStats) {
+  if (dmResponse.updatedCharacterStats && typeof dmResponse.updatedCharacterStats === 'string') {
     try {
       parsedStats = JSON.parse(dmResponse.updatedCharacterStats);
     } catch(e) {
