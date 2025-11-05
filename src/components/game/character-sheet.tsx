@@ -111,8 +111,8 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
                   <div className="p-1.5 rounded-md">
                     {abilityIcons[key as keyof typeof abilityIcons]}
                   </div>
-                  <p className="font-bold text-sm leading-tight mt-2">
-                      <span className="font-sans uppercase text-muted-foreground">{key.substring(0,3)}</span> {value} <span className="font-mono text-xs text-muted-foreground">({getModifier(value)})</span>
+                  <p className="font-bold text-sm leading-tight mt-1">
+                      <span className="font-sans uppercase text-muted-foreground">{key.substring(0,3)}:</span> {value} <span className="font-mono text-xs text-muted-foreground">({getModifier(value)})</span>
                   </p>
                 </div>
               ))}
