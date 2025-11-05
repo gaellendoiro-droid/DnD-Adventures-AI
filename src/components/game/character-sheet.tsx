@@ -20,6 +20,8 @@ import {
   Sparkles,
   Heart,
   ShieldCheck,
+  ScrollText,
+  Package,
 } from "lucide-react";
 import { Badge } from "../ui/badge";
 
@@ -61,6 +63,9 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
             <p className="text-muted-foreground">
               {character.race} {character.class}, Nivel {character.level}
             </p>
+            <p className="text-sm text-muted-foreground">
+              {character.sex} | {character.background}
+            </p>
           </div>
         </div>
 
@@ -93,6 +98,19 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
           </div>
         </div>
 
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-headline">
+              Personalidad
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground italic">
+              "{character.personality}"
+            </p>
+          </CardContent>
+        </Card>
+
 
         <Card>
           <CardHeader>
@@ -124,10 +142,10 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
           </CardContent>
         </Card>
 
-        <Accordion type="single" collapsible className="w-full">
+        <Accordion type="single" collapsible className="w-full" defaultValue="inventory">
           <AccordionItem value="skills">
             <AccordionTrigger className="font-semibold text-base">
-              Competencias
+              <ScrollText className="mr-2"/> Competencias
             </AccordionTrigger>
             <AccordionContent>
               <div className="space-y-2">
@@ -147,12 +165,26 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
           </AccordionItem>
           <AccordionItem value="inventory">
             <AccordionTrigger className="font-semibold text-base">
-              Inventario
+              <Package className="mr-2" /> Inventario
             </AccordionTrigger>
             <AccordionContent>
-              <p className="text-muted-foreground text-sm p-2">
-                El inventario está vacío.
-              </p>
+               {character.inventory.length === 0 ? (
+                 <p className="text-muted-foreground text-sm p-2">
+                    El inventario está vacío.
+                 </p>
+               ) : (
+                <div className="space-y-3">
+                    {character.inventory.map(item => (
+                        <div key={item.id} className="p-2 rounded-md transition-colors hover:bg-secondary">
+                            <div className="flex justify-between items-center">
+                                <span className="font-semibold">{item.name}</span>
+                                {item.quantity > 1 && <Badge variant="secondary">x{item.quantity}</Badge>}
+                            </div>
+                            {item.description && <p className="text-xs text-muted-foreground mt-1">{item.description}</p>}
+                        </div>
+                    ))}
+                </div>
+               )}
             </AccordionContent>
           </AccordionItem>
         </Accordion>

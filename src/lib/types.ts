@@ -12,12 +12,21 @@ export interface Skill {
   proficient: boolean;
 }
 
+export interface InventoryItem {
+  id: string;
+  name: string;
+  quantity: number;
+  description?: string;
+}
+
 export interface Character {
   id: string;
-  name:string;
+  name: string;
   race: string;
   class: string;
   level: number;
+  sex: string;
+  background: string;
   color: string;
   personality: string;
   abilityScores: AbilityScores;
@@ -28,6 +37,7 @@ export interface Character {
   };
   ac: number;
   controlledBy: "Player" | "AI";
+  inventory: InventoryItem[];
 }
 
 export interface GameMessage {
