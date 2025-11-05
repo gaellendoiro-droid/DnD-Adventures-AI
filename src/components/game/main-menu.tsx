@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRef } from 'react';
@@ -68,12 +69,8 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGam
               </Button>
             )}
             <Button size="lg" variant={gameInProgress ? 'secondary' : 'default'} onClick={onNewGame} disabled={isAnyLoading}>
-              {isLoading('newGame') ? (
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              ) : (
-                <Play className="mr-2 h-5 w-5" />
-              )}
-              {isLoading('newGame') ? 'Creando Aventura...' : 'Nueva Partida'}
+              <Play className="mr-2 h-5 w-5" />
+              Nueva Partida
             </Button>
             <input
               type="file"

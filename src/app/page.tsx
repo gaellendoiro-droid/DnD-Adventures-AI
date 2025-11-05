@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState } from "react";
 import type { Character, GameMessage, DiceRoll } from "@/lib/types";
-import { initialParty } from "@/lib/data";
+import { initialParty, initialMessage } from "@/lib/data";
 import { AppHeader } from "@/components/layout/app-header";
 import { MainMenu } from "@/components/game/main-menu";
 import { GameView } from "@/components/game/game-view";
@@ -26,36 +27,18 @@ export default function Home() {
 
   const { toast } = useToast();
   
-  const handleNewGame = async () => {
+  const handleNewGame = () => {
     try {
-      setLoading('newGame');
-      toast({ title: "Creando nueva aventura...", description: "El Dungeon Master está preparando el mundo." });
+      toast({ title: "Creando nueva aventura...", description: "¡El mundo está listo!" });
       
       const newGameState = JSON.stringify(adventureData);
-      // Since this is the default adventure, we can hardcode the title and summary
-      // to avoid an unnecessary AI call to parse the JSON.
-      const adventureSummary = "Un joven dragón blanco llamado Cryovain ha reclamado el Pico Agujahelada como su dominio, desplazando a orcos y otras criaturas que ahora amenazan la región alrededor del pueblo de Phandalin. Los aventureros deben emprender misiones para proteger a los habitantes y, finalmente, enfrentarse al dragón en su guarida.";
-
-      const playerCharacter = initialParty.find(c => c.controlledBy === 'Player');
-      const { dmNarration, updatedGameState, nextLocationDescription } = await runDungeonMasterTurn(
-          "Comenzar la aventura.",
-          "",
-          newGameState,
-          adventureSummary,
-          playerCharacter
-      );
-
-      const messages: GameMessage[] = [];
-      if (dmNarration) {
-        messages.push(dmNarration)
-      }
-
+      
       setInitialGameData({
         party: initialParty,
-        messages: messages,
+        messages: [initialMessage],
         diceRolls: [],
-        gameState: updatedGameState || newGameState,
-        locationDescription: nextLocationDescription || adventureSummary,
+        gameState: newGameState,
+        locationDescription: adventureData.summary,
       });
       
       setGameInProgress(true);
@@ -70,8 +53,6 @@ export default function Home() {
         title: "Error al crear la partida",
         description: "No se pudo iniciar la nueva aventura.",
       });
-    } finally {
-      setLoading(null);
     }
   };
   
