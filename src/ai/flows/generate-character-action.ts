@@ -31,7 +31,7 @@ const CharacterActionSchema = z.object({
 });
 
 const GenerateCharacterActionOutputSchema = z.object({
-  actions: z.array(CharacterActionSchema).describe("A list of character actions, in the order they should be performed. The list can be empty if no character acts."),
+  actions: z.array(CharacterActionSchema).describe("A list of character actions, in the order they should be performed. The list can be empty if no one acts."),
 });
 export type GenerateCharacterActionOutput = z.infer<typeof GenerateCharacterActionOutputSchema>;
 
@@ -70,6 +70,7 @@ Based on the situation and each character's personality, decide if any of your c
 - **Does the situation warrant a reaction?** A character might react to a tense moment, a critical event, or something that specifically aligns with their personality (e.g., a greedy character noticing treasure).
 - **It's okay to be silent.** This is the most important rule. Not everyone has to speak or act every time. If a character has no strong opinion or nothing relevant to add, they should remain silent. Your goal is realism, not to fill every silence. Do not generate an action for them.
 - A character's action can be a short, in-character line of dialogue or a brief description of a non-verbal action (e.g., "Elara asiente en señal de acuerdo.").
+- **Do not use Markdown or any other formatting.** The output should be plain text.
 - Keep actions concise.
 - If a character does nothing, do not include them in the output array. If no one acts, return an empty array.
 - The order of actions in the output array determines the sequence of events.
