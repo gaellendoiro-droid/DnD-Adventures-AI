@@ -24,6 +24,7 @@ import {
   ScrollText,
   Package,
   Info,
+  BookUser,
 } from "lucide-react";
 import { Badge } from "../ui/badge";
 
@@ -66,7 +67,7 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
               {character.race} {character.class}, Nivel {character.level}
             </p>
             <p className="text-sm text-muted-foreground">
-              {character.sex} | {character.background}
+              {character.sex}
             </p>
           </div>
         </div>
@@ -138,6 +139,16 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
             <AccordionContent>
                 <p className="text-sm text-muted-foreground italic p-2">
                 "{character.personality}"
+                </p>
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="background">
+            <AccordionTrigger className="font-semibold text-base">
+                <BookUser className="mr-2"/> Trasfondo
+            </AccordionTrigger>
+            <AccordionContent>
+                <p className="text-sm text-muted-foreground p-2">
+                  El trasfondo de un personaje revela de dónde viene, cómo se convirtió en un aventurero y cuál es su lugar en el mundo. El trasfondo de {character.name} es: <strong>{character.background}</strong>.
                 </p>
             </AccordionContent>
           </AccordionItem>
