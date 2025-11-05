@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -128,10 +129,12 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         }
       } else {
         const playerAction = content;
+
+        const lastDmMessage = messages.findLast(m => m.sender === 'DM');
         
         const { newMessages, characterActionsContent } = await generateNpcActions(
           party, 
-          messages.findLast(m => m.sender === 'DM')?.originalContent || locationDescription,
+          lastDmMessage?.originalContent || locationDescription,
           playerAction
         );
         
@@ -145,7 +148,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           characterActionsContent,
           gameState,
           locationDescription,
-          playerCharacter || null
+          playerCharacter || null,
+          lastDmMessage?.originalContent
         );
 
         if (dmNarration) {

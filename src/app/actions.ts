@@ -1,3 +1,4 @@
+
 'use server';
 
 import { dungeonMasterOocParser } from "@/ai/flows/dungeon-master-ooc-parser";
@@ -61,7 +62,8 @@ export async function runDungeonMasterTurn(
   characterActions: string,
   gameState: string,
   locationDescription: string,
-  playerCharacter: Character | null
+  playerCharacter: Character | null,
+  previousNarration?: string
 ) {
 
   const characterStatsString = playerCharacter ? JSON.stringify(playerCharacter, (key, value) => {
@@ -78,6 +80,7 @@ export async function runDungeonMasterTurn(
     gameState: gameState,
     locationDescription: locationDescription,
     characterStats: characterStatsString,
+    previousNarration: previousNarration,
   });
 
   let dmNarration: GameMessage | null = null;
