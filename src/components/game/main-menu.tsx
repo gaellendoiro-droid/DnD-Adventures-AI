@@ -12,10 +12,10 @@ interface MainMenuProps {
   onLoadAdventure: (file: File) => void;
   onLoadGame: (file: File) => void;
   gameInProgress: boolean;
-  isLoading?: boolean;
+  loading: string | null;
 }
 
-export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGame, gameInProgress, isLoading = false }: MainMenuProps) {
+export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGame, gameInProgress, loading }: MainMenuProps) {
   const adventureInputRef = useRef<HTMLInputElement>(null);
   const saveGameInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -47,6 +47,9 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGam
     }
   };
 
+  const isLoading = (action: string) => loading === action;
+  const isAnyLoading = loading !== null;
+
 
   return (
     <main className="flex-1 flex items-center justify-center p-4">
@@ -59,18 +62,18 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGam
         <CardContent>
           <div className="flex flex-col space-y-4">
             {gameInProgress && (
-              <Button size="lg" onClick={onContinueGame} disabled={isLoading}>
+              <Button size="lg" onClick={onContinueGame} disabled={isAnyLoading}>
                 <Gamepad2 className="mr-2 h-5 w-5" />
                 Continuar Partida
               </Button>
             )}
-            <Button size="lg" variant={gameInProgress ? 'secondary' : 'default'} onClick={onNewGame} disabled={isLoading}>
-              {isLoading ? (
+            <Button size="lg" variant={gameInProgress ? 'secondary' : 'default'} onClick={onNewGame} disabled={isAnyLoading}>
+              {isLoading('newGame') ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               ) : (
                 <Play className="mr-2 h-5 w-5" />
               )}
-              {isLoading ? 'Creando Aventura...' : 'Nueva Partida'}
+              {isLoading('newGame') ? 'Creando Aventura...' : 'Nueva Partida'}
             </Button>
             <input
               type="file"
@@ -78,7 +81,7 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGam
               onChange={(e) => handleFileChange(e, onLoadAdventure)}
               accept="application/json"
               className="hidden"
-              disabled={isLoading}
+              disabled={isAnyLoading}
             />
             <input
               type="file"
@@ -86,19 +89,23 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGam
               onChange={(e) => handleFileChange(e, onLoadGame)}
               accept="application/json"
               className="hidden"
-              disabled={isLoading}
+              disabled={isAnyLoading}
             />
-            <Button size="lg" variant="secondary" onClick={handleLoadAdventureClick} disabled={isLoading}>
-              {isLoading ? (
+            <Button size="lg" variant="secondary" onClick={handleLoadAdventureClick} disabled={isAnyLoading}>
+              {isLoading('loadAdventure') ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               ) : (
                 <Upload className="mr-2 h-5 w-5" />
               )}
-              {isLoading ? 'Cargando Aventura...' : 'Cargar Aventura (JSON)'}
+              {isLoading('loadAdventure') ? 'Cargando Aventura...' : 'Cargar Aventura (JSON)'}
             </Button>
-            <Button size="lg" variant="secondary" onClick={handleLoadGameClick} disabled={isLoading}>
-              <Upload className="mr-2 h-5 w-5" />
-              Cargar Partida
+            <Button size="lg" variant="secondary" onClick={handleLoadGameClick} disabled={isAnyLoading}>
+              {isLoading('loadGame') ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <Upload className="mr-2 h-5 w-5" />
+              )}
+              {isLoading('loadGame') ? 'Cargando Partida...' : 'Cargar Partida'}
             </Button>
           </div>
         </CardContent>

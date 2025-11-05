@@ -15,7 +15,7 @@ import adventureData from "@/../JSON_adventures/el-dragon-del-pico-agujahelada.j
 export default function Home() {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameInProgress, setGameInProgress] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState<string | null>(null);
   const [initialGameData, setInitialGameData] = useState<{
     party: Character[];
     messages: GameMessage[];
@@ -28,7 +28,7 @@ export default function Home() {
   
   const handleNewGame = async () => {
     try {
-      setIsLoading(true);
+      setLoading('newGame');
       toast({ title: "Creando nueva aventura...", description: "El Dungeon Master está preparando el mundo." });
       
       const jsonContent = JSON.stringify(adventureData);
@@ -70,7 +70,7 @@ export default function Home() {
         description: "No se pudo iniciar la nueva aventura.",
       });
     } finally {
-      setIsLoading(false);
+      setLoading(null);
     }
   };
   
@@ -88,7 +88,7 @@ export default function Home() {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
-        setIsLoading(true);
+        setLoading('loadAdventure');
         const jsonContent = e.target?.result as string;
         toast({ title: "Procesando aventura...", description: "La IA está analizando el archivo JSON." });
         
@@ -132,7 +132,7 @@ export default function Home() {
           description: "No se pudo procesar el archivo. Asegúrate de que sea un JSON válido.",
         });
       } finally {
-        setIsLoading(false);
+        setLoading(null);
       }
     };
     reader.readAsText(file);
@@ -142,7 +142,7 @@ export default function Home() {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        setIsLoading(true);
+        setLoading('loadGame');
         const jsonContent = e.target?.result as string;
         const saveData = JSON.parse(jsonContent);
 
@@ -175,7 +175,7 @@ export default function Home() {
           description: "No se pudo procesar el archivo. Asegúrate de que sea un archivo de guardado válido.",
         });
       } finally {
-        setIsLoading(false);
+        setLoading(null);
       }
     };
     reader.readAsText(file);
@@ -212,7 +212,7 @@ export default function Home() {
           onLoadAdventure={handleLoadAdventure}
           onLoadGame={handleLoadGame}
           gameInProgress={gameInProgress} 
-          isLoading={isLoading}
+          loading={loading}
         />
       )}
     </div>
