@@ -87,10 +87,38 @@ export default function Home() {
         }
       } else {
         // In-character action
+
+        // 1. Generate NPC actions in response to the player
+        const aiCharacters = party.filter(c => c.controlledBy === 'AI').map(c => ({id: c.id, name: c.name, class: c.class, race: c.race }));
+        
+        const characterActionsResponse = await generateCharacterAction({
+          characters: aiCharacters,
+          dmNarration: messages.findLast(m => m.sender === 'DM')?.originalContent || locationDescription,
+          playerAction: content,
+        });
+        
+        let characterActionsContent = "";
+        if (characterActionsResponse.actions && characterActionsResponse.actions.length > 0) {
+          for (const action of characterActionsResponse.actions) {
+            const character = party.find(c => c.id === action.characterId);
+            if (character && action.action) {
+              addMessage({
+                sender: 'Character',
+                senderName: character.name,
+                characterColor: character.color,
+                content: action.action,
+              });
+              characterActionsContent += `${character.name}: ${action.action}\n`;
+            }
+          }
+        }
+
+        // 2. DM narrates based on player action AND NPC responses
         const playerCharacter = party.find(c => c.controlledBy === 'Player');
 
         const dmResponse = await aiDungeonMasterParser({
           playerAction: content,
+          characterActions: characterActionsContent,
           gameState: gameState,
           locationDescription: locationDescription,
           characterStats: JSON.stringify(playerCharacter),
@@ -110,29 +138,6 @@ export default function Home() {
         }
 
         // TODO: Implement character stats updates
-        
-        // Generate NPC actions
-        const aiCharacters = party.filter(c => c.controlledBy === 'AI').map(c => ({id: c.id, name: c.name, class: c.class, race: c.race }));
-        
-        const characterActionsResponse = await generateCharacterAction({
-          characters: aiCharacters,
-          dmNarration: dmResponse.narration,
-          playerAction: content,
-        });
-
-        if (characterActionsResponse.actions && characterActionsResponse.actions.length > 0) {
-          for (const action of characterActionsResponse.actions) {
-            const character = party.find(c => c.id === action.characterId);
-            if (character && action.action) {
-              addMessage({
-                sender: 'Character',
-                senderName: character.name,
-                characterColor: character.color,
-                content: action.action,
-              });
-            }
-          }
-        }
       }
     } catch (error) {
       console.error("Error during AI turn:", error);
@@ -186,7 +191,7 @@ export default function Home() {
         setGameState(newGameState);
         setMessages([]);
         
-        toast({ title: "Preparando la introducción...", description: "Un momento, por favor." });
+        toast({ title: "Generando introducción...", description: "El Dungeon Master está preparando la escena." });
         
         const playerCharacter = party.find(c => c.controlledBy === 'Player');
         const introResponse = await aiDungeonMasterParser({

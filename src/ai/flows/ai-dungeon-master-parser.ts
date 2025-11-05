@@ -13,6 +13,7 @@ import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 
 const AiDungeonMasterParserInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
+  characterActions: z.string().optional().describe('The actions or dialogue of AI-controlled characters in response to the player. This field may be empty.'),
   gameState: z.string().optional().describe('The current state of the game.'),
   locationDescription: z.string().optional().describe('A description of the current location.'),
   characterStats: z.string().optional().describe('The current stats of the character.'),
@@ -20,7 +21,7 @@ const AiDungeonMasterParserInputSchema = z.object({
 export type AiDungeonMasterParserInput = z.infer<typeof AiDungeonMasterParserInputSchema>;
 
 const AiDungeonMasterParserOutputSchema = z.object({
-  narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown."),
+  narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown. If the characters are just talking, this can be an empty string."),
   updatedGameState: z.string().optional().describe('The updated game state, if any.'),
   nextLocationDescription: z.string().optional().describe('A description of the next location, if the player moved.'),
   updatedCharacterStats: z.string().optional().describe('The updated character stats, if any.'),
@@ -40,8 +41,9 @@ const aiDungeonMasterParserPrompt = ai.definePrompt({
 
 **Core Directives:**
 1.  **Pacing and Player Agency:** Narrate only up to the next decision point for the player. NEVER assume the player's actions. Your narration must always end with a question to the player, like "¿Qué haces?" or "¿Cuál es vuestro siguiente movimiento?".
-2.  **Rule Adherence:** You must strictly follow D&D 5th Edition rules for skill checks, combat, saving throws, etc. You have access to player and monster stats and must use them to determine outcomes.
-3.  **External Knowledge Tool:** When you need specific D&D 5e information that is not in the provided gameState (like monster statistics, spell details, or rule clarifications), you MUST use the \`dndApiLookupTool\`. Provide it with a simple query, like "goblin" or "magic missile".
+2.  **Conversational Awareness:** If the player is talking to other characters, your primary role is to observe. If the \`characterActions\` input is not empty, it means a conversation is happening. In this case, you should only provide narration if it's essential to describe a change in the environment or a non-verbal cue from an NPC not involved in the conversation. Otherwise, your narration should be an empty string and let the characters talk.
+3.  **Rule Adherence:** You must strictly follow D&D 5th Edition rules for skill checks, combat, saving throws, etc. You have access to player and monster stats and must use them to determine outcomes.
+4.  **External Knowledge Tool:** When you need specific D&D 5e information that is not in the provided gameState (like monster statistics, spell details, or rule clarifications), you MUST use the \`dndApiLookupTool\`. Provide it with a simple query, like "goblin" or "magic missile".
 
 **Combat Protocol:**
 When combat begins, you MUST follow this sequence:
@@ -60,9 +62,18 @@ Here is the current game state in JSON format:
 Here is the description of the current location: {{{locationDescription}}}
 Here are the player character stats: {{{characterStats}}}
 
-The player's action is: {{{playerAction}}}
+The player's action is: "{{{playerAction}}}"
 
-Based on the player's action and all your directives, narrate what happens next. Be descriptive, engaging, and follow the rules. If applicable, update the game state, character stats or location description.`,
+The other characters in the party have just said or done the following:
+{{#if characterActions}}
+\`\`\`
+{{{characterActions}}}
+\`\`\`
+{{else}}
+(No other characters have acted.)
+{{/if}}
+
+Based on the player's action, the other characters' actions, and all your directives, narrate what happens next. Be descriptive, engaging, and follow the rules. If applicable, update the game state, character stats or location description.`,
 });
 
 const aiDungeonMasterParserFlow = ai.defineFlow(
