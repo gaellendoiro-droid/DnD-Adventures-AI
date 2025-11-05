@@ -107,8 +107,8 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
           <CardContent>
             <div className="grid grid-cols-3 gap-2 text-center">
               {Object.entries(character.abilityScores).map(([key, value]) => (
-                <div key={key} className="flex flex-col items-center p-2 rounded-md bg-secondary/50">
-                  <div className="p-1.5 bg-secondary rounded-md">
+                <div key={key} className="flex flex-col items-center p-2 rounded-md bg-secondary">
+                  <div className="p-1.5 rounded-md">
                     {abilityIcons[key as keyof typeof abilityIcons]}
                   </div>
                   <p className="font-bold text-sm leading-tight mt-2">
