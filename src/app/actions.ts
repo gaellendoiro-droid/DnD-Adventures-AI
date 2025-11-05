@@ -19,7 +19,7 @@ export async function generateNpcActions(
   dmNarration: string,
   playerAction: string
 ): Promise<{ newMessages: GameMessage[], characterActionsContent: string }> {
-  const aiCharacters = party.filter(c => c.controlledBy === 'AI').map(c => ({id: c.id, name: c.name, class: c.class, race: c.race }));
+  const aiCharacters = party.filter(c => c.controlledBy === 'AI').map(c => ({id: c.id, name: c.name, class: c.class, race: c.race, personality: c.personality }));
   
   if (aiCharacters.length === 0) {
     return { newMessages: [], characterActionsContent: "" };
@@ -66,7 +66,7 @@ export async function runDungeonMasterTurn(
 
   const characterStatsString = playerCharacter ? JSON.stringify(playerCharacter, (key, value) => {
     // Exclude color from the stringified JSON
-    if (key === 'color') {
+    if (key === 'color' || key === 'personality') {
       return undefined;
     }
     return value;

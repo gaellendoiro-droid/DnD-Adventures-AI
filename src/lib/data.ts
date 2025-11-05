@@ -8,6 +8,7 @@ export const initialParty: Character[] = [
     class: "Paladín",
     level: 1,
     color: '#3b82f6', // blue-500
+    personality: "Un paladín recto y honorable, a veces un poco ingenuo. Siempre busca hacer lo correcto y proteger a los inocentes. Es el líder moral del grupo.",
     abilityScores: {
       fuerza: 16,
       destreza: 10,
@@ -32,6 +33,7 @@ export const initialParty: Character[] = [
     class: "Clériga",
     level: 1,
     color: '#f97316', // orange-500
+    personality: "Una clériga devota pero pragmática. Tiende a ser la voz de la razón y la moral del grupo, pero no es ingenua. Es protectora y cautelosa, y a menudo desconfía de la magia arcana.",
     abilityScores: {
       fuerza: 14,
       destreza: 8,
@@ -56,6 +58,7 @@ export const initialParty: Character[] = [
     class: "Mago",
     level: 1,
     color: '#8b5cf6', // violet-500
+    personality: "Un mago mediano curioso y un poco imprudente. Le fascina la magia y el descubrimiento, a veces a costa de la seguridad. Es optimista, le gusta hacer bromas y es un poco cleptómano.",
     abilityScores: {
       fuerza: 8,
       destreza: 16,

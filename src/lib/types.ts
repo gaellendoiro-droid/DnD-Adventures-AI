@@ -19,6 +19,7 @@ export interface Character {
   class: string;
   level: number;
   color: string;
+  personality: string;
   abilityScores: AbilityScores;
   skills: Skill[];
   hp: {
