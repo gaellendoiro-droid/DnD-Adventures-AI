@@ -19,7 +19,7 @@ const AiDungeonMasterParserInputSchema = z.object({
   gameState: z.string().optional().describe('The current state of the game.'),
   locationDescription: z.string().optional().describe('A description of the current location.'),
   characterStats: z.string().optional().describe('The current stats of the character.'),
-  previousNarration: z.string().optional().describe("The Dungeon Master's most recent narration to provide immediate conversational context."),
+  conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
 });
 export type AiDungeonMasterParserInput = z.infer<typeof AiDungeonMasterParserInputSchema>;
 
@@ -48,7 +48,7 @@ const aiDungeonMasterParserPrompt = ai.definePrompt({
 3.  **Conversational Awareness:** If the player is talking to other characters, your primary role is to observe. If the \`characterActions\` input is not empty, it means a conversation is happening. In this case, you should only provide narration if it's essential to describe a change in the environment or a non-verbal cue from an NPC not involved in the conversation. Otherwise, your narration should be an empty string and let the characters talk.
 4.  **Rule Adherence & Stat Updates:** You must strictly follow D&D 5th Edition rules. You have access to player and monster stats. If any character stat changes (HP, XP, status effects, etc.), you MUST return the complete, updated stats object in the 'updatedCharacterStats' field as a valid JSON string. For example: '{"hp":{"current":8,"max":12},"xp":300}'. If no stats change, return null for this field.
 5.  **Information Hierarchy & Tool Use:**
-    *   **CRITICAL: Your primary source of truth for the immediate narrative is the \`previousNarration\` and the \`playerAction\`. Be consistent with what you just said. Do not contradict yourself or re-describe characters or scenes you have just described.**
+    *   **CRITICAL: Your primary source of truth for the immediate narrative is the \`conversationHistory\`. Be consistent with what has just been said. Do not repeat descriptions of characters or scenes that are already in the recent history.**
     *   The \`locationDescription\` provides general context for the current area.
     *   DO NOT read the full 'gameState' JSON. Instead, use your tools to find information you don't have.
     *   **adventureLookupTool:** Use this to get details about specific locations or entities from the adventure when the player moves or interacts with something new. For example: \`location:posada-rocacolina\` or \`entity:cryovain\`.
@@ -67,10 +67,12 @@ Be faithful to the information you receive. Do not invent new names for places o
 Here is the general description of the current location: {{{locationDescription}}}
 Here are the player character stats: {{{characterStats}}}
 
-This was your most recent narration. Maintain continuity with it:
-"{{{previousNarration}}}"
+This is the recent conversation history. Use it to maintain continuity and avoid repeating yourself:
+\`\`\`
+{{{conversationHistory}}}
+\`\`\`
 
-The player's action is: "{{{playerAction}}}"
+The player's latest action is: "{{{playerAction}}}"
 
 The other characters in the party have just said or done the following:
 {{#if characterActions}}

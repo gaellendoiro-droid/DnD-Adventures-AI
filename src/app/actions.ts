@@ -63,7 +63,7 @@ export async function runDungeonMasterTurn(
   gameState: string,
   locationDescription: string,
   playerCharacter: Character | null,
-  previousNarration?: string
+  conversationHistory?: string
 ) {
 
   const characterStatsString = playerCharacter ? JSON.stringify(playerCharacter, (key, value) => {
@@ -80,7 +80,7 @@ export async function runDungeonMasterTurn(
     gameState: gameState,
     locationDescription: locationDescription,
     characterStats: characterStatsString,
-    previousNarration: previousNarration,
+    conversationHistory: conversationHistory,
   });
 
   let dmNarration: GameMessage | null = null;

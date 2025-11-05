@@ -129,6 +129,18 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         }
       } else {
         const playerAction = content;
+        
+        // Create conversation history
+        const history = messages
+          .slice(-4) // Get last 4 messages
+          .map(m => {
+            if (m.sender === 'Player') return `Jugador: ${m.content}`;
+            if (m.sender === 'DM') return `Dungeon Master: ${m.originalContent || m.content}`;
+            if (m.sender === 'Character') return `${m.senderName}: ${m.content}`;
+            return null;
+          })
+          .filter(Boolean)
+          .join('\n');
 
         const lastDmMessage = messages.findLast(m => m.sender === 'DM');
         
@@ -149,7 +161,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           gameState,
           locationDescription,
           playerCharacter || null,
-          lastDmMessage?.originalContent
+          history
         );
 
         if (dmNarration) {
