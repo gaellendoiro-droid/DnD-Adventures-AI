@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Character } from "@/lib/types";
@@ -22,6 +23,7 @@ import {
   ShieldCheck,
   ScrollText,
   Package,
+  Info,
 } from "lucide-react";
 import { Badge } from "../ui/badge";
 
@@ -101,20 +103,6 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg font-headline">
-              Personalidad
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground italic">
-              "{character.personality}"
-            </p>
-          </CardContent>
-        </Card>
-
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-headline">
               Habilidades
             </CardTitle>
           </CardHeader>
@@ -143,6 +131,16 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
         </Card>
 
         <Accordion type="single" collapsible className="w-full" defaultValue="inventory">
+          <AccordionItem value="personality">
+            <AccordionTrigger className="font-semibold text-base">
+                <Info className="mr-2"/> Personalidad
+            </AccordionTrigger>
+            <AccordionContent>
+                <p className="text-sm text-muted-foreground italic p-2">
+                "{character.personality}"
+                </p>
+            </AccordionContent>
+          </AccordionItem>
           <AccordionItem value="skills">
             <AccordionTrigger className="font-semibold text-base">
               <ScrollText className="mr-2"/> Competencias
