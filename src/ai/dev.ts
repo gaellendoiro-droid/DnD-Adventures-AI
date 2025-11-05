@@ -9,5 +9,6 @@ import '@/ai/flows/dungeon-master-ooc-parser.ts';
 import '@/ai/flows/generate-dm-narration-audio.ts';
 import '@/ai/flows/markdown-to-html.ts';
 import '@/ai/tools/dnd-api-lookup.ts';
+import '@/ai/tools/adventure-lookup.ts';
 
     

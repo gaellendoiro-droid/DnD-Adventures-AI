@@ -11,6 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
+import { adventureLookupTool } from '../tools/adventure-lookup';
 
 const AiDungeonMasterParserInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
@@ -23,7 +24,7 @@ export type AiDungeonMasterParserInput = z.infer<typeof AiDungeonMasterParserInp
 
 const AiDungeonMasterParserOutputSchema = z.object({
   narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown. If the characters are just talking, this can be an empty string."),
-  updatedGameState: z.string().optional().nullable().describe('The updated game state, if any.'),
+  updatedGameState: z.string().optional().nullable().describe('The updated game state, if any. This is the same as the input gameState, but can be modified if something major changes.'),
   nextLocationDescription: z.string().optional().nullable().describe('A description of the next location, if the player moved.'),
   updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}}'. Must be a valid JSON string or null."),
 });
@@ -37,7 +38,7 @@ const aiDungeonMasterParserPrompt = ai.definePrompt({
   name: 'aiDungeonMasterParserPrompt',
   input: {schema: AiDungeonMasterParserInputSchema},
   output: {schema: AiDungeonMasterParserOutputSchema},
-  tools: [dndApiLookupTool],
+  tools: [dndApiLookupTool, adventureLookupTool],
   prompt: `You are an AI Dungeon Master for a D&D 5e game. You are an expert in the D&D 5th Edition Player's Handbook rules. Your goal is to be a descriptive and engaging storyteller, while being faithful to the game's state and rules. You MUST ALWAYS reply in Spanish. It is very important that you DO NOT translate proper nouns (names of people, places, items, etc.).
 
 **Core Directives:**
@@ -45,8 +46,9 @@ const aiDungeonMasterParserPrompt = ai.definePrompt({
 2.  **Pacing and Player Agency:** Narrate only up to the next decision point for the player. NEVER assume the player's actions. Your narration must always end with a question to the player, like "¿Qué haces?" or "¿Cuál es vuestro siguiente movimiento?".
 3.  **Conversational Awareness:** If the player is talking to other characters, your primary role is to observe. If the \`characterActions\` input is not empty, it means a conversation is happening. In this case, you should only provide narration if it's essential to describe a change in the environment or a non-verbal cue from an NPC not involved in the conversation. Otherwise, your narration should be an empty string and let the characters talk.
 4.  **Rule Adherence & Stat Updates:** You must strictly follow D&D 5th Edition rules. You have access to player and monster stats. If any character stat changes (HP, XP, status effects, etc.), you MUST return the complete, updated stats object in the 'updatedCharacterStats' field as a valid JSON string. For example: '{"hp":{"current":8,"max":12},"xp":300}'. If no stats change, return null for this field.
-5.  **Information Hierarchy:** The \`gameState\` is the absolute source of truth. You must prioritize information from the \`gameState\` over any other knowledge. Use the \`dndApiLookupTool\` ONLY when you need specific D&D 5e information that is NOT present in the provided \`gameState\` (like monster statistics for a new encounter, spell details, or rule clarifications). Provide the tool with simple queries, like "goblin" or "magic missile".
-6.  **Descriptive Locations:** When the party arrives at a new location, especially a town or city, your description MUST be vivid and comprehensive. Describe the atmosphere, notable landmarks (e.g., "a bustling marketplace to your left," "a quiet temple down the street," "the town blacksmith hammering away"), and potential points of interest to give the player a clear sense of place and actionable options.
+5.  **Information Hierarchy & Tool Use:** The \`locationDescription\` and recent actions are your primary source of truth for the immediate narrative. DO NOT read the full 'gameState' JSON. Instead, use your tools to find information.
+    *   **adventureLookupTool:** Use this to get details about specific locations or characters from the adventure. For example, if a player enters a new building or asks about a character, use this tool with queries like \`location:posada-rocacolina\` or \`entity:cryovain\`. This is your primary way to get adventure-specific information.
+    *   **dndApiLookupTool:** Use this ONLY for generic D&D 5e information NOT in the adventure data, like monster stats for a random encounter, spell details, or rule clarifications. Provide simple queries, like "goblin" or "magic missile".
 
 **Combat Protocol:**
 When combat begins, you MUST follow this exact sequence:
@@ -56,12 +58,8 @@ When combat begins, you MUST follow this exact sequence:
 4.  **Manage Turns:** Proceed turn by turn. Narrate the action of whose turn it is. If it's a monster's turn, describe what it does. If it's the player's turn, you MUST wait for their action.
 
 **Game State Management:**
-Be faithful to the information provided in the gameState. Do not invent new names for places or characters if they are described in the gameState.
+Be faithful to the information you receive. Do not invent new names for places or characters. If you modify the state of the game (e.g. a character dies, an item is destroyed), you must reflect this in the 'updatedGameState' output field. Otherwise, return the original gameState.
 
-Here is the current game state in JSON format:
-\`\`\`json
-{{{gameState}}}
-\`\`\`
 Here is the description of the current location: {{{locationDescription}}}
 Here are the player character stats: {{{characterStats}}}
 
@@ -76,7 +74,7 @@ The other characters in the party have just said or done the following:
 (No other characters have acted.)
 {{/if}}
 
-Based on the player's action, the other characters' actions, and all your directives, narrate what happens next. Be descriptive, engaging, and follow the rules. If applicable, update the game state, character stats or location description.`,
+Based on the player's action, the other characters' actions, and all your directives, narrate what happens next. Be descriptive, engaging, and follow the rules. If applicable, update the game state, character stats or location description. Remember to use your tools to look up any information you don't have.`,
 });
 
 const aiDungeonMasterParserFlow = ai.defineFlow(
@@ -90,7 +88,7 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
     
     // Safeguard: If the model returns null or undefined, provide a default valid response.
     if (!output) {
-      return { narration: "El Dungeon Master parece distraído y no responde. Intenta reformular tu acción." };
+      return { narration: "El Dungeon Master parece distraído y no responde. Intenta reformular tu acción.", updatedGameState: input.gameState };
     }
     
     // Safeguard: Validate that updatedCharacterStats is a valid JSON string if it exists
@@ -103,6 +101,11 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
         }
     }
     
+    // Ensure the gameState is always passed through, even if the AI forgets.
+    if (!output.updatedGameState) {
+        output.updatedGameState = input.gameState;
+    }
+
     return output;
   }
 );
