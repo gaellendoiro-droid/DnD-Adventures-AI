@@ -98,10 +98,12 @@ export async function runDungeonMasterTurn(
   let parsedStats: Partial<Character> | null = null;
   if (dmResponse.updatedCharacterStats && typeof dmResponse.updatedCharacterStats === 'string') {
     try {
+      // The flow now pre-validates this, but a safety check here is still good practice.
       parsedStats = JSON.parse(dmResponse.updatedCharacterStats);
     } catch(e) {
-      console.error("Failed to parse updatedCharacterStats JSON:", e);
-      // Keep parsedStats as null if parsing fails
+      console.error("Failed to parse updatedCharacterStats JSON from flow:", e);
+      // Keep parsedStats as null if parsing fails despite pre-validation.
+      parsedStats = null; 
     }
   }
 

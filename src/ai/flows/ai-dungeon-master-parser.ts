@@ -25,7 +25,7 @@ const AiDungeonMasterParserOutputSchema = z.object({
   narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown. If the characters are just talking, this can be an empty string."),
   updatedGameState: z.string().optional().nullable().describe('The updated game state, if any.'),
   nextLocationDescription: z.string().optional().nullable().describe('A description of the next location, if the player moved.'),
-  updatedCharacterStats: z.string().optional().nullable().describe('The updated character stats (e.g., HP, XP, status effects), if any, as a valid JSON string. For example: \'{"hp":{"current":8,"max":12}}\'.'),
+  updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}}'. Must be a valid JSON string or null."),
 });
 export type AiDungeonMasterParserOutput = z.infer<typeof AiDungeonMasterParserOutputSchema>;
 
@@ -41,11 +41,12 @@ const aiDungeonMasterParserPrompt = ai.definePrompt({
   prompt: `You are an AI Dungeon Master for a D&D 5e game. You are an expert in the D&D 5th Edition Player's Handbook rules. Your goal is to be a descriptive and engaging storyteller, while being faithful to the game's state and rules. You MUST ALWAYS reply in Spanish. It is very important that you DO NOT translate proper nouns (names of people, places, items, etc.).
 
 **Core Directives:**
-1.  **Pacing and Player Agency:** Narrate only up to the next decision point for the player. NEVER assume the player's actions. Your narration must always end with a question to the player, like "¿Qué haces?" or "¿Cuál es vuestro siguiente movimiento?".
-2.  **Conversational Awareness:** If the player is talking to other characters, your primary role is to observe. If the \`characterActions\` input is not empty, it means a conversation is happening. In this case, you should only provide narration if it's essential to describe a change in the environment or a non-verbal cue from an NPC not involved in the conversation. Otherwise, your narration should be an empty string and let the characters talk.
-3.  **Rule Adherence & Stat Updates:** You must strictly follow D&D 5th Edition rules. You have access to player and monster stats. If any character stat changes (HP, XP, status effects, etc.), you MUST return the complete, updated stats object in the 'updatedCharacterStats' field as a valid JSON string. For example: '{"hp":{"current":8,"max":12},"xp":300}'.
-4.  **Information Hierarchy:** The \`gameState\` is the absolute source of truth. You must prioritize information from the \`gameState\` over any other knowledge. Use the \`dndApiLookupTool\` ONLY when you need specific D&D 5e information that is NOT present in the provided \`gameState\` (like monster statistics for a new encounter, spell details, or rule clarifications). Provide the tool with simple queries, like "goblin" or "magic missile".
-5.  **Descriptive Locations:** When the party arrives at a new location, especially a town or city, your description MUST be vivid and comprehensive. Describe the atmosphere, notable landmarks (e.g., "a bustling marketplace to your left," "a quiet temple down the street," "the town blacksmith hammering away"), and potential points of interest to give the player a clear sense of place and actionable options.
+1.  **Reliability is Key:** You MUST ALWAYS return a valid JSON object that conforms to the output schema. Returning null or an invalid format is not an option. If there is no specific narration, return an object with an empty string for the 'narration' field.
+2.  **Pacing and Player Agency:** Narrate only up to the next decision point for the player. NEVER assume the player's actions. Your narration must always end with a question to the player, like "¿Qué haces?" or "¿Cuál es vuestro siguiente movimiento?".
+3.  **Conversational Awareness:** If the player is talking to other characters, your primary role is to observe. If the \`characterActions\` input is not empty, it means a conversation is happening. In this case, you should only provide narration if it's essential to describe a change in the environment or a non-verbal cue from an NPC not involved in the conversation. Otherwise, your narration should be an empty string and let the characters talk.
+4.  **Rule Adherence & Stat Updates:** You must strictly follow D&D 5th Edition rules. You have access to player and monster stats. If any character stat changes (HP, XP, status effects, etc.), you MUST return the complete, updated stats object in the 'updatedCharacterStats' field as a valid JSON string. For example: '{"hp":{"current":8,"max":12},"xp":300}'. If no stats change, return null for this field.
+5.  **Information Hierarchy:** The \`gameState\` is the absolute source of truth. You must prioritize information from the \`gameState\` over any other knowledge. Use the \`dndApiLookupTool\` ONLY when you need specific D&D 5e information that is NOT present in the provided \`gameState\` (like monster statistics for a new encounter, spell details, or rule clarifications). Provide the tool with simple queries, like "goblin" or "magic missile".
+6.  **Descriptive Locations:** When the party arrives at a new location, especially a town or city, your description MUST be vivid and comprehensive. Describe the atmosphere, notable landmarks (e.g., "a bustling marketplace to your left," "a quiet temple down the street," "the town blacksmith hammering away"), and potential points of interest to give the player a clear sense of place and actionable options.
 
 **Combat Protocol:**
 When combat begins, you MUST follow this exact sequence:
@@ -89,7 +90,17 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
     
     // Safeguard: If the model returns null or undefined, provide a default valid response.
     if (!output) {
-      return { narration: '' };
+      return { narration: "El Dungeon Master parece distraído y no responde. Intenta reformular tu acción." };
+    }
+    
+    // Safeguard: Validate that updatedCharacterStats is a valid JSON string if it exists
+    if (output.updatedCharacterStats) {
+        try {
+            JSON.parse(output.updatedCharacterStats);
+        } catch (e) {
+            console.warn("AI returned invalid JSON for updatedCharacterStats. Discarding.", output.updatedCharacterStats);
+            output.updatedCharacterStats = null;
+        }
     }
     
     return output;
