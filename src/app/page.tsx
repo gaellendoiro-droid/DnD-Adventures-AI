@@ -9,12 +9,10 @@ import { MainMenu } from "@/components/game/main-menu";
 import { LeftPanel } from "@/components/layout/left-panel";
 import { CharacterSheet } from "@/components/game/character-sheet";
 import { ChatPanel } from "@/components/game/chat-panel";
-import { aiDungeonMasterParser } from "@/ai/flows/ai-dungeon-master-parser";
-import { generateCharacterAction } from "@/ai/flows/generate-character-action";
-import { dungeonMasterOocParser } from "@/ai/flows/dungeon-master-ooc-parser";
 import { parseAdventureFromJson } from "@/ai/flows/parse-adventure-from-json";
 import { markdownToHtml } from "@/ai/flows/markdown-to-html";
 import { useToast } from "@/hooks/use-toast";
+import { handleOocMessage, generateNpcActions, runDungeonMasterTurn } from "./actions";
 
 export default function Home() {
   const [party, setParty] = useState<Character[]>(initialParty);
@@ -56,6 +54,10 @@ export default function Home() {
       },
     ]);
   };
+
+  const addMessages = (newMessages: GameMessage[]) => {
+    setMessages(prev => [...prev, ...newMessages]);
+  }
   
   const addDiceRoll = (roll: Omit<DiceRoll, 'id' | 'timestamp'>) => {
     const newRoll = {
@@ -71,73 +73,52 @@ export default function Home() {
   }
 
   const handleSendMessage = async (content: string) => {
-    addMessage({ sender: "Player", content });
+    const playerMessage: GameMessage = {
+      id: Date.now().toString(),
+      sender: "Player",
+      content,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setMessages(prev => [...prev, playerMessage]);
     setIsDMThinking(true);
 
     try {
       if (content.startsWith('//')) {
-        // Out-of-character message to DM
-        const oocQuery = content.substring(2).trim();
-        const oocResponse = await dungeonMasterOocParser({
-          playerQuery: oocQuery,
-          gameState: gameState,
-        });
-        if (oocResponse.dmReply) {
-          addMessage({ sender: "DM", content: `(OOC) ${oocResponse.dmReply}` });
+        const oocReply = await handleOocMessage(content.substring(2).trim(), gameState);
+        if (oocReply) {
+          addMessage({ sender: "DM", content: oocReply });
         }
       } else {
-        // In-character action
-
+        const playerAction = content;
+        
         // 1. Generate NPC actions in response to the player
-        const aiCharacters = party.filter(c => c.controlledBy === 'AI').map(c => ({id: c.id, name: c.name, class: c.class, race: c.race }));
+        const { newMessages, characterActionsContent } = await generateNpcActions(
+          party, 
+          messages.findLast(m => m.sender === 'DM')?.originalContent || locationDescription,
+          playerAction
+        );
         
-        const characterActionsResponse = await generateCharacterAction({
-          characters: aiCharacters,
-          dmNarration: messages.findLast(m => m.sender === 'DM')?.originalContent || locationDescription,
-          playerAction: content,
-        });
-        
-        let characterActionsContent = "";
-        if (characterActionsResponse.actions && characterActionsResponse.actions.length > 0) {
-          for (const action of characterActionsResponse.actions) {
-            const character = party.find(c => c.id === action.characterId);
-            if (character && action.action) {
-              addMessage({
-                sender: 'Character',
-                senderName: character.name,
-                characterColor: character.color,
-                content: action.action,
-              });
-              characterActionsContent += `${character.name}: ${action.action}\n`;
-            }
-          }
+        if (newMessages.length > 0) {
+          addMessages(newMessages);
         }
 
         // 2. DM narrates based on player action AND NPC responses
         const playerCharacter = party.find(c => c.controlledBy === 'Player');
+        const { dmNarration, updatedGameState, nextLocationDescription, updatedCharacterStats } = await runDungeonMasterTurn(
+          playerAction,
+          characterActionsContent,
+          gameState,
+          locationDescription,
+          playerCharacter || null
+        );
 
-        const dmResponse = await aiDungeonMasterParser({
-          playerAction: content,
-          characterActions: characterActionsContent,
-          gameState: gameState,
-          locationDescription: locationDescription,
-          characterStats: JSON.stringify(playerCharacter),
-        });
-
-        if (dmResponse.narration) {
-            const { html } = await markdownToHtml({ markdown: dmResponse.narration });
-            addMessage({ sender: "DM", content: html, originalContent: dmResponse.narration });
+        if (dmNarration) {
+          addMessage(dmNarration);
         }
         
-        if(dmResponse.updatedGameState) {
-          setGameState(dmResponse.updatedGameState);
-        }
-        
-        if (dmResponse.nextLocationDescription) {
-          setLocationDescription(dmResponse.nextLocationDescription);
-        }
-
-        // TODO: Implement character stats updates
+        if(updatedGameState) setGameState(updatedGameState);
+        if(nextLocationDescription) setLocationDescription(nextLocationDescription);
+        // TODO: Implement character stats updates from updatedCharacterStats
       }
     } catch (error) {
       console.error("Error during AI turn:", error);
@@ -194,28 +175,24 @@ export default function Home() {
         toast({ title: "Generando introducción...", description: "El Dungeon Master está preparando la escena." });
         
         const playerCharacter = party.find(c => c.controlledBy === 'Player');
-        const introResponse = await aiDungeonMasterParser({
-          playerAction: "Comenzar la aventura.",
-          gameState: newGameState,
-          locationDescription: parsedAdventure.adventureSummary,
-          characterStats: JSON.stringify(playerCharacter),
-        });
+        const { dmNarration, updatedGameState, nextLocationDescription } = await runDungeonMasterTurn(
+            "Comenzar la aventura.",
+            "",
+            newGameState,
+            parsedAdventure.adventureSummary,
+            playerCharacter
+        );
 
-        if (introResponse.narration) {
-          const { html } = await markdownToHtml({ markdown: introResponse.narration });
-          addMessage({
-            sender: 'DM',
-            content: html,
-            originalContent: introResponse.narration,
-          });
+        if (dmNarration) {
+          addMessage(dmNarration);
         }
         
-        if (introResponse.updatedGameState) {
-          setGameState(introResponse.updatedGameState);
+        if (updatedGameState) {
+          setGameState(updatedGameState);
         }
         
-        if (introResponse.nextLocationDescription) {
-          setLocationDescription(introResponse.nextLocationDescription);
+        if (nextLocationDescription) {
+          setLocationDescription(nextLocationDescription);
         }
 
         setDiceRolls([]);
