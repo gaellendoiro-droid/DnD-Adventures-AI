@@ -32,6 +32,7 @@ export const initialParty: Character[] = [
         { id: "item-2", name: "Armadura de placas", quantity: 1, description: "Cubre todo el cuerpo y ofrece una gran protección." },
         { id: "item-3", name: "Escudo", quantity: 1, description: "Un escudo de madera reforzado con acero." },
         { id: "item-4", name: "Paquete de aventurero", quantity: 1, description: "Contiene raciones, una cuerda, un saco de dormir y otros enseres básicos." },
+        { id: "item-gp-1", name: "Monedas de Oro", quantity: 25, description: "Dinero contante y sonante." },
     ]
   },
   {
@@ -65,6 +66,7 @@ export const initialParty: Character[] = [
         { id: "item-6", name: "Armadura de escamas", quantity: 1 },
         { id: "item-7", name: "Símbolo sagrado", quantity: 1, description: "Un amuleto de plata que canaliza su poder divino." },
         { id: "item-8", name: "Paquete de sacerdote", quantity: 1, description: "Incluye agua bendita, viales y otros objetos para sus rituales." },
+        { id: "item-gp-2", name: "Monedas de Oro", quantity: 15, description: "Dinero contante y sonante." },
     ]
   },
   {
@@ -97,6 +99,7 @@ export const initialParty: Character[] = [
         { id: "item-9", name: "Bastón", quantity: 1, description: "Un bastón de roble nudoso que le sirve como foco arcano." },
         { id: "item-10", name: "Libro de conjuros", quantity: 1, description: "Un tomo ajado lleno de sus conjuros iniciales." },
         { id: "item-11", name: "Componentes de conjuros", quantity: 1, description: "Una pequeña bolsa con los materiales necesarios para sus hechizos." },
+        { id: "item-gp-3", name: "Monedas de Oro", quantity: 10, description: "Dinero contante y sonante." },
     ]
   },
 ];
