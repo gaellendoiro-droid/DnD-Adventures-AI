@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
-import { version } from '../../../package.json';
 
 export const metadata: Metadata = {
-  title: `D&D Adventures AI v${version}`,
+  title: `D&D Adventures AI v0.2.0`,
   description: 'A D&D 5e conversational game with an AI Dungeon Master, all in Spanish.',
 };
 
