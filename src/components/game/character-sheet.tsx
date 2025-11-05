@@ -66,9 +66,6 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
             <p className="text-muted-foreground">
               {character.race} {character.class}, Nivel {character.level}
             </p>
-            <p className="text-sm text-muted-foreground">
-              {character.sex}
-            </p>
           </div>
         </div>
 
@@ -111,13 +108,13 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
             <div className="grid grid-cols-3 gap-x-2 gap-y-4">
               {Object.entries(character.abilityScores).map(([key, value]) => (
                 <div key={key} className="flex flex-col items-center text-center">
-                  <div className="p-2 bg-secondary rounded-md">
+                  <div className="p-2 bg-secondary rounded-md mb-1">
                     {abilityIcons[key as keyof typeof abilityIcons]}
                   </div>
-                  <p className="text-xs capitalize text-muted-foreground mt-1">
+                  <p className="text-xs font-bold uppercase text-muted-foreground">
                       {key.substring(0,3)}
                   </p>
-                  <p className="font-bold text-base">
+                  <p className="font-bold text-lg leading-tight">
                       {value}
                   </p>
                   <p className="text-xs font-mono text-muted-foreground">
