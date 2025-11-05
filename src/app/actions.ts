@@ -63,12 +63,21 @@ export async function runDungeonMasterTurn(
   locationDescription: string,
   playerCharacter: Character | null
 ) {
+
+  const characterStatsString = playerCharacter ? JSON.stringify(playerCharacter, (key, value) => {
+    // Exclude color from the stringified JSON
+    if (key === 'color') {
+      return undefined;
+    }
+    return value;
+  }) : '';
+
   const dmResponse = await aiDungeonMasterParser({
     playerAction: playerAction,
     characterActions: characterActions,
     gameState: gameState,
     locationDescription: locationDescription,
-    characterStats: JSON.stringify(playerCharacter),
+    characterStats: characterStatsString,
   });
 
   let dmNarration: GameMessage | null = null;
@@ -86,10 +95,21 @@ export async function runDungeonMasterTurn(
     };
   }
 
+  let parsedStats: Partial<Character> | null = null;
+  if (dmResponse.updatedCharacterStats) {
+    try {
+      parsedStats = JSON.parse(dmResponse.updatedCharacterStats);
+    } catch(e) {
+      console.error("Failed to parse updatedCharacterStats JSON:", e);
+      // Keep parsedStats as null if parsing fails
+    }
+  }
+
+
   return {
     dmNarration,
     updatedGameState: dmResponse.updatedGameState,
     nextLocationDescription: dmResponse.nextLocationDescription,
-    updatedCharacterStats: dmResponse.updatedCharacterStats,
+    updatedCharacterStats: parsedStats,
   };
 }

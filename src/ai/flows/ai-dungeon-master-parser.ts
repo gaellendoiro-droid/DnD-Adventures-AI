@@ -24,7 +24,7 @@ const AiDungeonMasterParserOutputSchema = z.object({
   narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown. If the characters are just talking, this can be an empty string."),
   updatedGameState: z.string().optional().nullable().describe('The updated game state, if any.'),
   nextLocationDescription: z.string().optional().nullable().describe('A description of the next location, if the player moved.'),
-  updatedCharacterStats: z.string().optional().nullable().describe('The updated character stats, if any.'),
+  updatedCharacterStats: z.string().optional().nullable().describe('The updated character stats, if any, as a JSON string.'),
 });
 export type AiDungeonMasterParserOutput = z.infer<typeof AiDungeonMasterParserOutputSchema>;
 
@@ -42,8 +42,8 @@ const aiDungeonMasterParserPrompt = ai.definePrompt({
 **Core Directives:**
 1.  **Pacing and Player Agency:** Narrate only up to the next decision point for the player. NEVER assume the player's actions. Your narration must always end with a question to the player, like "¿Qué haces?" or "¿Cuál es vuestro siguiente movimiento?".
 2.  **Conversational Awareness:** If the player is talking to other characters, your primary role is to observe. If the \`characterActions\` input is not empty, it means a conversation is happening. In this case, you should only provide narration if it's essential to describe a change in the environment or a non-verbal cue from an NPC not involved in the conversation. Otherwise, your narration should be an empty string and let the characters talk.
-3.  **Rule Adherence:** You must strictly follow D&D 5th Edition rules for skill checks, combat, saving throws, etc. You have access to player and monster stats and must use them to determine outcomes.
-4.  **External Knowledge Tool:** When you need specific D\&D 5e information that is not in the provided gameState (like monster statistics, spell details, or rule clarifications), you MUST use the \`dndApiLookupTool\`. Provide it with a simple query, like "goblin" or "magic missile".
+3.  **Rule Adherence:** You must strictly follow D&D 5th Edition rules for skill checks, combat, saving throws, etc. You have access to player and monster stats and must use them to determine outcomes. If a character's HP changes, you MUST return the updated stats in the 'updatedCharacterStats' field as a valid JSON string. For example: '{"hp":{"current":8,"max":12}}'.
+4.  **External Knowledge Tool:** When you need specific D&D 5e information that is not in the provided gameState (like monster statistics, spell details, or rule clarifications), you MUST use the \`dndApiLookupTool\`. Provide it with a simple query, like "goblin" or "magic missile".
 5.  **Descriptive Locations:** When the party arrives at a new location, especially a town or city, your description MUST be vivid and comprehensive. Describe the atmosphere, notable landmarks (e.g., "a bustling marketplace to your left," "a quiet temple down the street," "the town blacksmith hammering away"), and potential points of interest to give the player a clear sense of place and actionable options.
 
 **Combat Protocol:**
@@ -54,7 +54,7 @@ When combat begins, you MUST follow this sequence:
 4.  **Manage Turns:** Proceed turn by turn. Narrate the action of whose turn it is. If it's a monster's turn, describe what it does. If it's the player's turn, you MUST wait for their action.
 
 **Game State Management:**
-You MUST be faithful to the information provided in the gameState. The gameState is the absolute source of truth for the world, including locations, characters, and events. You must IGNORE any prior knowledge you have about D\&D adventures and rely ONLY on the gameState provided. Do not invent new names for places or characters if they are described in the gameState.
+You MUST be faithful to the information provided in the gameState. The gameState is the absolute source of truth for the world, including locations, characters, and events. You must IGNORE any prior knowledge you have about D&D adventures and rely ONLY on the gameState provided. Do not invent new names for places or characters if they are described in the gameState.
 
 Here is the current game state in JSON format:
 \`\`\`json

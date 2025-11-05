@@ -74,6 +74,27 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     });
   }
 
+  const updateCharacter = (characterId: string, updates: Partial<Character>) => {
+    let updatedCharacter: Character | null = null;
+    setParty(currentParty => {
+        const newParty = currentParty.map(c => {
+            if (c.id === characterId) {
+                updatedCharacter = { ...c, ...updates };
+                return updatedCharacter;
+            }
+            return c;
+        });
+        
+        // After updating the party, if the updated character is the selected one,
+        // also update the selectedCharacter state to trigger a re-render in CharacterSheet
+        if (updatedCharacter && selectedCharacter?.id === characterId) {
+            setSelectedCharacter(updatedCharacter);
+        }
+        
+        return newParty;
+    });
+  };
+
   const handleSendMessage = async (content: string) => {
     const playerMessage: GameMessage = {
       id: Date.now().toString(),
@@ -118,7 +139,11 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         
         if(updatedGameState) setGameState(updatedGameState);
         if(nextLocationDescription) setLocationDescription(nextLocationDescription);
-        // TODO: Implement character stats updates from updatedCharacterStats
+        
+        if (updatedCharacterStats && playerCharacter) {
+          updateCharacter(playerCharacter.id, updatedCharacterStats);
+        }
+
       }
     } catch (error) {
       console.error("Error during AI turn:", error);
