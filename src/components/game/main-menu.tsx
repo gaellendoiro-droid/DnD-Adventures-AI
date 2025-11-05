@@ -3,7 +3,7 @@
 import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Save, Upload, Gamepad2, Loader2 } from 'lucide-react';
+import { Play, Upload, Gamepad2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface MainMenuProps {
@@ -11,12 +11,11 @@ interface MainMenuProps {
   onContinueGame: () => void;
   onLoadAdventure: (file: File) => void;
   onLoadGame: (file: File) => void;
-  onSaveGame: () => void;
   gameInProgress: boolean;
   isLoading?: boolean;
 }
 
-export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGame, onSaveGame, gameInProgress, isLoading = false }: MainMenuProps) {
+export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGame, gameInProgress, isLoading = false }: MainMenuProps) {
   const adventureInputRef = useRef<HTMLInputElement>(null);
   const saveGameInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -96,10 +95,6 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGam
             <Button size="lg" variant="secondary" onClick={handleLoadGameClick} disabled={isLoading}>
               <Upload className="mr-2 h-5 w-5" />
               Cargar Partida
-            </Button>
-            <Button size="lg" variant="secondary" onClick={onSaveGame} disabled={!gameInProgress || isLoading}>
-              <Save className="mr-2 h-5 w-5" />
-              Guardar Partida
             </Button>
           </div>
         </CardContent>

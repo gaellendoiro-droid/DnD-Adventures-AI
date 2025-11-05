@@ -10,6 +10,7 @@ interface LeftPanelProps {
   selectedCharacterId?: string;
   onSelectCharacter: (character: Character) => void;
   diceRolls: DiceRoll[];
+  children?: React.ReactNode;
 }
 
 export function LeftPanel({
@@ -17,6 +18,7 @@ export function LeftPanel({
   selectedCharacterId,
   onSelectCharacter,
   diceRolls,
+  children,
 }: LeftPanelProps) {
   return (
     <div className="flex flex-col h-full">
@@ -28,9 +30,17 @@ export function LeftPanel({
         />
       </div>
       <Separator className="my-2" />
-      <div className="flex-grow overflow-y-auto">
+      <div className="flex-grow min-h-0">
         <DiceLogPanel diceRolls={diceRolls} />
       </div>
+      {children && (
+        <>
+            <Separator className="my-2" />
+            <div className="flex-shrink-0">
+                {children}
+            </div>
+        </>
+      )}
     </div>
   );
 }
