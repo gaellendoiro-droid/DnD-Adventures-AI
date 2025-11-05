@@ -31,16 +31,17 @@ export default function Home() {
       setLoading('newGame');
       toast({ title: "Creando nueva aventura...", description: "El Dungeon Master está preparando el mundo." });
       
-      const jsonContent = JSON.stringify(adventureData);
-      const parsedAdventure = await parseAdventureFromJson({ adventureJson: jsonContent });
-      const newGameState = JSON.stringify(parsedAdventure.adventureData);
-      
+      const newGameState = JSON.stringify(adventureData);
+      // Since this is the default adventure, we can hardcode the title and summary
+      // to avoid an unnecessary AI call to parse the JSON.
+      const adventureSummary = "Un joven dragón blanco llamado Cryovain ha reclamado el Pico Agujahelada como su dominio, desplazando a orcos y otras criaturas que ahora amenazan la región alrededor del pueblo de Phandalin. Los aventureros deben emprender misiones para proteger a los habitantes y, finalmente, enfrentarse al dragón en su guarida.";
+
       const playerCharacter = initialParty.find(c => c.controlledBy === 'Player');
       const { dmNarration, updatedGameState, nextLocationDescription } = await runDungeonMasterTurn(
           "Comenzar la aventura.",
           "",
           newGameState,
-          parsedAdventure.adventureSummary,
+          adventureSummary,
           playerCharacter
       );
 
@@ -54,7 +55,7 @@ export default function Home() {
         messages: messages,
         diceRolls: [],
         gameState: updatedGameState || newGameState,
-        locationDescription: nextLocationDescription || parsedAdventure.adventureSummary,
+        locationDescription: nextLocationDescription || adventureSummary,
       });
       
       setGameInProgress(true);
