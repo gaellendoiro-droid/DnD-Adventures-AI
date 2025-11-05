@@ -25,6 +25,7 @@ import {
   Package,
   Info,
   BookUser,
+  Wand2,
 } from "lucide-react";
 import { Badge } from "../ui/badge";
 
@@ -104,14 +105,14 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
               Habilidades
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4">
+          <CardContent className="px-2">
             <div className="grid grid-cols-3 gap-1.5 text-center">
               {Object.entries(character.abilityScores).map(([key, value]) => (
                 <div key={key} className="flex flex-col items-center p-2 rounded-md bg-secondary">
                   <div className="p-1.5 rounded-md bg-secondary">
                     {abilityIcons[key as keyof typeof abilityIcons]}
                   </div>
-                  <p className="font-bold text-sm leading-tight mt-1 whitespace-nowrap">
+                   <p className="font-semibold text-sm leading-tight mt-1 whitespace-nowrap">
                       <span className="font-sans uppercase text-muted-foreground">{key.substring(0,3)}:</span> {value} <span className="font-mono text-xs text-muted-foreground">({getModifier(value)})</span>
                   </p>
                 </div>
@@ -179,6 +180,32 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
                                 {item.quantity > 1 && <Badge variant="secondary">x{item.quantity}</Badge>}
                             </div>
                             {item.description && <p className="text-xs text-muted-foreground mt-1">{item.description}</p>}
+                        </div>
+                    ))}
+                </div>
+               )}
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="spells">
+            <AccordionTrigger className="font-semibold text-base">
+              <Wand2 className="mr-2" /> Conjuros
+            </AccordionTrigger>
+            <AccordionContent>
+               {character.spells.length === 0 ? (
+                 <p className="text-muted-foreground text-sm p-2">
+                    Este personaje no conoce conjuros.
+                 </p>
+               ) : (
+                <div className="space-y-3">
+                    {character.spells.map(spell => (
+                        <div key={spell.id} className="p-2 rounded-md transition-colors hover:bg-secondary">
+                            <div className="flex justify-between items-center">
+                                <span className="font-semibold">{spell.name}</span>
+                                <Badge variant={spell.level === 0 ? "outline" : "secondary"}>
+                                  {spell.level > 0 ? `Nivel ${spell.level}`: 'Truco'}
+                                </Badge>
+                            </div>
+                            {spell.description && <p className="text-xs text-muted-foreground mt-1">{spell.description}</p>}
                         </div>
                     ))}
                 </div>

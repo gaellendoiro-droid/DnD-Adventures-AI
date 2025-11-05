@@ -19,6 +19,13 @@ export interface InventoryItem {
   description?: string;
 }
 
+export interface Spell {
+  id: string;
+  name: string;
+  level: number;
+  description: string;
+}
+
 export interface Character {
   id: string;
   name: string;
@@ -38,6 +45,7 @@ export interface Character {
   ac: number;
   controlledBy: "Player" | "AI";
   inventory: InventoryItem[];
+  spells: Spell[];
 }
 
 export interface GameMessage {

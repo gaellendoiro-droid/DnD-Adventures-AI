@@ -34,7 +34,8 @@ export const initialParty: Character[] = [
         { id: "item-3", name: "Escudo", quantity: 1, description: "Un escudo de madera reforzado con acero." },
         { id: "item-4", name: "Paquete de aventurero", quantity: 1, description: "Contiene raciones, una cuerda, un saco de dormir y otros enseres básicos." },
         { id: "item-gp-1", name: "Monedas de Oro", quantity: 25, description: "Dinero contante y sonante." },
-    ]
+    ],
+    spells: []
   },
   {
     id: "2",
@@ -68,6 +69,15 @@ export const initialParty: Character[] = [
         { id: "item-7", name: "Símbolo sagrado", quantity: 1, description: "Un amuleto de plata que canaliza su poder divino." },
         { id: "item-8", name: "Paquete de sacerdote", quantity: 1, description: "Incluye agua bendita, viales y otros objetos para sus rituales." },
         { id: "item-gp-2", name: "Monedas de Oro", quantity: 15, description: "Dinero contante y sonante." },
+    ],
+    spells: [
+        { id: "spell-1", name: "Luz", level: 0, description: "Haces que un objeto brille como una antorcha." },
+        { id: "spell-2", name: "Llama sagrada", level: 0, description: "Una llama divina desciende sobre una criatura, que debe superar una salvación de Destreza o recibir daño radiante." },
+        { id: "spell-3", name: "Orientación divina", level: 0, description: "Tocas a una criatura y le otorgas un d4 extra en una prueba de habilidad." },
+        { id: "spell-4", name: "Curar heridas", level: 1, description: "Restauras puntos de golpe a una criatura que toques." },
+        { id: "spell-5", name: "Escudo de fe", level: 1, description: "Proteges a una criatura con un campo divino, otorgándole +2 a la CA." },
+        { id: "spell-6", name: "Palabra de curación", level: 1, description: "Curación a distancia como una acción adicional." },
+        { id: "spell-7", name: "Infligir heridas", level: 1, description: "Un toque necrótico que causa un gran daño." },
     ]
   },
   {
@@ -101,6 +111,15 @@ export const initialParty: Character[] = [
         { id: "item-10", name: "Libro de conjuros", quantity: 1, description: "Un tomo ajado lleno de sus conjuros iniciales." },
         { id: "item-11", name: "Componentes de conjuros", quantity: 1, description: "Una pequeña bolsa con los materiales necesarios para sus hechizos." },
         { id: "item-gp-3", name: "Monedas de Oro", quantity: 10, description: "Dinero contante y sonante." },
+    ],
+    spells: [
+        { id: "spell-8", name: "Luz", level: 0, description: "Haces que un objeto brille como una antorcha." },
+        { id: "spell-9", name: "Mano de mago", level: 0, description: "Creas una mano espectral flotante que puede manipular objetos." },
+        { id: "spell-10", name: "Rayo de escarcha", level: 0, description: "Un rayo de luz azul fría hiere y ralentiza a un enemigo." },
+        { id: "spell-11", name: "Dardo mágico", level: 1, description: "Creas tres dardos de fuerza mágica que impactan infaliblemente a sus objetivos." },
+        { id: "spell-12", name: "Dormir", level: 1, description: "Pones a las criaturas en un sueño mágico." },
+        { id: "spell-13", name: "Hechizar persona", level: 1, description: "Encantas a un humanoide para que te considere un amigo." },
+        { id: "spell-14", name: "Armadura de mago", level: 1, description: "Una fuerza mágica protectora te rodea, estableciendo tu CA base en 13 + tu modificador de Destreza." },
     ]
   },
 ];
