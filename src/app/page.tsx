@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import type { Character, GameMessage, DiceRoll } from "@/lib/types";
-import { initialParty, initialMessages } from "@/lib/data";
+import { initialParty } from "@/lib/data";
 import { AppHeader } from "@/components/layout/app-header";
 import { MainMenu } from "@/components/game/main-menu";
 import { GameView } from "@/components/game/game-view";
 import { useToast } from "@/hooks/use-toast";
 import { parseAdventureFromJson } from "@/ai/flows/parse-adventure-from-json";
 import { runDungeonMasterTurn } from "./actions";
+import adventureData from "@/../JSON_adventures/el-dragon-del-pico-agujahelada.json";
 
 
 export default function Home() {
@@ -25,16 +26,52 @@ export default function Home() {
 
   const { toast } = useToast();
   
-  const handleNewGame = () => {
-    setInitialGameData({
-      party: initialParty,
-      messages: initialMessages,
-      diceRolls: [],
-      gameState: "Initial state: The party is in the Yawning Portal inn.",
-      locationDescription: "Se encuentran en 'El Portal Bostezante', una posada legendaria en el corazón de la Costa de la Espada. El aire está cargado con el aroma de estofado de carne y el humo de la leña crepitante en el hogar. Un murmullo constante de conversaciones y risas llena la sala común. Podrían acercarse a la barra y charlar con el posadero, buscar una mesa libre para planificar su siguiente paso, o quizás averiguar más sobre la figura solitaria y encapuchada que les observa desde una esquina oscura. El ambiente es un hervidero de oportunidades y peligros latentes. ¿Qué hacen?",
-    })
-    setGameInProgress(true);
-    setGameStarted(true);
+  const handleNewGame = async () => {
+    try {
+      setIsLoading(true);
+      toast({ title: "Creando nueva aventura...", description: "El Dungeon Master está preparando el mundo." });
+      
+      const jsonContent = JSON.stringify(adventureData);
+      const parsedAdventure = await parseAdventureFromJson({ adventureJson: jsonContent });
+      const newGameState = JSON.stringify(parsedAdventure.adventureData);
+      
+      const playerCharacter = initialParty.find(c => c.controlledBy === 'Player');
+      const { dmNarration, updatedGameState, nextLocationDescription } = await runDungeonMasterTurn(
+          "Comenzar la aventura.",
+          "",
+          newGameState,
+          parsedAdventure.adventureSummary,
+          playerCharacter
+      );
+
+      const messages: GameMessage[] = [];
+      if (dmNarration) {
+        messages.push(dmNarration)
+      }
+
+      setInitialGameData({
+        party: initialParty,
+        messages: messages,
+        diceRolls: [],
+        gameState: updatedGameState || newGameState,
+        locationDescription: nextLocationDescription || parsedAdventure.adventureSummary,
+      });
+      
+      setGameInProgress(true);
+      setGameStarted(true);
+
+      toast({ title: "¡Aventura lista!", description: "Tu nueva aventura está lista para empezar." });
+
+    } catch (error) {
+      console.error("Error starting new game:", error);
+      toast({
+        variant: 'destructive',
+        title: "Error al crear la partida",
+        description: "No se pudo iniciar la nueva aventura.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const handleGoToMenu = () => {

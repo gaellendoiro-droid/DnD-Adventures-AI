@@ -65,8 +65,12 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGam
               </Button>
             )}
             <Button size="lg" variant={gameInProgress ? 'secondary' : 'default'} onClick={onNewGame} disabled={isLoading}>
-              <Play className="mr-2 h-5 w-5" />
-              Nueva Partida
+              {isLoading ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                <Play className="mr-2 h-5 w-5" />
+              )}
+              {isLoading ? 'Creando Aventura...' : 'Nueva Partida'}
             </Button>
             <input
               type="file"
