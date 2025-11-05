@@ -2,7 +2,7 @@ import { ScrollText, Home } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 
-const version = '0.2.0';
+const version = '0.2.1';
 
 interface AppHeaderProps {
   onGoToMenu?: () => void;
