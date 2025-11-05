@@ -50,12 +50,13 @@ export interface Character {
 
 export interface GameMessage {
   id: string;
-  sender: "DM" | "Player" | "System" | "Character";
+  sender: "DM" | "Player" | "System" | "Character" | "Error";
   senderName?: string;
   characterColor?: string;
   content: string | React.ReactNode;
   originalContent?: string; // Store the raw markdown here
   timestamp: string;
+  onRetry?: () => void;
 }
 
 export interface DiceRoll {

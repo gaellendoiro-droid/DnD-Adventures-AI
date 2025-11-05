@@ -43,22 +43,32 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setSelectedCharacter(initialData.party.find(c => c.controlledBy === 'Player') || null);
   }, [initialData]);
 
-  const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>) => {
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      {
+  const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
+    
+    // If it's a retry message, we don't want to re-add the player's prompt.
+    // We just want to add the new messages from the AI.
+    const messageToAdd = {
         ...message,
         id: Date.now().toString() + Math.random(),
         timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
         }),
-      },
-    ]);
-  };
+    };
+    
+    setMessages((prevMessages) => {
+        // If it's a retry, we might want to remove the previous error message.
+        const filteredMessages = isRetryMessage ? prevMessages.filter(m => m.sender !== 'Error') : prevMessages;
+        return [...filteredMessages, messageToAdd];
+    });
+};
 
-  const addMessages = (newMessages: GameMessage[]) => {
-    setMessages(prev => [...prev, ...newMessages]);
+
+  const addMessages = (newMessages: GameMessage[], isRetry: boolean = false) => {
+     setMessages((prev) => {
+        const filteredMessages = isRetry ? prev.filter(m => m.sender !== 'Error') : prev;
+        return [...filteredMessages, ...newMessages];
+    });
   }
   
   const addDiceRoll = (roll: Omit<DiceRoll, 'id' | 'timestamp'>) => {
@@ -95,14 +105,19 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     });
   };
 
-  const handleSendMessage = async (content: string) => {
-    const playerMessage: GameMessage = {
-      id: Date.now().toString(),
-      sender: "Player",
-      content,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setMessages(prev => [...prev, playerMessage]);
+  const handleSendMessage = async (content: string, isRetry: boolean = false) => {
+    if (!isRetry) {
+        const playerMessage: GameMessage = {
+          id: Date.now().toString(),
+          sender: "Player",
+          content,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages(prev => [...prev.filter(m => m.sender !== 'Error'), playerMessage]);
+    } else {
+       setMessages(prev => [...prev.filter(m => m.sender !== 'Error')]);
+    }
+    
     setIsDMThinking(true);
 
     try {
@@ -121,7 +136,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         );
         
         if (newMessages.length > 0) {
-          addMessages(newMessages);
+          addMessages(newMessages, isRetry);
         }
 
         const playerCharacter = party.find(c => c.controlledBy === 'Player');
@@ -134,7 +149,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         );
 
         if (dmNarration) {
-          addMessage(dmNarration);
+          addMessage(dmNarration, isRetry);
         }
         
         if(updatedGameState) setGameState(updatedGameState);
@@ -145,16 +160,27 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         }
 
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error during AI turn:", error);
-      addMessage({
-        sender: "System",
-        content: "El Dungeon Master o uno de los personajes está confundido y no puede responder ahora mismo.",
-      });
+      
+      const errorMessage = error.message || "An unknown error occurred.";
+      if (errorMessage.includes("503") || errorMessage.includes("model is overloaded")) {
+         addMessage({
+            sender: 'Error',
+            content: "El DM está muy ocupado en este momento y no puede responder.",
+            onRetry: () => handleSendMessage(content, true),
+        });
+      } else {
+        addMessage({
+            sender: "System",
+            content: "El Dungeon Master o uno de los personajes está confundido y no puede responder ahora mismo.",
+        });
+      }
     } finally {
       setIsDMThinking(false);
     }
   };
+
 
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
     addDiceRoll({

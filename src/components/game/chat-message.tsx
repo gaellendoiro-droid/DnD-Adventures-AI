@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import type { GameMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Bot, User, Cog, Swords, Play, Loader2, Square } from "lucide-react";
+import { Bot, User, Cog, Swords, Play, Loader2, Square, AlertTriangle, RefreshCw } from "lucide-react";
 import { generateDmNarrationAudio } from "@/ai/flows/generate-dm-narration-audio";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "../ui/button";
@@ -37,10 +37,16 @@ const senderInfo = {
     bubbleClassName: "bg-secondary rounded-b-none",
     iconClassName: "text-accent-foreground",
   },
+  Error: {
+    icon: AlertTriangle,
+    name: "Error del Sistema",
+    bubbleClassName: "bg-destructive/10 text-destructive-foreground border border-destructive/30 rounded-br-none",
+    iconClassName: "text-destructive",
+  }
 };
 
 export function ChatMessage({ message }: ChatMessageProps) {
-  const { sender, senderName, content, timestamp, characterColor, originalContent } = message;
+  const { sender, senderName, content, timestamp, characterColor, originalContent, onRetry } = message;
   const info = senderInfo[sender];
   const Icon = info.icon;
 
@@ -130,10 +136,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
       ? { backgroundColor: characterColor, color: 'white' }
       : {};
 
-  const bubbleClassName =
-    sender === "Character"
-      ? "text-primary-foreground rounded-b-none"
-      : info.bubbleClassName;
+  let bubbleClassName = info.bubbleClassName;
+   if(sender === "Character"){
+       bubbleClassName = "text-primary-foreground rounded-b-none"
+   }
 
 
   return (
@@ -158,6 +164,14 @@ export function ChatMessage({ message }: ChatMessageProps) {
               <div className="leading-relaxed" dangerouslySetInnerHTML={{ __html: content as string }} />
             ) : (
               <p className="leading-relaxed">{content as string}</p>
+            )}
+             {sender === 'Error' && onRetry && (
+                <div className="mt-3">
+                    <Button variant="destructive" size="sm" onClick={onRetry}>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Reintentar
+                    </Button>
+                </div>
             )}
           </div>
           {sender === "DM" && (
