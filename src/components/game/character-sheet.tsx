@@ -104,14 +104,14 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
               Habilidades
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-2 text-center">
+          <CardContent className="px-4">
+            <div className="grid grid-cols-3 gap-1.5 text-center">
               {Object.entries(character.abilityScores).map(([key, value]) => (
                 <div key={key} className="flex flex-col items-center p-2 rounded-md bg-secondary">
-                  <div className="p-1.5 rounded-md">
+                  <div className="p-1.5 rounded-md bg-secondary">
                     {abilityIcons[key as keyof typeof abilityIcons]}
                   </div>
-                  <p className="font-bold text-sm leading-tight mt-1">
+                  <p className="font-bold text-sm leading-tight mt-1 whitespace-nowrap">
                       <span className="font-sans uppercase text-muted-foreground">{key.substring(0,3)}:</span> {value} <span className="font-mono text-xs text-muted-foreground">({getModifier(value)})</span>
                   </p>
                 </div>
