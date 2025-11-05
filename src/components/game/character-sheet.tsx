@@ -105,21 +105,20 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-x-2 gap-y-4">
+            <div className="grid grid-cols-3 gap-2 text-center">
               {Object.entries(character.abilityScores).map(([key, value]) => (
-                <div key={key} className="flex flex-col items-center text-center">
-                  <div className="p-2 bg-secondary rounded-md mb-1">
+                <div key={key} className="flex flex-col items-center p-1 rounded-md bg-secondary/50">
+                  <div className="p-1.5 bg-secondary rounded-md">
                     {abilityIcons[key as keyof typeof abilityIcons]}
                   </div>
-                  <p className="text-xs font-bold uppercase text-muted-foreground">
-                      {key.substring(0,3)}
-                  </p>
-                  <p className="font-bold text-lg leading-tight">
-                      {value}
-                  </p>
-                  <p className="text-xs font-mono text-muted-foreground">
-                    ({getModifier(value)})
-                  </p>
+                  <div className="mt-1.5">
+                    <p className="text-xs font-bold uppercase text-muted-foreground">
+                        {key.substring(0,3)}
+                    </p>
+                    <p className="font-bold text-sm leading-tight">
+                        {value} <span className="font-mono text-xs text-muted-foreground">({getModifier(value)})</span>
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
