@@ -21,6 +21,7 @@ interface GameViewProps {
     messages: GameMessage[];
     diceRolls: DiceRoll[];
     gameState: string;
+    locationId: string;
     locationDescription: string;
     inCombat?: boolean;
     initiativeOrder?: Combatant[];
@@ -33,6 +34,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const [messages, setMessages] = useState<GameMessage[]>(initialData.messages);
   const [diceRolls, setDiceRolls] = useState<DiceRoll[]>(initialData.diceRolls);
   const [gameState, setGameState] = useState(initialData.gameState);
+  const [locationId, setLocationId] = useState(initialData.locationId);
   const [locationDescription, setLocationDescription] = useState(initialData.locationDescription);
   const [inCombat, setInCombat] = useState(initialData.inCombat || false);
   const [initiativeOrder, setInitiativeOrder] = useState<Combatant[]>(initialData.initiativeOrder || []);
@@ -57,6 +59,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setMessages(initialData.messages);
     setDiceRolls(initialData.diceRolls);
     setGameState(initialData.gameState);
+    setLocationId(initialData.locationId);
     setLocationDescription(initialData.locationDescription);
     setSelectedCharacter(initialData.party.find(c => c.controlledBy === 'Player') || null);
     setInCombat(initialData.inCombat || false);
@@ -251,11 +254,13 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       } else {
         // --- NARRATIVE MODE ---
         addDebugMessage("Running NARRATIVE turn.");
-        const turnResult = await runTurn(content, party, locationDescription, gameState, history);
+        const turnResult = await runTurn(content, party, locationId, locationDescription, gameState, history);
           
         if(turnResult.companionMessages.length > 0) addMessages(turnResult.companionMessages, isRetry);
         if(turnResult.dmNarration) addMessage(turnResult.dmNarration, isRetry);
+        if(turnResult.nextLocationId) setLocationId(turnResult.nextLocationId);
         if(turnResult.nextLocationDescription) setLocationDescription(turnResult.nextLocationDescription);
+
         if (turnResult.updatedCharacterStats) {
             const playerCharacter = party.find(c => c.controlledBy === 'Player');
             if (playerCharacter) updateCharacter(playerCharacter.id, turnResult.updatedCharacterStats);
@@ -277,7 +282,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       setIsDMThinking(false);
       addDebugMessage("Turn finished.");
     }
-  }, [addDebugMessage, buildConversationHistory, gameState, inCombat, locationDescription, party, startCombatFlow, enemies, initiativeOrder, turnIndex]);
+  }, [addDebugMessage, buildConversationHistory, gameState, inCombat, locationDescription, party, startCombatFlow, enemies, initiativeOrder, turnIndex, locationId]);
   
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
      addDiceRolls([{
@@ -297,6 +302,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       messages,
       diceRolls,
       gameState,
+      locationId,
       locationDescription,
       inCombat,
       initiativeOrder,

@@ -23,6 +23,7 @@ export default function Home() {
     messages: GameMessage[];
     diceRolls: DiceRoll[];
     gameState: string;
+    locationId: string;
     locationDescription: string;
     inCombat?: boolean;
     initiativeOrder?: Combatant[];
@@ -41,7 +42,8 @@ export default function Home() {
         messages: [initialMessage],
         diceRolls: [],
         gameState: newGameState,
-        locationDescription: adventureData.summary,
+        locationId: adventureData.locations[0].id,
+        locationDescription: adventureData.locations[0].description,
         inCombat: false,
         initiativeOrder: [],
       });
@@ -84,10 +86,13 @@ export default function Home() {
         
         toast({ title: "Generando introducción...", description: "El Dungeon Master está preparando la escena." });
         
+        const firstLocation = parsedAdventure.adventureData.locations[0];
+
         const { dmNarration } = await runTurn(
             "Comenzar la aventura.",
             initialParty,
-            parsedAdventure.adventureSummary,
+            firstLocation.id,
+            firstLocation.description,
             newGameState,
             ""
         );
@@ -102,7 +107,8 @@ export default function Home() {
           messages: messages,
           diceRolls: [],
           gameState: newGameState,
-          locationDescription: parsedAdventure.adventureSummary,
+          locationId: firstLocation.id,
+          locationDescription: firstLocation.description,
           inCombat: false,
           initiativeOrder: [],
         });
@@ -134,7 +140,7 @@ export default function Home() {
         const jsonContent = e.target?.result as string;
         const saveData = JSON.parse(jsonContent);
 
-        if (!saveData.party || !saveData.messages || !saveData.gameState) {
+        if (!saveData.party || !saveData.messages || !saveData.gameState || !saveData.locationId) {
           throw new Error("El archivo de guardado no es válido.");
         }
 
@@ -143,6 +149,7 @@ export default function Home() {
           messages: saveData.messages,
           diceRolls: saveData.diceRolls || [],
           gameState: saveData.gameState,
+          locationId: saveData.locationId,
           locationDescription: saveData.locationDescription || "",
           inCombat: saveData.inCombat || false,
           initiativeOrder: saveData.initiativeOrder || [],

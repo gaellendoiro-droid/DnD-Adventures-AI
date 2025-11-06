@@ -27,6 +27,7 @@ export async function handleOocMessage(playerQuery: string, gameState: string, c
 export async function runTurn(
   playerAction: string,
   party: Character[],
+  locationId: string,
   locationDescription: string,
   gameState: string,
   conversationHistory: string,
@@ -66,6 +67,7 @@ export async function runTurn(
   const narrativeResponse = await narrativeExpert({
       playerAction,
       characterActions: companionActionsContent,
+      locationId,
       locationDescription,
       gameState,
       characterStats: playerCharacter ? JSON.stringify(playerCharacter) : undefined,
@@ -102,6 +104,7 @@ export async function runTurn(
     dmNarration,
     startCombat: narrativeResponse.startCombat,
     combatStartNarration: narrativeResponse.combatStartNarration,
+    nextLocationId: narrativeResponse.nextLocationId,
     nextLocationDescription: narrativeResponse.nextLocationDescription,
     updatedCharacterStats: parsedStats,
   };

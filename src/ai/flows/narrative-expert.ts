@@ -17,6 +17,7 @@ const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
   characterActions: z.string().optional().describe('The actions or dialogue of AI-controlled characters in response to the player. This field may be empty.'),
   gameState: z.string().optional().describe('A JSON string representing the entire adventure data. This is the primary source of truth for locations, entities, and interactable objects.'),
+  locationId: z.string().optional().describe('The ID of the current location (e.g., "phandalin-plaza-del-pueblo").'),
   locationDescription: z.string().optional().describe('A description of the current location.'),
   characterStats: z.string().optional().describe('The current stats of the character.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
@@ -25,6 +26,7 @@ export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
 
 const NarrativeExpertOutputSchema = z.object({
   narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown. If the characters are just talking, this can be an empty string."),
+  nextLocationId: z.string().optional().nullable().describe('The ID of the new location, if the player moved.'),
   nextLocationDescription: z.string().optional().nullable().describe('A description of the next location, if the player moved.'),
   updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}, \"inventory\": [{\"id\":\"item-gp-1\",\"name\":\"Monedas de Oro\",\"quantity\":10}]}'. Must be a valid JSON string or null."),
   startCombat: z.boolean().describe("Set to true if the player's action or the narrative circumstances have definitively initiated combat."),
@@ -40,7 +42,7 @@ const narrativeExpertPrompt = ai.definePrompt({
   name: 'narrativeExpertPrompt',
   input: {schema: NarrativeExpertInputSchema},
   output: {schema: NarrativeExpertOutputSchema},
-  tools: [dndApiLookupTool, adventureLookupTool],
+  tools: [dndApiLookupTool],
   prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish. DO NOT translate proper nouns (names, places, etc.).
 
 **Your Priorities & Directives:**
@@ -58,6 +60,7 @@ const narrativeExpertPrompt = ai.definePrompt({
 
 **Rules:**
 -   Only update \`updatedCharacterStats\` for actions resolved in this turn (e.g., drinking a potion). Do not update stats for combat-related actions.
+-   When the player moves, you MUST populate both \`nextLocationId\` and \`nextLocationDescription\` from the lookup tool.
 -   ALWAYS return a valid JSON object matching the output schema.
 
 **CONTEXT:**
@@ -122,10 +125,12 @@ const narrativeExpertFlow = ai.defineFlow(
         if (result) return JSON.stringify(result);
 
         // Add search for interactables within the current location
-        const currentLocation = (adventureData.locations || []).find((loc:any) => loc.description === input.locationDescription);
-        if (currentLocation && currentLocation.interactables) {
-             const interactable = currentLocation.interactables.find((i: any) => i.name && typeof i.name === 'string' && i.name.toLowerCase() === query.toLowerCase());
-             if (interactable) return JSON.stringify(interactable);
+        if (input.locationId) {
+            const currentLocation = (adventureData.locations || []).find((loc:any) => loc.id === input.locationId);
+            if (currentLocation && currentLocation.interactables) {
+                const interactable = currentLocation.interactables.find((i: any) => i.name && typeof i.name === 'string' && i.name.toLowerCase() === query.toLowerCase());
+                if (interactable) return JSON.stringify(interactable);
+            }
         }
 
         return `Error: No location, entity or interactable found matching '${query}'.`;
