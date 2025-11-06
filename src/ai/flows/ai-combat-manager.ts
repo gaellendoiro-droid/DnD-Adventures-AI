@@ -11,13 +11,41 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
+import type { Character } from '@/lib/types';
+
+const CharacterSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    race: z.string(),
+    class: z.string(),
+    level: z.number(),
+    sex: z.string(),
+    background: z.string(),
+    color: z.string(),
+    personality: z.string(),
+    abilityScores: z.object({
+        fuerza: z.number(),
+        destreza: z.number(),
+        constitución: z.number(),
+        inteligencia: z.number(),
+        sabiduría: z.number(),
+        carisma: z.number(),
+    }),
+    skills: z.array(z.object({ name: z.string(), proficient: z.boolean() })),
+    hp: z.object({ current: z.number(), max: z.number() }),
+    ac: z.number(),
+    controlledBy: z.enum(["Player", "AI"]),
+    inventory: z.array(z.object({ id: z.string(), name: z.string(), quantity: z.number(), description: z.string().optional() })),
+    spells: z.array(z.object({ id: z.string(), name: z.string(), level: z.number(), description: z.string() })),
+});
+
 
 const AiCombatManagerInputSchema = z.object({
   playerAction: z.string().describe("The action taken by the player on their turn. For the very first turn of combat, this will be 'Comienza la batalla'."),
   characterActions: z.string().optional().describe('The actions or dialogue of AI-controlled characters. This field may be empty.'),
   gameState: z.string().optional().describe('The current state of the game, for looking up entity/monster stats.'),
   locationDescription: z.string().optional().describe('A description of the current location.'),
-  characterStats: z.string().optional().describe('The current stats of the player character.'),
+  party: z.array(CharacterSchema).optional().describe('An array containing the data for all characters in the party (player and AI-controlled).'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
   combatStartNarration: z.string().optional().describe("If this is the first turn of combat, this field will contain the DM's narration of how combat started."),
 });
@@ -42,7 +70,7 @@ const InitiativeRollSchema = z.object({
 
 const AiCombatManagerOutputSchema = z.object({
   narration: z.string().describe("The AI Dungeon Master's narration of the combat turn, formatted in Markdown."),
-  updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}}'. Must be a valid JSON string or null."),
+  updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, for the PLAYER character only, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}}'. Must be a valid JSON string or null."),
   diceRolls: z.array(CombatDiceRollSchema).optional().nullable().describe("An array of any dice rolls (attack, damage, saving throws, etc.) made during this turn."),
   initiativeRolls: z.array(InitiativeRollSchema).optional().nullable().describe("An array of detailed initiative rolls. THIS SHOULD ONLY BE POPULATED ON THE VERY FIRST TURN OF COMBAT."),
   endCombat: z.boolean().describe("Set to true if all hostiles are defeated or have fled, ending combat."),
@@ -60,41 +88,44 @@ const aiCombatManagerPrompt = ai.definePrompt({
   tools: [dndApiLookupTool],
   prompt: `You are a strict AI Dungeon Master for a D&D 5e game, and you are in **COMBAT MODE**. Your only job is to manage the current turn of combat. You MUST ALWAYS reply in Spanish.
 
+**CONTEXT:**
+-   **Location:** {{{locationDescription}}}
+-   **Combatants:** The following characters are involved in this combat. Use this as the definitive list of participants.
+    {{#if party}}
+        {{#each party}}
+-   **{{this.name}}** ({{this.race}} {{this.class}}, AC: {{this.ac}}, HP: {{this.hp.current}}/{{this.hp.max}}) - Controlled by: {{this.controlledBy}}
+        {{/each}}
+    {{/if}}
+-   **How it Started:** {{#if combatStartNarration}} {{{combatStartNarration}}} {{else}} The battle continues. {{/if}}
+-   **Conversation History:**
+    \`\`\`
+    {{{conversationHistory}}}
+    \`\`\`
+
 **STATE: FIRST TURN OF COMBAT**
 - If the player's action is "Comienza la batalla", this is the VERY FIRST turn.
-- **First Turn Protocol (Strictly follow this is your highest priority):**
-    1.  **Identify Combatants:** Read the \`combatStartNarration\` to identify ALL combatants involved. This is your primary source of truth.
+- **First Turn Protocol (Strictly follow, this is your highest priority):**
+    1.  **Identify Combatants:** From the 'CONTEXT' section, identify ALL combatants involved. This is your primary source of truth. Get NPC/Monster stats using the \`adventureLookupTool\` or \`dndApiLookupTool\`.
     2.  **Roll Initiative:** You MUST roll initiative for EVERY combatant identified.
-        - For each, calculate \`d20 + dexterity modifier\`. Use the dndApiLookupTool if you need stats for generic creatures like 'guard' or 'goblin'.
+        - For each, calculate \`d20 + dexterity modifier\`.
         - You MUST populate the 'initiativeRolls' field with the results for each combatant. This is mandatory for the first turn.
     3.  **Establish Turn Order:** Based on the initiative rolls, state the turn order clearly in your narration (e.g., "El orden de combate es: Merryl, Orco 1, Galador, Elara...").
     4.  **Execute First Turn:**
-        -   **If the player character has the highest initiative:** Your narration MUST end with: "Es tu turno, ¿qué haces?". DO NOT take any action for the player.
-        -   **If an NPC has the highest initiative:** Narrate their action, roll dice, and then proceed to the next character in the initiative order until it's the player's turn. Your narration MUST end by prompting the player for their next action (e.g., "Es tu turno, ¿qué haces?").
+        -   **If a player-controlled character has the highest initiative:** Your narration MUST end with: "Es tu turno, ¿qué haces?". DO NOT take any action for the player.
+        -   **If an AI-controlled character or NPC has the highest initiative:** Narrate their action, roll dice, and then proceed to the next character in the initiative order until it's a player's turn. Your narration MUST end by prompting the player for their next action (e.g., "Es tu turno, ¿qué haces?").
 
 **STATE: SUBSEQUENT TURNS**
 - If the player's action is anything other than "Comienza la batalla", this is a regular combat turn.
 - **Combat Protocol (Strictly follow):**
     1.  **Narrate Player's Turn:** Describe the outcome of the player's action: "{{{playerAction}}}".
-    2.  **Process NPC Turns:** After the player's turn, process the turns for any NPCs (monsters, enemies) that act next in the initiative order, up until the next player turn.
-    3.  **NPC Actions:** For each NPC, determine their action based on their stats and tactics. Use the 'dndApiLookupTool' or 'adventureLookupTool' to get monster stats if you don't know them.
-    4.  **Roll and Report:** For any NPC action requiring a roll (attack, damage, save), you MUST provide the details in the 'diceRolls' field.
+    2.  **Process NPC/AI Turns:** After the player's turn, process the turns for any AI characters or NPCs that act next in the initiative order, up until the next player turn.
+    3.  **NPC/AI Actions:** For each character, determine their action based on their stats and tactics.
+    4.  **Roll and Report:** For any action requiring a roll (attack, damage, save), you MUST provide the details in the 'diceRolls' field.
         - The 'description' of the roll MUST include the dice notation and the ability modifier abbreviation (e.g., 'Tirada de Ataque (1d20+FUE)').
         - **Attack Flow:** First, make the attack roll. Narrate if it hits or misses based on the target's AC. A natural 20 is a 'crit', a natural 1 is a 'pifia'. ONLY if it hits, then make the damage roll.
-    5.  **Update Stats:** If any character (player or NPC) takes damage or is affected by a condition, reflect this in the 'updatedCharacterStats' field for the player character if they are affected.
+    5.  **Update Stats:** If the PLAYER character takes damage or is affected by a condition, reflect this in the 'updatedCharacterStats' field. Do not update stats for AI or NPCs in this field.
     6.  **End Turn:** Your narration MUST end by prompting the player for their next action if combat continues (e.g., "Es tu turno, ¿qué haces?").
     7.  **Check for Combat End:** If all enemies are defeated or have fled, set 'endCombat' to true. Otherwise, it MUST be false.
-
-**CONTEXT:**
-{{#if combatStartNarration}}
--   **This is how combat started:** {{{combatStartNarration}}}
-{{/if}}
--   Player Stats: {{{characterStats}}}
--   Location: {{{locationDescription}}}
--   Conversation History:
-    \`\`\`
-    {{{conversationHistory}}}
-    \`\`\`
 
 Execute the turn according to the protocols above.
 `,
@@ -177,5 +208,3 @@ const aiCombatManagerFlow = ai.defineFlow(
     return output;
   }
 );
-
-    

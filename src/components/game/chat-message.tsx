@@ -163,6 +163,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
           >
             {sender === 'DM' ? (
               <div className="leading-relaxed" dangerouslySetInnerHTML={{ __html: content as string }} />
+            ) : React.isValidElement(content) ? (
+                content
             ) : (
               <p className="leading-relaxed">{content as string}</p>
             )}

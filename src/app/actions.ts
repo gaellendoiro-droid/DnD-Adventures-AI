@@ -63,12 +63,13 @@ export async function runDungeonMasterTurn(
   characterActions: string,
   gameState: string,
   locationDescription: string,
-  playerCharacter: Character | null,
+  party: Character[],
   inCombat: boolean,
   conversationHistory?: string,
   combatStartNarration?: string,
 ) {
-
+  
+  const playerCharacter = party.find(c => c.controlledBy === 'Player');
   const characterStatsString = playerCharacter ? JSON.stringify(playerCharacter, (key, value) => {
     // Exclude color and personality from the stringified JSON
     if (key === 'color' || key === 'personality') {
@@ -82,7 +83,8 @@ export async function runDungeonMasterTurn(
     characterActions: characterActions,
     gameState: gameState,
     locationDescription: locationDescription,
-    characterStats: characterStatsString,
+    characterStats: characterStatsString, // This is now legacy, party is used instead
+    party: party,
     conversationHistory: conversationHistory,
     combatStartNarration: combatStartNarration,
   };

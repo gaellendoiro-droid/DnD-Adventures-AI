@@ -173,8 +173,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           }
         }
 
-
-        const playerCharacter = party.find(c => c.controlledBy === 'Player');
         addDebugMessage(`Ejecutando el turno del Dungeon Master en modo ${inCombat ? 'Combate' : 'Narrativo'}...`);
         
         const dmTurnResult = await runDungeonMasterTurn(
@@ -182,7 +180,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           characterActionsContent,
           gameState,
           locationDescription,
-          playerCharacter || null,
+          party, // Pass the whole party
           inCombat || isSystem, // If it's a system message, we might be starting combat
           isSystem ? "" : messages.slice(-5).map(m => `${m.senderName || m.sender}: ${m.originalContent || m.content}`).join('\n'),
           systemCombatStartNarration,
@@ -199,9 +197,12 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           addDebugMessage("Descripción de la ubicación actualizada.");
         }
         
-        if (dmTurnResult.updatedCharacterStats && playerCharacter) {
-          updateCharacter(playerCharacter.id, dmTurnResult.updatedCharacterStats);
-          addDebugMessage("Estadísticas del personaje actualizadas.");
+        if (dmTurnResult.updatedCharacterStats) {
+          const playerCharacter = party.find(c => c.controlledBy === 'Player');
+          if (playerCharacter) {
+            updateCharacter(playerCharacter.id, dmTurnResult.updatedCharacterStats);
+            addDebugMessage("Estadísticas del personaje del jugador actualizadas.");
+          }
         }
         
         const newDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = [];
@@ -237,13 +238,13 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
                 setCombatStartNarration(dmTurnResult.dmNarration.originalContent);
             }
             setInCombat(true);
-            addMessage({ sender: "System", content: <p className="font-bold uppercase text-red-500 text-lg">¡Comienza el Combate!</p> });
+            addMessage({ sender: "System", content: <div className="font-bold uppercase text-red-500 text-lg">¡Comienza el Combate!</div> });
         }
 
         if (dmTurnResult.endCombat) {
             setInCombat(false);
             setCombatStartNarration(undefined);
-            addMessage({ sender: "System", content: <p className="font-bold uppercase text-red-500 text-lg">El Combate ha Terminado</p> });
+            addMessage({ sender: "System", content: <div className="font-bold uppercase text-red-500 text-lg">El Combate ha Terminado</div> });
             addDebugMessage("CAMBIO DE MODO: Saliendo de combate.");
         }
       }
