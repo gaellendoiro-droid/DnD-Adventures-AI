@@ -56,9 +56,7 @@ const aiDungeonMasterParserPrompt = ai.definePrompt({
 **Combat Start Protocol:**
 -   When 'startCombat' is true:
     1.  Write a brief narration describing the moment the fight breaks out.
-    2.  Immediately determine the initiative for ALL combatants (player and NPCs).
-    3.  Return the initiative rolls in the 'initiativeRolls' field.
-    4.  DO NOT describe any attacks or turns. Your job is ONLY to set the scene for combat.
+    2.  DO NOT roll initiative or describe any attacks. Your job is ONLY to set the scene for combat and set the 'startCombat' flag to true. The combat manager will handle the rest.
 -   For any other action, 'startCombat' MUST be false.
 
 **Context is Key:**

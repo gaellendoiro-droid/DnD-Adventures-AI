@@ -88,11 +88,10 @@ export async function runDungeonMasterTurn(
   let dmResponse: any;
 
   if (inCombat) {
-      dmResponse = await aiCombatManager(input);
+    dmResponse = await aiCombatManager(input);
   } else {
-      dmResponse = await aiDungeonMasterParser(input);
+    dmResponse = await aiDungeonMasterParser(input);
   }
-
 
   let dmNarration: GameMessage | null = null;
   if (dmResponse.narration) {

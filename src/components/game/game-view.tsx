@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Character, GameMessage, DiceRoll, DiceRollOutcome } from "@/lib/types";
+import type { Character, GameMessage, DiceRoll } from "@/lib/types";
 import { GameLayout } from "@/components/game/game-layout";
 import { LeftPanel } from "@/components/layout/left-panel";
 import { CharacterSheet } from "@/components/game/character-sheet";
@@ -18,6 +18,7 @@ interface GameViewProps {
     diceRolls: DiceRoll[];
     gameState: string;
     locationDescription: string;
+    inCombat?: boolean;
   };
   onSaveGame: (saveData: any) => void;
 }
@@ -28,7 +29,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const [diceRolls, setDiceRolls] = useState<DiceRoll[]>(initialData.diceRolls);
   const [gameState, setGameState] = useState(initialData.gameState);
   const [locationDescription, setLocationDescription] = useState(initialData.locationDescription);
-  const [inCombat, setInCombat] = useState(false);
+  const [inCombat, setInCombat] = useState(initialData.inCombat || false);
   
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
     party.find(c => c.controlledBy === 'Player') || null
@@ -44,9 +45,26 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setGameState(initialData.gameState);
     setLocationDescription(initialData.locationDescription);
     setSelectedCharacter(initialData.party.find(c => c.controlledBy === 'Player') || null);
-    setInCombat(false); // Reset combat state on new adventure
+    setInCombat(initialData.inCombat || false);
     setDebugMessages([]);
   }, [initialData]);
+
+  // EFFECT: Handle Combat Start
+  useEffect(() => {
+    // Find the last message that indicated combat should start
+    const lastMessage = messages[messages.length - 1];
+    const combatJustStarted = lastMessage?.content === "¡COMIENZA EL COMBATE!";
+
+    if (inCombat && combatJustStarted) {
+      addDebugMessage("useEffect detectó inicio de combate. Iniciando primer turno...");
+      // Use a timeout to ensure the state update has propagated and UI has settled
+      setTimeout(() => {
+        handleSendMessage("Comienza la batalla", { isSystem: true });
+      }, 100);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inCombat, messages]);
+
 
   const addDebugMessage = (message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -110,8 +128,10 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     });
   };
 
-  const handleSendMessage = async (content: string, isRetry: boolean = false) => {
-    if (!isRetry) {
+  const handleSendMessage = async (content: string, options: { isRetry?: boolean, isSystem?: boolean } = {}) => {
+    const { isRetry = false, isSystem = false } = options;
+
+    if (!isRetry && !isSystem) {
         const playerMessage: GameMessage = {
           id: Date.now().toString(),
           sender: "Player",
@@ -119,12 +139,12 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
         setMessages(prev => [...prev.filter(m => m.sender !== 'Error'), playerMessage]);
-    } else {
+    } else if (isRetry) {
        setMessages(prev => [...prev.filter(m => m.sender !== 'Error')]);
     }
     
     setIsDMThinking(true);
-    addDebugMessage(`Turno iniciado. Modo Combate: ${inCombat}`);
+    addDebugMessage(`Turno iniciado. Player action: "${content}". Modo Combate: ${inCombat}`);
 
     try {
       if (content.startsWith('//')) {
@@ -136,33 +156,39 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         }
       } else {
         const playerAction = content;
+        let characterActionsContent = "";
         
-        addDebugMessage("Creando historial de conversación reciente...");
-        const history = messages
-          .slice(-5) // Get last 5 messages for better context
-          .map(m => {
-            if (m.sender === 'Player') return `Jugador: ${m.content}`;
-            if (m.sender === 'DM') return `Dungeon Master: ${m.originalContent || m.content}`;
-            if (m.sender === 'Character') return `${m.senderName}: ${m.content}`;
-            return null;
-          })
-          .filter(Boolean)
-          .join('\n');
-        addDebugMessage("Historial creado.");
+        // Don't generate NPC chatter for system messages
+        if (!isSystem) {
+          addDebugMessage("Creando historial de conversación reciente...");
+          const history = messages
+            .slice(-5)
+            .map(m => {
+              if (m.sender === 'Player') return `Jugador: ${m.content}`;
+              if (m.sender === 'DM') return `Dungeon Master: ${m.originalContent || m.content}`;
+              if (m.sender === 'Character') return `${m.senderName}: ${m.content}`;
+              return null;
+            })
+            .filter(Boolean)
+            .join('\n');
+          addDebugMessage("Historial creado.");
 
-        const lastDmMessage = messages.findLast(m => m.sender === 'DM');
-        
-        addDebugMessage("Generando acciones de PNJ...");
-        const { newMessages, characterActionsContent } = await generateNpcActions(
-          party, 
-          lastDmMessage?.originalContent || locationDescription,
-          playerAction
-        );
-        addDebugMessage(`Se generaron ${newMessages.length} acciones de PNJ.`);
-        
-        if (newMessages.length > 0) {
-          addMessages(newMessages, isRetry);
+          const lastDmMessage = messages.findLast(m => m.sender === 'DM');
+          
+          addDebugMessage("Generando acciones de PNJ...");
+          const { newMessages } = await generateNpcActions(
+            party, 
+            lastDmMessage?.originalContent || locationDescription,
+            playerAction
+          );
+          addDebugMessage(`Se generaron ${newMessages.length} acciones de PNJ.`);
+          
+          if (newMessages.length > 0) {
+            addMessages(newMessages, isRetry);
+            characterActionsContent = newMessages.map(m => `${m.senderName}: ${m.content}`).join('\n');
+          }
         }
+
 
         const playerCharacter = party.find(c => c.controlledBy === 'Player');
         addDebugMessage(`Ejecutando el turno del Dungeon Master en modo ${inCombat ? 'Combate' : 'Narrativo'}...`);
@@ -174,7 +200,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           locationDescription,
           playerCharacter || null,
           inCombat,
-          history
+          // No history needed for system messages
+          isSystem ? "" : messages.slice(-5).map(m => `${m.senderName || m.sender}: ${m.originalContent || m.content}`).join('\n')
         );
         addDebugMessage("Turno del DM completado. Procesando resultados...");
 
@@ -229,6 +256,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
         if (endCombat) {
             setInCombat(false);
+            addMessage({ sender: "System", content: "El combate ha terminado." });
             addDebugMessage("CAMBIO DE MODO: Saliendo de combate.");
         }
 
@@ -238,11 +266,11 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       addDebugMessage(`ERROR: ${error.message}`);
       
       const errorMessage = error.message || "An unknown error occurred.";
-      if (errorMessage.includes("503") || errorMessage.includes("model is overloaded")) {
+      if (errorMessage.includes("429") || errorMessage.includes("model is overloaded")) {
          addMessage({
             sender: 'Error',
             content: "El DM está muy ocupado en este momento y no puede responder.",
-            onRetry: () => handleSendMessage(content, true),
+            onRetry: () => handleSendMessage(content, { isRetry: true }),
         });
       } else {
         addMessage({
