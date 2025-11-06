@@ -58,7 +58,7 @@ const CombatDiceRollSchema = z.object({
     modifier: z.number().optional().describe("The modifier applied to the roll."),
     totalResult: z.number().describe("The total score after the modifier (sum of individual rolls + modifier)."),
     description: z.string().describe("A brief description of the roll's purpose, including dice notation and ability modifier (e.g., 'Tirada de Ataque (1d20+FUE)', 'Salvación de Destreza (1d20+DES)')."),
-    outcome: z.enum(['crit', 'success', 'fail', 'pifia', 'neutral']).describe("The outcome of the roll. For attack rolls, use 'crit' for a critical hit (natural 20) and 'pifia' for a critical fail (natural 1). For all other attack rolls, you will determine success or failure based on the target's AC. For saving throws, use 'success' or 'fail' based on the DC. For damage rolls, use 'neutral'."),
+    outcome: z.enum(['crit', 'success', 'fail', 'pifia', 'neutral', 'initiative']).describe("The outcome of the roll. For attack rolls, use 'crit' for a critical hit (natural 20) and 'pifia' for a critical fail (natural 1). For all other attack rolls, you will determine success or failure based on the target's AC. For saving throws, use 'success' or 'fail' based on the DC. For damage rolls, use 'neutral'. For initiative rolls, use 'initiative'."),
 });
 
 const InitiativeRollSchema = z.object({
@@ -90,7 +90,7 @@ const aiCombatManagerPrompt = ai.definePrompt({
 
 **CONTEXT:**
 -   **Location:** {{{locationDescription}}}
--   **Combatants:** The following characters are involved in this combat. Use this as the definitive list of participants.
+-   **Player's Party:** The following characters are in the player's group.
     {{#if party}}
         {{#each party}}
 -   **{{this.name}}** ({{this.race}} {{this.class}}, AC: {{this.ac}}, HP: {{this.hp.current}}/{{this.hp.max}}) - Controlled by: {{this.controlledBy}}
@@ -106,11 +106,12 @@ const aiCombatManagerPrompt = ai.definePrompt({
 - If the player's action is "Comienza la batalla", this is the VERY FIRST turn.
 - **First Turn Protocol (Strictly follow, this is your highest priority):**
     1.  **Do NOT re-narrate the start of combat.** The context is already provided. Your narration should be brief and focused on the mechanics.
-    2.  **Roll Initiative:** You MUST roll initiative for EVERY combatant identified in the 'Combatants' list.
-        - For each, calculate \`d20 + dexterity modifier\`.
-        - You MUST populate the 'initiativeRolls' field with the results for each combatant. This is mandatory for the first turn.
-    3.  **Establish Turn Order:** Your narration's primary job is to state the turn order clearly (e.g., "El orden de combate es: Merryl, Orco 1, Galador, Elara...").
-    4.  **Execute First Turn:**
+    2.  **Identify ALL Combatants:** Your first job is to read the 'How it Started' context and identify EVERYONE involved: the player's party and any enemies or NPCs mentioned.
+    3.  **Roll Initiative:** You MUST roll initiative for EVERY combatant you identified.
+        - For each, calculate \`d20 + dexterity modifier\`. Use your tools ('adventureLookupTool', 'dndApiLookupTool') to find stats for any NPCs or monsters not in the Player's Party list.
+        - You MUST populate the 'initiativeRolls' field with the detailed results for each combatant. This is mandatory.
+    4.  **Establish Turn Order:** Your narration's primary job is to state the turn order clearly (e.g., "El orden de combate es: Merryl, Orco 1, Galador, Elara...").
+    5.  **Execute First Turn:**
         -   **If a player-controlled character has the highest initiative:** Your narration MUST end with: "Es tu turno, ¿qué haces?". DO NOT take any action for the player. Do not describe them attacking or dodging. Just cede the turn.
         -   **If an AI-controlled character or NPC has the highest initiative:** Narrate their action, roll dice, and then proceed to the next character in the initiative order until it's a player's turn. Your narration MUST end by prompting the player for their next action (e.g., "Es tu turno, ¿qué haces?").
 
@@ -208,3 +209,5 @@ const aiCombatManagerFlow = ai.defineFlow(
     return output;
   }
 );
+
+    
