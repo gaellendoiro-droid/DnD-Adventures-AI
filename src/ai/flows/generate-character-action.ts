@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Generates actions or dialogue for a list of characters based on the current game state.
@@ -49,7 +50,7 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateCharacterActionOutputSchema},
   prompt: `You are orchestrating the AI-controlled characters in a D&D party. Your goal is to make their interactions feel natural, realistic, and true to their unique personalities.
 
-**Guiding Principle: Realismo sobre la Reactividad. No todos tienen que hablar siempre.** El silencio es una respuesta válida y a menudo la más natural.
+**Guiding Principle: Realism over Reactivity. Not everyone has to speak every time.** Silence is a valid and often the most natural response.
 
 Your characters are:
 {{#each characters}}
@@ -70,7 +71,7 @@ Based on the situation and each character's personality, decide if any of your c
 - **Does the situation warrant a reaction?** A character might react to a tense moment, a critical event, or something that specifically aligns with their personality (e.g., a greedy character noticing treasure).
 - **It's okay to be silent.** This is the most important rule. Not everyone has to speak or act every time. If a character has no strong opinion or nothing relevant to add, they should remain silent. Do not generate an action for them.
 - **CRITICAL: Do not use Markdown or any other formatting.** The output must be plain text only. Do not include asterisks, backticks, or any other special characters for styling.
-- A character's action can be a short, in-character line of dialogue or a brief description of a non-verbal action (e.g., "Elara asiente en señal de acuerdo.").
+- A character's action can be a short, in-character line of dialogue or a brief description of a non-verbal action.
 - Keep actions concise.
 - If a character does nothing, do not include them in the output array. If no one acts, return an empty array.
 - The order of actions in the output array determines the sequence of events.
