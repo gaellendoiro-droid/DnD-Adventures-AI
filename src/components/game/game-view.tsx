@@ -13,6 +13,7 @@ import { handleOocMessage, runTurn, runCombatTurn } from "@/app/actions";
 import { PartyPanel } from "./party-panel";
 import { Separator } from "../ui/separator";
 import { markdownToHtml } from "@/ai/flows/markdown-to-html";
+import { useToast } from "@/hooks/use-toast";
 
 interface GameViewProps {
   initialData: {
@@ -44,6 +45,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const [debugMessages, setDebugMessages] = useState<string[]>([]);
   const [turnIndex, setTurnIndex] = useState(0);
 
+  const { toast } = useToast();
+
   const addDebugMessage = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     setDebugMessages(prev => [...prev, `[${timestamp}] ${message}`].slice(-50));
@@ -61,7 +64,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setDebugMessages([]);
     setTurnIndex(0);
     setEnemies([]);
-  }, [initialData]);
+    toast({ title: 'Aventura Cargada', description: '¡La partida está lista!' });
+  }, [initialData, toast]);
 
   const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
     const messageToAdd = {
@@ -143,13 +147,15 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       // TODO: Identify enemies from narration using AI
       const identifiedEnemies = [{id: "orco-1", name: 'Orco', race: 'Orco', class: 'Guerrero', level: 1, hp: {current: 15, max: 15}, abilityScores: { destreza: 12 } }]; // Placeholder
       setEnemies(identifiedEnemies);
+      addDebugMessage(`Identified enemies: ${identifiedEnemies.map(e => e.name).join(', ')}`);
+
 
       const combatants: (Character | any)[] = [...party, ...identifiedEnemies];
       
       const initiativeRolls: InitiativeRoll[] = combatants.map(c => {
         const modifier = Math.floor((c.abilityScores.destreza - 10) / 2);
         const roll = Math.floor(Math.random() * 20) + 1;
-        const combatantType = party.some(p => p.id === c.id) ? 'player' : 'npc';
+        const combatantType: 'player' | 'npc' = party.some(p => p.id === c.id) ? 'player' : 'npc';
         return {
           characterName: c.name,
           roll: roll,
@@ -171,11 +177,15 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       }));
       addDiceRolls(initiativeDiceRolls);
       
-      const sortedCombatants: Combatant[] = initiativeRolls.sort((a, b) => b.total - a.total);
+      const sortedCombatants: Combatant[] = initiativeRolls.sort((a, b) => b.total - a.total).map(r => ({id: r.id, characterName: r.characterName, total: r.total, type: r.type}));
 
       setInitiativeOrder(sortedCombatants);
       setTurnIndex(0);
       addDebugMessage(`Combat started. Initiative order set: ${sortedCombatants.map(c => c.characterName).join(', ')}`);
+      
+      const firstCombatant = sortedCombatants[0];
+      addMessage({ sender: 'System', content: `Es el turno de ${firstCombatant.characterName}.`});
+
 
   }, [addDebugMessage, party]);
 
@@ -222,9 +232,10 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         );
         
         addMessages(result.turnResults.messages);
-        addDiceRolls(result.turnResults.diceRolls);
-        setParty(result.turnResults.updatedParty);
-        setEnemies(result.turnResults.updatedEnemies);
+        if(result.turnResults.diceRolls.length > 0) addDiceRolls(result.turnResults.diceRolls);
+        if(result.turnResults.updatedParty) setParty(result.turnResults.updatedParty);
+        if(result.turnResults.updatedEnemies) setEnemies(result.turnResults.updatedEnemies);
+        
         setTurnIndex(result.nextTurnIndex);
 
         if (result.endCombat) {

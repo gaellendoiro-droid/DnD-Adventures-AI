@@ -122,10 +122,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
   let renderedContent = content;
   if (sender === "System" && content === "¡Combate Finalizado!") {
-    renderedContent = <div className="font-bold uppercase text-green-500 text-lg">{content}</div>;
+    renderedContent = <div className="font-bold uppercase text-green-500 text-lg">{content as string}</div>;
   }
    if (sender === "System" && (content as string).startsWith("¡Comienza el Combate!")) {
-    renderedContent = <div className="font-bold uppercase text-destructive text-lg">{content}</div>;
+    renderedContent = <div className="font-bold uppercase text-destructive text-lg">{content as string}</div>;
   }
 
   if (sender === "System") {
@@ -145,8 +145,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
       : {};
 
   let bubbleClassName = info.bubbleClassName;
-   if(sender === "Character"){
+   if(sender === "Character" && bubbleStyle.backgroundColor){
        bubbleClassName = "text-primary-foreground rounded-b-none"
+   } else if (sender === "Character") {
+      bubbleClassName = "bg-secondary rounded-b-none";
    }
 
 
@@ -176,7 +178,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
               <p className="leading-relaxed">{content as string}</p>
             )}
              {sender === 'Error' && onRetry && (
-                <div className="mt-3">
+                <div className="mt-3 text-right">
                     <Button variant="destructive" size="sm" onClick={onRetry}>
                         <RefreshCw className="mr-2 h-4 w-4" />
                         Reintentar

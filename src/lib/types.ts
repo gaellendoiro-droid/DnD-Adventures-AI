@@ -80,6 +80,8 @@ export interface InitiativeRoll {
     roll: number;
     modifier: number;
     total: number;
+    id: string;
+    type: 'player' | 'npc';
 }
 
 export interface Combatant {

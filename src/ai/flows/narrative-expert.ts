@@ -45,7 +45,7 @@ const narrativeExpertPrompt = ai.definePrompt({
 
 **Your Priorities:**
 1.  **Primary Task: Drive the Narrative.** Your main goal is to be a descriptive and engaging storyteller. Describe the world, react to the player's choices, portray non-player characters (NPCs), and create an immersive experience. Your narration must always end by prompting the player for their next action (e.g., "¿Qué haces?").
-2.  **Use Your Tools:** You have access to a complete adventure data file. Use the 'adventureLookupTool' to get details about locations, what's inside them, and how to interact with objects. This is your primary source of truth. For general D&D rules, spells, or monster stats not in the adventure file, use the 'dndApiLookupTool'.
+2.  **Use Your Tools:** You have access to a complete adventure data file. Use the 'adventureLookupTool' to get details about locations, what's inside them, and how to interact with objects. This is your primary source of truth. If the player wants to move to a new location (e.g., "Voy a la Colina del Resentimiento"), you MUST use this tool to get the description of the new place. For general D&D rules, spells, or monster stats not in the adventure file, use the 'dndApiLookupTool'.
 3.  **CRITICAL DIRECTIVE: Detect Combat.** Your most important job is to determine if the story leads to combat. This can be due to a player's hostile action (e.g., "Ataco al guardia") or a narrative event (e.g., an ambush). If combat starts, you MUST set 'startCombat' to true.
 
 **Combat Start Protocol (Strictly follow):**
@@ -120,16 +120,7 @@ const narrativeExpertFlow = ai.defineFlow(
 
     try {
         const {output} = await narrativeExpertPrompt(input, {
-            model: 'googleai/gemini-2.5-flash',
             tools: [dndApiLookupTool, dynamicAdventureLookupTool],
-            config: {
-            safetySettings: [
-                {
-                category: 'HARM_CATEGORY_HARASSMENT',
-                threshold: 'BLOCK_NONE',
-                },
-            ],
-            },
         });
         
         if (!output) {
@@ -148,10 +139,8 @@ const narrativeExpertFlow = ai.defineFlow(
         return output;
     } catch(e: any) {
         console.error("Critical error in narrativeExpertFlow. The AI did not return valid JSON.", e);
-        return {
-            narration: "El Dungeon Master está confundido por tu última acción. ¿Podrías reformular lo que quieres hacer de una manera más clara? Por ejemplo: 'Ataco al orco con mi espada' o 'Intento abrir la puerta'.",
-            startCombat: false,
-        }
+        // This specific error message will be caught by the action and shown in the UI.
+        throw new Error(`narrativeExpertFlow failed: ${e.message || 'Unknown error'}`);
     }
   }
 );

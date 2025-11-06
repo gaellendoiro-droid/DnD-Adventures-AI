@@ -20,7 +20,7 @@ export function PartyPanel({
 }: PartyPanelProps) {
   return (
     <>
-      <CardHeader className="flex-row items-center gap-2 pt-2 pb-4">
+      <CardHeader className="flex-row items-center gap-2 pt-4 pb-2">
         <Users className="w-6 h-6" />
         <CardTitle className="font-headline text-xl">Grupo</CardTitle>
       </CardHeader>
@@ -32,13 +32,16 @@ export function PartyPanel({
               onClick={() => onSelectCharacter(character)}
               className={cn(
                 "flex items-center space-x-4 p-2 rounded-lg cursor-pointer transition-colors hover:bg-secondary border-l-4",
-                character.id === selectedCharacterId ? "bg-secondary border-primary/80" : "border-transparent"
+                character.id === selectedCharacterId ? "bg-secondary border-primary" : "border-transparent"
               )}
-              style={{ borderLeftColor: character.id === selectedCharacterId ? '' : character.color }}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => e.key === 'Enter' && onSelectCharacter(character)}
             >
+              <div
+                className="w-3 h-10 rounded-full"
+                style={{ backgroundColor: character.color }}
+              />
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <p className="font-semibold">{character.name}</p>

@@ -153,8 +153,8 @@ export async function runCombatTurn(
         // For now, we'll just narrate the player's action. A real implementation
         // would involve calling the narrativeExpert to interpret the action and
         // determine outcomes and dice rolls.
-        const { html } = await markdownToHtml({ markdown: `Tú (Galador) atacas: ${playerAction}` });
-        addMessage({ sender: 'DM', content: html, originalContent: `Tú (Galador) atacas: ${playerAction}` });
+        const { html } = await markdownToHtml({ markdown: `Tú (${playerCharacter?.name}) atacas: ${playerAction}` });
+        addMessage({ sender: 'DM', content: html, originalContent: `Tú (${playerCharacter?.name}) atacas: ${playerAction}` });
     }
 
 
