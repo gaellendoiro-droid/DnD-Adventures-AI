@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from "react";
@@ -123,7 +124,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   if (sender === "System") {
     return (
       <div className="flex justify-center items-center gap-2 my-2">
-        <p className={cn(info.bubbleClassName, "text-center")}>{content as string}</p>
+        <div className={cn(info.bubbleClassName, "text-center")}>{content}</div>
       </div>
     );
   }
