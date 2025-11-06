@@ -148,9 +148,13 @@ const aiCombatManagerFlow = ai.defineFlow(
       tools.push(dynamicAdventureLookupTool);
     }
 
-    const {output} = await aiCombatManagerPrompt(input, {
+    const {output} = await ai.generate({
+      prompt: aiCombatManagerPrompt.compile(input)!,
       model: 'googleai/gemini-2.5-flash',
       tools,
+      output: {
+          schema: AiCombatManagerOutputSchema,
+      },
       config: {
         safetySettings: [
           {
@@ -177,5 +181,3 @@ const aiCombatManagerFlow = ai.defineFlow(
     return output;
   }
 );
-
-    

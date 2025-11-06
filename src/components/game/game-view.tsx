@@ -36,6 +36,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   );
   const [isDMThinking, setIsDMThinking] = useState(false);
   const [debugMessages, setDebugMessages] = useState<string[]>([]);
+  const [combatStartNarration, setCombatStartNarration] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     // When initialData changes (e.g. loading a new adventure), reset the state
@@ -47,6 +48,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setSelectedCharacter(initialData.party.find(c => c.controlledBy === 'Player') || null);
     setInCombat(initialData.inCombat || false);
     setDebugMessages([]);
+    setCombatStartNarration(undefined);
   }, [initialData]);
 
   const addDebugMessage = (message: string) => {
@@ -111,8 +113,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     });
   };
 
-  const handleSendMessage = async (content: string, options: { isRetry?: boolean, isSystem?: boolean } = {}) => {
-    const { isRetry = false, isSystem = false } = options;
+  const handleSendMessage = async (content: string, options: { isRetry?: boolean, isSystem?: boolean, systemCombatStartNarration?: string } = {}) => {
+    const { isRetry = false, isSystem = false, systemCombatStartNarration } = options;
 
     if (!isRetry && !isSystem) {
         const playerMessage: GameMessage = {
@@ -141,7 +143,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         const playerAction = content;
         let characterActionsContent = "";
         
-        // Don't generate NPC chatter for system messages
         if (!isSystem) {
           addDebugMessage("Creando historial de conversación reciente...");
           const history = messages
@@ -182,9 +183,9 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           gameState,
           locationDescription,
           playerCharacter || null,
-          inCombat,
-          // No history needed for system messages
-          isSystem ? "" : messages.slice(-5).map(m => `${m.senderName || m.sender}: ${m.originalContent || m.content}`).join('\n')
+          inCombat || isSystem, // If it's a system message, we might be starting combat
+          isSystem ? "" : messages.slice(-5).map(m => `${m.senderName || m.sender}: ${m.originalContent || m.content}`).join('\n'),
+          systemCombatStartNarration,
         );
         addDebugMessage("Turno del DM completado. Procesando resultados...");
 
@@ -203,29 +204,45 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           addDebugMessage("Estadísticas del personaje actualizadas.");
         }
         
+        const newDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = [];
+
+        if (dmTurnResult.initiativeRolls && dmTurnResult.initiativeRolls.length > 0) {
+            addDebugMessage(`Se han recibido ${dmTurnResult.initiativeRolls.length} tiradas de iniciativa.`);
+            const initiativeDiceRolls = dmTurnResult.initiativeRolls.map(roll => ({
+                roller: roll.characterName,
+                rollNotation: `1d20+${roll.modifier}`,
+                individualRolls: [roll.roll],
+                modifier: roll.modifier,
+                totalResult: roll.total,
+                outcome: 'neutral' as const,
+                description: `Tirada de Iniciativa (1d20+${roll.modifier >= 0 ? '+' : ''}${roll.modifier})`
+            }));
+            newDiceRolls.push(...initiativeDiceRolls);
+        }
+
+        if (dmTurnResult.diceRolls && dmTurnResult.diceRolls.length > 0) {
+            addDebugMessage(`Se han recibido ${dmTurnResult.diceRolls.length} tiradas de combate.`);
+            dmTurnResult.diceRolls.forEach(roll => {
+                newDiceRolls.push({ ...roll });
+            });
+        }
+
+        if(newDiceRolls.length > 0) {
+            setDiceRolls(prev => [...prev, ...newDiceRolls.map((r, i) => ({...r, id: Date.now().toString() + i, timestamp: new Date()}))]);
+        }
+        
         if (dmTurnResult.startCombat) {
             addDebugMessage("CAMBIO DE MODO: Entrando en combate.");
+            if (dmTurnResult.dmNarration?.originalContent) {
+                setCombatStartNarration(dmTurnResult.dmNarration.originalContent);
+            }
             setInCombat(true);
             addMessage({ sender: "System", content: <p className="font-bold uppercase text-red-500 text-lg">¡Comienza el Combate!</p> });
-
-            addDebugMessage("Iniciando primer turno de combate...");
-            // Use useEffect to handle the first combat turn
-        } else {
-             // This code runs only if combat did NOT start in this turn
-            const newDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = [];
-            if (dmTurnResult.diceRolls && dmTurnResult.diceRolls.length > 0) {
-                addDebugMessage(`Se han recibido ${dmTurnResult.diceRolls.length} tiradas (fuera de combate).`);
-                dmTurnResult.diceRolls.forEach(roll => {
-                    newDiceRolls.push({ ...roll });
-                });
-            }
-            if(newDiceRolls.length > 0) {
-                setDiceRolls(prev => [...prev, ...newDiceRolls.map((r, i) => ({...r, id: Date.now().toString() + i, timestamp: new Date()}))]);
-            }
         }
 
         if (dmTurnResult.endCombat) {
             setInCombat(false);
+            setCombatStartNarration(undefined);
             addMessage({ sender: "System", content: <p className="font-bold uppercase text-red-500 text-lg">El Combate ha Terminado</p> });
             addDebugMessage("CAMBIO DE MODO: Saliendo de combate.");
         }
@@ -256,15 +273,11 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   };
 
   useEffect(() => {
-    if (inCombat) {
-      const lastMessage = messages[messages.length - 1];
-      // Check if the last "System" message is the combat start message
-      if (lastMessage?.sender === 'System' && typeof lastMessage.content !== 'string') {
-        const combatStartNarration = messages.findLast(m => m.sender === 'DM')?.originalContent;
-        handleSendMessage('Comienza la batalla', { isSystem: true });
-      }
+    if (inCombat && combatStartNarration) {
+      handleSendMessage('Comienza la batalla', { isSystem: true, systemCombatStartNarration: combatStartNarration });
+      setCombatStartNarration(undefined); // Clear after use
     }
-  }, [inCombat]);
+  }, [inCombat, combatStartNarration]);
 
 
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
