@@ -1,9 +1,9 @@
+
 "use client";
 
 import type { Character } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "../ui/scroll-area";
 import { CardHeader, CardTitle } from "../ui/card";
 import { Users, User, Bot } from "lucide-react";
 
@@ -24,7 +24,7 @@ export function PartyPanel({
         <Users className="w-6 h-6" />
         <CardTitle className="font-headline text-xl">Grupo</CardTitle>
       </CardHeader>
-      <ScrollArea className="px-2">
+      <div className="px-2">
         <div className="p-2 space-y-2">
           {party.map((character) => (
             <div
@@ -58,7 +58,7 @@ export function PartyPanel({
             </div>
           ))}
         </div>
-      </ScrollArea>
+      </div>
     </>
   );
 }
