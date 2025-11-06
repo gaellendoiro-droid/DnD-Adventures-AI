@@ -25,9 +25,9 @@ export type AiDungeonMasterParserInput = z.infer<typeof AiDungeonMasterParserInp
 
 const AiDungeonMasterParserOutputSchema = z.object({
   narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown. If the characters are just talking, this can be an empty string."),
-  updatedGameState: z.string().optional().nullable().describe('The updated game state, if any. This is the same as the input gameState, but can be modified if something major changes.'),
   nextLocationDescription: z.string().optional().nullable().describe('A description of the next location, if the player moved.'),
-  updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}}'. Must be a valid JSON string or null."),
+  updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}, \"inventory\": [{\"id\":\"item-gp-1\",\"name\":\"Monedas de Oro\",\"quantity\":10}]}'. Must be a valid JSON string or null."),
+  updatedGameState: z.any().optional().describe('The updated game state, if any. This is the same as the input gameState, but can be modified if something major changes.'),
 });
 export type AiDungeonMasterParserOutput = z.infer<typeof AiDungeonMasterParserOutputSchema>;
 
@@ -151,7 +151,7 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
       });
     
     if (!output) {
-      return { narration: "El Dungeon Master parece distraído y no responde. Intenta reformular tu acción.", updatedGameState: input.gameState };
+      return { narration: "El Dungeon Master parece distraído y no responde.", updatedGameState: input.gameState };
     }
     
     // Validate that updatedCharacterStats is valid JSON before returning
@@ -174,3 +174,5 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
     return finalOutput;
   }
 );
+
+    
