@@ -46,16 +46,23 @@ export const gameCoordinator: Flow<z.infer<typeof GameCoordinatorInputSchema>, z
     name: 'gameCoordinator',
     inputSchema: GameCoordinatorInputSchema,
     outputSchema: GameCoordinatorOutputSchema,
+    tools: [narrativeExpertTool, combatManagerTool, oocAssistantTool]
   },
   async (input) => {
-    const { playerAction, inCombat, conversationHistory } = input;
+    const { playerAction, inCombat, conversationHistory, gameState } = input;
+    
+    const context = {
+        flow: {
+            vars: { gameState: gameState }
+        }
+    };
 
     // 1. Handle Out-of-Character (OOC) queries first
     if (playerAction.startsWith('//')) {
       const oocResult = await oocAssistantTool({
         playerQuery: playerAction.substring(2).trim(),
         conversationHistory,
-      });
+      }, context);
       const { html } = await markdownToHtml({ markdown: `(OOC) ${oocResult.dmReply}` });
       return {
         messages: [{
@@ -68,7 +75,10 @@ export const gameCoordinator: Flow<z.infer<typeof GameCoordinatorInputSchema>, z
 
     // 2. Handle Combat mode
     if (inCombat) {
-      const combatResult = await combatManagerTool(input);
+      const combatResult = await combatManagerTool({
+          ...input,
+          locationDescription: 'La batalla se desarrolla en el lugar actual.', // Placeholder description
+      }, context);
       return combatResult;
     }
 
@@ -79,12 +89,7 @@ export const gameCoordinator: Flow<z.infer<typeof GameCoordinatorInputSchema>, z
         locationId: input.locationId,
         characterStats: JSON.stringify(input.party.find(c => c.controlledBy === 'Player')),
         conversationHistory: input.conversationHistory,
-    }, {
-        // Pass gameState to the tool's context
-        flow: {
-            vars: { gameState: input.gameState }
-        }
-    });
+    }, context);
 
     const messages: GameMessage[] = [];
     
