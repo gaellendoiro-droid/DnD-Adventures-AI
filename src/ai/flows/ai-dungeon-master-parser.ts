@@ -137,22 +137,18 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
       tools.push(dynamicAdventureLookupTool);
     }
 
-    const { output } = await ai.generate({
-        prompt: aiDungeonMasterParserPrompt,
+    const {output} = await aiDungeonMasterParserPrompt(input, {
         model: 'googleai/gemini-2.5-flash',
-        history: [], // You can provide chat history here if needed
-        input: input,
-        output: { schema: AiDungeonMasterParserOutputSchema },
-        tools: tools,
+        tools,
         config: {
           safetySettings: [
             {
               category: 'HARM_CATEGORY_HARASSMENT',
               threshold: 'BLOCK_NONE',
-            }
+            },
           ],
         },
-    });
+      });
     
     if (!output) {
       return { narration: "El Dungeon Master parece distraído y no responde. Intenta reformular tu acción.", updatedGameState: input.gameState };
