@@ -25,7 +25,7 @@ const outcomeTextStyles: { [key in DiceRoll['outcome']]?: string } = {
 }
 
 export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
-  const finalResult = roll.finalResult ?? roll.result;
+  const totalResult = roll.totalResult;
   
   return (
     <div
@@ -49,17 +49,15 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
                 "text-2xl font-bold font-mono leading-none",
                 outcomeTextStyles[roll.outcome]
             )}>
-                {finalResult}
+                {totalResult}
             </p>
-            {roll.modifier !== undefined && (
+            {(roll.modifier !== undefined && roll.modifier !== 0) || roll.individualRolls.length > 1 ? (
                 <p className="text-xs font-mono text-muted-foreground text-right leading-tight">
-                    ({roll.result} {roll.modifier >= 0 ? `+${roll.modifier}` : roll.modifier})
+                    ({roll.individualRolls.join('+')}){roll.modifier !== undefined && roll.modifier !== 0 ? (roll.modifier > 0 ? `+${roll.modifier}`: `${roll.modifier}`) : ''}
                 </p>
-            )}
+            ) : null}
         </div>
       </div>
     </div>
   );
 }
-
-    

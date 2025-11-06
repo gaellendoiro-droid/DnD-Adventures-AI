@@ -1,3 +1,4 @@
+
 export interface AbilityScores {
   fuerza: number;
   destreza: number;
@@ -64,10 +65,10 @@ export type DiceRollOutcome = 'crit' | 'success' | 'fail' | 'pifia' | 'neutral';
 export interface DiceRoll {
   id: string;
   roller: string; // Character name or "DM"
-  diceType: number; // e.g., 20 for a d20
-  result: number;
+  rollNotation: string; // e.g. "1d20", "2d6"
+  individualRolls: number[];
   modifier?: number;
-  finalResult?: number;
+  totalResult: number;
   outcome: DiceRollOutcome;
   timestamp: Date;
   description?: string;

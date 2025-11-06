@@ -88,7 +88,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setDiceRolls((prevRolls) => [...prevRolls, newRoll]);
     addMessage({
       sender: "System",
-      content: `${roll.roller} ha sacado un ${roll.result} en un d${roll.diceType}.`,
+      content: `${roll.roller} ha sacado un ${roll.totalResult} en una tirada de ${roll.rollNotation}.`,
     });
   }
 
@@ -193,10 +193,10 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
             initiativeRolls.forEach(roll => {
                 newDiceRolls.push({
                     roller: roll.characterName,
-                    diceType: 20,
-                    result: roll.roll,
+                    rollNotation: '1d20',
+                    individualRolls: [roll.roll],
                     modifier: roll.modifier,
-                    finalResult: roll.total,
+                    totalResult: roll.total,
                     outcome: 'neutral',
                     description: 'Tirada de iniciativa'
                 });
@@ -256,8 +256,9 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
     addDiceRoll({
       roller: selectedCharacter?.name ?? 'Player',
-      diceType: roll.sides,
-      result: roll.result,
+      rollNotation: `1d${roll.sides}`,
+      individualRolls: [roll.result],
+      totalResult: roll.result,
       outcome: 'neutral'
     });
   };

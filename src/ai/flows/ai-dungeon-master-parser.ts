@@ -33,13 +33,14 @@ const InitiativeRollSchema = z.object({
 
 const CombatDiceRollSchema = z.object({
     roller: z.string().describe("The name of the character or monster rolling the dice."),
-    diceType: z.number().describe("The type of die being rolled (e.g., 20 for a d20, 8 for a d8)."),
-    result: z.number().describe("The result of the dice roll."),
+    rollNotation: z.string().describe("The dice notation for the roll (e.g., '1d20', '2d6')."),
+    individualRolls: z.array(z.number()).describe("The result of each individual die rolled."),
     modifier: z.number().optional().describe("The modifier applied to the roll."),
-    finalResult: z.number().optional().describe("The total score after the modifier (roll + modifier)."),
+    totalResult: z.number().describe("The total score after the modifier (sum of individual rolls + modifier)."),
     description: z.string().describe("A brief description of the roll's purpose (e.g., 'Tirada de Ataque', 'Tirada de Daño', 'Salvación de Destreza')."),
     outcome: z.enum(['crit', 'success', 'fail', 'pifia', 'neutral']).describe("The outcome of the roll, especially for attack rolls (success/fail) or saving throws. Use 'crit' for a critical hit (natural 20) and 'pifia' for a critical fail (natural 1). Use 'neutral' for damage rolls or other rolls without a success/fail condition."),
 });
+
 
 const AiDungeonMasterParserOutputSchema = z.object({
   narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown. If the characters are just talking, this can be an empty string."),
@@ -190,7 +191,3 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
     return output;
   }
 );
-
-    
-
-    
