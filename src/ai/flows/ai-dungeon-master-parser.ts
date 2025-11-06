@@ -30,11 +30,21 @@ const InitiativeRollSchema = z.object({
     total: z.number().describe("The total initiative score (roll + modifier).")
 });
 
+const CombatDiceRollSchema = z.object({
+    roller: z.string().describe("The name of the character or monster rolling the dice."),
+    diceType: z.number().describe("The type of die being rolled (e.g., 20 for a d20, 8 for a d8)."),
+    result: z.number().describe("The result of the dice roll."),
+    modifier: z.number().optional().describe("The modifier applied to the roll."),
+    finalResult: z.number().optional().describe("The total score after the modifier (roll + modifier)."),
+    description: z.string().describe("A brief description of the roll's purpose (e.g., 'Attack Roll', 'Damage Roll').")
+});
+
 const AiDungeonMasterParserOutputSchema = z.object({
   narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown. If the characters are just talking, this can be an empty string."),
   nextLocationDescription: z.string().optional().nullable().describe('A description of the next location, if the player moved.'),
   updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}, \"inventory\": [{\"id\":\"item-gp-1\",\"name\":\"Monedas de Oro\",\"quantity\":10}]}'. Must be a valid JSON string or null."),
   initiativeRolls: z.array(InitiativeRollSchema).optional().nullable().describe("An array of detailed initiative rolls if combat has started. This should include the d20 roll, modifier, and total for each combatant."),
+  diceRolls: z.array(CombatDiceRollSchema).optional().nullable().describe("An array of any dice rolls (attack, damage, saving throws, etc.) made by NPCs during their turn."),
 });
 export type AiDungeonMasterParserOutput = z.infer<typeof AiDungeonMasterParserOutputSchema>;
 
@@ -73,6 +83,7 @@ When combat begins, you MUST follow this exact sequence:
 2.  **Determine Initiative:** Immediately determine the initiative for all combatants (player characters and monsters) by simulating a d20 roll plus their Dexterity modifier. Do not ask the player to roll. You MUST return the details of each roll (character name, d20 roll, modifier, and total) in the \`initiativeRolls\` field of your response.
 3.  **Establish and Declare Turn Order:** Based on the initiative rolls, declare the turn order from highest to lowest in your narration.
 4.  **Manage Turns:** Proceed turn by turn. Narrate the action of whose turn it is. If it is a monster's turn, describe what it does. **CRITICAL: If it is the player's turn, your narration MUST stop just before their action, waiting for their input. For example: 'Es tu turno, Galador. ¿Qué haces?'. DO NOT, under any circumstances, take an action for the player.**
+5.  **Report NPC Rolls:** For any action taken by an NPC (monster or other character) that requires a dice roll (attack, damage, saving throw, etc.), you MUST provide the details of that roll in the \`diceRolls\` field of your response.
 
 Here is the general description of the current location: {{{locationDescription}}}
 Here are the player character stats: {{{characterStats}}}

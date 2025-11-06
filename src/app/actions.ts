@@ -116,5 +116,6 @@ export async function runDungeonMasterTurn(
     nextLocationDescription: dmResponse.nextLocationDescription,
     updatedCharacterStats: parsedStats,
     initiativeRolls: dmResponse.initiativeRolls,
+    diceRolls: dmResponse.diceRolls,
   };
 }

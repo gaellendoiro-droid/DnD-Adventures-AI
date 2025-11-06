@@ -139,7 +139,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         }
       } else {
         const playerAction = content;
-        addDebugMessage(`Acción del jugador: "${playerAction}"`);
         
         addDebugMessage("Creando historial de conversación reciente...");
         const history = messages
@@ -170,7 +169,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
         const playerCharacter = party.find(c => c.controlledBy === 'Player');
         addDebugMessage("Ejecutando el turno del Dungeon Master...");
-        const { dmNarration, nextLocationDescription, updatedCharacterStats, initiativeRolls } = await runDungeonMasterTurn(
+        const { dmNarration, nextLocationDescription, updatedCharacterStats, initiativeRolls, diceRolls: combatDiceRolls } = await runDungeonMasterTurn(
           playerAction,
           characterActionsContent,
           gameState,
@@ -187,18 +186,34 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           addDebugMessage("El DM no ha devuelto narración esta vez.");
         }
 
+        const newDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = [];
+
         if (initiativeRolls && initiativeRolls.length > 0) {
             addDebugMessage(`Se han recibido ${initiativeRolls.length} tiradas de iniciativa.`);
-            const newDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = initiativeRolls.map(roll => ({
-                roller: roll.characterName,
-                diceType: 20,
-                result: roll.roll,
-                modifier: roll.modifier,
-                finalResult: roll.total,
-                outcome: 'neutral',
-                description: 'Tirada de iniciativa'
-            }));
-            
+            initiativeRolls.forEach(roll => {
+                newDiceRolls.push({
+                    roller: roll.characterName,
+                    diceType: 20,
+                    result: roll.roll,
+                    modifier: roll.modifier,
+                    finalResult: roll.total,
+                    outcome: 'neutral',
+                    description: 'Tirada de iniciativa'
+                });
+            });
+        }
+
+        if (combatDiceRolls && combatDiceRolls.length > 0) {
+            addDebugMessage(`Se han recibido ${combatDiceRolls.length} tiradas de combate.`);
+            combatDiceRolls.forEach(roll => {
+                newDiceRolls.push({
+                    ...roll,
+                    outcome: 'neutral' // Or determine outcome based on result
+                });
+            });
+        }
+
+        if(newDiceRolls.length > 0) {
             setDiceRolls(prev => [...newDiceRolls.map((r, i) => ({...r, id: Date.now().toString() + i, timestamp: new Date()})), ...prev]);
         }
         
