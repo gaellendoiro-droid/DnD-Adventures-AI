@@ -116,9 +116,41 @@ const enemyTacticianFlow = ai.defineFlow(
     outputSchema: EnemyTacticianOutputSchema,
   },
   async (input) => {
+
+    let adventureData: any = null;
+    if (input.gameState) {
+      try {
+        adventureData = JSON.parse(input.gameState);
+      } catch (e) {
+        console.error("Failed to parse gameState JSON in enemyTacticianFlow");
+      }
+    }
+
+    const dynamicAdventureLookupTool = ai.defineTool(
+      {
+        name: 'adventureLookupTool',
+        description: 'Looks up information about a specific location or entity (character, monster) from the main adventure data file. Use this to get details about abilities, descriptions, or what is inside a location.',
+        inputSchema: z.object({
+          query: z.string().describe("The search query, which can be the entity's ID or name (e.g., 'phandalin-plaza-del-pueblo', 'cryovain')."),
+        }),
+        outputSchema: z.string().describe('A JSON string containing the requested information, or an error message if not found.'),
+      },
+      async ({ query }) => {
+        if (!adventureData) {
+          return "Error: Adventure data is not available.";
+        }
+        
+        const allData = [...(adventureData.locations || []), ...(adventureData.entities || [])];
+        const result = allData.find((item: any) => item.id === query || item.name.toLowerCase() === query.toLowerCase());
+
+        return result ? JSON.stringify(result) : `Error: No location or entity found matching '${query}'.`;
+      }
+    );
+
     try {
       const {output} = await enemyTacticianPrompt(input, {
         model: 'googleai/gemini-2.5-flash',
+        tools: [dndApiLookupTool, dynamicAdventureLookupTool],
         config: {
           safetySettings: [
             {
@@ -139,6 +171,7 @@ const enemyTacticianFlow = ai.defineFlow(
       return {
         action: "Do nothing.",
         narration: `El combatiente ${input.activeCombatant} parece confundido y no hace nada en su turno.`,
+        diceRolls: [],
       };
     }
   }

@@ -11,6 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
+import { adventureLookupTool } from '../tools/adventure-lookup';
 
 const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
@@ -39,7 +40,7 @@ const narrativeExpertPrompt = ai.definePrompt({
   name: 'narrativeExpertPrompt',
   input: {schema: NarrativeExpertInputSchema},
   output: {schema: NarrativeExpertOutputSchema},
-  tools: [dndApiLookupTool],
+  tools: [dndApiLookupTool, adventureLookupTool],
   prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish. DO NOT translate proper nouns (names, places, etc.).
 
 **Your Priorities:**
