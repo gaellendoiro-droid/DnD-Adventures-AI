@@ -141,7 +141,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         const playerAction = content;
         addDebugMessage(`Acción del jugador: "${playerAction}"`);
         
-        // Create conversation history
+        addDebugMessage("Creando historial de conversación reciente...");
         const history = messages
           .slice(-4) // Get last 4 messages
           .map(m => {
@@ -152,7 +152,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           })
           .filter(Boolean)
           .join('\n');
-        addDebugMessage("Historial de conversación reciente creado.");
+        addDebugMessage("Historial creado.");
 
         const lastDmMessage = messages.findLast(m => m.sender === 'DM');
         
@@ -178,11 +178,13 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           playerCharacter || null,
           history
         );
-        addDebugMessage("Turno del DM completado.");
+        addDebugMessage("Turno del DM completado. Procesando resultados...");
 
         if (dmNarration) {
           addMessage(dmNarration, isRetry);
           addDebugMessage("Narración del DM recibida y mostrada.");
+        } else {
+          addDebugMessage("El DM no ha devuelto narración esta vez.");
         }
         
         if(updatedGameState) {
@@ -197,6 +199,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         if (updatedCharacterStats && playerCharacter) {
           updateCharacter(playerCharacter.id, updatedCharacterStats);
           addDebugMessage("Estadísticas del personaje actualizadas.");
+        } else {
+           addDebugMessage("No se han actualizado estadísticas del personaje.");
         }
 
       }
