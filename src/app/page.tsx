@@ -11,32 +11,38 @@ import { GameView } from "@/components/game/game-view";
 import { useToast } from "@/hooks/use-toast";
 import { parseAdventureFromJson } from "@/ai/flows/parse-adventure-from-json";
 import { runTurn } from "./actions";
-import adventureData from "@/../JSON_adventures/el-dragon-del-pico-agujahelada.json";
 
+interface InitialGameData {
+  party: Character[];
+  messages: GameMessage[];
+  diceRolls: DiceRoll[];
+  gameState: string;
+  locationId: string;
+  inCombat?: boolean;
+  initiativeOrder?: Combatant[];
+}
 
 export default function Home() {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameInProgress, setGameInProgress] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
-  const [initialGameData, setInitialGameData] = useState<{
-    party: Character[];
-    messages: GameMessage[];
-    diceRolls: DiceRoll[];
-    gameState: string;
-    locationId: string;
-    locationDescription: string;
-    inCombat?: boolean;
-    initiativeOrder?: Combatant[];
-  } | null>(null);
+  const [initialGameData, setInitialGameData] = useState<InitialGameData | null>(null);
+  const [adventureData, setAdventureData] = useState<any | null>(null);
+
 
   const { toast } = useToast();
   
-  const handleNewGame = () => {
+  const handleNewGame = async () => {
     try {
-      toast({ title: "Creando nueva aventura...", description: "¡El mundo está listo!" });
+      setLoading('newGame');
+      toast({ title: "Creando nueva aventura...", description: "Cargando el módulo de la aventura..." });
       
-      const newGameState = JSON.stringify(adventureData);
-      const firstLocation = adventureData.locations[0];
+      const response = await fetch('/api/load-adventure');
+      const defaultAdventure = await response.json();
+      setAdventureData(defaultAdventure);
+      
+      const newGameState = JSON.stringify(defaultAdventure);
+      const firstLocation = defaultAdventure.locations[0];
       
       setInitialGameData({
         party: initialParty,
@@ -44,7 +50,6 @@ export default function Home() {
         diceRolls: [],
         gameState: newGameState,
         locationId: firstLocation.id,
-        locationDescription: firstLocation.description,
         inCombat: false,
         initiativeOrder: [],
       });
@@ -61,6 +66,8 @@ export default function Home() {
         title: "Error al crear la partida",
         description: "No se pudo iniciar la nueva aventura.",
       });
+    } finally {
+        setLoading(null);
     }
   };
   
@@ -84,6 +91,7 @@ export default function Home() {
         
         const parsedAdventure = await parseAdventureFromJson({ adventureJson: jsonContent });
         const newGameState = JSON.stringify(parsedAdventure.adventureData);
+        setAdventureData(parsedAdventure.adventureData);
         
         toast({ title: "Generando introducción...", description: "El Dungeon Master está preparando la escena." });
         
@@ -108,7 +116,6 @@ export default function Home() {
           diceRolls: [],
           gameState: newGameState,
           locationId: firstLocation.id,
-          locationDescription: firstLocation.description,
           inCombat: false,
           initiativeOrder: [],
         });
@@ -140,12 +147,11 @@ export default function Home() {
         const jsonContent = e.target?.result as string;
         const saveData = JSON.parse(jsonContent);
         const adventure = JSON.parse(saveData.gameState);
+        setAdventureData(adventure);
 
         if (!saveData.party || !saveData.messages || !saveData.gameState || !saveData.locationId) {
           throw new Error("El archivo de guardado no es válido.");
         }
-
-        const currentLocation = adventure.locations.find((l: any) => l.id === saveData.locationId);
 
         setInitialGameData({
           party: saveData.party,
@@ -153,7 +159,6 @@ export default function Home() {
           diceRolls: saveData.diceRolls || [],
           gameState: saveData.gameState,
           locationId: saveData.locationId,
-          locationDescription: currentLocation?.description || "Ubicación desconocida",
           inCombat: saveData.inCombat || false,
           initiativeOrder: saveData.initiativeOrder || [],
         });
@@ -217,3 +222,17 @@ export default function Home() {
     </div>
   );
 }
+
+// Create a new API route to serve the JSON file
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: Request) {
+    const adventureData = await import("@/../JSON_adventures/el-dragon-del-pico-agujahelada.json");
+    return new Response(JSON.stringify(adventureData.default), {
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+}
+
+    

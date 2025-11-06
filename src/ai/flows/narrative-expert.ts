@@ -28,7 +28,7 @@ const NarrativeExpertOutputSchema = z.object({
   nextLocationId: z.string().optional().nullable().describe("The ID of the new location, if the player moved. Must be a valid ID from the adventure's 'locations' data."),
   updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}, \"inventory\": [{\"id\":\"item-gp-1\",\"name\":\"Monedas de Oro\",\"quantity\":10}]}'. Must be a valid JSON string or null."),
   startCombat: z.boolean().describe("Set to true if the player's action or the narrative circumstances have definitively initiated combat."),
-  combatStartNarration: z.string().optional().describe("If startCombat is true, this field MUST contain a brief, exciting narration of how the combat begins (e.g., 'An arrow whistles past your ear and you see three goblins emerging from the bushes!'). This will be used by the app to identify the combatants."),
+  combatStartNarration: z.string().optional().describe("If startCombat is true, this field MUST contain a brief, exciting narration of how the combat begins that MENTIONS THE ENEMY NAMES (e.g., '¡Una emboscada! Dos orcos saltan de los arbustos, ¡con las hachas en alto!'). This will be used by the app to identify the combatants."),
 });
 export type NarrativeExpertOutput = z.infer<typeof NarrativeExpertOutputSchema>;
 
@@ -51,11 +51,17 @@ const narrativeExpertPrompt = ai.definePrompt({
 3.  **Interaction Directive:** When the player wants to interact with something (e.g., "leo el tablón de anuncios" or "hablo con Linene"), you **MUST** use \`adventureLookupTool\` to get the data for that object or entity. Use the information in the JSON response (e.g., the 'interactionResults' array) to describe the outcome. **DO NOT INVENT THE RESULT.**
 4.  **Movement Directive:** When the player wants to move to a new place (e.g., "voy a la Colina del Resentimiento"), you **MUST** use the \`adventureLookupTool\` to get the data for the destination. If the exit is valid, you MUST set the \`nextLocationId\` field in your response to the ID of the new location. Narrate the journey and the arrival at the new location based on its 'description' from the tool's response.
 5.  **Question Answering Directive:** If the player asks about a location, person, or thing (e.g., "¿Quién es Cryovain?"), you **MUST** use the \`adventureLookupTool\` to find that information and use it to formulate your answer.
-6.  **Combat Detection Directive:** Your most important job is to determine if the story leads to combat. This can be due to a player's hostile action (e.g., "Ataco al guardia") or a narrative event (e.g., an ambush). If combat starts, you **MUST** set 'startCombat' to true.
+6.  **Combat Detection Directive (VERY IMPORTANT):**
+    -   Your most important job is to determine if the story leads to combat. Set \`startCombat\` to \`true\` ONLY if combat is UNAVOIDABLE and IMMEDIATE.
+    -   **DO NOT start combat if enemies are present but haven't detected or attacked the party.** Describe the tense situation and ask the player what they do. Give them a chance to act first (e.g., to try stealth or diplomacy).
+    -   **DO start combat if:**
+        -   The player explicitly attacks an enemy (e.g., "Ataco al orco").
+        -   An enemy ambushes the party and their first action is to attack.
+        -   A hostile conversation irrevocably breaks down into violence.
 7.  **Combat Start Protocol (Strictly follow):**
-    -   When 'startCombat' is true, your ONLY job is to write a brief, exciting narration in the 'combatStartNarration' field describing the moment the fight breaks out.
-    -   Your 'narration' field can be the same or slightly more detailed.
-    -   When 'startCombat' is true, DO NOT roll initiative or describe attacks.
+    -   When \`startCombat\` is true, your ONLY job is to write a brief, exciting narration in the \`combatStartNarration\` field.
+    -   This narration **MUST** clearly name the enemies involved (e.g., "¡Dos orcos y un goblin os atacan!"). The system uses these names to find the monsters.
+    -   When 'startCombat' is true, DO NOT roll initiative or describe attacks. The system handles that.
 
 **Rules:**
 -   Only update \`updatedCharacterStats\` for actions resolved in this turn (e.g., drinking a potion).
@@ -96,7 +102,7 @@ const narrativeExpertFlow = ai.defineFlow(
     const dynamicAdventureLookupTool = ai.defineTool(
       {
         name: 'adventureLookupTool',
-        description: "Looks up and returns the entire JSON object for a specific location or entity (character, monster, item) from the adventure data. Use this to get all details about a place the player is in or wants to go to, or an object they want to interact with.",
+        description: "Looks up and returns the entire JSON object for a specific location or entity (character, monster, item) from the adventure data. Use this to get all details about a place the player is in or wants to go to, or an object/character they want to interact with or ask about.",
         inputSchema: z.object({
           query: z.string().describe("The ID or name of the location, entity, or interactable object (e.g., 'phandalin-plaza-del-pueblo', 'cryovain', 'Tablón de oportunidades')."),
         }),
@@ -163,3 +169,5 @@ const narrativeExpertFlow = ai.defineFlow(
     }
   }
 );
+
+    

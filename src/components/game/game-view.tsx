@@ -9,12 +9,11 @@ import { CharacterSheet } from "@/components/game/character-sheet";
 import { ChatPanel } from "@/components/game/chat-panel";
 import { Button } from "../ui/button";
 import { Save } from "lucide-react";
-import { handleOocMessage, runTurn, runCombatTurn } from "@/app/actions";
+import { handleOocMessage, runTurn, runCombatTurn, lookupAdventureEntity } from "@/app/actions";
 import { PartyPanel } from "./party-panel";
 import { Separator } from "../ui/separator";
 import { markdownToHtml } from "@/ai/flows/markdown-to-html";
 import { useToast } from "@/hooks/use-toast";
-import adventureData from "@/../JSON_adventures/el-dragon-del-pico-agujahelada.json";
 
 
 interface GameViewProps {
@@ -24,7 +23,6 @@ interface GameViewProps {
     diceRolls: DiceRoll[];
     gameState: string;
     locationId: string;
-    locationDescription: string;
     inCombat?: boolean;
     initiativeOrder?: Combatant[];
   };
@@ -55,8 +53,17 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setDebugMessages(prev => [...prev, `[${timestamp}] ${message}`].slice(-50));
   }, []);
 
+  const getAdventureData = useCallback(() => {
+    try {
+        return JSON.parse(gameState);
+    } catch(e) {
+        addDebugMessage("CRITICAL: Failed to parse gameState JSON.");
+        return null;
+    }
+  }, [gameState, addDebugMessage]);
+
   // Recalculate location description whenever locationId changes
-  const locationDescription = (adventureData.locations.find(l => l.id === locationId)?.description || "Un lugar desconocido");
+  const locationDescription = (getAdventureData()?.locations.find((l: any) => l.id === locationId)?.description || "Un lugar desconocido");
 
   useEffect(() => {
     setParty(initialData.party);
@@ -70,8 +77,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setDebugMessages([]);
     setTurnIndex(0);
     setEnemies([]);
-    toast({ title: 'Aventura Cargada', description: '¡La partida está lista!' });
-  }, [initialData, toast]);
+    addDebugMessage("Game state initialized from initialData.");
+  }, [initialData, addDebugMessage]);
 
   const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
     const messageToAdd = {
@@ -150,16 +157,43 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         addMessage({ sender: 'DM', content: html, originalContent: narration });
       }
 
-      // TODO: Identify enemies from narration using AI
-      const identifiedEnemies = [{id: "orco-1", name: 'Orco', race: 'Orco', class: 'Guerrero', level: 1, hp: {current: 15, max: 15}, abilityScores: { destreza: 12 } }]; // Placeholder
-      setEnemies(identifiedEnemies);
-      addDebugMessage(`Identified enemies: ${identifiedEnemies.map(e => e.name).join(', ')}`);
+      // Identify enemies from narration
+      const enemyNames = (narration.match(/(\d+)?\s*([a-zA-ZáéíóúñÁÉÍÓÚÑüÜ\s]+)/gi) || [])
+        .map(name => name.trim().replace(/^\d+\s*/, ''))
+        .filter(name => name.length > 2); // Filter out short words
 
+      addDebugMessage(`Attempting to identify enemies from narration: ${enemyNames.join(', ')}`);
+
+      let identifiedEnemies: any[] = [];
+      if (enemyNames.length > 0) {
+          for (const name of enemyNames) {
+              const enemyData = await lookupAdventureEntity(name, gameState);
+              if (enemyData) {
+                  // Create a unique ID for each instance
+                  const enemyWithStats = {
+                      ...enemyData,
+                      id: `${enemyData.id}-${Math.random().toString(36).substring(2, 9)}`,
+                      hp: { current: 30, max: 30 }, // Placeholder HP
+                      abilityScores: { destreza: 10, ...enemyData.abilityScores }, // Placeholder dexterity
+                  };
+                  identifiedEnemies.push(enemyWithStats);
+                  addDebugMessage(`Successfully identified and added '${name}' to combat.`);
+              } else {
+                  addDebugMessage(`Could not find data for enemy: '${name}'`);
+              }
+          }
+      }
+
+      if (identifiedEnemies.length === 0) {
+        addDebugMessage("No enemies identified from narration. Adding a placeholder Orc as a fallback.");
+        identifiedEnemies.push({ id: "fallback-orco-1", name: 'Orco Desconocido', race: 'Orco', class: 'Guerrero', level: 1, hp: { current: 15, max: 15 }, abilityScores: { destreza: 12 } });
+      }
+      setEnemies(identifiedEnemies);
 
       const combatants: (Character | any)[] = [...party, ...identifiedEnemies];
       
       const initiativeRolls: InitiativeRoll[] = combatants.map(c => {
-        const modifier = Math.floor((c.abilityScores.destreza - 10) / 2);
+        const modifier = Math.floor(((c.abilityScores?.destreza || 10) - 10) / 2);
         const roll = Math.floor(Math.random() * 20) + 1;
         const combatantType: 'player' | 'npc' = party.some(p => p.id === c.id) ? 'player' : 'npc';
         return {
@@ -186,14 +220,72 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       const sortedCombatants: Combatant[] = initiativeRolls.sort((a, b) => b.total - a.total).map(r => ({id: r.id, characterName: r.characterName, total: r.total, type: r.type}));
 
       setInitiativeOrder(sortedCombatants);
-      setTurnIndex(0);
+      
       addDebugMessage(`Combat started. Initiative order set: ${sortedCombatants.map(c => c.characterName).join(', ')}`);
       
-      const firstCombatant = sortedCombatants[0];
-      addMessage({ sender: 'System', content: `Es el turno de ${firstCombatant.characterName}.`});
+      // If the first turn is not a player, kick off the combat loop immediately.
+      if (sortedCombatants[0].type !== 'player') {
+          handleCombatTurn(null, 0); // Pass null action and the starting index.
+      } else {
+        setTurnIndex(0);
+        const firstCombatant = sortedCombatants[0];
+        addMessage({ sender: 'System', content: `Es el turno de ${firstCombatant.characterName}.`});
+      }
 
 
-  }, [addDebugMessage, party]);
+  }, [addDebugMessage, party, gameState]);
+
+
+  const handleCombatTurn = useCallback(async (playerAction: string | null, currentTurnIdx: number) => {
+    setIsDMThinking(true);
+    if(playerAction) {
+       addDebugMessage(`Player combat action: "${playerAction}".`);
+    } else {
+        addDebugMessage(`Starting combat loop from turn index ${currentTurnIdx}.`);
+    }
+    
+    try {
+        const history = buildConversationHistory();
+        const result = await runCombatTurn(
+            playerAction,
+            party,
+            enemies,
+            initiativeOrder,
+            currentTurnIdx,
+            gameState,
+            locationDescription,
+            history
+        );
+
+        addMessages(result.turnResults.messages);
+        if (result.turnResults.diceRolls.length > 0) addDiceRolls(result.turnResults.diceRolls);
+        if (result.turnResults.updatedParty) setParty(result.turnResults.updatedParty);
+        if (result.turnResults.updatedEnemies) setEnemies(result.turnResults.updatedEnemies);
+
+        setTurnIndex(result.nextTurnIndex);
+
+        if (result.endCombat) {
+            setInCombat(false);
+            setInitiativeOrder([]);
+            setEnemies([]);
+            addDebugMessage("Combat has ended.");
+        } else {
+            const nextCombatant = initiativeOrder[result.nextTurnIndex];
+            addMessage({ sender: 'System', content: `Es el turno de ${nextCombatant.characterName}.` });
+        }
+    } catch (error: any) {
+      console.error("Error during combat turn:", error);
+      addDebugMessage(`COMBAT ERROR: ${error.message}`);
+      addMessage({
+        sender: 'Error',
+        content: "El Dungeon Master está confundido en medio del combate. Inténtalo de nuevo.",
+        onRetry: () => handleCombatTurn(playerAction, currentTurnIdx),
+      });
+    } finally {
+        setIsDMThinking(false);
+        addDebugMessage("Combat turn processing finished.");
+    }
+  }, [party, enemies, initiativeOrder, gameState, locationDescription, addDebugMessage, buildConversationHistory]);
 
 
   const handleSendMessage = useCallback(async (content: string, options: { isRetry?: boolean } = {}) => {
@@ -225,34 +317,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         }
       } else if (inCombat) {
         // --- COMBAT MODE ---
-        addDebugMessage("Running COMBAT turn coordinator.");
-        const result = await runCombatTurn(
-            content,
-            party,
-            enemies,
-            initiativeOrder,
-            turnIndex,
-            gameState,
-            locationDescription,
-            history
-        );
-        
-        addMessages(result.turnResults.messages);
-        if(result.turnResults.diceRolls.length > 0) addDiceRolls(result.turnResults.diceRolls);
-        if(result.turnResults.updatedParty) setParty(result.turnResults.updatedParty);
-        if(result.turnResults.updatedEnemies) setEnemies(result.turnResults.updatedEnemies);
-        
-        setTurnIndex(result.nextTurnIndex);
-
-        if (result.endCombat) {
-            setInCombat(false);
-            setInitiativeOrder([]);
-            setEnemies([]);
-            addDebugMessage("Combat has ended.");
-        } else {
-            const nextCombatant = initiativeOrder[result.nextTurnIndex];
-            addMessage({ sender: 'System', content: `Es el turno de ${nextCombatant.characterName}.`})
-        }
+        handleCombatTurn(content, turnIndex);
 
       } else {
         // --- NARRATIVE MODE ---
@@ -284,7 +349,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       setIsDMThinking(false);
       addDebugMessage("Turn finished.");
     }
-  }, [addDebugMessage, buildConversationHistory, gameState, inCombat, locationDescription, party, startCombatFlow, enemies, initiativeOrder, turnIndex, locationId]);
+  }, [addDebugMessage, buildConversationHistory, gameState, inCombat, locationDescription, party, startCombatFlow, handleCombatTurn, turnIndex, locationId]);
   
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
      addDiceRolls([{
@@ -350,3 +415,5 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     </GameLayout>
   );
 }
+
+    

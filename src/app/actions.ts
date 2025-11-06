@@ -7,6 +7,8 @@ import { narrativeExpert } from "@/ai/flows/narrative-expert";
 import { markdownToHtml } from "@/ai/flows/markdown-to-html";
 import type { Character, GameMessage, Combatant, DiceRoll } from "@/lib/types";
 import { enemyTactician } from "@/ai/flows/enemy-tactician";
+import { adventureLookupTool } from "@/ai/tools/adventure-lookup";
+import { z } from "zod";
 
 /**
  * Handles out-of-character messages from the player.
@@ -19,6 +21,35 @@ export async function handleOocMessage(playerQuery: string, gameState: string, c
   });
   return oocResponse.dmReply ? `(OOC) ${oocResponse.dmReply}` : null;
 }
+
+/**
+ * Server action to look up an entity from the adventure data.
+ * This is needed because the client-side components cannot run the tool directly.
+ */
+export async function lookupAdventureEntity(entityName: string, gameState: string): Promise<any | null> {
+    let adventureData: any = null;
+    if (gameState) {
+      try {
+        adventureData = JSON.parse(gameState);
+      } catch (e) {
+        console.error("Failed to parse gameState JSON in lookupAdventureEntity");
+        return null;
+      }
+    }
+
+    if (!adventureData) {
+      return null;
+    }
+
+    // This logic mimics the dynamic tool inside the flows.
+    const allData = [...(adventureData.locations || []), ...(adventureData.entities || [])];
+    const result = allData.find((item: any) => 
+        item.id === entityName || (item.name && typeof item.name === 'string' && item.name.toLowerCase() === entityName.toLowerCase())
+    );
+
+    return result || null;
+}
+
 
 /**
  * The main "Narrative" logic. This function receives a player action outside of combat
@@ -114,9 +145,9 @@ export async function runTurn(
  * player's turn again or combat ends.
  */
 export async function runCombatTurn(
-    playerAction: string,
+    playerAction: string | null, // Can be null if the first turn is an NPC
     party: Character[],
-    enemiesInCombat: any[], // Simplified for this example
+    enemiesInCombat: any[], 
     initiativeOrder: Combatant[],
     currentTurnIndex: number,
     gameState: string,
@@ -140,20 +171,16 @@ export async function runCombatTurn(
     }
     
     // =================================================================
-    // 1. Process Player's Turn
+    // 1. Process Player's Turn (if it's their turn and they acted)
     // =================================================================
     const playerCombatant = initiativeOrder[currentTurnIndex];
-    if (playerCombatant.type === 'player') {
+    if (playerCombatant.type === 'player' && playerAction) {
         const playerCharacter = party.find(c => c.id === playerCombatant.id);
         if (playerCharacter?.controlledBy === 'Player') {
           addMessage({
               sender: 'System',
               content: `Turno de ${playerCharacter?.name}.`,
           });
-
-          // For now, we'll just narrate the player's action. A real implementation
-          // would involve calling the narrativeExpert to interpret the action and
-          // determine outcomes and dice rolls.
           const { html } = await markdownToHtml({ markdown: `Tú (${playerCharacter?.name}) atacas: ${playerAction}` });
           addMessage({ sender: 'DM', content: html, originalContent: `Tú (${playerCharacter?.name}) atacas: ${playerAction}` });
         }
@@ -163,10 +190,13 @@ export async function runCombatTurn(
     // =================================================================
     // 2. Loop through subsequent NPC turns
     // =================================================================
-    let turnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
+    let turnIndex = currentTurnIndex;
+     if (playerAction) {
+        turnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
+    }
     let combatLoop = 0; // Safety break
 
-    while(initiativeOrder[turnIndex].type !== 'player' && combatLoop < initiativeOrder.length) {
+    while(initiativeOrder[turnIndex].type !== 'player' && combatLoop < initiativeOrder.length * 2) {
         const currentCombatant = initiativeOrder[turnIndex];
         const isCompanion = party.some(p => p.id === currentCombatant.id);
 
@@ -228,3 +258,5 @@ export async function runCombatTurn(
         endCombat,
     };
 }
+
+    
