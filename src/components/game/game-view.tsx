@@ -85,7 +85,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       id: Date.now().toString() + Math.random(),
       timestamp: new Date(),
     };
-    setDiceRolls((prevRolls) => [newRoll, ...prevRolls]);
+    setDiceRolls((prevRolls) => [...prevRolls, newRoll]);
     addMessage({
       sender: "System",
       content: `${roll.roller} ha sacado un ${roll.result} en un d${roll.diceType}.`,
@@ -213,7 +213,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         }
 
         if(newDiceRolls.length > 0) {
-            setDiceRolls(prev => [...newDiceRolls.map((r, i) => ({...r, id: Date.now().toString() + i, timestamp: new Date()})), ...prev]);
+            setDiceRolls(prev => [...prev, ...newDiceRolls.map((r, i) => ({...r, id: Date.now().toString() + i, timestamp: new Date()}))]);
         }
         
         if(nextLocationDescription) {
