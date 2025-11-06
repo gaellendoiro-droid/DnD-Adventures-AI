@@ -4,6 +4,7 @@ config();
 import '@/ai/flows/parse-adventure-from-json.ts';
 import '@/ai/flows/generate-monster-encounters.ts';
 import '@/ai/flows/ai-dungeon-master-parser.ts';
+import '@/ai/flows/ai-combat-manager.ts';
 import '@/ai/flows/generate-character-action.ts';
 import '@/ai/flows/dungeon-master-ooc-parser.ts';
 import '@/ai/flows/generate-dm-narration-audio.ts';

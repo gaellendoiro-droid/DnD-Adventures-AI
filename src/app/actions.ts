@@ -6,6 +6,7 @@ import { generateCharacterAction } from "@/ai/flows/generate-character-action";
 import { aiDungeonMasterParser } from "@/ai/flows/ai-dungeon-master-parser";
 import { markdownToHtml } from "@/ai/flows/markdown-to-html";
 import { Character, GameMessage } from "@/lib/types";
+import { aiCombatManager } from "@/ai/flows/ai-combat-manager";
 
 export async function handleOocMessage(playerQuery: string, gameState: string): Promise<string | null> {
   const oocResponse = await dungeonMasterOocParser({
@@ -63,7 +64,8 @@ export async function runDungeonMasterTurn(
   gameState: string,
   locationDescription: string,
   playerCharacter: Character | null,
-  conversationHistory?: string
+  inCombat: boolean,
+  conversationHistory?: string,
 ) {
 
   const characterStatsString = playerCharacter ? JSON.stringify(playerCharacter, (key, value) => {
@@ -74,14 +76,23 @@ export async function runDungeonMasterTurn(
     return value;
   }) : '';
 
-  const dmResponse = await aiDungeonMasterParser({
+  const input = {
     playerAction: playerAction,
     characterActions: characterActions,
     gameState: gameState,
     locationDescription: locationDescription,
     characterStats: characterStatsString,
     conversationHistory: conversationHistory,
-  });
+  };
+
+  let dmResponse: any;
+
+  if (inCombat) {
+      dmResponse = await aiCombatManager(input);
+  } else {
+      dmResponse = await aiDungeonMasterParser(input);
+  }
+
 
   let dmNarration: GameMessage | null = null;
   if (dmResponse.narration) {
@@ -101,15 +112,12 @@ export async function runDungeonMasterTurn(
   let parsedStats: Partial<Character> | null = null;
   if (dmResponse.updatedCharacterStats && typeof dmResponse.updatedCharacterStats === 'string') {
     try {
-      // The flow now pre-validates this, but a safety check here is still good practice.
       parsedStats = JSON.parse(dmResponse.updatedCharacterStats);
     } catch(e) {
       console.error("Failed to parse updatedCharacterStats JSON from flow:", e);
-      // Keep parsedStats as null if parsing fails despite pre-validation.
       parsedStats = null; 
     }
   }
-
 
   return {
     dmNarration,
@@ -117,5 +125,7 @@ export async function runDungeonMasterTurn(
     updatedCharacterStats: parsedStats,
     initiativeRolls: dmResponse.initiativeRolls,
     diceRolls: dmResponse.diceRolls,
+    startCombat: dmResponse.startCombat,
+    endCombat: dmResponse.endCombat,
   };
 }

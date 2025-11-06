@@ -28,6 +28,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const [diceRolls, setDiceRolls] = useState<DiceRoll[]>(initialData.diceRolls);
   const [gameState, setGameState] = useState(initialData.gameState);
   const [locationDescription, setLocationDescription] = useState(initialData.locationDescription);
+  const [inCombat, setInCombat] = useState(false);
   
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
     party.find(c => c.controlledBy === 'Player') || null
@@ -43,6 +44,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setGameState(initialData.gameState);
     setLocationDescription(initialData.locationDescription);
     setSelectedCharacter(initialData.party.find(c => c.controlledBy === 'Player') || null);
+    setInCombat(false); // Reset combat state on new adventure
     setDebugMessages([]);
   }, [initialData]);
 
@@ -53,8 +55,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
     
-    // If it's a retry message, we don't want to re-add the player's prompt.
-    // We just want to add the new messages from the AI.
     const messageToAdd = {
         ...message,
         id: Date.now().toString() + Math.random(),
@@ -65,7 +65,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     };
     
     setMessages((prevMessages) => {
-        // If it's a retry, we might want to remove the previous error message.
         const filteredMessages = isRetryMessage ? prevMessages.filter(m => m.sender !== 'Error') : prevMessages;
         return [...filteredMessages, messageToAdd];
     });
@@ -86,10 +85,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       timestamp: new Date(),
     };
     setDiceRolls((prevRolls) => [...prevRolls, newRoll]);
-    addMessage({
-      sender: "System",
-      content: `${roll.roller} ha sacado un ${roll.totalResult} en una tirada de ${roll.rollNotation}.`,
-    });
   }
 
   const updateCharacter = (characterId: string, updates: Partial<Character>) => {
@@ -97,14 +92,16 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setParty(currentParty => {
         const newParty = currentParty.map(c => {
             if (c.id === characterId) {
-                updatedCharacter = { ...c, ...updates, hp: { ...c.hp, ...updates.hp } };
+                const newHp = { ...c.hp, ...updates.hp };
+                if (newHp.current < 0) newHp.current = 0;
+                if (newHp.current > newHp.max) newHp.current = newHp.max;
+
+                updatedCharacter = { ...c, ...updates, hp: newHp };
                 return updatedCharacter;
             }
             return c;
         });
         
-        // After updating the party, if the updated character is the selected one,
-        // also update the selectedCharacter state to trigger a re-render in CharacterSheet
         if (updatedCharacter && selectedCharacter?.id === characterId) {
             setSelectedCharacter(updatedCharacter);
         }
@@ -127,7 +124,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     }
     
     setIsDMThinking(true);
-    addDebugMessage("Turno iniciado...");
+    addDebugMessage(`Turno iniciado. Modo Combate: ${inCombat}`);
 
     try {
       if (content.startsWith('//')) {
@@ -142,7 +139,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         
         addDebugMessage("Creando historial de conversación reciente...");
         const history = messages
-          .slice(-4) // Get last 4 messages
+          .slice(-5) // Get last 5 messages for better context
           .map(m => {
             if (m.sender === 'Player') return `Jugador: ${m.content}`;
             if (m.sender === 'DM') return `Dungeon Master: ${m.originalContent || m.content}`;
@@ -168,13 +165,15 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         }
 
         const playerCharacter = party.find(c => c.controlledBy === 'Player');
-        addDebugMessage("Ejecutando el turno del Dungeon Master...");
-        const { dmNarration, nextLocationDescription, updatedCharacterStats, initiativeRolls, diceRolls: combatDiceRolls } = await runDungeonMasterTurn(
+        addDebugMessage(`Ejecutando el turno del Dungeon Master en modo ${inCombat ? 'Combate' : 'Narrativo'}...`);
+        
+        const { dmNarration, nextLocationDescription, updatedCharacterStats, initiativeRolls, diceRolls: combatDiceRolls, startCombat, endCombat } = await runDungeonMasterTurn(
           playerAction,
           characterActionsContent,
           gameState,
           locationDescription,
           playerCharacter || null,
+          inCombat,
           history
         );
         addDebugMessage("Turno del DM completado. Procesando resultados...");
@@ -182,8 +181,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         if (dmNarration) {
           addMessage(dmNarration, isRetry);
           addDebugMessage("Narración del DM recibida y mostrada.");
-        } else {
-          addDebugMessage("El DM no ha devuelto narración esta vez.");
         }
 
         const newDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = [];
@@ -206,9 +203,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         if (combatDiceRolls && combatDiceRolls.length > 0) {
             addDebugMessage(`Se han recibido ${combatDiceRolls.length} tiradas de combate.`);
             combatDiceRolls.forEach(roll => {
-                newDiceRolls.push({
-                    ...roll,
-                });
+                newDiceRolls.push({ ...roll });
             });
         }
 
@@ -224,8 +219,16 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         if (updatedCharacterStats && playerCharacter) {
           updateCharacter(playerCharacter.id, updatedCharacterStats);
           addDebugMessage("Estadísticas del personaje actualizadas.");
-        } else {
-           addDebugMessage("No se han actualizado estadísticas del personaje.");
+        }
+        
+        if (startCombat) {
+            setInCombat(true);
+            addDebugMessage("CAMBIO DE MODO: Entrando en combate.");
+        }
+
+        if (endCombat) {
+            setInCombat(false);
+            addDebugMessage("CAMBIO DE MODO: Saliendo de combate.");
         }
 
       }
@@ -254,12 +257,13 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
 
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
-    addDiceRoll({
-      roller: selectedCharacter?.name ?? 'Player',
-      rollNotation: `1d${roll.sides}`,
-      individualRolls: [roll.result],
-      totalResult: roll.result,
-      outcome: 'neutral'
+     addDiceRoll({
+        roller: selectedCharacter?.name ?? 'Player',
+        rollNotation: `1d${roll.sides}`,
+        individualRolls: [roll.result],
+        totalResult: roll.result,
+        outcome: 'neutral',
+        description: `Tirada de d${roll.sides} del jugador`
     });
   };
 
@@ -271,6 +275,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       diceRolls,
       gameState,
       locationDescription,
+      inCombat,
     };
     onSaveGame(saveData);
   }

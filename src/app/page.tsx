@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from "react";
@@ -23,6 +24,7 @@ export default function Home() {
     diceRolls: DiceRoll[];
     gameState: string;
     locationDescription: string;
+    inCombat?: boolean;
   } | null>(null);
 
   const { toast } = useToast();
@@ -39,6 +41,7 @@ export default function Home() {
         diceRolls: [],
         gameState: newGameState,
         locationDescription: adventureData.summary,
+        inCombat: false,
       });
       
       setGameInProgress(true);
@@ -80,12 +83,13 @@ export default function Home() {
         toast({ title: "Generando introducción...", description: "El Dungeon Master está preparando la escena." });
         
         const playerCharacter = initialParty.find(c => c.controlledBy === 'Player');
-        const { dmNarration, updatedGameState, nextLocationDescription } = await runDungeonMasterTurn(
+        const { dmNarration } = await runDungeonMasterTurn(
             "Comenzar la aventura.",
             "",
             newGameState,
             parsedAdventure.adventureSummary,
-            playerCharacter
+            playerCharacter,
+            false // Not in combat
         );
 
         const messages: GameMessage[] = [];
@@ -97,8 +101,9 @@ export default function Home() {
           party: initialParty,
           messages: messages,
           diceRolls: [],
-          gameState: updatedGameState || newGameState,
-          locationDescription: nextLocationDescription || parsedAdventure.adventureSummary,
+          gameState: newGameState,
+          locationDescription: parsedAdventure.adventureSummary,
+          inCombat: false,
         });
         
         setGameInProgress(true);
@@ -128,7 +133,6 @@ export default function Home() {
         const jsonContent = e.target?.result as string;
         const saveData = JSON.parse(jsonContent);
 
-        // Basic validation
         if (!saveData.party || !saveData.messages || !saveData.gameState) {
           throw new Error("El archivo de guardado no es válido.");
         }
@@ -139,6 +143,7 @@ export default function Home() {
           diceRolls: saveData.diceRolls || [],
           gameState: saveData.gameState,
           locationDescription: saveData.locationDescription || "",
+          inCombat: saveData.inCombat || false,
         });
 
         setGameInProgress(true);
