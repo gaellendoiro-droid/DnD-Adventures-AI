@@ -5,7 +5,7 @@ import { dungeonMasterOocParser } from "@/ai/flows/dungeon-master-ooc-parser";
 import { generateCharacterAction } from "@/ai/flows/generate-character-action";
 import { aiDungeonMasterParser } from "@/ai/flows/ai-dungeon-master-parser";
 import { markdownToHtml } from "@/ai/flows/markdown-to-html";
-import { Character, GameMessage } from "@/lib/types";
+import { Character, GameMessage, InitiativeRoll } from "@/lib/types";
 import { aiCombatManager } from "@/ai/flows/ai-combat-manager";
 
 export async function handleOocMessage(playerQuery: string, gameState: string): Promise<string | null> {
@@ -69,21 +69,11 @@ export async function runDungeonMasterTurn(
   combatStartNarration?: string,
 ) {
   
-  const playerCharacter = party.find(c => c.controlledBy === 'Player');
-  const characterStatsString = playerCharacter ? JSON.stringify(playerCharacter, (key, value) => {
-    // Exclude color and personality from the stringified JSON
-    if (key === 'color' || key === 'personality') {
-      return undefined;
-    }
-    return value;
-  }) : '';
-
   const input = {
     playerAction: playerAction,
     characterActions: characterActions,
     gameState: gameState,
     locationDescription: locationDescription,
-    characterStats: characterStatsString, // This is now legacy, party is used instead
     party: party,
     conversationHistory: conversationHistory,
     combatStartNarration: combatStartNarration,
@@ -126,7 +116,7 @@ export async function runDungeonMasterTurn(
     dmNarration,
     nextLocationDescription: dmResponse.nextLocationDescription,
     updatedCharacterStats: parsedStats,
-    initiativeRolls: dmResponse.initiativeRolls,
+    initiativeRolls: dmResponse.initiativeRolls as InitiativeRoll[] | undefined,
     diceRolls: dmResponse.diceRolls,
     startCombat: dmResponse.startCombat,
     endCombat: dmResponse.endCombat,

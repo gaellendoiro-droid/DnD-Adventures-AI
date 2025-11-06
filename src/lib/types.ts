@@ -1,4 +1,5 @@
 
+
 export interface AbilityScores {
   fuerza: number;
   destreza: number;
@@ -72,4 +73,16 @@ export interface DiceRoll {
   outcome: DiceRollOutcome;
   timestamp: Date;
   description?: string;
+}
+
+export interface InitiativeRoll {
+    characterName: string;
+    roll: number;
+    modifier: number;
+    total: number;
+}
+
+export interface Combatant extends InitiativeRoll {
+  id: string;
+  type: 'player' | 'npc';
 }

@@ -105,7 +105,7 @@ const aiCombatManagerPrompt = ai.definePrompt({
 **STATE: FIRST TURN OF COMBAT**
 - If the player's action is "Comienza la batalla", this is the VERY FIRST turn.
 - **First Turn Protocol (Strictly follow, this is your highest priority):**
-    1.  **Do NOT re-narrate the start of combat.** The context is already provided. Your narration should be brief and focused on the mechanics.
+    1.  **Do NOT re-narrate the start of combat.** The context is already provided in "How it Started". Your narration should be brief and focused on the mechanics.
     2.  **Identify ALL Combatants:** Your first job is to read the 'How it Started' context and identify EVERYONE involved: the player's party and any enemies or NPCs mentioned. To get stats for an NPC/enemy, use your tools in this order:
         -   **First, try \`adventureLookupTool\`:** Use the NPC's name (e.g., 'Linene Vientogrís') to find their specific data in the adventure. This is the most accurate source.
         -   **Then, use \`dndApiLookupTool\`:** If the NPC is not in the adventure data, deduce a generic type (like 'commoner', 'guard') and use that to get base stats.
@@ -122,7 +122,7 @@ const aiCombatManagerPrompt = ai.definePrompt({
 - **Combat Protocol (Strictly follow):**
     1.  **Narrate Player's Turn:** Describe the outcome of the player's action: "{{{playerAction}}}".
     2.  **Process NPC/AI Turns:** After the player's turn, process the turns for any AI characters or NPCs that act next in the initiative order, up until the next player turn.
-    3.  **NPC/AI Actions:** For each character, determine their action based on their stats and tactics.
+    3.  **NPC Actions:** For each character, determine their action based on their stats and tactics.
     4.  **Roll and Report:** For any action requiring a roll (attack, damage, save), you MUST provide the details in the 'diceRolls' field.
         - The 'description' of the roll MUST include the dice notation and the ability modifier abbreviation (e.g., 'Tirada de Ataque (1d20+FUE)').
         - **Attack Flow:** First, make the attack roll. Narrate if it hits or misses based on the target's AC. A natural 20 is a 'crit', a natural 1 is a 'pifia'. ONLY if it hits, then make the damage roll.

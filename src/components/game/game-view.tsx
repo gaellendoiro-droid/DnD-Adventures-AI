@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Character, GameMessage, DiceRoll } from "@/lib/types";
+import type { Character, GameMessage, DiceRoll, InitiativeRoll, Combatant } from "@/lib/types";
 import { GameLayout } from "@/components/game/game-layout";
 import { LeftPanel } from "@/components/layout/left-panel";
 import { CharacterSheet } from "@/components/game/character-sheet";
@@ -19,6 +19,7 @@ interface GameViewProps {
     gameState: string;
     locationDescription: string;
     inCombat?: boolean;
+    initiativeOrder?: Combatant[];
   };
   onSaveGame: (saveData: any) => void;
 }
@@ -30,6 +31,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const [gameState, setGameState] = useState(initialData.gameState);
   const [locationDescription, setLocationDescription] = useState(initialData.locationDescription);
   const [inCombat, setInCombat] = useState(initialData.inCombat || false);
+  const [initiativeOrder, setInitiativeOrder] = useState<Combatant[]>(initialData.initiativeOrder || []);
   
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
     party.find(c => c.controlledBy === 'Player') || null
@@ -47,6 +49,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setLocationDescription(initialData.locationDescription);
     setSelectedCharacter(initialData.party.find(c => c.controlledBy === 'Player') || null);
     setInCombat(initialData.inCombat || false);
+    setInitiativeOrder(initialData.initiativeOrder || []);
     setDebugMessages([]);
     setCombatStartNarration(undefined);
   }, [initialData]);
@@ -173,7 +176,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           }
         }
 
-        addDebugMessage(`Ejecutando el turno del Dungeon Master en modo ${inCombat ? 'Combate' : 'Narrativo'}...`);
+        addDebugMessage(`Ejecutando el turno del Dungeon Master en modo ${inCombat || isSystem ? 'Combate' : 'Narrativo'}...`);
         
         const dmTurnResult = await runDungeonMasterTurn(
           playerAction,
@@ -209,14 +212,26 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
         if (dmTurnResult.initiativeRolls && dmTurnResult.initiativeRolls.length > 0) {
             addDebugMessage(`Se han recibido ${dmTurnResult.initiativeRolls.length} tiradas de iniciativa.`);
-            const initiativeDiceRolls = dmTurnResult.initiativeRolls.map(roll => ({
+            const rolls: InitiativeRoll[] = dmTurnResult.initiativeRolls;
+            
+            const newCombatants: Combatant[] = rolls.map(roll => {
+              const partyMember = party.find(p => p.name === roll.characterName);
+              return {
+                ...roll,
+                id: partyMember?.id || roll.characterName, // Use character ID if available
+                type: partyMember ? 'player' : 'npc',
+              };
+            }).sort((a, b) => b.total - a.total);
+            setInitiativeOrder(newCombatants);
+
+            const initiativeDiceRolls = rolls.map(roll => ({
                 roller: roll.characterName,
                 rollNotation: `1d20+${roll.modifier}`,
                 individualRolls: [roll.roll],
                 modifier: roll.modifier,
                 totalResult: roll.total,
                 outcome: 'initiative' as const,
-                description: `Tirada de Iniciativa (1d20+${roll.modifier >= 0 ? '+' : ''}${roll.modifier})`
+                description: `Tirada de Iniciativa (1d20${roll.modifier >= 0 ? '+' : ''}${roll.modifier})`
             }));
             newDiceRolls.push(...initiativeDiceRolls);
         }
@@ -238,13 +253,14 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
                 setCombatStartNarration(dmTurnResult.dmNarration.originalContent);
             }
             setInCombat(true);
-            addMessage({ sender: "System", content: <div className="font-bold uppercase text-red-500 text-lg">¡Comienza el Combate!</div> });
+            addMessage({ sender: "System", content: <div className="font-bold uppercase text-destructive text-lg">¡Comienza el Combate!</div> });
         }
 
         if (dmTurnResult.endCombat) {
             setInCombat(false);
             setCombatStartNarration(undefined);
-            addMessage({ sender: "System", content: <div className="font-bold uppercase text-red-500 text-lg">El Combate ha Terminado</div> });
+            setInitiativeOrder([]);
+            addMessage({ sender: "System", content: <div className="font-bold uppercase text-green-500 text-lg">El Combate ha Terminado</div> });
             addDebugMessage("CAMBIO DE MODO: Saliendo de combate.");
         }
       }
@@ -301,6 +317,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       gameState,
       locationDescription,
       inCombat,
+      initiativeOrder,
     };
     onSaveGame(saveData);
   }
@@ -314,6 +331,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           onSelectCharacter={setSelectedCharacter}
           diceRolls={diceRolls}
           debugMessages={debugMessages}
+          inCombat={inCombat}
+          initiativeOrder={initiativeOrder}
         >
             <div className="p-2">
                 <Button size="sm" variant="outline" onClick={handleInternalSaveGame} className="w-full">

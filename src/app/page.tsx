@@ -3,7 +3,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Character, GameMessage, DiceRoll } from "@/lib/types";
+import type { Character, GameMessage, DiceRoll, Combatant } from "@/lib/types";
 import { initialParty, initialMessage } from "@/lib/data";
 import { AppHeader } from "@/components/layout/app-header";
 import { MainMenu } from "@/components/game/main-menu";
@@ -25,6 +25,7 @@ export default function Home() {
     gameState: string;
     locationDescription: string;
     inCombat?: boolean;
+    initiativeOrder?: Combatant[];
   } | null>(null);
 
   const { toast } = useToast();
@@ -42,6 +43,7 @@ export default function Home() {
         gameState: newGameState,
         locationDescription: adventureData.summary,
         inCombat: false,
+        initiativeOrder: [],
       });
       
       setGameInProgress(true);
@@ -82,13 +84,12 @@ export default function Home() {
         
         toast({ title: "Generando introducción...", description: "El Dungeon Master está preparando la escena." });
         
-        const playerCharacter = initialParty.find(c => c.controlledBy === 'Player');
         const { dmNarration } = await runDungeonMasterTurn(
             "Comenzar la aventura.",
             "",
             newGameState,
             parsedAdventure.adventureSummary,
-            playerCharacter,
+            initialParty, // Pass full party
             false // Not in combat
         );
 
@@ -104,6 +105,7 @@ export default function Home() {
           gameState: newGameState,
           locationDescription: parsedAdventure.adventureSummary,
           inCombat: false,
+          initiativeOrder: [],
         });
         
         setGameInProgress(true);
@@ -144,6 +146,7 @@ export default function Home() {
           gameState: saveData.gameState,
           locationDescription: saveData.locationDescription || "",
           inCombat: saveData.inCombat || false,
+          initiativeOrder: saveData.initiativeOrder || [],
         });
 
         setGameInProgress(true);
