@@ -53,7 +53,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   const addDebugMessage = (message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setDebugMessages(prev => [...prev.slice(-49), `[${timestamp}] ${message}`]); // Keep last 50 messages
+    setDebugMessages(prev => [ `[${timestamp}] ${message}`, ...prev.slice(0,49)]); // Keep last 50 messages
   };
 
   const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
@@ -215,7 +215,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
                 individualRolls: [roll.roll],
                 modifier: roll.modifier,
                 totalResult: roll.total,
-                outcome: 'neutral' as const,
+                outcome: 'initiative' as const,
                 description: `Tirada de Iniciativa (1d20+${roll.modifier >= 0 ? '+' : ''}${roll.modifier})`
             }));
             newDiceRolls.push(...initiativeDiceRolls);

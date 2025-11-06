@@ -60,7 +60,7 @@ export interface GameMessage {
   onRetry?: () => void;
 }
 
-export type DiceRollOutcome = 'crit' | 'success' | 'fail' | 'pifia' | 'neutral';
+export type DiceRollOutcome = 'crit' | 'success' | 'fail' | 'pifia' | 'neutral' | 'initiative';
 
 export interface DiceRoll {
   id: string;

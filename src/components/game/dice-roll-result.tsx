@@ -15,6 +15,7 @@ const outcomeStyles: { [key in DiceRoll['outcome']]: string } = {
   fail: "border-red-500 bg-red-500/10",
   pifia: "border-destructive bg-destructive/20 text-destructive-foreground/80",
   neutral: "border-border",
+  initiative: "border-blue-500 bg-blue-500/10",
 };
 
 const outcomeTextStyles: { [key in DiceRoll['outcome']]?: string } = {
@@ -22,6 +23,7 @@ const outcomeTextStyles: { [key in DiceRoll['outcome']]?: string } = {
     success: "text-green-400",
     fail: "text-red-400",
     pifia: "text-destructive",
+    initiative: "text-blue-400",
 }
 
 export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
