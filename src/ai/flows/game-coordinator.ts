@@ -7,12 +7,12 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { narrativeExpertTool } from '../tools/narrative-expert';
-import { oocAssistantTool } from '../tools/ooc-assistant';
+import { oocAssistant } from './ooc-assistant';
 import { combatManagerTool } from '../tools/combat-manager';
-import type { Character, GameMessage, DiceRoll } from '@/lib/types';
+import type { GameMessage } from '@/lib/types';
 import { markdownToHtml } from './markdown-to-html';
-import { Flow } from 'genkit/flow';
+import { narrativeExpert } from './narrative-expert';
+import { lookupAdventureEntityInDb } from '@/app/game-state-actions';
 
 // Schemas for the main coordinator flow
 const GameCoordinatorInputSchema = z.object({
@@ -41,28 +41,26 @@ const GameCoordinatorOutputSchema = z.object({
   error: z.string().optional(),
 });
 
-export const gameCoordinator: Flow<z.infer<typeof GameCoordinatorInputSchema>, z.infer<typeof GameCoordinatorOutputSchema>> = ai.defineFlow(
+export type GameCoordinatorInput = z.infer<typeof GameCoordinatorInputSchema>;
+export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
+
+const gameCoordinatorFlow = ai.defineFlow(
   {
-    name: 'gameCoordinator',
+    name: 'gameCoordinatorFlow',
     inputSchema: GameCoordinatorInputSchema,
     outputSchema: GameCoordinatorOutputSchema,
-    tools: [narrativeExpertTool, combatManagerTool, oocAssistantTool]
+    tools: [combatManagerTool]
   },
   async (input) => {
-    const { playerAction, inCombat, conversationHistory, gameState } = input;
+    const { playerAction, inCombat, conversationHistory, gameState, locationId } = input;
     
-    const context = {
-        flow: {
-            vars: { gameState: gameState }
-        }
-    };
-
     // 1. Handle Out-of-Character (OOC) queries first
     if (playerAction.startsWith('//')) {
-      const oocResult = await oocAssistantTool({
+      const oocResult = await oocAssistant({
         playerQuery: playerAction.substring(2).trim(),
         conversationHistory,
-      }, context);
+        gameState,
+      });
       const { html } = await markdownToHtml({ markdown: `(OOC) ${oocResult.dmReply}` });
       return {
         messages: [{
@@ -72,24 +70,26 @@ export const gameCoordinator: Flow<z.infer<typeof GameCoordinatorInputSchema>, z
         }]
       };
     }
-
+    
+    const locationData = await lookupAdventureEntityInDb(locationId, gameState);
+    
     // 2. Handle Combat mode
     if (inCombat) {
-      const combatResult = await combatManagerTool({
-          ...input,
-          locationDescription: 'La batalla se desarrolla en el lugar actual.', // Placeholder description
-      }, context);
-      return combatResult;
+        const combatResult = await combatManagerTool({
+            ...input,
+            locationDescription: locationData?.description || "una zona de combate",
+        });
+        return combatResult;
     }
 
     // 3. Handle Narrative/Exploration mode
-    const narrativeResult = await narrativeExpertTool({
+    const narrativeResult = await narrativeExpert({
         playerAction: input.playerAction,
-        characterActions: '', // Companion actions are now handled within the narrative tool if needed
+        gameState, 
         locationId: input.locationId,
         characterStats: JSON.stringify(input.party.find(c => c.controlledBy === 'Player')),
         conversationHistory: input.conversationHistory,
-    }, context);
+    });
 
     const messages: GameMessage[] = [];
     
@@ -127,3 +127,8 @@ export const gameCoordinator: Flow<z.infer<typeof GameCoordinatorInputSchema>, z
     };
   }
 );
+
+
+export async function gameCoordinator(input: GameCoordinatorInput): Promise<GameCoordinatorOutput> {
+    return gameCoordinatorFlow(input);
+}

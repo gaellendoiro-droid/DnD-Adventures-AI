@@ -245,8 +245,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     try {
       const history = buildConversationHistory();
       
-      const result = await processPlayerAction(
-        content,
+      const result = await processPlayerAction({
+        playerAction: content,
         party,
         locationId,
         inCombat,
@@ -254,8 +254,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         enemies,
         turnIndex,
         gameState,
-        history
-      );
+        conversationHistory: history
+      });
       
       // Handle errors from the coordinator
       if (result.error) {

@@ -1,38 +1,18 @@
 
 'use server';
 
-import type { Character } from "@/lib/types";
+import { gameCoordinator, type GameCoordinatorInput } from "@/ai/flows/game-coordinator";
 import { lookupAdventureEntityInDb } from "./game-state-actions";
-import { gameCoordinator } from "@/ai/flows/game-coordinator";
 
 /**
  * Main action handler that processes all player inputs.
  * It acts as a bridge between the UI and the central AI coordinator.
  */
 export async function processPlayerAction(
-  playerAction: string,
-  party: Character[],
-  locationId: string,
-  inCombat: boolean,
-  initiativeOrder: any[],
-  enemies: any[],
-  turnIndex: number,
-  gameState: string,
-  conversationHistory: string,
+  input: GameCoordinatorInput
 ) {
   try {
-    const result = await gameCoordinator({
-      playerAction,
-      party,
-      locationId,
-      inCombat,
-      initiativeOrder,
-      enemies,
-      turnIndex,
-      gameState,
-      conversationHistory,
-    });
-    
+    const result = await gameCoordinator(input);
     return result;
 
   } catch (error: any) {

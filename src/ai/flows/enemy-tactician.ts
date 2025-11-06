@@ -6,7 +6,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
 
@@ -43,6 +43,7 @@ export const EnemyTacticianInputSchema = z.object({
   enemies: z.array(z.object({name: z.string(), hp: z.string()})).describe("A list of all hostile NPCs/monsters currently in combat and their HP status (e.g., 'Healthy', 'Wounded', 'Badly Wounded')."),
   locationDescription: z.string().describe('A description of the current location.'),
   conversationHistory: z.string().describe("A transcript of the last few turns of combat to provide immediate context."),
+  gameState: z.string().describe('The full JSON string of the current adventure state. This MUST be passed to the adventureLookupTool.'),
 });
 export type EnemyTacticianInput = z.infer<typeof EnemyTacticianInputSchema>;
 
@@ -80,12 +81,16 @@ export const enemyTacticianPrompt = ai.definePrompt({
   \`\`\`
   {{{conversationHistory}}}
   \`\`\`
+- **Game Data:** You MUST pass the full gameState JSON to the 'adventureLookupTool' for any lookups.
+  \`\`\`json
+  {{{gameState}}}
+  \`\`\`
 
 **YOUR TASK:**
 It is **{{{activeCombatant}}}'s** turn.
 
 1.  **Analyze the Battlefield:** Look at the party members and your allies. Who is the biggest threat? Who is most wounded?
-2.  **Choose a Tactical Action:** Decide the most logical action for **{{{activeCombatant}}}**. This could be attacking, using a special ability, casting a spell, or even fleeing if the situation is dire. Use the provided tools ('adventureLookupTool', 'dndApiLookupTool') to look up {{{activeCombatant}}}'s stats and abilities to make an informed decision. The 'adventureLookupTool' is especially useful for finding abilities of monsters specific to this adventure.
+2.  **Choose a Tactical Action:** Decide the most logical action for **{{{activeCombatant}}}**. This could be attacking, using a special ability, casting a spell, or even fleeing if the situation is dire. Use the provided tools ('adventureLookupTool', 'dndApiLookupTool') to look up {{{activeCombatant}}}'s stats and abilities to make an informed decision. **You must provide the gameState to the 'adventureLookupTool'.**
 3.  **Define the Action:** State the action clearly in the 'action' field. (e.g., "Ataca a Galador con su hacha", "Lanza un hechizo sobre Elara").
 4.  **Narrate the Action:** Provide a short, exciting narration of the action in the 'narration' field.
 5.  **Request Dice Rolls:** In the 'diceRolls' field, specify ALL dice rolls needed to resolve this action. For example, if attacking, you must request both an attack roll and a damage roll.

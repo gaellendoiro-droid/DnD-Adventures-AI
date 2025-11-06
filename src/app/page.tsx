@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState } from "react";
@@ -38,6 +37,9 @@ export default function Home() {
       toast({ title: "Creando nueva aventura...", description: "Cargando el módulo de la aventura..." });
       
       const response = await fetch('/api/load-adventure');
+      if (!response.ok) {
+        throw new Error(`Failed to load adventure: ${response.statusText}`);
+      }
       const defaultAdventure = await response.json();
       setAdventureData(defaultAdventure);
       
@@ -97,17 +99,17 @@ export default function Home() {
         
         const firstLocation = parsedAdventure.adventureData.locations[0];
 
-        const result = await processPlayerAction(
-            "Comenzar la aventura.",
-            initialParty,
-            firstLocation.id,
-            false,
-            [],
-            [],
-            0,
-            newGameState,
-            ""
-        );
+        const result = await processPlayerAction({
+            playerAction: "Comenzar la aventura.",
+            party: initialParty,
+            locationId: firstLocation.id,
+            inCombat: false,
+            initiativeOrder: [],
+            enemies: [],
+            turnIndex: 0,
+            gameState: newGameState,
+            conversationHistory: "",
+        });
 
         const messages: GameMessage[] = result.messages || [];
         

@@ -2,7 +2,6 @@
 'use server';
 /**
  * @fileOverview This file contains the Genkit flow for the OocAssistant, which handles out-of-character player questions.
- * This flow is intended to be used as a tool by a higher-level coordinator flow.
  */
 
 import {ai} from '@/ai/genkit';
@@ -12,6 +11,7 @@ import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 const OocAssistantInputSchema = z.object({
   playerQuery: z.string().describe('The out-of-character question from the player to the Dungeon Master.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
+  gameState: z.string().describe('A JSON string representing the entire adventure data.'),
 });
 export type OocAssistantInput = z.infer<typeof OocAssistantInputSchema>;
 
@@ -20,7 +20,7 @@ const OocAssistantOutputSchema = z.object({
 });
 export type OocAssistantOutput = z.infer<typeof OocAssistantOutputSchema>;
 
-export const oocAssistantPrompt = ai.definePrompt({
+const oocAssistantPrompt = ai.definePrompt({
   name: 'oocAssistantPrompt',
   input: {schema: OocAssistantInputSchema},
   output: {schema: OocAssistantOutputSchema},
@@ -42,3 +42,22 @@ export const oocAssistantPrompt = ai.definePrompt({
     "dmReply": "Your helpful out-of-character response to the player."
   }`,
 });
+
+const oocAssistantFlow = ai.defineFlow(
+  {
+    name: 'oocAssistantFlow',
+    inputSchema: OocAssistantInputSchema,
+    outputSchema: OocAssistantOutputSchema,
+  },
+  async (input) => {
+    const { output } = await oocAssistantPrompt(input);
+    if (!output) {
+      return { dmReply: "No se pudo procesar la pregunta." };
+    }
+    return output;
+  }
+);
+
+export async function oocAssistant(input: OocAssistantInput): Promise<OocAssistantOutput> {
+    return oocAssistantFlow(input);
+}

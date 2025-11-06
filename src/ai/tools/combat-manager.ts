@@ -6,10 +6,10 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { companionExpertTool } from './companion-expert';
-import { enemyTacticianTool } from './enemy-tactician';
+import { enemyTactician } from '../tools/enemy-tactician';
 import type { GameMessage, DiceRoll } from '@/lib/types';
 import { markdownToHtml } from '../flows/markdown-to-html';
+import { companionExpert } from '../tools/companion-expert';
 
 const CombatManagerInputSchema = z.object({
   playerAction: z.string().nullable(),
@@ -52,7 +52,7 @@ export const combatManagerTool = ai.defineTool(
     inputSchema: CombatManagerInputSchema,
     outputSchema: CombatManagerOutputSchema,
   },
-  async (input, context) => {
+  async (input) => {
     const { playerAction, party, enemies, initiativeOrder, currentTurnIndex, gameState, locationDescription, conversationHistory } = input;
     
     const messages: GameMessage[] = [];
@@ -68,7 +68,7 @@ export const combatManagerTool = ai.defineTool(
       const playerCharacter = party.find(c => c.id === playerCombatant.id);
       if (playerCharacter?.controlledBy === 'Player') {
         await addMessage(messages, { sender: 'System', content: `Turno de ${playerCharacter.name}.` });
-        await addMessage(messages, { sender: 'DM', content: `Tú (${playerCharacter.name}) atacas: ${playerAction}` });
+        await addMessage(messages, { sender: 'DM', content: `Tú (${playerCharacter.name}) declaras: ${playerAction}` });
       }
       turnIndex = (turnIndex + 1) % initiativeOrder.length;
     }
@@ -83,15 +83,15 @@ export const combatManagerTool = ai.defineTool(
         const companion = party.find(p => p.id === currentCombatant.id)!;
         await addMessage(messages, { sender: 'System', content: `Turno de ${companion.name}.` });
         
-        const response = await companionExpertTool({
+        const response = await companionExpert({
           characters: [{ id: companion.id, name: companion.name, class: companion.class, race: companion.race, personality: companion.personality }],
           context: "Es el turno de este personaje en combate. Decide su acción.",
           inCombat: true,
           enemies: enemies.map(e => e.name),
-        }, context);
+        });
 
         if (response.actions.length > 0) {
-          await addMessage(messages, { sender: 'Character', senderName: companion.name, characterColor: companion.color, content: `${companion.name} ${response.actions[0].action}` });
+          await addMessage(messages, { sender: 'Character', senderName: companion.name, characterColor: companion.color, content: `${response.actions[0].action}` });
         }
 
       } else { // It's an enemy
@@ -99,14 +99,14 @@ export const combatManagerTool = ai.defineTool(
         if (enemy) {
             await addMessage(messages, { sender: 'System', content: `Turno de ${enemy.name}.` });
             
-            const enemyResponse = await enemyTacticianTool({
+            const enemyResponse = await enemyTactician({
                 activeCombatant: enemy.name,
                 party: party,
                 enemies: enemies.map(e => ({ name: e.name, hp: 'Unknown' })), // Placeholder HP
                 locationDescription: locationDescription || '',
                 conversationHistory,
                 gameState,
-            }, context);
+            });
 
             await addMessage(messages, { sender: 'DM', content: enemyResponse.narration });
             if (enemyResponse.diceRolls) diceRolls.push(...enemyResponse.diceRolls as DiceRoll[]);
