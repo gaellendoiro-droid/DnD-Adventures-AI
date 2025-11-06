@@ -16,7 +16,7 @@ export const adventureLookupTool = ai.defineTool(
     name: 'adventureLookupTool',
     description: 'Looks up information about a specific location or entity (character, monster) from the main adventure data file. Use this to get details when a player moves to a new area or interacts with a specific named entity. This is the most accurate source for named characters.',
     inputSchema: z.object({
-        query: z.string().describe("The search query, which can be the entity's ID or name. For example: 'entity:linene-vientogris' or 'entity:Linene Vientogrís'."),
+        query: z.string().describe("The search query, which can be the entity's ID or name. For example: 'phandalin-plaza-del-pueblo' or 'Linene Vientogrís'."),
     }),
     outputSchema: z.string().describe('A JSON string containing the requested information, or an error message if not found.'),
   },
@@ -27,5 +27,3 @@ export const adventureLookupTool = ai.defineTool(
     return "Tool not implemented. The flow should provide a dynamic implementation.";
   }
 );
-
-    

@@ -11,7 +11,6 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
-import { adventureLookupTool } from '../tools/adventure-lookup';
 
 const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
@@ -40,7 +39,7 @@ const narrativeExpertPrompt = ai.definePrompt({
   name: 'narrativeExpertPrompt',
   input: {schema: NarrativeExpertInputSchema},
   output: {schema: NarrativeExpertOutputSchema},
-  tools: [dndApiLookupTool, adventureLookupTool],
+  tools: [dndApiLookupTool],
   prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish. DO NOT translate proper nouns (names, places, etc.).
 
 **Your Priorities:**
@@ -102,20 +101,19 @@ const narrativeExpertFlow = ai.defineFlow(
         name: 'adventureLookupTool',
         description: 'Looks up information about a specific location or entity (character, monster) from the main adventure data file. Use this to get details when a player moves to a new area or interacts with a specific named entity. This is the most accurate source for named characters.',
         inputSchema: z.object({
-          query: z.string().describe("The search query, which can be the entity's ID or name (e.g., 'location:phandalin-plaza-del-pueblo', 'entity:cryovain')."),
-          lookupType: z.enum(['location', 'entity']).describe("Specify whether you are looking for a 'location' or an 'entity'."),
+          query: z.string().describe("The search query, which can be the entity's ID or name (e.g., 'phandalin-plaza-del-pueblo', 'cryovain')."),
         }),
         outputSchema: z.string().describe('A JSON string containing the requested information, or an error message if not found.'),
       },
-      async ({ query, lookupType }) => {
+      async ({ query }) => {
         if (!adventureData) {
           return "Error: Adventure data is not available.";
         }
         
-        const dataSet = lookupType === 'location' ? adventureData.locations : adventureData.entities;
-        const result = dataSet.find((item: any) => item.id === query || item.name.toLowerCase() === query.toLowerCase());
+        const allData = [...(adventureData.locations || []), ...(adventureData.entities || [])];
+        const result = allData.find((item: any) => item.id === query || item.name.toLowerCase() === query.toLowerCase());
 
-        return result ? JSON.stringify(result) : `Error: No ${lookupType} found matching '${query}'.`;
+        return result ? JSON.stringify(result) : `Error: No location or entity found matching '${query}'.`;
       }
     );
 
