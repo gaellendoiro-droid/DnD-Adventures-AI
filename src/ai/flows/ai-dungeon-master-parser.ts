@@ -139,7 +139,7 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
 
     const { output } = await ai.generate({
         prompt: aiDungeonMasterParserPrompt.prompt,
-        model: ai.getModel('googleai/gemini-2.5-flash'),
+        model: 'googleai/gemini-2.5-flash',
         input: input,
         output: { schema: AiDungeonMasterParserOutputSchema },
         tools: tools,
