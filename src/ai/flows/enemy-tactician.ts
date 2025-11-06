@@ -141,7 +141,9 @@ const enemyTacticianFlow = ai.defineFlow(
         }
         
         const allData = [...(adventureData.locations || []), ...(adventureData.entities || [])];
-        const result = allData.find((item: any) => item.id === query || item.name.toLowerCase() === query.toLowerCase());
+        const result = allData.find((item: any) => 
+            item.id === query || (item.name && typeof item.name === 'string' && item.name.toLowerCase() === query.toLowerCase())
+        );
 
         return result ? JSON.stringify(result) : `Error: No location or entity found matching '${query}'.`;
       }
