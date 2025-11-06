@@ -1,29 +1,24 @@
 
 'use server';
 /**
- * @fileOverview This file contains the Genkit flow for the NarrativeExpert, which handles the narrative/exploration mode of the game.
- *
- * - narrativeExpert - A function that takes player input and returns the AI's response to drive the story.
- * - NarrativeExpertInput - The input type for the narrativeExpert function.
- * - NarrativeExpertOutput - The return type for the narrativeExpert function.
+ * @fileOverview This file contains the Genkit tool for the NarrativeExpert.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-import { dndApiLookupTool } from '../tools/dnd-api-lookup';
-import { adventureLookupTool } from '../tools/adventure-lookup';
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
+import { adventureLookupTool } from './adventure-lookup';
+import { dndApiLookupTool } from './dnd-api-lookup';
+import { runDynamicTool } from './tool-runner';
 
-const NarrativeExpertInputSchema = z.object({
+const NarrativeExpertToolInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
   characterActions: z.string().optional().describe('The actions or dialogue of AI-controlled characters in response to the player. This field may be empty.'),
-  gameState: z.string().describe('A JSON string representing the entire adventure data. This is the primary source of truth for locations, entities, and interactable objects.'),
   locationId: z.string().describe('The ID of the current location (e.g., "phandalin-plaza-del-pueblo").'),
   characterStats: z.string().optional().describe('The current stats of the character.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
 });
-export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
 
-const NarrativeExpertOutputSchema = z.object({
+const NarrativeExpertToolOutputSchema = z.object({
   narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown. If the characters are just talking, this can be an empty string."),
   nextLocationId: z.string().optional().nullable().describe("The ID of the new location, if the player moved. Must be a valid ID from the adventure's 'locations' data."),
   updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}, \"inventory\": [{\"id\":\"item-gp-1\",\"name\":\"Monedas de Oro\",\"quantity\":10}]}'. Must be a valid JSON string or null."),
@@ -31,17 +26,12 @@ const NarrativeExpertOutputSchema = z.object({
   combatStartNarration: z.string().optional().describe("If startCombat is true, this field MUST contain a brief, exciting narration of how the combat begins that MENTIONS THE ENEMY NAMES (e.g., '¡Una emboscada! Dos orcos saltan de los arbustos, ¡con las hachas en alto!'). This will be used by the app to identify the combatants."),
   identifiedEnemies: z.array(z.string()).optional().describe("If startCombat is true, this field MUST contain a list of the names of the enemies involved in the combat start."),
 });
-export type NarrativeExpertOutput = z.infer<typeof NarrativeExpertOutputSchema>;
-
-export async function narrativeExpert(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
-  return narrativeExpertFlow(input);
-}
 
 const narrativeExpertPrompt = ai.definePrompt({
-  name: 'narrativeExpertPrompt',
-  input: {schema: NarrativeExpertInputSchema},
-  output: {schema: NarrativeExpertOutputSchema},
-  tools: [dndApiLookupTool, adventureLookupTool],
+  name: 'narrativeExpertToolPrompt',
+  input: { schema: NarrativeExpertToolInputSchema },
+  output: { schema: NarrativeExpertToolOutputSchema },
+  tools: [adventureLookupTool, dndApiLookupTool],
   prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish. DO NOT translate proper nouns (names, places, etc.).
 
 **Your Priorities & Directives:**
@@ -84,89 +74,18 @@ Based on all directives, narrate what happens next. Use your tools for accurate 
 `,
 });
 
-const narrativeExpertFlow = ai.defineFlow(
+export const narrativeExpertTool = ai.defineTool(
   {
-    name: 'narrativeExpertFlow',
-    inputSchema: NarrativeExpertInputSchema,
-    outputSchema: NarrativeExpertOutputSchema,
+    name: 'narrativeExpertTool',
+    description: 'Handles narrative progression, exploration, and non-combat interactions. Use this when the game is not in combat mode.',
+    inputSchema: z.object({
+        playerAction: z.string(),
+        characterActions: z.string().optional(),
+        locationId: z.string(),
+        characterStats: z.string().optional(),
+        conversationHistory: z.string().optional(),
+    }),
+    outputSchema: NarrativeExpertToolOutputSchema,
   },
-  async (input) => {
-    let adventureData: any = null;
-    if (input.gameState) {
-      try {
-        adventureData = JSON.parse(input.gameState);
-      } catch (e) {
-        console.error("Failed to parse gameState JSON in narrativeExpertFlow");
-      }
-    }
-
-    const dynamicAdventureLookupTool = ai.defineTool(
-      {
-        name: 'adventureLookupTool',
-        description: "Looks up and returns the entire JSON object for a specific location or entity (character, monster, item) from the adventure data. Use this to get all details about a place the player is in or wants to go to, or an object/character they want to interact with or ask about.",
-        inputSchema: z.object({
-          query: z.string().describe("The ID or name of the location, entity, or interactable object (e.g., 'phandalin-plaza-del-pueblo', 'cryovain', 'Tablón de oportunidades')."),
-        }),
-        outputSchema: z.string().describe('A JSON string containing the requested information, or an error message if not found.'),
-      },
-      async ({ query }) => {
-        if (!adventureData) {
-          return "Error: Adventure data is not available.";
-        }
-        
-        const allData = [...(adventureData.locations || []), ...(adventureData.entities || [])];
-        const result = allData.find((item: any) => 
-            item.id === query || (item.name && typeof item.name === 'string' && item.name.toLowerCase() === query.toLowerCase())
-        );
-
-        if (result) return JSON.stringify(result);
-
-        // Add search for interactables within the current location
-        if (input.locationId) {
-            const currentLocation = (adventureData.locations || []).find((loc:any) => loc.id === input.locationId);
-            if (currentLocation && currentLocation.interactables) {
-                const interactable = currentLocation.interactables.find((i: any) => i.name && typeof i.name === 'string' && i.name.toLowerCase() === query.toLowerCase());
-                if (interactable) return JSON.stringify(interactable);
-            }
-        }
-
-        return `Error: No location, entity or interactable found matching '${query}'.`;
-      }
-    );
-
-    try {
-        const {output} = await narrativeExpertPrompt(input, {
-            tools: [dndApiLookupTool, dynamicAdventureLookupTool],
-        });
-        
-        if (!output) {
-            throw new Error("The AI failed to return a valid output.");
-        }
-        
-        // Final validation for location ID before returning
-        if (output.nextLocationId) {
-            const locationExists = (adventureData.locations || []).some((loc: any) => loc.id === output.nextLocationId);
-            if (!locationExists) {
-                console.warn(`AI returned a non-existent nextLocationId: '${output.nextLocationId}'. Discarding it.`);
-                output.nextLocationId = null;
-            }
-        }
-
-
-        if (output.updatedCharacterStats) {
-            try {
-                JSON.parse(output.updatedCharacterStats);
-            } catch (e) {
-                console.warn("AI returned invalid JSON for updatedCharacterStats. Discarding.", output.updatedCharacterStats);
-                output.updatedCharacterStats = null;
-            }
-        }
-        
-        return output;
-    } catch(e: any) {
-        console.error("Critical error in narrativeExpertFlow.", e);
-        // This specific error message will be caught by the action and shown in the UI.
-        throw new Error(`narrativeExpertFlow failed: ${e.message || 'Unknown error'}`);
-    }
-  }
+  async (input, context) => runDynamicTool(narrativeExpertPrompt, input, context)
 );

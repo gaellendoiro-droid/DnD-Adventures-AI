@@ -2,10 +2,7 @@
 'use server';
 /**
  * @fileOverview This file contains the Genkit flow for the OocAssistant, which handles out-of-character player questions.
- *
- * - oocAssistant - A function that takes player OOC input and returns the AI's response.
- * - OocAssistantInput - The input type for the oocAssistant function.
- * - OocAssistantOutput - The return type for the oocAssistant function.
+ * This flow is intended to be used as a tool by a higher-level coordinator flow.
  */
 
 import {ai} from '@/ai/genkit';
@@ -14,7 +11,6 @@ import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 
 const OocAssistantInputSchema = z.object({
   playerQuery: z.string().describe('The out-of-character question from the player to the Dungeon Master.'),
-  gameState: z.string().optional().describe('The current state of the game for context.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
 });
 export type OocAssistantInput = z.infer<typeof OocAssistantInputSchema>;
@@ -24,11 +20,7 @@ const OocAssistantOutputSchema = z.object({
 });
 export type OocAssistantOutput = z.infer<typeof OocAssistantOutputSchema>;
 
-export async function oocAssistant(input: OocAssistantInput): Promise<OocAssistantOutput> {
-  return oocAssistantFlow(input);
-}
-
-const oocAssistantPrompt = ai.definePrompt({
+export const oocAssistantPrompt = ai.definePrompt({
   name: 'oocAssistantPrompt',
   input: {schema: OocAssistantInputSchema},
   output: {schema: OocAssistantOutputSchema},
@@ -42,7 +34,7 @@ const oocAssistantPrompt = ai.definePrompt({
 
   The player's query is: "{{{playerQuery}}}"
 
-  Provide a direct, helpful, and concise out-of-character response to the player. Address them as "the player", not as their character.
+  Provide a direct, helpful, and concise out-of-character response to the player. Address them as "el jugador", not as their character.
   If they are pointing out a mistake you made, acknowledge it and thank them.
   If they are asking for a rule clarification or a question about the current situation, explain it simply. If you are unsure about a specific rule, spell, or item, use the dndApiLookupTool to get accurate information before answering.
   
@@ -50,15 +42,3 @@ const oocAssistantPrompt = ai.definePrompt({
     "dmReply": "Your helpful out-of-character response to the player."
   }`,
 });
-
-const oocAssistantFlow = ai.defineFlow(
-  {
-    name: 'oocAssistantFlow',
-    inputSchema: OocAssistantInputSchema,
-    outputSchema: OocAssistantOutputSchema,
-  },
-  async input => {
-    const {output} = await oocAssistantPrompt(input);
-    return output!;
-  }
-);

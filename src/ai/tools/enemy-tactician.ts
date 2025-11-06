@@ -1,52 +1,50 @@
 
 'use server';
 /**
- * @fileOverview This file contains the Genkit prompt for the EnemyTactician.
- * This is not a standalone flow, but a prompt to be used by a tool.
+ * @fileOverview A Genkit tool that acts as the "enemy brain" in combat.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-import { dndApiLookupTool } from '../tools/dnd-api-lookup';
-import { adventureLookupTool } from '../tools/adventure-lookup';
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
+import { dndApiLookupTool } from './dnd-api-lookup';
+import { adventureLookupTool } from './adventure-lookup';
+import { runDynamicTool } from './tool-runner';
 
 const CharacterSchema = z.object({
-    id: z.string(),
-    name: z.string(),
-    race: z.string(),
-    class: z.string(),
-    level: z.number(),
-    sex: z.string(),
-    background: z.string(),
-    color: z.string(),
-    personality: z.string(),
-    abilityScores: z.object({
-        fuerza: z.number(),
-        destreza: z.number(),
-        constitución: z.number(),
-        inteligencia: z.number(),
-        sabiduría: z.number(),
-        carisma: z.number(),
-    }),
-    skills: z.array(z.object({ name: z.string(), proficient: z.boolean() })),
-    hp: z.object({ current: z.number(), max: z.number() }),
-    ac: z.number(),
-    controlledBy: z.enum(["Player", "AI"]),
-    inventory: z.array(z.object({ id: z.string(), name: z.string(), quantity: z.number(), description: z.string().optional() })),
-    spells: z.array(z.object({ id: z.string(), name: z.string(), level: z.number(), description: z.string() })),
+  id: z.string(),
+  name: z.string(),
+  race: z.string(),
+  class: z.string(),
+  level: z.number(),
+  sex: z.string(),
+  background: z.string(),
+  color: z.string(),
+  personality: z.string(),
+  abilityScores: z.object({
+    fuerza: z.number(),
+    destreza: z.number(),
+    constitución: z.number(),
+    inteligencia: z.number(),
+    sabiduría: z.number(),
+    carisma: z.number(),
+  }),
+  skills: z.array(z.object({ name: z.string(), proficient: z.boolean() })),
+  hp: z.object({ current: z.number(), max: z.number() }),
+  ac: z.number(),
+  controlledBy: z.enum(["Player", "AI"]),
+  inventory: z.array(z.object({ id: z.string(), name: z.string(), quantity: z.number(), description: z.string().optional() })),
+  spells: z.array(z.object({ id: z.string(), name: z.string(), level: z.number(), description: z.string() })),
 });
 
-
-export const EnemyTacticianInputSchema = z.object({
+const EnemyTacticianToolInputSchema = z.object({
   activeCombatant: z.string().describe("The name of the hostile NPC/monster whose turn it is."),
   party: z.array(CharacterSchema).describe('An array containing the data for all characters in the party (player and AI-controlled).'),
-  enemies: z.array(z.object({name: z.string(), hp: z.string()})).describe("A list of all hostile NPCs/monsters currently in combat and their HP status (e.g., 'Healthy', 'Wounded', 'Badly Wounded')."),
+  enemies: z.array(z.object({ name: z.string(), hp: z.string() })).describe("A list of all hostile NPCs/monsters currently in combat and their HP status (e.g., 'Healthy', 'Wounded', 'Badly Wounded')."),
   locationDescription: z.string().describe('A description of the current location.'),
   conversationHistory: z.string().describe("A transcript of the last few turns of combat to provide immediate context."),
 });
-export type EnemyTacticianInput = z.infer<typeof EnemyTacticianInputSchema>;
 
-export const EnemyTacticianOutputSchema = z.object({
+const EnemyTacticianToolOutputSchema = z.object({
   action: z.string().describe("The chosen action for the active combatant (e.g., 'Attacks Galador with its Greatsword', 'Casts a spell on Elara'). This should be a concise description of the intended action."),
   narration: z.string().describe("The AI Dungeon Master's brief narration for this enemy's action. Do not include dice rolls here."),
   diceRolls: z.array(z.object({
@@ -55,12 +53,11 @@ export const EnemyTacticianOutputSchema = z.object({
     description: z.string().describe("A brief description of the roll's purpose (e.g., 'Attack Roll', 'Damage Roll')."),
   })).optional().describe("An array of dice rolls required to resolve the action. For an attack, this would include an attack roll and a damage roll."),
 });
-export type EnemyTacticianOutput = z.infer<typeof EnemyTacticianOutputSchema>;
 
-export const enemyTacticianPrompt = ai.definePrompt({
-  name: 'enemyTacticianPrompt',
-  input: {schema: EnemyTacticianInputSchema},
-  output: {schema: EnemyTacticianOutputSchema},
+const enemyTacticianPrompt = ai.definePrompt({
+  name: 'enemyTacticianToolPrompt',
+  input: { schema: EnemyTacticianToolInputSchema },
+  output: { schema: EnemyTacticianToolOutputSchema },
   tools: [dndApiLookupTool, adventureLookupTool],
   prompt: `You are the AI brain for hostile NPCs and monsters in a D&D 5e combat. You MUST ALWAYS reply in Spanish.
 
@@ -99,3 +96,40 @@ It is **{{{activeCombatant}}}'s** turn.
 Execute the turn for **{{{activeCombatant}}}** ONLY.
 `,
 });
+
+export const enemyTacticianTool = ai.defineTool(
+  {
+    name: 'enemyTacticianTool',
+    description: "Determines the action for a single enemy combatant during its turn in combat.",
+    inputSchema: EnemyTacticianToolInputSchema,
+    outputSchema: EnemyTacticianToolOutputSchema,
+  },
+  async (input, context) => {
+    try {
+      const output = await runDynamicTool(enemyTacticianPrompt, input, context, {
+        model: 'googleai/gemini-2.5-flash',
+        config: {
+          safetySettings: [
+            {
+              category: 'HARM_CATEGORY_HARASSMENT',
+              threshold: 'BLOCK_NONE',
+            },
+          ],
+        },
+      });
+
+      if (!output) {
+        throw new Error("The AI failed to return an action for the combatant.");
+      }
+      return output;
+
+    } catch (e: any) {
+      console.error("Critical error in enemyTacticianTool.", e);
+      return {
+        action: "Do nothing.",
+        narration: `El combatiente ${input.activeCombatant} parece confundido y no hace nada en su turno.`,
+        diceRolls: [],
+      };
+    }
+  }
+);

@@ -1,12 +1,12 @@
 
 'use server';
 /**
- * @fileOverview This file contains the Genkit prompt for the CompanionExpert.
- * This is not a standalone flow, but a prompt to be used by a tool.
+ * @fileOverview A Genkit tool for generating actions for AI-controlled companions.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
+import { runDynamicTool } from './tool-runner';
 
 const CharacterInfoSchema = z.object({
   id: z.string(),
@@ -16,29 +16,26 @@ const CharacterInfoSchema = z.object({
   personality: z.string().describe("A brief description of the character's personality and background."),
 });
 
-export const CompanionExpertInputSchema = z.object({
-  characters: z.array(CharacterInfoSchema).describe("The list of AI-controlled characters in the party."),
+const CompanionExpertToolInputSchema = z.object({
+  characters: z.array(CharacterInfoSchema).describe("A list of AI-controlled characters for which to generate actions."),
   context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
   inCombat: z.boolean().describe("Whether the party is currently in combat."),
   enemies: z.array(z.string()).optional().describe("A list of enemy names, if in combat."),
 });
-export type CompanionExpertInput = z.infer<typeof CompanionExpertInputSchema>;
 
 const CharacterActionSchema = z.object({
-    characterId: z.string().describe("The ID of the character taking the action."),
-    action: z.string().describe("The character's action or dialogue. Can be an empty string for no action."),
+  characterId: z.string().describe("The ID of the character taking the action."),
+  action: z.string().describe("The character's action or dialogue. Can be an empty string for no action."),
 });
 
-export const CompanionExpertOutputSchema = z.object({
-  actions: z.array(CharacterActionSchema).describe("A list of character actions, in the order they should be performed. The list can be empty if no one acts."),
+const CompanionExpertToolOutputSchema = z.object({
+  actions: z.array(CharacterActionSchema).describe("A list of character actions. Can be empty."),
 });
-export type CompanionExpertOutput = z.infer<typeof CompanionExpertOutputSchema>;
 
-
-export const companionExpertPrompt = ai.definePrompt({
-  name: 'companionExpertPrompt',
-  input: {schema: CompanionExpertInputSchema},
-  output: {schema: CompanionExpertOutputSchema},
+const companionExpertPrompt = ai.definePrompt({
+  name: 'companionExpertToolPrompt',
+  input: { schema: CompanionExpertToolInputSchema },
+  output: { schema: CompanionExpertToolOutputSchema },
   prompt: `You are orchestrating the AI-controlled characters in a D&D party. Your goal is to make their interactions feel natural and true to their unique personalities.
 
 **Guiding Principle: Realism over Reactivity. Not everyone has to speak or act every time.**
@@ -77,3 +74,19 @@ State the action clearly (e.g., "Elara casts Healing Word on Galador", "Merryl a
 - The order of actions in the output array determines the sequence of events.
 `,
 });
+
+export const companionExpertTool = ai.defineTool(
+  {
+    name: 'companionExpertTool',
+    description: 'Determines the actions or dialogue for AI-controlled party members in response to a situation, either in or out of combat.',
+    inputSchema: CompanionExpertToolInputSchema,
+    outputSchema: CompanionExpertToolOutputSchema,
+  },
+  async (input, context) => {
+    // If there are no AI characters, don't call the flow.
+    if (input.characters.length === 0) {
+      return { actions: [] };
+    }
+    return runDynamicTool(companionExpertPrompt, input, context);
+  }
+);

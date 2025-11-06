@@ -10,7 +10,7 @@ import { MainMenu } from "@/components/game/main-menu";
 import { GameView } from "@/components/game/game-view";
 import { useToast } from "@/hooks/use-toast";
 import { parseAdventureFromJson } from "@/ai/flows/parse-adventure-from-json";
-import { runTurn } from "./actions";
+import { processPlayerAction } from "./actions";
 
 interface InitialGameData {
   party: Character[];
@@ -97,19 +97,20 @@ export default function Home() {
         
         const firstLocation = parsedAdventure.adventureData.locations[0];
 
-        const { dmNarration } = await runTurn(
+        const result = await processPlayerAction(
             "Comenzar la aventura.",
             initialParty,
             firstLocation.id,
+            false,
+            [],
+            [],
+            0,
             newGameState,
             ""
         );
 
-        const messages: GameMessage[] = [];
-        if (dmNarration) {
-          messages.push(dmNarration)
-        }
-
+        const messages: GameMessage[] = result.messages || [];
+        
         setInitialGameData({
           party: initialParty,
           messages: messages,
@@ -234,5 +235,3 @@ export async function GET(request: Request) {
         }
     });
 }
-
-    
