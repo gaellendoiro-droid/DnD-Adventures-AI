@@ -43,32 +43,35 @@ const narrativeExpertPrompt = ai.definePrompt({
   tools: [dndApiLookupTool, adventureLookupTool],
   prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish. DO NOT translate proper nouns (names, places, etc.).
 
-**Your Priorities:**
+**Your Priorities & Directives:**
 1.  **Primary Task: Drive the Narrative.** Your main goal is to be a descriptive and engaging storyteller. Describe the world, react to the player's choices, portray non-player characters (NPCs), and create an immersive experience. Your narration must always end by prompting the player for their next action (e.g., "¿Qué haces?").
-2.  **Use Your Tools:** You have access to a complete adventure data file. Use the 'adventureLookupTool' to get details about locations, what's inside them, and how to interact with objects. This is your primary source of truth. If the player wants to move to a new location (e.g., "Voy a la Colina del Resentimiento"), you MUST use this tool to get the description of the new place. For general D&D rules, spells, or monster stats not in the adventure file, use the 'dndApiLookupTool'.
-3.  **CRITICAL DIRECTIVE: Detect Combat.** Your most important job is to determine if the story leads to combat. This can be due to a player's hostile action (e.g., "Ataco al guardia") or a narrative event (e.g., an ambush). If combat starts, you MUST set 'startCombat' to true.
-
-**Combat Start Protocol (Strictly follow):**
--   When 'startCombat' is true, your ONLY job is to write a brief, exciting narration in the 'combatStartNarration' field describing the moment the fight breaks out (e.g., "El guardia desenvaina su espada con un grito, y la batalla comienza." or "¡Una banda de orcos os embosca desde las ruinas!"). This narration is critical as it will be used to identify the enemies.
--   Your 'narration' field in this case can be the same as 'combatStartNarration' or a slightly more detailed version.
--   When 'startCombat' is true, DO NOT roll initiative, do not describe attacks, do not do anything else. The application will handle all combat mechanics.
--   For any other action that does NOT start combat, 'startCombat' MUST be false.
+2.  **Tool Directive: Use Your Tools.** You have two tools:
+    - \`adventureLookupTool\`: For specific adventure data (locations, NPCs, interactable objects).
+    - \`dndApiLookupTool\`: For general D&D rules, spells, or monster stats.
+3.  **Interaction Directive:** If the player's action is to interact with something specific (e.g., "leo el tablón de anuncios", "hablo con Harbin Wester", "voy a la Colina del Resentimiento"), you **MUST** use the \`adventureLookupTool\` with the name of the object, NPC, or location to get the correct information. **DO NOT INVENT THE RESULT.** The tool is your source of truth.
+4.  **Combat Detection Directive:** Your most important job is to determine if the story leads to combat. This can be due to a player's hostile action (e.g., "Ataco al guardia") or a narrative event (e.g., an ambush). If combat starts, you **MUST** set 'startCombat' to true.
+5.  **Combat Start Protocol (Strictly follow):**
+    -   When 'startCombat' is true, your ONLY job is to write a brief, exciting narration in the 'combatStartNarration' field describing the moment the fight breaks out (e.g., "El guardia desenvaina su espada con un grito, y la batalla comienza." or "¡Una banda de orcos os embosca desde las ruinas!"). This narration is critical as it will be used to identify the enemies.
+    -   Your 'narration' field can be the same or slightly more detailed than 'combatStartNarration'.
+    -   When 'startCombat' is true, DO NOT roll initiative or describe attacks. The application handles all combat mechanics.
+    -   For any other action that does NOT start combat, 'startCombat' MUST be false.
 
 **Rules:**
 -   Only update \`updatedCharacterStats\` for actions resolved in this turn (e.g., drinking a potion). Do not update stats for combat-related actions.
 -   ALWAYS return a valid JSON object matching the output schema.
 
-Here is the general description of the current location: {{{locationDescription}}}
-Here are the player character stats: {{{characterStats}}}
+**CONTEXT:**
+- Here is the general description of the current location: {{{locationDescription}}}
+- Here are the player character stats: {{{characterStats}}}
+- This is the recent conversation history. Use it to maintain continuity:
+  \`\`\`
+  {{{conversationHistory}}}
+  \`\`\`
 
-This is the recent conversation history. Use it to maintain continuity:
-\`\`\`
-{{{conversationHistory}}}
-\`\`\`
-
+**PLAYER'S ACTION:**
 The player's latest action is: "{{{playerAction}}}"
 
-The other characters in the party have just said or done the following (for context, do NOT narrate their actions again):
+**COMPANION ACTIONS (for context, do NOT narrate their actions again):**
 {{#if characterActions}}
 \`\`\`
 {{{characterActions}}}
@@ -100,9 +103,9 @@ const narrativeExpertFlow = ai.defineFlow(
     const dynamicAdventureLookupTool = ai.defineTool(
       {
         name: 'adventureLookupTool',
-        description: 'Looks up information about a specific location or entity (character, monster) from the main adventure data file. Use this to get details when a player moves to a new area or interacts with a specific named entity. This is the most accurate source for named characters.',
+        description: 'Looks up information about a specific location or entity (character, monster, item) from the main adventure data file. Use this to get details when a player moves to a new area or interacts with a specific named entity like "tablón de anuncios" or an NPC.',
         inputSchema: z.object({
-          query: z.string().describe("The search query, which can be the entity's ID or name (e.g., 'phandalin-plaza-del-pueblo', 'cryovain')."),
+          query: z.string().describe("The search query, which can be the entity's ID or name (e.g., 'phandalin-plaza-del-pueblo', 'cryovain', 'Tablón de oportunidades')."),
         }),
         outputSchema: z.string().describe('A JSON string containing the requested information, or an error message if not found.'),
       },
@@ -116,7 +119,16 @@ const narrativeExpertFlow = ai.defineFlow(
             item.id === query || (item.name && typeof item.name === 'string' && item.name.toLowerCase() === query.toLowerCase())
         );
 
-        return result ? JSON.stringify(result) : `Error: No location or entity found matching '${query}'.`;
+        if (result) return JSON.stringify(result);
+
+        // Add search for interactables within the current location
+        const currentLocation = (adventureData.locations || []).find((loc:any) => loc.description === input.locationDescription);
+        if (currentLocation && currentLocation.interactables) {
+             const interactable = currentLocation.interactables.find((i: any) => i.name && typeof i.name === 'string' && i.name.toLowerCase() === query.toLowerCase());
+             if (interactable) return JSON.stringify(interactable);
+        }
+
+        return `Error: No location, entity or interactable found matching '${query}'.`;
       }
     );
 
@@ -126,7 +138,7 @@ const narrativeExpertFlow = ai.defineFlow(
         });
         
         if (!output) {
-            return { narration: "El Dungeon Master parece distraído y no responde.", startCombat: false };
+            throw new Error("The AI failed to return a valid output.");
         }
         
         if (output.updatedCharacterStats) {
@@ -140,7 +152,7 @@ const narrativeExpertFlow = ai.defineFlow(
         
         return output;
     } catch(e: any) {
-        console.error("Critical error in narrativeExpertFlow. The AI did not return valid JSON.", e);
+        console.error("Critical error in narrativeExpertFlow.", e);
         // This specific error message will be caught by the action and shown in the UI.
         throw new Error(`narrativeExpertFlow failed: ${e.message || 'Unknown error'}`);
     }
