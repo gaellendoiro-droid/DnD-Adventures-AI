@@ -22,19 +22,11 @@ const AiDungeonMasterParserInputSchema = z.object({
 });
 export type AiDungeonMasterParserInput = z.infer<typeof AiDungeonMasterParserInputSchema>;
 
-const InitiativeRollSchema = z.object({
-    characterName: z.string().describe("The name of the character or monster."),
-    roll: z.number().describe("The result of the d20 roll for initiative."),
-    modifier: z.number().describe("The dexterity modifier applied to the roll."),
-    total: z.number().describe("The total initiative score (roll + modifier).")
-});
-
 const AiDungeonMasterParserOutputSchema = z.object({
   narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown. If the characters are just talking, this can be an empty string."),
   nextLocationDescription: z.string().optional().nullable().describe('A description of the next location, if the player moved.'),
   updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}, \"inventory\": [{\"id\":\"item-gp-1\",\"name\":\"Monedas de Oro\",\"quantity\":10}]}'. Must be a valid JSON string or null."),
   startCombat: z.boolean().describe("Set to true if the player's action has definitively initiated combat."),
-  initiativeRolls: z.array(InitiativeRollSchema).optional().nullable().describe("An array of detailed initiative rolls if combat has started. This should include the d20 roll, modifier, and total for each combatant."),
 });
 export type AiDungeonMasterParserOutput = z.infer<typeof AiDungeonMasterParserOutputSchema>;
 
@@ -51,17 +43,12 @@ const aiDungeonMasterParserPrompt = ai.definePrompt({
 
 **Your Priorities:**
 1.  **Primary Task: Drive the Narrative.** Your main goal is to be a descriptive and engaging storyteller. Describe the world, react to the player's choices, portray non-player characters (NPCs), and create an immersive experience. Your narration must always end by prompting the player for their next action (e.g., "¿Qué haces?"). Use the provided tools ('adventureLookupTool', 'dndApiLookupTool') for details when needed.
-2.  **Critical Directive: Detect Combat.** While narrating, you must constantly evaluate the player's actions. If a player's action is hostile and unequivocally starts a fight (e.g., "Ataco al guardia," "Lanzo una bola de fuego a los orcos"), you MUST set 'startCombat' to true.
+2.  **Critical Directive: Detect Combat.** If a player's action is hostile and unequivocally starts a fight (e.g., "Ataco al guardia," "Lanzo una bola de fuego a los orcos"), you MUST set 'startCombat' to true.
 
-**Combat Start Protocol:**
--   When 'startCombat' is true:
-    1.  Write a brief narration describing the moment the fight breaks out.
-    2.  DO NOT roll initiative or describe any attacks. Your job is ONLY to set the scene for combat and set the 'startCombat' flag to true. The combat manager will handle the rest.
--   For any other action, 'startCombat' MUST be false.
-
-**Context is Key:**
--   The \`characterActions\` and \`conversationHistory\` provide context. Do not repeat them. Narrate the consequences.
--   The \`locationDescription\` is the general setting.
+**Combat Start Protocol (Strictly follow):**
+-   When 'startCombat' is true, your ONLY job is to write a brief narration describing the moment the fight breaks out (e.g., "El guardia desenvaina su espada con un grito, y la batalla comienza.") and return a valid JSON object with \`startCombat: true\`.
+-   DO NOT roll initiative, do not describe attacks, do not do anything else. The combat manager will handle all combat actions.
+-   For any other action that does NOT start combat, 'startCombat' MUST be false.
 
 **Rules:**
 -   Only update \`updatedCharacterStats\` for actions resolved in this turn (e.g., drinking a potion). Do not update stats for combat-related actions.

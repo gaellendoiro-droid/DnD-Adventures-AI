@@ -29,7 +29,7 @@ const CombatDiceRollSchema = z.object({
     individualRolls: z.array(z.number()).describe("The result of each individual die rolled."),
     modifier: z.number().optional().describe("The modifier applied to the roll."),
     totalResult: z.number().describe("The total score after the modifier (sum of individual rolls + modifier)."),
-    description: z.string().describe("A brief description of the roll's purpose, including dice notation. For example: 'Tirada de Ataque (1d20+5)', 'Tirada de Daño (2d6+3)', 'Salvación de Destreza (1d20+2)'."),
+    description: z.string().describe("A brief description of the roll's purpose, including dice notation and ability modifier (e.g., 'Tirada de Ataque (1d20+FUE)', 'Salvación de Destreza (1d20+DES)')."),
     outcome: z.enum(['crit', 'success', 'fail', 'pifia', 'neutral']).describe("The outcome of the roll. For attack rolls, use 'crit' for a critical hit (natural 20) and 'pifia' for a critical fail (natural 1). For all other attack rolls, you will determine success or failure based on the target's AC. For saving throws, use 'success' or 'fail' based on the DC. For damage rolls, use 'neutral'."),
 });
 
@@ -62,11 +62,11 @@ const aiCombatManagerPrompt = ai.definePrompt({
 
 **STATE: FIRST TURN OF COMBAT**
 - If the player's action is "Comienza la batalla", this is the VERY FIRST turn.
-- **First Turn Protocol (Strictly follow):**
-    1.  **Determine Combatants:** Identify ALL combatants based on the provided \`combatStartNarration\` and other context. This is your primary source for who is involved.
+- **First Turn Protocol (Strictly follow this is your highest priority):**
+    1.  **Identify Combatants:** Read the \`combatStartNarration\` to identify ALL combatants involved. This is your primary source of truth.
     2.  **Roll Initiative:** You MUST roll initiative for EVERY combatant identified.
         - For each, calculate \`d20 + dexterity modifier\`. Use the dndApiLookupTool if you need stats for generic creatures like 'guard' or 'goblin'.
-        - Populate the 'initiativeRolls' field with the results for each combatant.
+        - You MUST populate the 'initiativeRolls' field with the results for each combatant. This is mandatory for the first turn.
     3.  **Establish Turn Order:** Based on the initiative rolls, state the turn order clearly in your narration (e.g., "El orden de combate es: Merryl, Orco 1, Galador, Elara...").
     4.  **Execute First Turn:** Narrate the action for the character with the highest initiative.
         - If it's the player's turn, end your narration with: "Es tu turno, ¿qué haces?".
@@ -79,6 +79,7 @@ const aiCombatManagerPrompt = ai.definePrompt({
     2.  **Process NPC Turns:** After the player's turn, process the turns for any NPCs (monsters, enemies) that act next in the initiative order, up until the next player turn.
     3.  **NPC Actions:** For each NPC, determine their action based on their stats and tactics. Use the 'dndApiLookupTool' or 'adventureLookupTool' to get monster stats if you don't know them.
     4.  **Roll and Report:** For any NPC action requiring a roll (attack, damage, save), you MUST provide the details in the 'diceRolls' field.
+        - The 'description' of the roll MUST include the dice notation and the ability modifier abbreviation (e.g., 'Tirada de Ataque (1d20+FUE)').
         - **Attack Flow:** First, make the attack roll. Narrate if it hits or misses based on the target's AC. A natural 20 is a 'crit', a natural 1 is a 'pifia'. ONLY if it hits, then make the damage roll.
     5.  **Update Stats:** If any character (player or NPC) takes damage or is affected by a condition, reflect this in the 'updatedCharacterStats' field for the player character if they are affected.
     6.  **End Turn:** Your narration MUST end by prompting the player for their next action if combat continues (e.g., "Es tu turno, ¿qué haces?").
@@ -176,3 +177,5 @@ const aiCombatManagerFlow = ai.defineFlow(
     return output;
   }
 );
+
+    
