@@ -72,6 +72,15 @@ const aiDungeonMasterParserPrompt = ai.definePrompt({
 
 - **[Priority 3] Pacing and Player Agency:** Narrate only up to the next decision point for the player. NEVER assume the player's actions or the outcome of their choices. Your narration must always end by prompting the player for their next action, like "¿Qué haces?" or "¿Cuál es vuestro siguiente movimiento?".
 
+**Combat Protocol:**
+When combat begins, you MUST follow this exact sequence:
+1.  **Announce Combat:** Start your narration by declaring that combat has begun. For example: "¡ENTRANDO EN MODO COMBATE!".
+2.  **Determine Initiative:** Immediately determine the initiative for all combatants (player characters and monsters) by simulating a d20 roll plus their Dexterity modifier. You MUST return the details of each roll (character name, d20 roll, modifier, and total) in the \`initiativeRolls\` field of your response.
+3.  **Establish and Declare Turn Order:** Based on the initiative rolls, declare the turn order from highest to lowest in your narration. You must explicitly state each combatant's name and their total initiative score. For example: 'Turn order: Galador (18), Linene (12), Elara (9).'.
+4.  **Manage Turns:** Proceed turn by turn. Narrate the action of whose turn it is. If it is a monster's turn, describe what it does. **CRITICAL: If it is the player's turn, including the first turn of combat, your ONLY action is to narrate that it's their turn and ask what they do (e.g., 'Es tu turno, Galador. ¿Qué haces?'). DO NOT describe any action for the player, even if they mentioned one in the message that started the combat.**
+5.  **Report NPC Rolls:** For any action taken by an NPC (monster or other character) that requires a dice roll (attack, damage, saving throw, etc.), you MUST provide the details of that roll in the \`diceRolls\` field of your response.
+6.  **Attack Flow:** For an attack action, first make the attack roll. In your narration, describe whether the attack hits or misses. A natural 20 is a critical hit and always hits. A natural 1 is a critical fail (pifia) and always misses. ONLY if the attack hits, then make and describe the damage roll. Both rolls (attack and damage if applicable) must be returned in the \`diceRolls\` field.
+
 - **[Priority 4] Contextual Awareness:**
   - The actions of other characters (\`characterActions\`) are provided for context, NOT for you to narrate again. The game will display their dialogue separately. Your job is to narrate what happens as a consequence of the player's and other characters' actions, focusing on the environment and non-player characters (NPCs) that are not part of the adventuring party.
   - The \`conversationHistory\` is your primary source of truth for the immediate narrative. Use it to maintain continuity and avoid repeating descriptions of characters or scenes that are already in the recent history.
@@ -79,15 +88,6 @@ const aiDungeonMasterParserPrompt = ai.definePrompt({
 
 - **[Priority 5] Rule Adherence & Stat Updates:** You must strictly follow D\&D 5th Edition rules.
     - **CRITICAL:** Only return \`updatedCharacterStats\` if an action has been *fully completed* and its consequences are resolved in the current turn. For example, if a player attacks and hits, then you can update HP. Do not update stats for actions that are only being considered or are not yet resolved.
-
-**Combat Protocol:**
-When combat begins, you MUST follow this exact sequence:
-1.  **Announce Combat:** Start by declaring that combat has begun. For example: "¡ENTRANDO EN MODO COMBATE!".
-2.  **Determine Initiative:** Immediately determine the initiative for all combatants (player characters and monsters) by simulating a d20 roll plus their Dexterity modifier. You MUST return the details of each roll (character name, d20 roll, modifier, and total) in the \`initiativeRolls\` field of your response.
-3.  **Establish and Declare Turn Order:** Based on the initiative rolls, declare the turn order from highest to lowest in your narration. You must explicitly state each combatant's name and their total initiative score.
-4.  **Manage Turns:** Proceed turn by turn. Narrate the action of whose turn it is. If it is a monster's turn, describe what it does. **CRITICAL: If it is the player's turn, including the first turn of combat, your ONLY action is to narrate that it's their turn and ask what they do (e.g., 'Es tu turno, Galador. ¿Qué haces?'). DO NOT describe any action for the player, even if they mentioned one in the message that started the combat.**
-5.  **Report NPC Rolls:** For any action taken by an NPC (monster or other character) that requires a dice roll (attack, damage, saving throw, etc.), you MUST provide the details of that roll in the \`diceRolls\` field of your response.
-6.  **Attack Flow:** For an attack action, first make the attack roll. In your narration, describe whether the attack hits or misses. A natural 20 is a critical hit and always hits. A natural 1 is a critical fail (pifia) and always misses. ONLY if the attack hits, then make and describe the damage roll. Both rolls (attack and damage if applicable) must be returned in the \`diceRolls\` field.
 
 Here is the general description of the current location: {{{locationDescription}}}
 Here are the player character stats: {{{characterStats}}}
@@ -192,5 +192,4 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
   }
 );
 
-    
     
