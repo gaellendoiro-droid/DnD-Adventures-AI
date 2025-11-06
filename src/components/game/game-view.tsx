@@ -170,7 +170,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
         const playerCharacter = party.find(c => c.controlledBy === 'Player');
         addDebugMessage("Ejecutando el turno del Dungeon Master...");
-        const { dmNarration, updatedGameState, nextLocationDescription, updatedCharacterStats } = await runDungeonMasterTurn(
+        const { dmNarration, nextLocationDescription, updatedCharacterStats, initiativeRolls } = await runDungeonMasterTurn(
           playerAction,
           characterActionsContent,
           gameState,
@@ -186,11 +186,22 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         } else {
           addDebugMessage("El DM no ha devuelto narración esta vez.");
         }
-        
-        if(updatedGameState) {
-          setGameState(updatedGameState);
-          addDebugMessage("Estado del juego actualizado.");
+
+        if (initiativeRolls && initiativeRolls.length > 0) {
+            addDebugMessage(`Se han recibido ${initiativeRolls.length} tiradas de iniciativa.`);
+            const newDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = initiativeRolls.map(roll => ({
+                roller: roll.characterName,
+                diceType: 20,
+                result: roll.roll,
+                modifier: roll.modifier,
+                finalResult: roll.total,
+                outcome: 'neutral',
+                description: 'Tirada de iniciativa'
+            }));
+            
+            setDiceRolls(prev => [...newDiceRolls.map((r, i) => ({...r, id: Date.now().toString() + i, timestamp: new Date()})), ...prev]);
         }
+        
         if(nextLocationDescription) {
           setLocationDescription(nextLocationDescription);
           addDebugMessage("Descripción de la ubicación actualizada.");

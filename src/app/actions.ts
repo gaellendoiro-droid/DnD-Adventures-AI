@@ -113,8 +113,8 @@ export async function runDungeonMasterTurn(
 
   return {
     dmNarration,
-    updatedGameState: dmResponse.updatedGameState,
     nextLocationDescription: dmResponse.nextLocationDescription,
     updatedCharacterStats: parsedStats,
+    initiativeRolls: dmResponse.initiativeRolls,
   };
 }
