@@ -223,6 +223,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         
         if (startCombat) {
             setInCombat(true);
+            addMessage({ sender: "System", content: "¡COMIENZA EL COMBATE!" });
             addDebugMessage("CAMBIO DE MODO: Entrando en combate.");
         }
 
