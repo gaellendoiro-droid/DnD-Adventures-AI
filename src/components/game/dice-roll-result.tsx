@@ -30,36 +30,36 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
   return (
     <div
       className={cn(
-        "flex items-start gap-3 p-2 rounded-lg border text-sm",
+        "flex items-start gap-2 p-2 rounded-lg border text-sm",
         outcomeStyles[roll.outcome]
       )}
     >
-      <div className="flex-shrink-0 font-mono text-xs h-5 w-5 flex items-center justify-center rounded-full bg-muted-foreground/20 text-muted-foreground font-bold">
+      <div className="flex-shrink-0 font-mono text-xs h-5 w-5 flex items-center justify-center rounded-full bg-muted-foreground/20 text-muted-foreground font-bold mt-0.5">
         {rollNumber}
       </div>
-      <div className="flex-grow">
-        <div className="flex justify-between items-start">
-            <div>
-                 <p className="font-semibold leading-tight">
-                    {roll.roller} tiró d{roll.diceType}
+      <div className="flex-grow grid grid-cols-[1fr_auto] items-start gap-x-2">
+        <div className="text-left">
+            <p className="font-semibold leading-tight">
+                {roll.roller}
+            </p>
+            <p className="text-xs font-semibold text-muted-foreground leading-tight">{roll.description}</p>
+        </div>
+        <div className="text-right">
+            <p className={cn(
+                "text-2xl font-bold font-mono leading-none",
+                outcomeTextStyles[roll.outcome]
+            )}>
+                {finalResult}
+            </p>
+            {roll.modifier !== undefined && (
+                <p className="text-xs font-mono text-muted-foreground text-right leading-tight">
+                    ({roll.result} {roll.modifier >= 0 ? `+${roll.modifier}` : roll.modifier})
                 </p>
-                <p className="text-xs font-semibold text-muted-foreground leading-tight">{roll.description}</p>
-            </div>
-            <div className="text-right flex-shrink-0 ml-2">
-                <p className={cn(
-                    "text-2xl font-bold font-mono leading-none",
-                    outcomeTextStyles[roll.outcome]
-                )}>
-                    {finalResult}
-                </p>
-                {roll.modifier !== undefined && (
-                    <p className="text-xs font-mono text-muted-foreground text-right">
-                        {roll.result} {roll.modifier >= 0 ? `+${roll.modifier}` : roll.modifier}
-                    </p>
-                )}
-            </div>
+            )}
         </div>
       </div>
     </div>
   );
 }
+
+    

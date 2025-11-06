@@ -86,7 +86,7 @@ When combat begins, you MUST follow this exact sequence:
 3.  **Establish and Declare Turn Order:** Based on the initiative rolls, declare the turn order from highest to lowest in your narration.
 4.  **Manage Turns:** Proceed turn by turn. Narrate the action of whose turn it is. If it is a monster's turn, describe what it does. **CRITICAL: If it is the player's turn, your narration MUST stop just before their action, waiting for their input. For example: 'Es tu turno, Galador. ¿Qué haces?'. DO NOT, under any circumstances, take an action for the player.**
 5.  **Report NPC Rolls:** For any action taken by an NPC (monster or other character) that requires a dice roll (attack, damage, saving throw, etc.), you MUST provide the details of that roll in the \`diceRolls\` field of your response.
-6.  **Attack Flow:** For an attack action, first make the attack roll. In your narration, describe whether the attack hits or misses. ONLY if the attack hits, then make and describe the damage roll. Both rolls (attack and damage if applicable) must be returned in the \`diceRolls\` field.
+6.  **Attack Flow:** For an attack action, first make the attack roll. In your narration, describe whether the attack hits or misses. A natural 20 is a critical hit and always hits. A natural 1 is a critical fail (pifia) and always misses. ONLY if the attack hits, then make and describe the damage roll. Both rolls (attack and damage if applicable) must be returned in the \`diceRolls\` field.
 
 Here is the general description of the current location: {{{locationDescription}}}
 Here are the player character stats: {{{characterStats}}}
@@ -190,5 +190,7 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
     return output;
   }
 );
+
+    
 
     
