@@ -139,32 +139,42 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
       tools.push(dynamicAdventureLookupTool);
     }
 
-    const {output} = await aiDungeonMasterParserPrompt(input, {
-        model: 'googleai/gemini-2.5-flash',
-        tools,
-        config: {
-          safetySettings: [
-            {
-              category: 'HARM_CATEGORY_HARASSMENT',
-              threshold: 'BLOCK_NONE',
+    try {
+        const {output} = await aiDungeonMasterParserPrompt(input, {
+            model: 'googleai/gemini-2.5-flash',
+            tools,
+            config: {
+            safetySettings: [
+                {
+                category: 'HARM_CATEGORY_HARASSMENT',
+                threshold: 'BLOCK_NONE',
+                },
+            ],
             },
-          ],
-        },
-      });
-    
-    if (!output) {
-      return { narration: "El Dungeon Master parece distraído y no responde.", startCombat: false };
-    }
-    
-    if (output.updatedCharacterStats) {
-        try {
-            JSON.parse(output.updatedCharacterStats);
-        } catch (e) {
-            console.warn("AI returned invalid JSON for updatedCharacterStats. Discarding.", output.updatedCharacterStats);
-            output.updatedCharacterStats = null;
+        });
+        
+        if (!output) {
+        return { narration: "El Dungeon Master parece distraído y no responde.", startCombat: false };
+        }
+        
+        if (output.updatedCharacterStats) {
+            try {
+                JSON.parse(output.updatedCharacterStats);
+            } catch (e) {
+                console.warn("AI returned invalid JSON for updatedCharacterStats. Discarding.", output.updatedCharacterStats);
+                output.updatedCharacterStats = null;
+            }
+        }
+        
+        return output;
+    } catch(e: any) {
+        console.error("Critical error in aiDungeonMasterParserFlow. The AI did not return valid JSON.", e);
+        return {
+            narration: "El Dungeon Master está confundido por tu última acción. ¿Podrías reformular lo que quieres hacer de una manera más clara? Por ejemplo: 'Ataco al orco con mi espada' o 'Intento abrir la puerta'.",
+            startCombat: false,
         }
     }
-    
-    return output;
   }
 );
+
+    
