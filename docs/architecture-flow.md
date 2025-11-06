@@ -88,9 +88,11 @@ Este documento detalla el flujo de trabajo completo, desde la exploración norma
 *   **Acción de la Coordinadora**: Vuelve a invocar a la `narrativeExpertTool`.
 
 **3. La `narrativeExpertTool` Inicia el Combate**
-*   **Lógica del Experto en Narrativa**: "El jugador ha atacado. El combate es inevitable. Necesito el nombre del enemigo para la narración".
-*   **Uso de Herramienta**: Llama a `adventureLookupTool` con `query: "colina-del-resentimiento"` para ver las `entitiesPresent`. Encuentra "manticora".
-*   **Salida del Experto en Narrativa**: Devuelve un objeto estructurado a la coordinadora para indicar el cambio de estado.
+*   **Lógica del Experto en Narrativa**: "El jugador ha atacado. El combate es inevitable. Primero, debo identificar al enemigo basándome en lo que el jugador ha escrito."
+*   **Análisis de Contexto**: La IA analiza la frase "Le disparo una flecha a la **Mantícora**" y extrae "Mantícora" como el objetivo del ataque.
+*   **Uso de Herramienta**: Ahora que conoce el nombre del objetivo, necesita sus detalles. Invoca a `adventureLookupTool` con `query: "manticora"`.
+*   **Respuesta de la Herramienta**: La herramienta devuelve las estadísticas y descripción de la Mantícora, confirmando que es un enemigo válido.
+*   **Salida del Experto en Narrativa**: Con el enemigo confirmado, devuelve un objeto estructurado a la coordinadora para indicar el cambio de estado.
     ```json
     {
       "startCombat": true,
@@ -104,7 +106,7 @@ Este documento detalla el flujo de trabajo completo, desde la exploración norma
 *   **Acciones de la Aplicación**:
     1.  Cambia su estado interno a `inCombat: true`.
     2.  Muestra la `combatStartNarration` en la ventana de chat.
-    3.  Busca los datos de la "Mantícora" en el JSON de la aventura.
+    3.  Usa la información de la "Mantícora" (obtenida por el `narrativeExpert` en el paso anterior) para añadirla como el enemigo en el combate.
     4.  **Inicia el cálculo de iniciativa**: Tira un d20 para todos los participantes (Galador, Elara, Merryl y la Mantícora), añade sus modificadores de Destreza y los ordena de mayor a menor.
     5.  Muestra el orden de combate en la interfaz.
 
