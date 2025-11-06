@@ -12,6 +12,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
+import { DiceRollOutcome } from '@/lib/types';
 
 const AiDungeonMasterParserInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
@@ -36,7 +37,8 @@ const CombatDiceRollSchema = z.object({
     result: z.number().describe("The result of the dice roll."),
     modifier: z.number().optional().describe("The modifier applied to the roll."),
     finalResult: z.number().optional().describe("The total score after the modifier (roll + modifier)."),
-    description: z.string().describe("A brief description of the roll's purpose (e.g., 'Tirada de Ataque', 'Tirada de Daño', 'Salvación de Destreza').")
+    description: z.string().describe("A brief description of the roll's purpose (e.g., 'Tirada de Ataque', 'Tirada de Daño', 'Salvación de Destreza')."),
+    outcome: z.enum(['crit', 'success', 'fail', 'pifia', 'neutral']).describe("The outcome of the roll, especially for attack rolls (success/fail) or saving throws. Use 'crit' for a critical hit (natural 20) and 'pifia' for a critical fail (natural 1). Use 'neutral' for damage rolls or other rolls without a success/fail condition."),
 });
 
 const AiDungeonMasterParserOutputSchema = z.object({
@@ -187,3 +189,5 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
     return output;
   }
 );
+
+    

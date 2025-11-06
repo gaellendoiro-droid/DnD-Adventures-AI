@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Character, GameMessage, DiceRoll } from "@/lib/types";
+import type { Character, GameMessage, DiceRoll, DiceRollOutcome } from "@/lib/types";
 import { GameLayout } from "@/components/game/game-layout";
 import { LeftPanel } from "@/components/layout/left-panel";
 import { CharacterSheet } from "@/components/game/character-sheet";
@@ -208,7 +208,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
             combatDiceRolls.forEach(roll => {
                 newDiceRolls.push({
                     ...roll,
-                    outcome: 'neutral' // Or determine outcome based on result
                 });
             });
         }

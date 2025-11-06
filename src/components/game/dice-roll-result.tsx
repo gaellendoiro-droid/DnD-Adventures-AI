@@ -9,13 +9,20 @@ interface DiceRollResultProps {
   roll: DiceRoll;
 }
 
-const outcomeStyles = {
-  crit: "border-yellow-400 bg-yellow-400/10",
+const outcomeStyles: { [key in DiceRoll['outcome']]: string } = {
+  crit: "border-yellow-400 bg-yellow-400/10 text-yellow-200",
   success: "border-green-500 bg-green-500/10",
   fail: "border-red-500 bg-red-500/10",
-  pifia: "border-destructive bg-destructive/20",
+  pifia: "border-destructive bg-destructive/20 text-destructive-foreground/80",
   neutral: "border-border",
 };
+
+const outcomeTextStyles: { [key in DiceRoll['outcome']]?: string } = {
+    crit: "text-yellow-300",
+    success: "text-green-400",
+    fail: "text-red-400",
+    pifia: "text-destructive",
+}
 
 export function DiceRollResult({ roll }: DiceRollResultProps) {
   const finalResult = roll.finalResult ?? roll.result;
@@ -37,7 +44,12 @@ export function DiceRollResult({ roll }: DiceRollResultProps) {
         </p>
       </div>
       <div className="text-right">
-        <p className="text-2xl font-bold font-mono">{finalResult}</p>
+        <p className={cn(
+            "text-2xl font-bold font-mono",
+            outcomeTextStyles[roll.outcome]
+        )}>
+            {finalResult}
+        </p>
         {roll.modifier !== undefined && (
              <p className="text-xs font-mono text-muted-foreground">
                 {roll.result} {roll.modifier >= 0 ? `+${roll.modifier}` : roll.modifier}

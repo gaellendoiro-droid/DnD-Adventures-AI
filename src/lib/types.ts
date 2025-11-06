@@ -59,6 +59,8 @@ export interface GameMessage {
   onRetry?: () => void;
 }
 
+export type DiceRollOutcome = 'crit' | 'success' | 'fail' | 'pifia' | 'neutral';
+
 export interface DiceRoll {
   id: string;
   roller: string; // Character name or "DM"
@@ -66,7 +68,7 @@ export interface DiceRoll {
   result: number;
   modifier?: number;
   finalResult?: number;
-  outcome: 'crit' | 'success' | 'fail' | 'pifia' | 'neutral';
+  outcome: DiceRollOutcome;
   timestamp: Date;
   description?: string;
 }
