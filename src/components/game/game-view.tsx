@@ -10,6 +10,8 @@ import { ChatPanel } from "@/components/game/chat-panel";
 import { Button } from "../ui/button";
 import { Save } from "lucide-react";
 import { handleOocMessage, generateNpcActions, runDungeonMasterTurn } from "@/app/actions";
+import { PartyPanel } from "./party-panel";
+import { Separator } from "../ui/separator";
 
 interface GameViewProps {
   initialData: {
@@ -56,7 +58,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   const addDebugMessage = (message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setDebugMessages(prev => [...prev.slice(-49), `[${timestamp}] ${message}`]); // Keep last 50 messages, add to end
+    setDebugMessages(prev => [ ...prev.slice(-49), `[${timestamp}] ${message}`]);
   };
 
   const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
@@ -326,12 +328,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     <GameLayout
       leftPanel={
         <LeftPanel
-          party={party}
-          selectedCharacterId={selectedCharacter?.id}
-          onSelectCharacter={setSelectedCharacter}
           diceRolls={diceRolls}
           debugMessages={debugMessages}
-          inCombat={inCombat}
           initiativeOrder={initiativeOrder}
         >
             <div className="p-2">
@@ -342,7 +340,17 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
             </div>
         </LeftPanel>
       }
-      characterSheet={<CharacterSheet character={selectedCharacter} />}
+      characterSheet={
+        <div className="flex flex-col h-full">
+            <PartyPanel
+                party={party}
+                selectedCharacterId={selectedCharacter?.id}
+                onSelectCharacter={setSelectedCharacter}
+            />
+            <Separator />
+            <CharacterSheet character={selectedCharacter} />
+        </div>
+      }
     >
       <ChatPanel
         messages={messages}
