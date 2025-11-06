@@ -27,7 +27,6 @@ const AiDungeonMasterParserOutputSchema = z.object({
   narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown. If the characters are just talking, this can be an empty string."),
   nextLocationDescription: z.string().optional().nullable().describe('A description of the next location, if the player moved.'),
   updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}, \"inventory\": [{\"id\":\"item-gp-1\",\"name\":\"Monedas de Oro\",\"quantity\":10}]}'. Must be a valid JSON string or null."),
-  updatedGameState: z.any().optional().describe('The updated game state, if any. This is the same as the input gameState, but can be modified if something major changes.'),
 });
 export type AiDungeonMasterParserOutput = z.infer<typeof AiDungeonMasterParserOutputSchema>;
 
@@ -69,7 +68,7 @@ When combat begins, you MUST follow this exact sequence:
 1.  **Announce Combat:** Start by declaring that combat has begun. For example: "¡ENTRANDO EN MODO COMBATE!".
 2.  **Determine Initiative:** Immediately determine the initiative for all combatants (player characters and monsters) by simulating a d20 roll plus their Dexterity modifier. Do not ask the player to roll.
 3.  **Establish and Declare Turn Order:** Based on the initiative rolls, declare the turn order from highest to lowest.
-4.  **Manage Turns:** Proceed turn by turn. Narrate the action of whose turn it is. If it's a monster's turn, describe what it does. If it's the player's turn, you MUST wait for their action.
+4.  **Manage Turns:** Proceed turn by turn. Narrate the action of whose turn it is. If it is a monster's turn, describe what it does. **CRITICAL: If it is the player's turn, your narration MUST stop just before their action, waiting for their input. For example: 'Es tu turno, Galador. ¿Qué haces?'. DO NOT, under any circumstances, take an action for the player.**
 
 Here is the general description of the current location: {{{locationDescription}}}
 Here are the player character stats: {{{characterStats}}}
@@ -156,7 +155,7 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
       });
     
     if (!output) {
-      return { narration: "El Dungeon Master parece distraído y no responde.", updatedGameState: input.gameState };
+      return { narration: "El Dungeon Master parece distraído y no responde." };
     }
     
     // Validate that updatedCharacterStats is valid JSON before returning
@@ -169,16 +168,8 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
         }
     }
     
-    // Since the AI no longer returns the full game state, we pass it through.
-    // The client will handle merging character stats.
-    const finalOutput: AiDungeonMasterParserOutput = {
-        ...output,
-        updatedGameState: input.gameState,
-    };
-
-    return finalOutput;
+    return output;
   }
 );
 
-    
     
