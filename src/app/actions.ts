@@ -145,16 +145,18 @@ export async function runCombatTurn(
     const playerCombatant = initiativeOrder[currentTurnIndex];
     if (playerCombatant.type === 'player') {
         const playerCharacter = party.find(c => c.id === playerCombatant.id);
-        addMessage({
-            sender: 'System',
-            content: `Turno de ${playerCharacter?.name}.`,
-        });
+        if (playerCharacter?.controlledBy === 'Player') {
+          addMessage({
+              sender: 'System',
+              content: `Turno de ${playerCharacter?.name}.`,
+          });
 
-        // For now, we'll just narrate the player's action. A real implementation
-        // would involve calling the narrativeExpert to interpret the action and
-        // determine outcomes and dice rolls.
-        const { html } = await markdownToHtml({ markdown: `Tú (${playerCharacter?.name}) atacas: ${playerAction}` });
-        addMessage({ sender: 'DM', content: html, originalContent: `Tú (${playerCharacter?.name}) atacas: ${playerAction}` });
+          // For now, we'll just narrate the player's action. A real implementation
+          // would involve calling the narrativeExpert to interpret the action and
+          // determine outcomes and dice rolls.
+          const { html } = await markdownToHtml({ markdown: `Tú (${playerCharacter?.name}) atacas: ${playerAction}` });
+          addMessage({ sender: 'DM', content: html, originalContent: `Tú (${playerCharacter?.name}) atacas: ${playerAction}` });
+        }
     }
 
 
