@@ -94,7 +94,7 @@ const enemyTacticianPrompt = ai.definePrompt({
 It is **{{{activeCombatant}}}'s** turn.
 
 1.  **Analyze the Battlefield:** Look at the party members and your allies. Who is the biggest threat? Who is most wounded?
-2.  **Choose a Tactical Action:** Decide the most logical action for **{{{activeCombatant}}}**. This could be attacking, using a special ability, casting a spell, or even fleeing if the situation is dire. Use the provided tools ('adventureLookupTool', 'dndApiLookupTool') to look up {{{activeCombatant}}}'s stats and abilities to make an informed decision.
+2.  **Choose a Tactical Action:** Decide the most logical action for **{{{activeCombatant}}}**. This could be attacking, using a special ability, casting a spell, or even fleeing if the situation is dire. Use the provided tools ('adventureLookupTool', 'dndApiLookupTool') to look up {{{activeCombatant}}}'s stats and abilities to make an informed decision. The 'adventureLookupTool' is especially useful for finding abilities of monsters specific to this adventure.
 3.  **Define the Action:** State the action clearly in the 'action' field. (e.g., "Ataca a Galador con su hacha", "Lanza un hechizo sobre Elara").
 4.  **Narrate the Action:** Provide a short, exciting narration of the action in the 'narration' field.
 5.  **Request Dice Rolls:** In the 'diceRolls' field, specify ALL dice rolls needed to resolve this action. For example, if attacking, you must request both an attack roll and a damage roll.
@@ -129,7 +129,7 @@ const enemyTacticianFlow = ai.defineFlow(
     const dynamicAdventureLookupTool = ai.defineTool(
       {
         name: 'adventureLookupTool',
-        description: 'Looks up information about a specific location or entity (character, monster) from the main adventure data file. Use this to get details about abilities, descriptions, or what is inside a location.',
+        description: 'Looks up information about a specific location or entity (character, monster, item) from the main adventure data file. Use this to get details about abilities, descriptions, or what is inside a location.',
         inputSchema: z.object({
           query: z.string().describe("The search query, which can be the entity's ID or name (e.g., 'phandalin-plaza-del-pueblo', 'cryovain')."),
         }),
