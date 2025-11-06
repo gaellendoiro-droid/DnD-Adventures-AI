@@ -24,6 +24,7 @@ export default function Home() {
     diceRolls: DiceRoll[];
     gameState: string;
     locationId: string;
+    locationDescription: string;
     inCombat?: boolean;
     initiativeOrder?: Combatant[];
   } | null>(null);
@@ -35,13 +36,15 @@ export default function Home() {
       toast({ title: "Creando nueva aventura...", description: "¡El mundo está listo!" });
       
       const newGameState = JSON.stringify(adventureData);
+      const firstLocation = adventureData.locations[0];
       
       setInitialGameData({
         party: initialParty,
         messages: [initialMessage],
         diceRolls: [],
         gameState: newGameState,
-        locationId: adventureData.locations[0].id,
+        locationId: firstLocation.id,
+        locationDescription: firstLocation.description,
         inCombat: false,
         initiativeOrder: [],
       });
@@ -105,6 +108,7 @@ export default function Home() {
           diceRolls: [],
           gameState: newGameState,
           locationId: firstLocation.id,
+          locationDescription: firstLocation.description,
           inCombat: false,
           initiativeOrder: [],
         });
@@ -135,10 +139,13 @@ export default function Home() {
         setLoading('loadGame');
         const jsonContent = e.target?.result as string;
         const saveData = JSON.parse(jsonContent);
+        const adventure = JSON.parse(saveData.gameState);
 
         if (!saveData.party || !saveData.messages || !saveData.gameState || !saveData.locationId) {
           throw new Error("El archivo de guardado no es válido.");
         }
+
+        const currentLocation = adventure.locations.find((l: any) => l.id === saveData.locationId);
 
         setInitialGameData({
           party: saveData.party,
@@ -146,6 +153,7 @@ export default function Home() {
           diceRolls: saveData.diceRolls || [],
           gameState: saveData.gameState,
           locationId: saveData.locationId,
+          locationDescription: currentLocation?.description || "Ubicación desconocida",
           inCombat: saveData.inCombat || false,
           initiativeOrder: saveData.initiativeOrder || [],
         });
@@ -177,10 +185,7 @@ export default function Home() {
       <AppHeader onGoToMenu={handleGoToMenu} showMenuButton={gameStarted} />
       {gameStarted && initialGameData ? (
         <GameView 
-          initialData={{
-            ...initialGameData,
-            locationDescription: adventureData.locations.find(l => l.id === initialGameData.locationId)?.description || "Un lugar desconocido"
-          }}
+          initialData={initialGameData}
           onSaveGame={(saveData) => {
               const jsonString = JSON.stringify(saveData, null, 2);
               const blob = new Blob([jsonString], { type: 'application/json' });
