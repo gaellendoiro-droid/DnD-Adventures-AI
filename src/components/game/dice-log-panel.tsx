@@ -38,8 +38,8 @@ export function DiceLogPanel({ diceRolls }: DiceLogPanelProps) {
               Aún no se ha lanzado ningún dado.
             </p>
           ) : (
-            diceRolls.map((roll) => (
-              <DiceRollResult key={roll.id} roll={roll} />
+            diceRolls.map((roll, index) => (
+              <DiceRollResult key={roll.id} roll={roll} rollNumber={index + 1} />
             ))
           )}
         </div>
