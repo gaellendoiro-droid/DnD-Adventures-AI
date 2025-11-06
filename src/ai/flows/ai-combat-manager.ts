@@ -68,9 +68,9 @@ const aiCombatManagerPrompt = ai.definePrompt({
         - For each, calculate \`d20 + dexterity modifier\`. Use the dndApiLookupTool if you need stats for generic creatures like 'guard' or 'goblin'.
         - You MUST populate the 'initiativeRolls' field with the results for each combatant. This is mandatory for the first turn.
     3.  **Establish Turn Order:** Based on the initiative rolls, state the turn order clearly in your narration (e.g., "El orden de combate es: Merryl, Orco 1, Galador, Elara...").
-    4.  **Execute First Turn:** Narrate the action for the character with the highest initiative.
-        - If it's the player's turn, end your narration with: "Es tu turno, ¿qué haces?".
-        - If it's an NPC's turn, execute their action, roll dice, and then proceed to the next character in the initiative order until it's the player's turn.
+    4.  **Execute First Turn:**
+        -   **If the player character has the highest initiative:** Your narration MUST end with: "Es tu turno, ¿qué haces?". DO NOT take any action for the player.
+        -   **If an NPC has the highest initiative:** Narrate their action, roll dice, and then proceed to the next character in the initiative order until it's the player's turn. Your narration MUST end by prompting the player for their next action (e.g., "Es tu turno, ¿qué haces?").
 
 **STATE: SUBSEQUENT TURNS**
 - If the player's action is anything other than "Comienza la batalla", this is a regular combat turn.
@@ -177,3 +177,5 @@ const aiCombatManagerFlow = ai.defineFlow(
     return output;
   }
 );
+
+    
