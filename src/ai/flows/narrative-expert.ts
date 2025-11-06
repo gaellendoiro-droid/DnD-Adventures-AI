@@ -16,7 +16,7 @@ import { adventureLookupTool } from '../tools/adventure-lookup';
 const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
   characterActions: z.string().optional().describe('The actions or dialogue of AI-controlled characters in response to the player. This field may be empty.'),
-  gameState: z.string().optional().describe('The current state of the game.'),
+  gameState: z.string().optional().describe('A JSON string representing the entire adventure data. This is the primary source of truth for locations, entities, and interactable objects.'),
   locationDescription: z.string().optional().describe('A description of the current location.'),
   characterStats: z.string().optional().describe('The current stats of the character.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
@@ -44,8 +44,9 @@ const narrativeExpertPrompt = ai.definePrompt({
   prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish. DO NOT translate proper nouns (names, places, etc.).
 
 **Your Priorities:**
-1.  **Primary Task: Drive the Narrative.** Your main goal is to be a descriptive and engaging storyteller. Describe the world, react to the player's choices, portray non-player characters (NPCs), and create an immersive experience. Your narration must always end by prompting the player for their next action (e.g., "¿Qué haces?"). Use the provided tools ('adventureLookupTool', 'dndApiLookupTool') for details when needed.
-2.  **CRITICAL DIRECTIVE: Detect Combat.** Your most important job is to determine if the story leads to combat. This can be due to a player's hostile action (e.g., "Ataco al guardia") or a narrative event (e.g., an ambush). If combat starts, you MUST set 'startCombat' to true.
+1.  **Primary Task: Drive the Narrative.** Your main goal is to be a descriptive and engaging storyteller. Describe the world, react to the player's choices, portray non-player characters (NPCs), and create an immersive experience. Your narration must always end by prompting the player for their next action (e.g., "¿Qué haces?").
+2.  **Use Your Tools:** You have access to a complete adventure data file. Use the 'adventureLookupTool' to get details about locations, what's inside them, and how to interact with objects. This is your primary source of truth. For general D&D rules, spells, or monster stats not in the adventure file, use the 'dndApiLookupTool'.
+3.  **CRITICAL DIRECTIVE: Detect Combat.** Your most important job is to determine if the story leads to combat. This can be due to a player's hostile action (e.g., "Ataco al guardia") or a narrative event (e.g., an ambush). If combat starts, you MUST set 'startCombat' to true.
 
 **Combat Start Protocol (Strictly follow):**
 -   When 'startCombat' is true, your ONLY job is to write a brief, exciting narration in the 'combatStartNarration' field describing the moment the fight breaks out (e.g., "El guardia desenvaina su espada con un grito, y la batalla comienza." or "¡Una banda de orcos os embosca desde las ruinas!"). This narration is critical as it will be used to identify the enemies.
@@ -76,7 +77,7 @@ The other characters in the party have just said or done the following (for cont
 (No other characters have acted.)
 {{/if}}
 
-Based on all directives, narrate what happens next. If combat starts, follow the protocol exactly.
+Based on all directives, narrate what happens next. Use your tools for accurate information. If combat starts, follow the protocol exactly.
 `,
 });
 
@@ -87,10 +88,41 @@ const narrativeExpertFlow = ai.defineFlow(
     outputSchema: NarrativeExpertOutputSchema,
   },
   async (input) => {
+    let adventureData: any = null;
+    if (input.gameState) {
+      try {
+        adventureData = JSON.parse(input.gameState);
+      } catch (e) {
+        console.error("Failed to parse gameState JSON in narrativeExpertFlow");
+      }
+    }
+
+    const dynamicAdventureLookupTool = ai.defineTool(
+      {
+        name: 'adventureLookupTool',
+        description: 'Looks up information about a specific location or entity (character, monster) from the main adventure data file. Use this to get details when a player moves to a new area or interacts with a specific named entity. This is the most accurate source for named characters.',
+        inputSchema: z.object({
+          query: z.string().describe("The search query, which can be the entity's ID or name (e.g., 'location:phandalin-plaza-del-pueblo', 'entity:cryovain')."),
+          lookupType: z.enum(['location', 'entity']).describe("Specify whether you are looking for a 'location' or an 'entity'."),
+        }),
+        outputSchema: z.string().describe('A JSON string containing the requested information, or an error message if not found.'),
+      },
+      async ({ query, lookupType }) => {
+        if (!adventureData) {
+          return "Error: Adventure data is not available.";
+        }
+        
+        const dataSet = lookupType === 'location' ? adventureData.locations : adventureData.entities;
+        const result = dataSet.find((item: any) => item.id === query || item.name.toLowerCase() === query.toLowerCase());
+
+        return result ? JSON.stringify(result) : `Error: No ${lookupType} found matching '${query}'.`;
+      }
+    );
+
     try {
         const {output} = await narrativeExpertPrompt(input, {
             model: 'googleai/gemini-2.5-flash',
-            tools: [dndApiLookupTool, adventureLookupTool],
+            tools: [dndApiLookupTool, dynamicAdventureLookupTool],
             config: {
             safetySettings: [
                 {
