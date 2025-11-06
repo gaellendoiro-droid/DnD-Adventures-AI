@@ -53,7 +53,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   const addDebugMessage = (message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setDebugMessages(prev => [ `[${timestamp}] ${message}`, ...prev.slice(0,49)]); // Keep last 50 messages
+    setDebugMessages(prev => [...prev.slice(-49), `[${timestamp}] ${message}`]); // Keep last 50 messages, add to end
   };
 
   const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
