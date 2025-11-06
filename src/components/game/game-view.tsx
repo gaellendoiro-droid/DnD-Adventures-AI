@@ -51,7 +51,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   const addDebugMessage = (message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setDebugMessages(prev => [`[${timestamp}] ${message}`, ...prev].slice(0, 50)); // Keep last 50 messages
+    setDebugMessages(prev => [...prev.slice(-49), `[${timestamp}] ${message}`]); // Keep last 50 messages
   };
 
   const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
@@ -206,53 +206,10 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         if (dmTurnResult.startCombat) {
             addDebugMessage("CAMBIO DE MODO: Entrando en combate.");
             setInCombat(true);
-            addMessage({ sender: "System", content: "¡COMIENZA EL COMBATE!" });
+            addMessage({ sender: "System", content: <p className="font-bold uppercase text-red-500 text-lg">¡Comienza el Combate!</p> });
 
             addDebugMessage("Iniciando primer turno de combate...");
-            const combatTurnResult = await runDungeonMasterTurn(
-                "Comienza la batalla",
-                "",
-                gameState,
-                locationDescription,
-                playerCharacter || null,
-                true, // Now in combat
-                undefined, // No conversation history needed
-                dmTurnResult.dmNarration?.originalContent // Pass the combat starting narration
-            );
-             addDebugMessage("Primer turno de combate completado. Procesando...");
-
-            if (combatTurnResult.dmNarration) {
-                addMessage(combatTurnResult.dmNarration, isRetry);
-                addDebugMessage("Narración de inicio de combate recibida.");
-            }
-
-            const newDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = [];
-
-            if (combatTurnResult.initiativeRolls && combatTurnResult.initiativeRolls.length > 0) {
-                addDebugMessage(`Se han recibido ${combatTurnResult.initiativeRolls.length} tiradas de iniciativa.`);
-                combatTurnResult.initiativeRolls.forEach(roll => {
-                    newDiceRolls.push({
-                        roller: roll.characterName,
-                        rollNotation: '1d20',
-                        individualRolls: [roll.roll],
-                        modifier: roll.modifier,
-                        totalResult: roll.total,
-                        outcome: 'neutral',
-                        description: 'Tirada de iniciativa'
-                    });
-                });
-            }
-
-            if (combatTurnResult.diceRolls && combatTurnResult.diceRolls.length > 0) {
-                addDebugMessage(`Se han recibido ${combatTurnResult.diceRolls.length} tiradas de combate adicionales.`);
-                combatTurnResult.diceRolls.forEach(roll => {
-                    newDiceRolls.push({ ...roll });
-                });
-            }
-
-            if(newDiceRolls.length > 0) {
-                setDiceRolls(prev => [...prev, ...newDiceRolls.map((r, i) => ({...r, id: Date.now().toString() + i, timestamp: new Date()}))]);
-            }
+            // Use useEffect to handle the first combat turn
         } else {
              // This code runs only if combat did NOT start in this turn
             const newDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = [];
@@ -269,7 +226,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
         if (dmTurnResult.endCombat) {
             setInCombat(false);
-            addMessage({ sender: "System", content: "El combate ha terminado." });
+            addMessage({ sender: "System", content: <p className="font-bold uppercase text-red-500 text-lg">El Combate ha Terminado</p> });
             addDebugMessage("CAMBIO DE MODO: Saliendo de combate.");
         }
       }
@@ -278,16 +235,18 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       addDebugMessage(`ERROR: ${error.message}`);
       
       const errorMessage = error.message || "An unknown error occurred.";
+      const lastMessageContent = typeof content === 'string' ? content : 'la acción anterior';
       if (errorMessage.includes("429") || errorMessage.includes("model is overloaded")) {
          addMessage({
             sender: 'Error',
             content: "El DM está muy ocupado en este momento y no puede responder.",
-            onRetry: () => handleSendMessage(content, { isRetry: true }),
+            onRetry: () => handleSendMessage(lastMessageContent, { isRetry: true }),
         });
       } else {
-        addMessage({
-            sender: "System",
-            content: "El Dungeon Master o uno de los personajes está confundido y no puede responder ahora mismo.",
+         addMessage({
+            sender: 'Error',
+            content: "El Dungeon Master está confundido y no puede procesar tu última acción. Inténtalo de nuevo.",
+            onRetry: () => handleSendMessage(lastMessageContent, { isRetry: true }),
         });
       }
     } finally {
@@ -295,6 +254,17 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       addDebugMessage("Turno finalizado.");
     }
   };
+
+  useEffect(() => {
+    if (inCombat) {
+      const lastMessage = messages[messages.length - 1];
+      // Check if the last "System" message is the combat start message
+      if (lastMessage?.sender === 'System' && typeof lastMessage.content !== 'string') {
+        const combatStartNarration = messages.findLast(m => m.sender === 'DM')?.originalContent;
+        handleSendMessage('Comienza la batalla', { isSystem: true });
+      }
+    }
+  }, [inCombat]);
 
 
   const handleDiceRoll = (roll: { result: number, sides: number }) => {

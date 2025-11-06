@@ -16,7 +16,7 @@ export function DebugPanel({ messages }: DebugPanelProps) {
   useEffect(() => {
     if (scrollViewportRef.current) {
       scrollViewportRef.current.scrollTo({
-        top: 0,
+        top: scrollViewportRef.current.scrollHeight,
         behavior: "smooth",
       });
     }
