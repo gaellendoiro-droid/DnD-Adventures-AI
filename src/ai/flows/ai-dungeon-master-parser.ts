@@ -49,7 +49,7 @@ const aiDungeonMasterParserPrompt = ai.definePrompt({
 **Core Directives:**
 1.  **Reliability is Key:** You MUST ALWAYS return a valid JSON object that conforms to the output schema. Returning null or an invalid format is not an option. If there is no specific narration, return an object with an empty string for the 'narration' field.
 2.  **Pacing and Player Agency:** Narrate only up to the next decision point for the player. NEVER assume the player's actions. Your narration must always end with a question to the player, like "¿Qué haces?" or "¿Cuál es vuestro siguiente movimiento?".
-3.  **Conversational Awareness:** If the player is talking to other characters, your primary role is to observe. If the \`characterActions\` input is not empty, it means a conversation is happening. In this case, you should only provide narration if it's essential to describe a change in the environment or a non-verbal cue from an NPC not involved in the conversation. Otherwise, your narration should be an empty string and let the characters talk.
+3.  **Conversational Awareness:** The actions of other characters (\`characterActions\`) are provided for context, NOT for you to narrate again. The game will display their dialogue separately. Your job is to narrate what happens as a consequence of the player's and other characters' actions, focusing on the environment and non-player characters (NPCs) that are not part of the adventuring party. If the conversation is purely between party members, your narration can be an empty string.
 4.  **Rule Adherence & Stat Updates:** You must strictly follow D&D 5th Edition rules.
     *   **CRITICAL: Do NOT update character stats predictively.** Only return \`updatedCharacterStats\` if an action has been *fully completed* in the current turn. For example, if a merchant offers an item for sale, do not deduct the gold until the player explicitly confirms the purchase in a subsequent turn. If the player attacks and hits, then you can update HP. Do not assume the outcome of player choices.
 5.  **Information Hierarchy & Tool Use:**
@@ -77,7 +77,7 @@ This is the recent conversation history. Use it to maintain continuity and avoid
 
 The player's latest action is: "{{{playerAction}}}"
 
-The other characters in the party have just said or done the following:
+The other characters in the party have just said or done the following (this is for context, do NOT narrate their actions again):
 {{#if characterActions}}
 \`\`\`
 {{{characterActions}}}
@@ -175,5 +175,7 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
     return finalOutput;
   }
 );
+
+    
 
     
