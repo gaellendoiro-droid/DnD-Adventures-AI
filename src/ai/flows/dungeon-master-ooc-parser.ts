@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview This file contains the Genkit flow for the DungeonMasterOocParser, which handles out-of-character player questions.
@@ -9,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 
 const DungeonMasterOocParserInputSchema = z.object({
   playerQuery: z.string().describe('The out-of-character question from the player to the Dungeon Master.'),
@@ -29,6 +31,7 @@ const dungeonMasterOocParserPrompt = ai.definePrompt({
   name: 'dungeonMasterOocParserPrompt',
   input: {schema: DungeonMasterOocParserInputSchema},
   output: {schema: DungeonMasterOocParserOutputSchema},
+  tools: [dndApiLookupTool],
   prompt: `You are an AI Dungeon Master for a D&D 5e game. A player is asking you a question out-of-character. Your role is to be a helpful and clear assistant. You MUST ALWAYS reply in Spanish.
 
   Current game state for context: {{{gameState}}}
@@ -37,7 +40,7 @@ const dungeonMasterOocParserPrompt = ai.definePrompt({
 
   Provide a direct, helpful, and concise out-of-character response to the player. Address them as "the player", not as their character.
   If they are pointing out a mistake you made, acknowledge it and thank them.
-  If they are asking for a rule clarification, explain it simply.
+  If they are asking for a rule clarification, explain it simply. If you are unsure about a specific rule, spell, or item, use the dndApiLookupTool to get accurate information before answering.
   
   Response:{
     "dmReply": "Your helpful out-of-character response to the player."
