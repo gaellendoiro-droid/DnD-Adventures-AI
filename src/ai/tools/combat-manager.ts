@@ -6,10 +6,10 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { enemyTactician } from '../tools/enemy-tactician';
+import { enemyTactician } from './enemy-tactician';
 import type { GameMessage, DiceRoll } from '@/lib/types';
 import { markdownToHtml } from '../flows/markdown-to-html';
-import { companionExpert } from '../tools/companion-expert';
+import { companionExpert } from './companion-expert';
 
 const CombatManagerInputSchema = z.object({
   playerAction: z.string().nullable(),
