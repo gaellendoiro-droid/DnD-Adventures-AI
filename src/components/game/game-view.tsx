@@ -49,23 +49,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setDebugMessages([]);
   }, [initialData]);
 
-  // EFFECT: Handle Combat Start
-  useEffect(() => {
-    // Find the last message that indicated combat should start
-    const lastMessage = messages[messages.length - 1];
-    const combatJustStarted = lastMessage?.content === "¡COMIENZA EL COMBATE!";
-
-    if (inCombat && combatJustStarted) {
-      addDebugMessage("useEffect detectó inicio de combate. Iniciando primer turno...");
-      // Use a timeout to ensure the state update has propagated and UI has settled
-      setTimeout(() => {
-        handleSendMessage("Comienza la batalla", { isSystem: true });
-      }, 100);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inCombat, messages]);
-
-
   const addDebugMessage = (message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     setDebugMessages(prev => [`[${timestamp}] ${message}`, ...prev].slice(0, 50)); // Keep last 50 messages
@@ -193,7 +176,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         const playerCharacter = party.find(c => c.controlledBy === 'Player');
         addDebugMessage(`Ejecutando el turno del Dungeon Master en modo ${inCombat ? 'Combate' : 'Narrativo'}...`);
         
-        const { dmNarration, nextLocationDescription, updatedCharacterStats, initiativeRolls, diceRolls: combatDiceRolls, startCombat, endCombat } = await runDungeonMasterTurn(
+        const dmTurnResult = await runDungeonMasterTurn(
           playerAction,
           characterActionsContent,
           gameState,
@@ -205,61 +188,90 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         );
         addDebugMessage("Turno del DM completado. Procesando resultados...");
 
-        if (dmNarration) {
-          addMessage(dmNarration, isRetry);
+        if (dmTurnResult.dmNarration) {
+          addMessage(dmTurnResult.dmNarration, isRetry);
           addDebugMessage("Narración del DM recibida y mostrada.");
         }
 
-        const newDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = [];
-
-        if (initiativeRolls && initiativeRolls.length > 0) {
-            addDebugMessage(`Se han recibido ${initiativeRolls.length} tiradas de iniciativa.`);
-            initiativeRolls.forEach(roll => {
-                newDiceRolls.push({
-                    roller: roll.characterName,
-                    rollNotation: '1d20',
-                    individualRolls: [roll.roll],
-                    modifier: roll.modifier,
-                    totalResult: roll.total,
-                    outcome: 'neutral',
-                    description: 'Tirada de iniciativa'
-                });
-            });
-        }
-
-        if (combatDiceRolls && combatDiceRolls.length > 0) {
-            addDebugMessage(`Se han recibido ${combatDiceRolls.length} tiradas de combate.`);
-            combatDiceRolls.forEach(roll => {
-                newDiceRolls.push({ ...roll });
-            });
-        }
-
-        if(newDiceRolls.length > 0) {
-            setDiceRolls(prev => [...prev, ...newDiceRolls.map((r, i) => ({...r, id: Date.now().toString() + i, timestamp: new Date()}))]);
-        }
-        
-        if(nextLocationDescription) {
-          setLocationDescription(nextLocationDescription);
+        if(dmTurnResult.nextLocationDescription) {
+          setLocationDescription(dmTurnResult.nextLocationDescription);
           addDebugMessage("Descripción de la ubicación actualizada.");
         }
         
-        if (updatedCharacterStats && playerCharacter) {
-          updateCharacter(playerCharacter.id, updatedCharacterStats);
+        if (dmTurnResult.updatedCharacterStats && playerCharacter) {
+          updateCharacter(playerCharacter.id, dmTurnResult.updatedCharacterStats);
           addDebugMessage("Estadísticas del personaje actualizadas.");
         }
         
-        if (startCombat) {
+        if (dmTurnResult.startCombat) {
+            addDebugMessage("CAMBIO DE MODO: Entrando en combate.");
             setInCombat(true);
             addMessage({ sender: "System", content: "¡COMIENZA EL COMBATE!" });
-            addDebugMessage("CAMBIO DE MODO: Entrando en combate.");
+
+            addDebugMessage("Iniciando primer turno de combate...");
+            const combatTurnResult = await runDungeonMasterTurn(
+                "Comienza la batalla",
+                "",
+                gameState,
+                locationDescription,
+                playerCharacter || null,
+                true, // Now in combat
+                undefined, // No conversation history needed
+                dmTurnResult.dmNarration?.originalContent // Pass the combat starting narration
+            );
+             addDebugMessage("Primer turno de combate completado. Procesando...");
+
+            if (combatTurnResult.dmNarration) {
+                addMessage(combatTurnResult.dmNarration, isRetry);
+                addDebugMessage("Narración de inicio de combate recibida.");
+            }
+
+            const newDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = [];
+
+            if (combatTurnResult.initiativeRolls && combatTurnResult.initiativeRolls.length > 0) {
+                addDebugMessage(`Se han recibido ${combatTurnResult.initiativeRolls.length} tiradas de iniciativa.`);
+                combatTurnResult.initiativeRolls.forEach(roll => {
+                    newDiceRolls.push({
+                        roller: roll.characterName,
+                        rollNotation: '1d20',
+                        individualRolls: [roll.roll],
+                        modifier: roll.modifier,
+                        totalResult: roll.total,
+                        outcome: 'neutral',
+                        description: 'Tirada de iniciativa'
+                    });
+                });
+            }
+
+            if (combatTurnResult.diceRolls && combatTurnResult.diceRolls.length > 0) {
+                addDebugMessage(`Se han recibido ${combatTurnResult.diceRolls.length} tiradas de combate adicionales.`);
+                combatTurnResult.diceRolls.forEach(roll => {
+                    newDiceRolls.push({ ...roll });
+                });
+            }
+
+            if(newDiceRolls.length > 0) {
+                setDiceRolls(prev => [...prev, ...newDiceRolls.map((r, i) => ({...r, id: Date.now().toString() + i, timestamp: new Date()}))]);
+            }
+        } else {
+             // This code runs only if combat did NOT start in this turn
+            const newDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = [];
+            if (dmTurnResult.diceRolls && dmTurnResult.diceRolls.length > 0) {
+                addDebugMessage(`Se han recibido ${dmTurnResult.diceRolls.length} tiradas (fuera de combate).`);
+                dmTurnResult.diceRolls.forEach(roll => {
+                    newDiceRolls.push({ ...roll });
+                });
+            }
+            if(newDiceRolls.length > 0) {
+                setDiceRolls(prev => [...prev, ...newDiceRolls.map((r, i) => ({...r, id: Date.now().toString() + i, timestamp: new Date()}))]);
+            }
         }
 
-        if (endCombat) {
+        if (dmTurnResult.endCombat) {
             setInCombat(false);
             addMessage({ sender: "System", content: "El combate ha terminado." });
             addDebugMessage("CAMBIO DE MODO: Saliendo de combate.");
         }
-
       }
     } catch (error: any) {
       console.error("Error during AI turn:", error);

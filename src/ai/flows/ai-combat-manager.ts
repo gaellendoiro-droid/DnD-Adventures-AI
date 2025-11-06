@@ -19,6 +19,7 @@ const AiCombatManagerInputSchema = z.object({
   locationDescription: z.string().optional().describe('A description of the current location.'),
   characterStats: z.string().optional().describe('The current stats of the player character.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
+  combatStartNarration: z.string().optional().describe("If this is the first turn of combat, this field will contain the DM's narration of how combat started."),
 });
 export type AiCombatManagerInput = z.infer<typeof AiCombatManagerInputSchema>;
 
@@ -62,9 +63,9 @@ const aiCombatManagerPrompt = ai.definePrompt({
 **STATE: FIRST TURN OF COMBAT**
 - If the player's action is "Comienza la batalla", this is the VERY FIRST turn.
 - **First Turn Protocol (Strictly follow):**
-    1.  **Determine Combatants:** Identify ALL characters involved in the fight (player, NPCs, enemies).
-    2.  **Roll Initiative:** You MUST roll initiative for EVERY combatant.
-        - For each, calculate \`d20 + dexterity modifier\`.
+    1.  **Determine Combatants:** Identify ALL combatants based on the provided \`combatStartNarration\` and other context. This is your primary source for who is involved.
+    2.  **Roll Initiative:** You MUST roll initiative for EVERY combatant identified.
+        - For each, calculate \`d20 + dexterity modifier\`. Use the dndApiLookupTool if you need stats for generic creatures like 'guard' or 'goblin'.
         - Populate the 'initiativeRolls' field with the results for each combatant.
     3.  **Establish Turn Order:** Based on the initiative rolls, state the turn order clearly in your narration (e.g., "El orden de combate es: Merryl, Orco 1, Galador, Elara...").
     4.  **Execute First Turn:** Narrate the action for the character with the highest initiative.
@@ -84,6 +85,9 @@ const aiCombatManagerPrompt = ai.definePrompt({
     7.  **Check for Combat End:** If all enemies are defeated or have fled, set 'endCombat' to true. Otherwise, it MUST be false.
 
 **CONTEXT:**
+{{#if combatStartNarration}}
+-   **This is how combat started:** {{{combatStartNarration}}}
+{{/if}}
 -   Player Stats: {{{characterStats}}}
 -   Location: {{{locationDescription}}}
 -   Conversation History:
