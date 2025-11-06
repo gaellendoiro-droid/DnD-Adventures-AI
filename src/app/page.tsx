@@ -223,15 +223,3 @@ export default function Home() {
     </div>
   );
 }
-
-// Create a new API route to serve the JSON file
-export const dynamic = 'force-dynamic';
-
-export async function GET(request: Request) {
-    const adventureData = await import("@/../JSON_adventures/el-dragon-del-pico-agujahelada.json");
-    return new Response(JSON.stringify(adventureData.default), {
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    });
-}
