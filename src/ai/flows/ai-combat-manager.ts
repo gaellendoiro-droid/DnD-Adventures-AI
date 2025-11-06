@@ -106,9 +106,11 @@ const aiCombatManagerPrompt = ai.definePrompt({
 - If the player's action is "Comienza la batalla", this is the VERY FIRST turn.
 - **First Turn Protocol (Strictly follow, this is your highest priority):**
     1.  **Do NOT re-narrate the start of combat.** The context is already provided. Your narration should be brief and focused on the mechanics.
-    2.  **Identify ALL Combatants:** Your first job is to read the 'How it Started' context and identify EVERYONE involved: the player's party and any enemies or NPCs mentioned.
+    2.  **Identify ALL Combatants:** Your first job is to read the 'How it Started' context and identify EVERYONE involved: the player's party and any enemies or NPCs mentioned. To get stats for an NPC/enemy, use your tools in this order:
+        -   **First, try \`adventureLookupTool\`:** Use the NPC's name (e.g., 'Linene Vientogrís') to find their specific data in the adventure. This is the most accurate source.
+        -   **Then, use \`dndApiLookupTool\`:** If the NPC is not in the adventure data, deduce a generic type (like 'commoner', 'guard') and use that to get base stats.
     3.  **Roll Initiative:** You MUST roll initiative for EVERY combatant you identified.
-        - For each, calculate \`d20 + dexterity modifier\`. Use your tools ('adventureLookupTool', 'dndApiLookupTool') to find stats for any NPCs or monsters not in the Player's Party list.
+        - For each, calculate \`d20 + dexterity modifier\`.
         - You MUST populate the 'initiativeRolls' field with the detailed results for each combatant. This is mandatory.
     4.  **Establish Turn Order:** Your narration's primary job is to state the turn order clearly (e.g., "El orden de combate es: Merryl, Orco 1, Galador, Elara...").
     5.  **Execute First Turn:**
@@ -164,12 +166,13 @@ const aiCombatManagerFlow = ai.defineFlow(
             if (queryType === 'location') {
               result = adventureData.locations?.find((loc: any) => loc.id === queryId);
             } else if (queryType === 'entity') {
-              result = adventureData.entities?.find((ent: any) => ent.id === queryId);
+              // Search by ID first, then by name if ID fails
+              result = adventureData.entities?.find((ent: any) => ent.id === queryId || ent.name === queryId);
             } else {
               return `Unknown query type '${queryType}'. Use 'location' or 'entity'.`;
             }
             
-            return result ? JSON.stringify(result, null, 2) : `No ${queryType} found with ID '${queryId}'.`;
+            return result ? JSON.stringify(result, null, 2) : `No ${queryType} found with ID or name '${queryId}'.`;
       
           } catch (error) {
             console.warn(`Adventure Lookup: Error processing query "${query}"`, error);
