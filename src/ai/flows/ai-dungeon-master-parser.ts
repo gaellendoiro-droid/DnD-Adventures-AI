@@ -38,7 +38,7 @@ const CombatDiceRollSchema = z.object({
     modifier: z.number().optional().describe("The modifier applied to the roll."),
     totalResult: z.number().describe("The total score after the modifier (sum of individual rolls + modifier)."),
     description: z.string().describe("A brief description of the roll's purpose, including dice notation. For example: 'Tirada de Ataque (1d20+5)', 'Tirada de Daño (2d6+3)', 'Salvación de Destreza (1d20+2)'."),
-    outcome: z.enum(['crit', 'success', 'fail', 'pifia', 'neutral']).describe("The outcome of the roll, especially for attack rolls (success/fail) or saving throws. Use 'crit' for a critical hit (natural 20) and 'pifia' for a critical fail (natural 1). Use 'neutral' for damage rolls or other rolls without a success/fail condition."),
+    outcome: z.enum(['crit', 'success', 'fail', 'pifia', 'neutral']).describe("The outcome of the roll. For attack rolls, use 'crit' for a critical hit (natural 20 on the d20) and 'pifia' for a critical fail (natural 1 on the d20). For ALL other attack rolls, use 'neutral'. You will determine success or failure in the narration based on the target's AC. For saving throws, use 'success' or 'fail' based on the DC. For damage rolls, use 'neutral'."),
 });
 
 
@@ -191,3 +191,5 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
     return output;
   }
 );
+
+    
