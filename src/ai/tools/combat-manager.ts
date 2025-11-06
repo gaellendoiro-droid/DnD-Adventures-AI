@@ -84,14 +84,15 @@ export const combatManagerTool = ai.defineTool(
         await addMessage(messages, { sender: 'System', content: `Turno de ${companion.name}.` });
         
         const response = await companionExpert({
-          characters: [{ id: companion.id, name: companion.name, class: companion.class, race: companion.race, personality: companion.personality }],
+          character: companion,
           context: "Es el turno de este personaje en combate. Decide su acción.",
           inCombat: true,
           enemies: enemies.map(e => e.name),
+          party: party,
         });
 
-        if (response.actions.length > 0) {
-          await addMessage(messages, { sender: 'Character', senderName: companion.name, characterColor: companion.color, content: `${response.actions[0].action}` });
+        if (response.action) {
+          await addMessage(messages, { sender: 'Character', senderName: companion.name, characterColor: companion.color, content: `${response.action}` });
         }
 
       } else { // It's an enemy
