@@ -120,11 +120,18 @@ export function ChatMessage({ message }: ChatMessageProps) {
     }
   }, [audioDataUri]);
 
+  let renderedContent = content;
+  if (sender === "System" && content === "¡Combate Finalizado!") {
+    renderedContent = <div className="font-bold uppercase text-green-500 text-lg">{content}</div>;
+  }
+   if (sender === "System" && (content as string).startsWith("¡Comienza el Combate!")) {
+    renderedContent = <div className="font-bold uppercase text-destructive text-lg">{content}</div>;
+  }
 
   if (sender === "System") {
     return (
       <div className="flex justify-center items-center gap-2 my-2">
-        <div className={cn(info.bubbleClassName, "text-center")}>{content}</div>
+        <div className={cn(info.bubbleClassName, "text-center")}>{renderedContent}</div>
       </div>
     );
   }
@@ -163,8 +170,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
           >
             {sender === 'DM' ? (
               <div className="leading-relaxed" dangerouslySetInnerHTML={{ __html: content as string }} />
-            ) : React.isValidElement(content) ? (
-                content
+            ) : React.isValidElement(renderedContent) ? (
+                renderedContent
             ) : (
               <p className="leading-relaxed">{content as string}</p>
             )}

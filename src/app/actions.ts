@@ -5,18 +5,8 @@ import { oocAssistant } from "@/ai/flows/ooc-assistant";
 import { companionExpert } from "@/ai/flows/companion-expert";
 import { narrativeExpert } from "@/ai/flows/narrative-expert";
 import { markdownToHtml } from "@/ai/flows/markdown-to-html";
-import { Character, GameMessage } from "@/lib/types";
+import type { Character, GameMessage, Combatant, DiceRoll } from "@/lib/types";
 import { enemyTactician } from "@/ai/flows/enemy-tactician";
-
-// Placeholder for a more sophisticated dice roller if needed
-function rollDice(notation: string): number {
-    const [numDice, numSides] = notation.split('d').map(Number);
-    let total = 0;
-    for (let i = 0; i < numDice; i++) {
-        total += Math.floor(Math.random() * numSides) + 1;
-    }
-    return total;
-}
 
 /**
  * Handles out-of-character messages from the player.
@@ -31,8 +21,8 @@ export async function handleOocMessage(playerQuery: string, gameState: string, c
 }
 
 /**
- * The main "Coordinator" logic. This function receives a player action and orchestrates the turn
- * by calling the appropriate AI experts (narrator, companion AI, enemy AI).
+ * The main "Narrative" logic. This function receives a player action outside of combat
+ * and orchestrates the turn by calling the narrative and companion experts.
  */
 export async function runTurn(
   playerAction: string,
@@ -115,4 +105,124 @@ export async function runTurn(
     nextLocationDescription: narrativeResponse.nextLocationDescription,
     updatedCharacterStats: parsedStats,
   };
+}
+
+
+/**
+ * The Combat Coordinator. This function processes a single player action and then
+ * runs the turns for all subsequent NPCs (allies and enemies) until it is the
+ * player's turn again or combat ends.
+ */
+export async function runCombatTurn(
+    playerAction: string,
+    party: Character[],
+    enemiesInCombat: any[], // Simplified for this example
+    initiativeOrder: Combatant[],
+    currentTurnIndex: number,
+    gameState: string,
+    locationDescription: string,
+    conversationHistory: string,
+) {
+    const turnResults: { messages: GameMessage[], diceRolls: DiceRoll[], updatedParty: Character[], updatedEnemies: any[] } = {
+        messages: [],
+        diceRolls: [],
+        updatedParty: [...party],
+        updatedEnemies: [...enemiesInCombat],
+    };
+
+    const addMessage = (msg: Omit<GameMessage, 'id' | 'timestamp'>) => {
+        turnResults.messages.push({ ...msg, id: Date.now().toString() + Math.random(), timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) });
+    };
+
+    const addDiceRolls = (rolls: any[]) => {
+        const newRolls = rolls.map(r => ({ ...r, id: Date.now().toString() + Math.random(), timestamp: new Date() }));
+        turnResults.diceRolls.push(...newRolls);
+    }
+    
+    // =================================================================
+    // 1. Process Player's Turn
+    // =================================================================
+    const playerCombatant = initiativeOrder[currentTurnIndex];
+    if (playerCombatant.type === 'player') {
+        const playerCharacter = party.find(c => c.id === playerCombatant.id);
+        addMessage({
+            sender: 'System',
+            content: `Turno de ${playerCharacter?.name}.`,
+        });
+
+        // For now, we'll just narrate the player's action. A real implementation
+        // would involve calling the narrativeExpert to interpret the action and
+        // determine outcomes and dice rolls.
+        const { html } = await markdownToHtml({ markdown: `Tú (Galador) atacas: ${playerAction}` });
+        addMessage({ sender: 'DM', content: html, originalContent: `Tú (Galador) atacas: ${playerAction}` });
+    }
+
+
+    // =================================================================
+    // 2. Loop through subsequent NPC turns
+    // =================================================================
+    let turnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
+    let combatLoop = 0; // Safety break
+
+    while(initiativeOrder[turnIndex].type !== 'player' && combatLoop < initiativeOrder.length) {
+        const currentCombatant = initiativeOrder[turnIndex];
+        const isCompanion = party.some(p => p.id === currentCombatant.id);
+
+        if(isCompanion) {
+            const companion = party.find(p => p.id === currentCombatant.id)!;
+             addMessage({
+                sender: 'System',
+                content: `Turno de ${companion.name}.`,
+            });
+            const response = await companionExpert({
+                characters: [{id: companion.id, name: companion.name, class: companion.class, race: companion.race, personality: companion.personality}],
+                context: "Es el turno de este personaje en combate. Decide su acción.",
+                inCombat: true,
+                enemies: enemiesInCombat.map(e => e.name),
+            });
+            if(response.actions.length > 0) {
+                 const { html } = await markdownToHtml({ markdown: `${companion.name} ${response.actions[0].action}` });
+                 addMessage({ sender: 'Character', senderName: companion.name, characterColor: companion.color, content: html, originalContent: `${companion.name} ${response.actions[0].action}`});
+            }
+
+        } else { // It's an enemy
+            const enemy = enemiesInCombat.find(e => e.id === currentCombatant.id)!;
+            addMessage({
+                sender: 'System',
+                content: `Turno de ${enemy.name}.`,
+            });
+
+            const enemyResponse = await enemyTactician({
+                activeCombatant: enemy.name,
+                party: party,
+                enemies: enemiesInCombat.map(e => ({ name: e.name, hp: 'Unknown' })), // HP status can be improved later
+                locationDescription,
+                conversationHistory,
+                gameState,
+            });
+
+            const { html } = await markdownToHtml({ markdown: enemyResponse.narration });
+            addMessage({ sender: 'DM', content: html, originalContent: enemyResponse.narration });
+            if(enemyResponse.diceRolls) addDiceRolls(enemyResponse.diceRolls);
+        }
+
+        turnIndex = (turnIndex + 1) % initiativeOrder.length;
+        combatLoop++;
+    }
+
+
+    // =================================================================
+    // 3. Return all collected results
+    // =================================================================
+    const endCombat = turnResults.updatedEnemies.every(e => e.hp.current <= 0);
+    if(endCombat) {
+        addMessage({ sender: 'System', content: '¡Combate Finalizado!' });
+    }
+
+
+    return {
+        turnResults,
+        nextTurnIndex: turnIndex,
+        endCombat,
+    };
 }

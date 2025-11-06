@@ -82,7 +82,9 @@ export interface InitiativeRoll {
     total: number;
 }
 
-export interface Combatant extends InitiativeRoll {
+export interface Combatant {
   id: string;
+  characterName: string;
+  total: number;
   type: 'player' | 'npc';
 }
