@@ -42,6 +42,13 @@ const abilityIcons = {
   carisma: <Sparkles className="w-5 h-5 text-pink-500" />,
 };
 
+const backgroundDescriptions: { [key: string]: string } = {
+  "Noble": "Como noble, provienes de una familia de la alta sociedad. Tienes privilegios, pero también grandes responsabilidades. Es posible que te traten con respeto en ciertos círillos, y tu linaje puede abrirte puertas... o granjearte enemigos.",
+  "Acólita": "Has pasado tu vida al servicio de un templo o una orden sagrada. Tu entrenamiento te ha proporcionado conocimientos sobre el reino divino y los ritos sagrados. La gente de fe podría acudir a ti en busca de guía.",
+  "Erudito": "Has dedicado años al estudio y la investigación, acumulando conocimientos. Tu mente es tu mayor herramienta y tu mayor tesoro. Puedes recordar información sobre historia, magia o cualquier otro tema que hayas estudiado.",
+  "Default": "El trasfondo de un personaje revela de dónde viene, cómo se convirtió en un aventurero y cuál es su lugar en el mundo."
+};
+
 export function CharacterSheet({ character }: CharacterSheetProps) {
   if (!character) {
     return (
@@ -55,6 +62,8 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
     const modifier = Math.floor((score - 10) / 2);
     return modifier >= 0 ? `+${modifier}` : modifier;
   };
+  
+  const backgroundDescription = backgroundDescriptions[character.background] || backgroundDescriptions["Default"];
 
   return (
     <ScrollArea className="h-full">
@@ -134,11 +143,11 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
           </AccordionItem>
           <AccordionItem value="background">
             <AccordionTrigger className="font-semibold text-base">
-                <BookUser className="mr-2"/> Trasfondo
+                <BookUser className="mr-2"/> Trasfondo: {character.background}
             </AccordionTrigger>
             <AccordionContent>
                 <p className="text-sm text-muted-foreground p-2">
-                  El trasfondo de un personaje revela de dónde viene, cómo se convirtió en un aventurero y cuál es su lugar en el mundo. El trasfondo de {character.name} es: <strong>{character.background}</strong>.
+                  {backgroundDescription}
                 </p>
             </AccordionContent>
           </AccordionItem>
