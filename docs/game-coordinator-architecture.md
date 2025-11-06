@@ -53,33 +53,3 @@ Estas herramientas siguen siendo cruciales para que todas las IAs tengan acceso 
 #### Herramienta: `dndApiLookupTool`
 *   **Rol**: El **manual de reglas de D&D 5e**.
 *   **Función**: Busca información general sobre reglas, hechizos, monstruos, etc., en una API externa.
-
----
-
-### Flujo de Ejemplo
-
-1.  **Acción del Jugador (Exploración)**:
-    *   El jugador escribe: "Ataco al orco con mi espada".
-    *   La UI de la aplicación llama a una única función, por ejemplo `processPlayerAction("Ataco al orco...")`.
-
-2.  **Coordinación y Delegación**:
-    *   `processPlayerAction` invoca a la `gameCoordinator` con la acción y el estado del juego.
-    *   La `gameCoordinator` analiza el estado (no en combate) y la acción (hostil).
-    *   Decide invocar a la `narrativeExpertTool` para que gestione el inicio del combate.
-
-3.  **Inicio de Combate**:
-    *   La `narrativeExpertTool` genera la narración de inicio ("¡El orco ruge y levanta su hacha!").
-    *   Devuelve a la `gameCoordinator` la orden de iniciar combate, junto con la narración.
-
-4.  **Actualización de la Aplicación**:
-    *   La coordinadora pasa el resultado a la aplicación, que actualiza la UI, pone el juego en modo combate y calcula las iniciativas.
-
-5.  **Acción del Jugador (Combate)**:
-    *   Ahora el jugador escribe: "Uso Cuchillada".
-    *   Se vuelve a llamar a la `gameCoordinator`.
-
-6.  **Gestión del Combate**:
-    *   La `gameCoordinator` ve que el estado es "en combate".
-    *   Invoca a la herramienta `combatTurnTool`.
-    *   La `combatTurnTool` procesa la acción del jugador y luego ejecuta los turnos de los PNJ hasta que le toque de nuevo al jugador.
-    *   Devuelve todos los eventos de la ronda a la `gameCoordinator`, y esta a la aplicación para que actualice la UI.
