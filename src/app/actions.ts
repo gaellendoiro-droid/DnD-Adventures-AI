@@ -28,7 +28,6 @@ export async function runTurn(
   playerAction: string,
   party: Character[],
   locationId: string,
-  locationDescription: string,
   gameState: string,
   conversationHistory: string,
 ) {
@@ -68,7 +67,6 @@ export async function runTurn(
       playerAction,
       characterActions: companionActionsContent,
       locationId,
-      locationDescription,
       gameState,
       characterStats: playerCharacter ? JSON.stringify(playerCharacter) : undefined,
       conversationHistory,
@@ -105,7 +103,6 @@ export async function runTurn(
     startCombat: narrativeResponse.startCombat,
     combatStartNarration: narrativeResponse.combatStartNarration,
     nextLocationId: narrativeResponse.nextLocationId,
-    nextLocationDescription: narrativeResponse.nextLocationDescription,
     updatedCharacterStats: parsedStats,
   };
 }

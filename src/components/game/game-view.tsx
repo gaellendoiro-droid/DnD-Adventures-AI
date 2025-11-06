@@ -14,6 +14,8 @@ import { PartyPanel } from "./party-panel";
 import { Separator } from "../ui/separator";
 import { markdownToHtml } from "@/ai/flows/markdown-to-html";
 import { useToast } from "@/hooks/use-toast";
+import adventureData from "@/../JSON_adventures/el-dragon-del-pico-agujahelada.json";
+
 
 interface GameViewProps {
   initialData: {
@@ -35,7 +37,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const [diceRolls, setDiceRolls] = useState<DiceRoll[]>(initialData.diceRolls);
   const [gameState, setGameState] = useState(initialData.gameState);
   const [locationId, setLocationId] = useState(initialData.locationId);
-  const [locationDescription, setLocationDescription] = useState(initialData.locationDescription);
   const [inCombat, setInCombat] = useState(initialData.inCombat || false);
   const [initiativeOrder, setInitiativeOrder] = useState<Combatant[]>(initialData.initiativeOrder || []);
   const [enemies, setEnemies] = useState<any[]>([]); // State to hold enemy data
@@ -54,13 +55,15 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setDebugMessages(prev => [...prev, `[${timestamp}] ${message}`].slice(-50));
   }, []);
 
+  // Recalculate location description whenever locationId changes
+  const locationDescription = (adventureData.locations.find(l => l.id === locationId)?.description || "Un lugar desconocido");
+
   useEffect(() => {
     setParty(initialData.party);
     setMessages(initialData.messages);
     setDiceRolls(initialData.diceRolls);
     setGameState(initialData.gameState);
     setLocationId(initialData.locationId);
-    setLocationDescription(initialData.locationDescription);
     setSelectedCharacter(initialData.party.find(c => c.controlledBy === 'Player') || null);
     setInCombat(initialData.inCombat || false);
     setInitiativeOrder(initialData.initiativeOrder || []);
@@ -254,13 +257,12 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       } else {
         // --- NARRATIVE MODE ---
         addDebugMessage("Running NARRATIVE turn.");
-        const turnResult = await runTurn(content, party, locationId, locationDescription, gameState, history);
+        const turnResult = await runTurn(content, party, locationId, gameState, history);
           
         if(turnResult.companionMessages.length > 0) addMessages(turnResult.companionMessages, isRetry);
         if(turnResult.dmNarration) addMessage(turnResult.dmNarration, isRetry);
         if(turnResult.nextLocationId) setLocationId(turnResult.nextLocationId);
-        if(turnResult.nextLocationDescription) setLocationDescription(turnResult.nextLocationDescription);
-
+        
         if (turnResult.updatedCharacterStats) {
             const playerCharacter = party.find(c => c.controlledBy === 'Player');
             if (playerCharacter) updateCharacter(playerCharacter.id, turnResult.updatedCharacterStats);
@@ -303,7 +305,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       diceRolls,
       gameState,
       locationId,
-      locationDescription,
       inCombat,
       initiativeOrder,
       enemies,

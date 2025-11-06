@@ -24,7 +24,6 @@ export default function Home() {
     diceRolls: DiceRoll[];
     gameState: string;
     locationId: string;
-    locationDescription: string;
     inCombat?: boolean;
     initiativeOrder?: Combatant[];
   } | null>(null);
@@ -43,7 +42,6 @@ export default function Home() {
         diceRolls: [],
         gameState: newGameState,
         locationId: adventureData.locations[0].id,
-        locationDescription: adventureData.locations[0].description,
         inCombat: false,
         initiativeOrder: [],
       });
@@ -92,7 +90,6 @@ export default function Home() {
             "Comenzar la aventura.",
             initialParty,
             firstLocation.id,
-            firstLocation.description,
             newGameState,
             ""
         );
@@ -108,7 +105,6 @@ export default function Home() {
           diceRolls: [],
           gameState: newGameState,
           locationId: firstLocation.id,
-          locationDescription: firstLocation.description,
           inCombat: false,
           initiativeOrder: [],
         });
@@ -150,7 +146,6 @@ export default function Home() {
           diceRolls: saveData.diceRolls || [],
           gameState: saveData.gameState,
           locationId: saveData.locationId,
-          locationDescription: saveData.locationDescription || "",
           inCombat: saveData.inCombat || false,
           initiativeOrder: saveData.initiativeOrder || [],
         });
@@ -182,7 +177,10 @@ export default function Home() {
       <AppHeader onGoToMenu={handleGoToMenu} showMenuButton={gameStarted} />
       {gameStarted && initialGameData ? (
         <GameView 
-          initialData={initialGameData}
+          initialData={{
+            ...initialGameData,
+            locationDescription: adventureData.locations.find(l => l.id === initialGameData.locationId)?.description || "Un lugar desconocido"
+          }}
           onSaveGame={(saveData) => {
               const jsonString = JSON.stringify(saveData, null, 2);
               const blob = new Blob([jsonString], { type: 'application/json' });
