@@ -21,8 +21,9 @@ const CharacterInfoSchema = z.object({
 
 const GenerateCharacterActionInputSchema = z.object({
   characters: z.array(CharacterInfoSchema).describe("The list of AI-controlled characters in the party."),
-  dmNarration: z.string().describe("The Dungeon Master's most recent narration, providing context for the scene."),
-  playerAction: z.string().describe("The player's most recent action or dialogue."),
+  context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
+  inCombat: z.boolean().describe("Whether the party is currently in combat."),
+  enemies: z.array(z.string()).optional().describe("A list of enemy names, if in combat."),
 });
 export type GenerateCharacterActionInput = z.infer<typeof GenerateCharacterActionInputSchema>;
 
@@ -48,9 +49,9 @@ const prompt = ai.definePrompt({
   name: 'generateCharacterActionPrompt',
   input: {schema: GenerateCharacterActionInputSchema},
   output: {schema: GenerateCharacterActionOutputSchema},
-  prompt: `You are orchestrating the AI-controlled characters in a D&D party. Your goal is to make their interactions feel natural, realistic, and true to their unique personalities.
+  prompt: `You are orchestrating the AI-controlled characters in a D&D party. Your goal is to make their interactions feel natural and true to their unique personalities.
 
-**Guiding Principle: Realism over Reactivity. Not everyone has to speak every time.** Silence is a valid and often the most natural response.
+**Guiding Principle: Realism over Reactivity. Not everyone has to speak or act every time.**
 
 Your characters are:
 {{#each characters}}
@@ -60,18 +61,27 @@ Your characters are:
   - **Personality:** {{{this.personality}}}
 {{/each}}
 
-This is what's happening, as told by the Dungeon Master:
-"{{{dmNarration}}}"
+This is what's happening:
+"{{{context}}}"
 
-The player character just said or did this:
-"{{{playerAction}}}"
+{{#if inCombat}}
+**You are IN COMBAT.** The enemies are: {{#each enemies}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}.
+Decide the combat action for the character(s) whose turn it is. Their action should be based on their personality.
+- A pragmatic cleric might heal the most wounded ally.
+- A reckless mage might use a powerful area-of-effect spell, even if it's risky.
+- A cowardly rogue might try to hide.
+- A brave warrior will attack the biggest threat.
 
-Based on the situation and each character's personality, decide if any of your characters should react.
-- **Is the player talking to them directly?** If so, a response is likely but not guaranteed. The response should be in character.
-- **Does the situation warrant a reaction?** A character might react to a tense moment, a critical event, or something that specifically aligns with their personality (e.g., a greedy character noticing treasure).
-- **It's okay to be silent.** This is the most important rule. Not everyone has to speak or act every time. If a character has no strong opinion or nothing relevant to add, they should remain silent. Do not generate an action for them.
-- **CRITICAL: Do not use Markdown or any other formatting.** The output must be plain text only. Do not include asterisks, backticks, or any other special characters for styling.
-- A character's action can be a short, in-character line of dialogue or a brief description of a non-verbal action.
+State the action clearly (e.g., "Elara casts Healing Word on Galador", "Merryl attacks the goblin with a Fire Bolt").
+{{else}}
+**You are in narrative/exploration mode.** The player character just said or did the above.
+- **Is the player talking to them directly?** A response is likely.
+- **Does the situation warrant a reaction?** A character might react to a tense moment or something that aligns with their personality.
+- **It's okay to be silent.** If a character has no strong opinion, they should remain silent. Do not generate an action for them.
+{{/if}}
+
+**RULES:**
+- **CRITICAL: Do not use Markdown.** The output must be plain text.
 - Keep actions concise.
 - If a character does nothing, do not include them in the output array. If no one acts, return an empty array.
 - The order of actions in the output array determines the sequence of events.

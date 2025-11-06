@@ -11,6 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
+import { adventureLookupTool } from '../tools/adventure-lookup';
 
 const AiDungeonMasterParserInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
@@ -26,7 +27,8 @@ const AiDungeonMasterParserOutputSchema = z.object({
   narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown. If the characters are just talking, this can be an empty string."),
   nextLocationDescription: z.string().optional().nullable().describe('A description of the next location, if the player moved.'),
   updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}, \"inventory\": [{\"id\":\"item-gp-1\",\"name\":\"Monedas de Oro\",\"quantity\":10}]}'. Must be a valid JSON string or null."),
-  startCombat: z.boolean().describe("Set to true if the player's action has definitively initiated combat."),
+  startCombat: z.boolean().describe("Set to true if the player's action or the narrative circumstances have definitively initiated combat."),
+  combatStartNarration: z.string().optional().describe("If startCombat is true, this field MUST contain a brief, exciting narration of how the combat begins (e.g., 'An arrow whistles past your ear and you see three goblins emerging from the bushes!'). This will be used by the app to identify the combatants."),
 });
 export type AiDungeonMasterParserOutput = z.infer<typeof AiDungeonMasterParserOutputSchema>;
 
@@ -38,16 +40,17 @@ const aiDungeonMasterParserPrompt = ai.definePrompt({
   name: 'aiDungeonMasterParserPrompt',
   input: {schema: AiDungeonMasterParserInputSchema},
   output: {schema: AiDungeonMasterParserOutputSchema},
-  tools: [dndApiLookupTool],
+  tools: [dndApiLookupTool, adventureLookupTool],
   prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish. DO NOT translate proper nouns (names, places, etc.).
 
 **Your Priorities:**
 1.  **Primary Task: Drive the Narrative.** Your main goal is to be a descriptive and engaging storyteller. Describe the world, react to the player's choices, portray non-player characters (NPCs), and create an immersive experience. Your narration must always end by prompting the player for their next action (e.g., "¿Qué haces?"). Use the provided tools ('adventureLookupTool', 'dndApiLookupTool') for details when needed.
-2.  **Critical Directive: Detect Combat.** If a player's action is hostile and unequivocally starts a fight (e.g., "Ataco al guardia," "Lanzo una bola de fuego a los orcos"), you MUST set 'startCombat' to true.
+2.  **CRITICAL DIRECTIVE: Detect Combat.** Your most important job is to determine if the story leads to combat. This can be due to a player's hostile action (e.g., "Ataco al guardia") or a narrative event (e.g., an ambush). If combat starts, you MUST set 'startCombat' to true.
 
 **Combat Start Protocol (Strictly follow):**
--   When 'startCombat' is true, your ONLY job is to write a brief narration describing the moment the fight breaks out (e.g., "El guardia desenvaina su espada con un grito, y la batalla comienza.") and return a valid JSON object with \`startCombat: true\`.
--   DO NOT roll initiative, do not describe attacks, do not do anything else. The combat manager will handle all combat actions.
+-   When 'startCombat' is true, your ONLY job is to write a brief, exciting narration in the 'combatStartNarration' field describing the moment the fight breaks out (e.g., "El guardia desenvaina su espada con un grito, y la batalla comienza." or "¡Una banda de orcos os embosca desde las ruinas!"). This narration is critical as it will be used to identify the enemies.
+-   Your 'narration' field in this case can be the same as 'combatStartNarration' or a slightly more detailed version.
+-   When 'startCombat' is true, DO NOT roll initiative, do not describe attacks, do not do anything else. The application will handle all combat mechanics.
 -   For any other action that does NOT start combat, 'startCombat' MUST be false.
 
 **Rules:**
@@ -84,52 +87,10 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
     outputSchema: AiDungeonMasterParserOutputSchema,
   },
   async (input) => {
-    // Dynamically wire the adventure lookup tool to use the current gameState
-    const tools = [dndApiLookupTool];
-    if (input.gameState) {
-      const dynamicAdventureLookupTool = ai.defineTool(
-        {
-          name: 'adventureLookupTool',
-          description: 'Looks up information about a specific location or entity (character, monster) from the main adventure data file. Use this to get details when a player moves to a new area or interacts with a specific named entity.',
-          inputSchema: z.object({
-              query: z.string().describe("The search query, formatted as 'location:<id>' or 'entity:<id>'. For example: 'location:phandalin-plaza-del-pueblo' or 'entity:cryovain'."),
-          }),
-          outputSchema: z.string().describe('A JSON string containing the requested information, or an error message if not found.'),
-        },
-        async ({ query }) => {
-          if (!input.gameState) return "Adventure data not available.";
-          try {
-            const adventureData = JSON.parse(input.gameState);
-            const [queryType, queryId] = query.split(':');
-      
-            if (!queryType || !queryId) {
-              return "Invalid query format. Use 'location:<id>' or 'entity:<id>'.";
-            }
-      
-            let result: any;
-            if (queryType === 'location') {
-              result = adventureData.locations?.find((loc: any) => loc.id === queryId);
-            } else if (queryType === 'entity') {
-              result = adventureData.entities?.find((ent: any) => ent.id === queryId);
-            } else {
-              return `Unknown query type '${queryType}'. Use 'location' or 'entity'.`;
-            }
-            
-            return result ? JSON.stringify(result, null, 2) : `No ${queryType} found with ID '${queryId}'.`;
-      
-          } catch (error) {
-            console.warn(`Adventure Lookup: Error processing query "${query}"`, error);
-            return "Failed to parse or search the adventure data.";
-          }
-        }
-      );
-      tools.push(dynamicAdventureLookupTool);
-    }
-
     try {
         const {output} = await aiDungeonMasterParserPrompt(input, {
             model: 'googleai/gemini-2.5-flash',
-            tools,
+            tools: [dndApiLookupTool, adventureLookupTool],
             config: {
             safetySettings: [
                 {
@@ -141,7 +102,7 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
         });
         
         if (!output) {
-        return { narration: "El Dungeon Master parece distraído y no responde.", startCombat: false };
+            return { narration: "El Dungeon Master parece distraído y no responde.", startCombat: false };
         }
         
         if (output.updatedCharacterStats) {
@@ -163,5 +124,3 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
     }
   }
 );
-
-    

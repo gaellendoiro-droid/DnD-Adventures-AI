@@ -10,7 +10,7 @@ import { MainMenu } from "@/components/game/main-menu";
 import { GameView } from "@/components/game/game-view";
 import { useToast } from "@/hooks/use-toast";
 import { parseAdventureFromJson } from "@/ai/flows/parse-adventure-from-json";
-import { runDungeonMasterTurn } from "./actions";
+import { runTurn } from "./actions";
 import adventureData from "@/../JSON_adventures/el-dragon-del-pico-agujahelada.json";
 
 
@@ -84,13 +84,12 @@ export default function Home() {
         
         toast({ title: "Generando introducción...", description: "El Dungeon Master está preparando la escena." });
         
-        const { dmNarration } = await runDungeonMasterTurn(
+        const { dmNarration } = await runTurn(
             "Comenzar la aventura.",
-            "",
-            newGameState,
+            initialParty,
             parsedAdventure.adventureSummary,
-            initialParty, // Pass full party
-            false // Not in combat
+            newGameState,
+            ""
         );
 
         const messages: GameMessage[] = [];

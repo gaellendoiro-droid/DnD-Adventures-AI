@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Character, GameMessage, DiceRoll, InitiativeRoll, Combatant } from "@/lib/types";
 import { GameLayout } from "@/components/game/game-layout";
 import { LeftPanel } from "@/components/layout/left-panel";
@@ -9,9 +9,10 @@ import { CharacterSheet } from "@/components/game/character-sheet";
 import { ChatPanel } from "@/components/game/chat-panel";
 import { Button } from "../ui/button";
 import { Save } from "lucide-react";
-import { handleOocMessage, generateNpcActions, runDungeonMasterTurn } from "@/app/actions";
+import { handleOocMessage, runTurn } from "@/app/actions";
 import { PartyPanel } from "./party-panel";
 import { Separator } from "../ui/separator";
+import { adventureLookupTool } from "@/ai/tools/adventure-lookup";
 
 interface GameViewProps {
   initialData: {
@@ -40,7 +41,12 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   );
   const [isDMThinking, setIsDMThinking] = useState(false);
   const [debugMessages, setDebugMessages] = useState<string[]>([]);
-  const [combatStartNarration, setCombatStartNarration] = useState<string | undefined>(undefined);
+  const [turnIndex, setTurnIndex] = useState(0);
+
+  const addDebugMessage = useCallback((message: string) => {
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    setDebugMessages(prev => [...prev, `[${timestamp}] ${message}`].slice(-50));
+  }, []);
 
   useEffect(() => {
     // When initialData changes (e.g. loading a new adventure), reset the state
@@ -53,13 +59,9 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setInCombat(initialData.inCombat || false);
     setInitiativeOrder(initialData.initiativeOrder || []);
     setDebugMessages([]);
-    setCombatStartNarration(undefined);
+    setTurnIndex(0);
   }, [initialData]);
 
-  const addDebugMessage = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setDebugMessages(prev => [...prev, `[${timestamp}] ${message}`].slice(-50));
-  };
 
   const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
     
@@ -131,10 +133,60 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       .join('\n');
   };
 
-  const handleSendMessage = async (content: string, options: { isRetry?: boolean, isSystem?: boolean, systemCombatStartNarration?: string } = {}) => {
-    const { isRetry = false, isSystem = false, systemCombatStartNarration } = options;
+  const startCombat = useCallback(async (narration: string) => {
+      addDebugMessage("START_COMBAT sequence initiated.");
+      setInCombat(true);
+      addMessage({ sender: "System", content: <div className="font-bold uppercase text-destructive text-lg">¡Comienza el Combate!</div> });
+      if(narration) {
+        const { html } = await markdownToHtml({ markdown: narration });
+        addMessage({ sender: 'DM', content: html, originalContent: narration });
+      }
 
-    if (!isRetry && !isSystem) {
+      // TODO: Identify enemies from narration
+      const enemies = [{id: "orco-1", name: 'Orco', race: 'Orco', class: 'Guerrero', level: 1, abilityScores: { destreza: 12 } }]; // Placeholder
+
+      const combatants: (Character | any)[] = [...party, ...enemies];
+      
+      const initiativeRolls: InitiativeRoll[] = combatants.map(c => {
+        const modifier = Math.floor((c.abilityScores.destreza - 10) / 2);
+        const roll = Math.floor(Math.random() * 20) + 1;
+        return {
+          characterName: c.name,
+          roll: roll,
+          modifier: modifier,
+          total: roll + modifier,
+        }
+      });
+      
+      const initiativeDiceRolls = initiativeRolls.map(roll => ({
+          roller: roll.characterName,
+          rollNotation: `1d20+${roll.modifier}`,
+          individualRolls: [roll.roll],
+          modifier: roll.modifier,
+          totalResult: roll.total,
+          outcome: 'initiative' as const,
+          description: `Tirada de Iniciativa`
+      }));
+      setDiceRolls(prev => [...prev, ...initiativeDiceRolls.map((r, i) => ({...r, id: Date.now().toString() + i, timestamp: new Date()}))]);
+      
+      const sortedCombatants: Combatant[] = initiativeRolls.map((roll, i) => ({
+        ...roll,
+        id: combatants[i].id,
+        type: combatants[i].controlledBy ? 'player' : 'npc',
+      })).sort((a, b) => b.total - a.total);
+
+      setInitiativeOrder(sortedCombatants);
+      setTurnIndex(0);
+      addDebugMessage(`Combat started. Initiative order set: ${sortedCombatants.map(c => c.characterName).join(', ')}`);
+
+  }, [addDebugMessage, party]);
+
+
+  // Main game loop handler
+  const handleSendMessage = useCallback(async (content: string, options: { isRetry?: boolean } = {}) => {
+    const { isRetry = false } = options;
+
+    if (!isRetry) {
         const playerMessage: GameMessage = {
           id: Date.now().toString(),
           sender: "Player",
@@ -142,190 +194,65 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
         setMessages(prev => [...prev.filter(m => m.sender !== 'Error'), playerMessage]);
-    } else if (isRetry) {
+    } else {
        setMessages(prev => [...prev.filter(m => m.sender !== 'Error')]);
     }
     
     setIsDMThinking(true);
-    addDebugMessage(`Turno iniciado. Player action: "${content}". Modo Combate: ${inCombat}`);
+    addDebugMessage(`Player action: "${content}".`);
 
     try {
       const history = buildConversationHistory();
 
       if (content.startsWith('//')) {
-        addDebugMessage("Detectada query OOC (fuera de personaje).");
+        addDebugMessage("OOC query detected.");
         const oocReply = await handleOocMessage(content.substring(2).trim(), gameState, history);
         if (oocReply) {
           addMessage({ sender: "DM", content: oocReply });
-          addDebugMessage("Respuesta OOC recibida y mostrada.");
+          addDebugMessage("OOC reply received.");
         }
       } else {
-        const playerAction = content;
-        let characterActionsContent = "";
-        
-        if (!isSystem) {
-          addDebugMessage("Creando historial de conversación reciente...");
-          addDebugMessage("Historial creado.");
+        // --- NARRATIVE MODE ---
+        if (!inCombat) {
+          addDebugMessage("Running NARRATIVE turn.");
+          const turnResult = await runTurn(content, party, locationDescription, gameState, history);
+          
+          if(turnResult.companionMessages.length > 0) addMessages(turnResult.companionMessages, isRetry);
+          if(turnResult.dmNarration) addMessage(turnResult.dmNarration, isRetry);
+          if(turnResult.nextLocationDescription) setLocationDescription(turnResult.nextLocationDescription);
+          if (turnResult.updatedCharacterStats) {
+            const playerCharacter = party.find(c => c.controlledBy === 'Player');
+            if (playerCharacter) updateCharacter(playerCharacter.id, turnResult.updatedCharacterStats);
+          }
 
-          const lastDmMessage = messages.findLast(m => m.sender === 'DM');
-          
-          addDebugMessage("Generando acciones de PNJ...");
-          const { newMessages } = await generateNpcActions(
-            party, 
-            lastDmMessage?.originalContent || locationDescription,
-            playerAction
-          );
-          addDebugMessage(`Se generaron ${newMessages.length} acciones de PNJ.`);
-          
-          if (newMessages.length > 0) {
-            addMessages(newMessages, isRetry);
-            characterActionsContent = newMessages.map(m => `${m.senderName}: ${m.content}`).join('\n');
+          if (turnResult.startCombat) {
+            await startCombat(turnResult.combatStartNarration || "");
           }
         }
-
-        const currentTurnOrder = initiativeOrder.map(c => c.characterName);
-        addDebugMessage(`Ejecutando el turno del Dungeon Master en modo ${inCombat || isSystem ? 'Combate' : 'Narrativo'}...`);
-        
-        const dmTurnResult = await runDungeonMasterTurn(
-          playerAction,
-          characterActionsContent,
-          gameState,
-          locationDescription,
-          party, // Pass the whole party
-          inCombat || isSystem, // If it's a system message, we might be starting combat
-          currentTurnOrder,
-          isSystem ? "" : history,
-          systemCombatStartNarration,
-        );
-        addDebugMessage("Turno del DM completado. Procesando resultados...");
-
-        if (dmTurnResult.dmNarration) {
-          addMessage(dmTurnResult.dmNarration, isRetry);
-          addDebugMessage("Narración del DM recibida y mostrada.");
-        }
-
-        if(dmTurnResult.nextLocationDescription) {
-          setLocationDescription(dmTurnResult.nextLocationDescription);
-          addDebugMessage("Descripción de la ubicación actualizada.");
-        }
-        
-        if (dmTurnResult.updatedCharacterStats) {
-          const playerCharacter = party.find(c => c.controlledBy === 'Player');
-          if (playerCharacter) {
-            updateCharacter(playerCharacter.id, dmTurnResult.updatedCharacterStats);
-            addDebugMessage("Estadísticas del personaje del jugador actualizadas.");
-          }
-        }
-        
-        const newDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = [];
-
-        if (dmTurnResult.initiativeRolls && dmTurnResult.initiativeRolls.length > 0) {
-            addDebugMessage(`Se han recibido ${dmTurnResult.initiativeRolls.length} tiradas de iniciativa.`);
-            const rolls: InitiativeRoll[] = dmTurnResult.initiativeRolls;
-            
-            const newCombatants: Combatant[] = rolls.map(roll => {
-              const partyMember = party.find(p => p.name === roll.characterName);
-              return {
-                ...roll,
-                id: partyMember?.id || roll.characterName + Date.now(), // Use character ID or unique name for NPCs
-                type: partyMember ? 'player' : 'npc',
-              };
-            }).sort((a, b) => b.total - a.total);
-            setInitiativeOrder(newCombatants);
-
-            const initiativeDiceRolls = rolls.map(roll => ({
-                roller: roll.characterName,
-                rollNotation: `1d20+${roll.modifier}`,
-                individualRolls: [roll.roll],
-                modifier: roll.modifier,
-                totalResult: roll.total,
-                outcome: 'initiative' as const,
-                description: `Tirada de Iniciativa (1d20${roll.modifier >= 0 ? '+' : ''}${roll.modifier})`
-            }));
-            newDiceRolls.push(...initiativeDiceRolls);
-        }
-
-        if (dmTurnResult.diceRolls && dmTurnResult.diceRolls.length > 0) {
-            addDebugMessage(`Se han recibido ${dmTurnResult.diceRolls.length} tiradas de combate.`);
-            dmTurnResult.diceRolls.forEach((roll: DiceRoll) => {
-                newDiceRolls.push({ ...roll });
-            });
-        }
-
-        if(newDiceRolls.length > 0) {
-            setDiceRolls(prev => [...prev, ...newDiceRolls.map((r, i) => ({...r, id: Date.now().toString() + i, timestamp: new Date()}))]);
-        }
-        
-        if (dmTurnResult.startCombat && !inCombat) {
-            addDebugMessage("CAMBIO DE MODO: Entrando en combate.");
-            if (dmTurnResult.dmNarration?.originalContent) {
-                setCombatStartNarration(dmTurnResult.dmNarration.originalContent);
-            }
-            setInCombat(true);
-            addMessage({ sender: "System", content: <div className="font-bold uppercase text-destructive text-lg">¡Comienza el Combate!</div> });
-        }
-
-        if (dmTurnResult.endCombat) {
-            setInCombat(false);
-            setCombatStartNarration(undefined);
-            setInitiativeOrder([]);
-            addMessage({ sender: "System", content: <div className="font-bold uppercase text-green-500 text-lg">El Combate ha Terminado</div> });
-            addDebugMessage("CAMBIO DE MODO: Saliendo de combate.");
+        // --- COMBAT MODE ---
+        else {
+          addDebugMessage(`Running COMBAT turn for Player.`);
+          // Process player action... (this part needs to be built out)
+          addDebugMessage("Player combat action processing not yet implemented.");
+          
+          // After player turn, advance turn order
+          setTurnIndex(prev => prev + 1);
         }
       }
     } catch (error: any) {
       console.error("Error during AI turn:", error);
       addDebugMessage(`ERROR: ${error.message}`);
-      
-      const errorMessage = error.message || "An unknown error occurred.";
-      const lastMessageContent = typeof content === 'string' ? content : 'la acción anterior';
-      if (errorMessage.includes("429") || errorMessage.includes("model is overloaded")) {
-         addMessage({
-            sender: 'Error',
-            content: "El DM está muy ocupado en este momento y no puede responder.",
-            onRetry: () => handleSendMessage(lastMessageContent, { isRetry: true }),
-        });
-      } else {
-         addMessage({
-            sender: 'Error',
-            content: "El Dungeon Master está confundido y no puede procesar tu última acción. Inténtalo de nuevo.",
-            onRetry: () => handleSendMessage(lastMessageContent, { isRetry: true }),
-        });
-      }
+      addMessage({
+        sender: 'Error',
+        content: "El Dungeon Master está confundido y no puede procesar tu última acción. Inténtalo de nuevo.",
+        onRetry: () => handleSendMessage(content, { isRetry: true }),
+      });
     } finally {
       setIsDMThinking(false);
-      addDebugMessage("Turno finalizado.");
+      addDebugMessage("Turn finished.");
     }
-  };
-
-  useEffect(() => {
-    // This effect triggers only when we enter combat AND have a narration for it.
-    if (inCombat && combatStartNarration) {
-      // It immediately calls the system message to roll initiative.
-      handleSendMessage('Comienza la batalla', { isSystem: true, systemCombatStartNarration: combatStartNarration });
-      // It then clears the narration so this doesn't run again.
-      setCombatStartNarration(undefined); 
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inCombat, combatStartNarration]);
-
-
-  useEffect(() => {
-    // This effect triggers *after* the initiative has been set.
-    if (inCombat && initiativeOrder.length > 0) {
-      const firstCombatant = initiativeOrder[0];
-      const playerCharacter = party.find(p => p.controlledBy === 'Player');
-      
-      // If the first person to act is NOT the player, the DM needs to take a turn for the NPCs.
-      if (firstCombatant.characterName !== playerCharacter?.name) {
-          const firstTurnAction = "Comienza la primera ronda de combate.";
-          handleSendMessage(firstTurnAction, { isSystem: true });
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initiativeOrder]);
-
-
+  }, [addDebugMessage, buildConversationHistory, gameState, inCombat, locationDescription, party, startCombat]);
+  
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
      addDiceRoll({
         roller: selectedCharacter?.name ?? 'Player',
@@ -388,7 +315,3 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     </GameLayout>
   );
 }
-
-    
-
-    
