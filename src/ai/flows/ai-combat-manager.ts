@@ -105,13 +105,13 @@ const aiCombatManagerPrompt = ai.definePrompt({
 **STATE: FIRST TURN OF COMBAT**
 - If the player's action is "Comienza la batalla", this is the VERY FIRST turn.
 - **First Turn Protocol (Strictly follow, this is your highest priority):**
-    1.  **Identify Combatants:** From the 'CONTEXT' section, identify ALL combatants involved. This is your primary source of truth. Get NPC/Monster stats using the \`adventureLookupTool\` or \`dndApiLookupTool\`.
-    2.  **Roll Initiative:** You MUST roll initiative for EVERY combatant identified.
+    1.  **Do NOT re-narrate the start of combat.** The context is already provided. Your narration should be brief and focused on the mechanics.
+    2.  **Roll Initiative:** You MUST roll initiative for EVERY combatant identified in the 'Combatants' list.
         - For each, calculate \`d20 + dexterity modifier\`.
         - You MUST populate the 'initiativeRolls' field with the results for each combatant. This is mandatory for the first turn.
-    3.  **Establish Turn Order:** Based on the initiative rolls, state the turn order clearly in your narration (e.g., "El orden de combate es: Merryl, Orco 1, Galador, Elara...").
+    3.  **Establish Turn Order:** Your narration's primary job is to state the turn order clearly (e.g., "El orden de combate es: Merryl, Orco 1, Galador, Elara...").
     4.  **Execute First Turn:**
-        -   **If a player-controlled character has the highest initiative:** Your narration MUST end with: "Es tu turno, ¿qué haces?". DO NOT take any action for the player.
+        -   **If a player-controlled character has the highest initiative:** Your narration MUST end with: "Es tu turno, ¿qué haces?". DO NOT take any action for the player. Do not describe them attacking or dodging. Just cede the turn.
         -   **If an AI-controlled character or NPC has the highest initiative:** Narrate their action, roll dice, and then proceed to the next character in the initiative order until it's a player's turn. Your narration MUST end by prompting the player for their next action (e.g., "Es tu turno, ¿qué haces?").
 
 **STATE: SUBSEQUENT TURNS**
