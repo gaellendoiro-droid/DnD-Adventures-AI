@@ -8,10 +8,11 @@ import { markdownToHtml } from "@/ai/flows/markdown-to-html";
 import { Character, GameMessage, InitiativeRoll } from "@/lib/types";
 import { aiCombatManager } from "@/ai/flows/ai-combat-manager";
 
-export async function handleOocMessage(playerQuery: string, gameState: string): Promise<string | null> {
+export async function handleOocMessage(playerQuery: string, gameState: string, conversationHistory: string): Promise<string | null> {
   const oocResponse = await dungeonMasterOocParser({
     playerQuery,
     gameState: gameState,
+    conversationHistory: conversationHistory,
   });
   return oocResponse.dmReply ? `(OOC) ${oocResponse.dmReply}` : null;
 }

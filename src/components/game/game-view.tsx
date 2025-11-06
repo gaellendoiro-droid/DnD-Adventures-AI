@@ -58,7 +58,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   const addDebugMessage = (message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setDebugMessages(prev => [ ...prev.slice(-49), `[${timestamp}] ${message}`]);
+    setDebugMessages(prev => [ `[${timestamp}] ${message}`, ...prev.slice(0, 49)]);
   };
 
   const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
@@ -118,6 +118,19 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     });
   };
 
+  const buildConversationHistory = () => {
+    return messages
+      .slice(-5)
+      .map(m => {
+        if (m.sender === 'Player') return `Jugador: ${m.content}`;
+        if (m.sender === 'DM') return `Dungeon Master: ${m.originalContent || m.content}`;
+        if (m.sender === 'Character') return `${m.senderName}: ${m.content}`;
+        return null;
+      })
+      .filter(Boolean)
+      .join('\n');
+  };
+
   const handleSendMessage = async (content: string, options: { isRetry?: boolean, isSystem?: boolean, systemCombatStartNarration?: string } = {}) => {
     const { isRetry = false, isSystem = false, systemCombatStartNarration } = options;
 
@@ -137,9 +150,11 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     addDebugMessage(`Turno iniciado. Player action: "${content}". Modo Combate: ${inCombat}`);
 
     try {
+      const history = buildConversationHistory();
+
       if (content.startsWith('//')) {
         addDebugMessage("Detectada query OOC (fuera de personaje).");
-        const oocReply = await handleOocMessage(content.substring(2).trim(), gameState);
+        const oocReply = await handleOocMessage(content.substring(2).trim(), gameState, history);
         if (oocReply) {
           addMessage({ sender: "DM", content: oocReply });
           addDebugMessage("Respuesta OOC recibida y mostrada.");
@@ -150,16 +165,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         
         if (!isSystem) {
           addDebugMessage("Creando historial de conversación reciente...");
-          const history = messages
-            .slice(-5)
-            .map(m => {
-              if (m.sender === 'Player') return `Jugador: ${m.content}`;
-              if (m.sender === 'DM') return `Dungeon Master: ${m.originalContent || m.content}`;
-              if (m.sender === 'Character') return `${m.senderName}: ${m.content}`;
-              return null;
-            })
-            .filter(Boolean)
-            .join('\n');
           addDebugMessage("Historial creado.");
 
           const lastDmMessage = messages.findLast(m => m.sender === 'DM');
@@ -187,7 +192,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           locationDescription,
           party, // Pass the whole party
           inCombat || isSystem, // If it's a system message, we might be starting combat
-          isSystem ? "" : messages.slice(-5).map(m => `${m.senderName || m.sender}: ${m.originalContent || m.content}`).join('\n'),
+          isSystem ? "" : history,
           systemCombatStartNarration,
         );
         addDebugMessage("Turno del DM completado. Procesando resultados...");
@@ -240,7 +245,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
         if (dmTurnResult.diceRolls && dmTurnResult.diceRolls.length > 0) {
             addDebugMessage(`Se han recibido ${dmTurnResult.diceRolls.length} tiradas de combate.`);
-            dmTurnResult.diceRolls.forEach(roll => {
+            dmTurnResult.diceRolls.forEach((roll: DiceRoll) => {
                 newDiceRolls.push({ ...roll });
             });
         }
