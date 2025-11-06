@@ -94,15 +94,69 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
     inputSchema: AiDungeonMasterParserInputSchema,
     outputSchema: AiDungeonMasterParserOutputSchema,
   },
-  async input => {
-    const {output} = await aiDungeonMasterParserPrompt(input);
+  async (input) => {
+    // Dynamically wire the adventure lookup tool to use the current gameState
+    const tools = [dndApiLookupTool];
+    if (input.gameState) {
+      const dynamicAdventureLookupTool = ai.defineTool(
+        {
+          name: 'adventureLookupTool',
+          description: 'Looks up information about a specific location or entity (character, monster) from the main adventure data file. Use this to get details when a player moves to a new area or interacts with a specific named entity.',
+          inputSchema: z.object({
+              query: z.string().describe("The search query, formatted as 'location:<id>' or 'entity:<id>'. For example: 'location:phandalin-plaza-del-pueblo' or 'entity:cryovain'."),
+          }),
+          outputSchema: z.string().describe('A JSON string containing the requested information, or an error message if not found.'),
+        },
+        async ({ query }) => {
+          if (!input.gameState) return "Adventure data not available.";
+          try {
+            const adventureData = JSON.parse(input.gameState);
+            const [queryType, queryId] = query.split(':');
+      
+            if (!queryType || !queryId) {
+              return "Invalid query format. Use 'location:<id>' or 'entity:<id>'.";
+            }
+      
+            let result: any;
+            if (queryType === 'location') {
+              result = adventureData.locations?.find((loc: any) => loc.id === queryId);
+            } else if (queryType === 'entity') {
+              result = adventureData.entities?.find((ent: any) => ent.id === queryId);
+            } else {
+              return `Unknown query type '${queryType}'. Use 'location' or 'entity'.`;
+            }
+            
+            return result ? JSON.stringify(result, null, 2) : `No ${queryType} found with ID '${queryId}'.`;
+      
+          } catch (error) {
+            console.warn(`Adventure Lookup: Error processing query "${query}"`, error);
+            return "Failed to parse or search the adventure data.";
+          }
+        }
+      );
+      tools.push(dynamicAdventureLookupTool);
+    }
+
+    const { output } = await ai.generate({
+        prompt: aiDungeonMasterParserPrompt.prompt,
+        model: ai.getModel('googleai/gemini-2.5-flash'),
+        input: input,
+        output: { schema: AiDungeonMasterParserOutputSchema },
+        tools: tools,
+        config: {
+          safetySettings: [
+            {
+              category: 'HARM_CATEGORY_HARASSMENT',
+              threshold: 'BLOCK_NONE',
+            }
+          ],
+        },
+    });
     
-    // Safeguard: If the model returns null or undefined, provide a default valid response.
     if (!output) {
       return { narration: "El Dungeon Master parece distraído y no responde. Intenta reformular tu acción.", updatedGameState: input.gameState };
     }
     
-    // Safeguard: Validate that updatedCharacterStats is a valid JSON string if it exists
     if (output.updatedCharacterStats) {
         try {
             JSON.parse(output.updatedCharacterStats);
@@ -112,7 +166,6 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
         }
     }
     
-    // Ensure the gameState is always passed through, even if the AI forgets.
     if (!output.updatedGameState) {
         output.updatedGameState = input.gameState;
     }
@@ -120,3 +173,5 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
     return output;
   }
 );
+
+    
