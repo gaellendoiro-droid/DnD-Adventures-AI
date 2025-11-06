@@ -31,7 +31,8 @@ export function DiceRollResult({ roll }: DiceRollResultProps) {
         <p className="font-semibold">
           {roll.roller} tiró d{roll.diceType}
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs font-semibold text-muted-foreground">{roll.description}</p>
+        <p className="text-xs text-muted-foreground mt-1">
             {formatDistanceToNow(roll.timestamp, { addSuffix: true, locale: es })}
         </p>
       </div>

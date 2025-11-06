@@ -36,7 +36,7 @@ const CombatDiceRollSchema = z.object({
     result: z.number().describe("The result of the dice roll."),
     modifier: z.number().optional().describe("The modifier applied to the roll."),
     finalResult: z.number().optional().describe("The total score after the modifier (roll + modifier)."),
-    description: z.string().describe("A brief description of the roll's purpose (e.g., 'Attack Roll', 'Damage Roll').")
+    description: z.string().describe("A brief description of the roll's purpose (e.g., 'Tirada de Ataque', 'Tirada de Daño', 'Salvación de Destreza').")
 });
 
 const AiDungeonMasterParserOutputSchema = z.object({
