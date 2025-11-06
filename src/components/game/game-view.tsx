@@ -46,7 +46,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   const addDebugMessage = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setDebugMessages(prev => [`[${timestamp}] ${message}`, ...prev].slice(-50));
+    setDebugMessages(prev => [...prev, `[${timestamp}] ${message}`].slice(-50));
   }, []);
 
   useEffect(() => {
@@ -134,14 +134,14 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const startCombatFlow = useCallback(async (narration: string) => {
       addDebugMessage("START_COMBAT sequence initiated.");
       setInCombat(true);
-      addMessage({ sender: "System", content: <div className="font-bold uppercase text-destructive text-lg">¡Comienza el Combate!</div> });
+      addMessage({ sender: "System", content: "¡Comienza el Combate!" });
       if(narration) {
         const { html } = await markdownToHtml({ markdown: narration });
         addMessage({ sender: 'DM', content: html, originalContent: narration });
       }
 
       // TODO: Identify enemies from narration using AI
-      const identifiedEnemies = [{id: "orco-1", name: 'Orco', race: 'Orco', class: 'Guerrero', level: 1, abilityScores: { destreza: 12 } }]; // Placeholder
+      const identifiedEnemies = [{id: "orco-1", name: 'Orco', race: 'Orco', class: 'Guerrero', level: 1, hp: {current: 15, max: 15}, abilityScores: { destreza: 12 } }]; // Placeholder
       setEnemies(identifiedEnemies);
 
       const combatants: (Character | any)[] = [...party, ...identifiedEnemies];
@@ -149,19 +149,20 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       const initiativeRolls: InitiativeRoll[] = combatants.map(c => {
         const modifier = Math.floor((c.abilityScores.destreza - 10) / 2);
         const roll = Math.floor(Math.random() * 20) + 1;
+        const combatantType = party.some(p => p.id === c.id) ? 'player' : 'npc';
         return {
           characterName: c.name,
           roll: roll,
           modifier: modifier,
           total: roll + modifier,
           id: c.id,
-          type: c.controlledBy ? 'player' : 'npc',
+          type: combatantType,
         }
       });
       
       const initiativeDiceRolls = initiativeRolls.map(roll => ({
           roller: roll.characterName,
-          rollNotation: `1d20+${roll.modifier}`,
+          rollNotation: `1d20${roll.modifier >= 0 ? '+' : ''}${roll.modifier}`,
           individualRolls: [roll.roll],
           modifier: roll.modifier,
           totalResult: roll.total,
@@ -232,7 +233,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
             setEnemies([]);
             addDebugMessage("Combat has ended.");
         } else {
-            const nextCombatant = result.initiativeOrder[result.nextTurnIndex];
+            const nextCombatant = initiativeOrder[result.nextTurnIndex];
             addMessage({ sender: 'System', content: `Es el turno de ${nextCombatant.characterName}.`})
         }
 
