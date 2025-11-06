@@ -111,7 +111,7 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
         <Card>
           <CardHeader className="py-3">
             <CardTitle className="text-lg font-headline">
-              Habilidades
+              Atributos
             </CardTitle>
           </CardHeader>
           <CardContent className="px-2 pb-2">
