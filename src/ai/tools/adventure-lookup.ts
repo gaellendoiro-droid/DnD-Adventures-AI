@@ -6,7 +6,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { lookupAdventureEntityInDb } from '@/app/game-state-actions';
 
 export const adventureLookupTool = ai.defineTool(
   {
@@ -31,24 +30,35 @@ export const adventureLookupTool = ai.defineTool(
       return "Error: The provided gameState is not valid JSON.";
     }
 
-    const allData = [...(adventureData.locations || []), ...(adventureData.entities || [])];
+    const locations = adventureData.locations || [];
+    const entities = adventureData.entities || [];
+    const allData = [...locations, ...entities];
     
-    // First, try a direct match by ID or name
-    let result = allData.find((item: any) => 
-        item.id === query || (item.name && typeof item.name === 'string' && item.name.toLowerCase() === query.toLowerCase())
-    );
+    const normalizedQuery = query.toLowerCase().trim();
 
+    // 1. Exact match by ID or name
+    let result = allData.find((item: any) => 
+        (item.id && item.id.toLowerCase() === normalizedQuery) || 
+        (item.name && item.name.toLowerCase() === normalizedQuery)
+    );
     if (result) return JSON.stringify(result);
 
-    // If no direct match, search for interactables within the current location
+    // 2. Search for interactables within the current location
     if (currentLocationId) {
-        const currentLocation = (adventureData.locations || []).find((loc:any) => loc.id === currentLocationId);
+        const currentLocation = locations.find((loc:any) => loc.id === currentLocationId);
         if (currentLocation && currentLocation.interactables) {
-            const interactable = currentLocation.interactables.find((i: any) => i.name && typeof i.name === 'string' && i.name.toLowerCase() === query.toLowerCase());
+            const interactable = currentLocation.interactables.find((i: any) => i.name && i.name.toLowerCase() === normalizedQuery);
             if (interactable) return JSON.stringify(interactable);
         }
     }
+
+    // 3. Partial match / fuzzy search if no exact match is found
+    const partialMatch = allData.find((item: any) => 
+        (item.name && item.name.toLowerCase().includes(normalizedQuery)) ||
+        (item.id && item.id.toLowerCase().includes(normalizedQuery))
+    );
+    if (partialMatch) return JSON.stringify(partialMatch);
     
-    return `Error: No location, entity or interactable found matching '${query}'.`;
+    return `Error: No location, entity or interactable found matching '${query}'. Try a broader query.`;
   }
 );
