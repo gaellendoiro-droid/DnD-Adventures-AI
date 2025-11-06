@@ -55,7 +55,6 @@ const aiDungeonMasterParserPrompt = ai.definePrompt({
 5.  **Information Hierarchy & Tool Use:**
     *   **CRITICAL: Your primary source of truth for the immediate narrative is the \`conversationHistory\`. Be consistent with what has just been said. Do not repeat descriptions of characters or scenes that are already in the recent history.**
     *   The \`locationDescription\` provides general context for the current area.
-    *   DO NOT read the full 'gameState' JSON. Instead, use your tools to find information you don't have.
     *   **adventureLookupTool:** Use this to get details about specific locations or entities from the adventure when the player moves or interacts with something new. For example: \`location:posada-rocacolina\` or \`entity:cryovain\`.
     *   **dndApiLookupTool:** Use this ONLY for generic D&D 5e information NOT in the adventure data, like monster stats for a random encounter, spell details, or item prices. Provide simple queries, like "goblin" or "longsword".
 6. **Factual Adherence**: You MUST strictly adhere to the information returned by your tools. DO NOT invent character names, place names, or details that are not explicitly mentioned in the tool results or the provided location description. The adventure data is the single source of truth.
@@ -86,7 +85,7 @@ The other characters in the party have just said or done the following (this is 
 (No other characters have acted.)
 {{/if}}
 
-Based on the player's action, the other characters' actions, and all your directives, narrate what happens next. Be descriptive, engaging, and follow the rules. If applicable, update the character stats or location description. Remember to use your tools to look up any information you don't know.`,
+Based on the player's action, the other characters' actions, and all your directives, narrate what happens next. Be descriptive, engaging, and follow the rules. Remember to use your tools to look up any information you don't know.`,
 });
 
 const aiDungeonMasterParserFlow = ai.defineFlow(
@@ -175,7 +174,3 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
     return finalOutput;
   }
 );
-
-    
-
-    
