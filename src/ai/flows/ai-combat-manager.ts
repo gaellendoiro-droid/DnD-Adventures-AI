@@ -46,6 +46,7 @@ const AiCombatManagerInputSchema = z.object({
   gameState: z.string().optional().describe('The current state of the game, for looking up entity/monster stats.'),
   locationDescription: z.string().optional().describe('A description of the current location.'),
   party: z.array(CharacterSchema).optional().describe('An array containing the data for all characters in the party (player and AI-controlled).'),
+  turnOrder: z.array(z.string()).optional().describe("An ordered list of combatant names, from highest to lowest initiative. This determines the turn sequence."),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
   combatStartNarration: z.string().optional().describe("If this is the first turn of combat, this field will contain the DM's narration of how combat started."),
 });
@@ -97,6 +98,7 @@ const aiCombatManagerPrompt = ai.definePrompt({
         {{/each}}
     {{/if}}
 -   **How it Started:** {{#if combatStartNarration}} {{{combatStartNarration}}} {{else}} The battle continues. {{/if}}
+-   **Turn Order:** {{#if turnOrder}} {{#each turnOrder}} {{this}}{{#unless @last}}, {{/unless}}{{/each}} {{else}} (Not established) {{/if}}
 -   **Conversation History:**
     \`\`\`
     {{{conversationHistory}}}
@@ -105,24 +107,23 @@ const aiCombatManagerPrompt = ai.definePrompt({
 **STATE: FIRST TURN OF COMBAT**
 - If the player's action is "Comienza la batalla", this is the VERY FIRST turn.
 - **First Turn Protocol (Strictly follow, this is your highest priority):**
-    1.  **Do NOT re-narrate the start of combat.** The context is already provided in "How it Started". Your narration should be brief and focused on the mechanics.
-    2.  **Identify ALL Combatants:** Your first job is to read the 'How it Started' context and identify EVERYONE involved: the player's party and any enemies or NPCs mentioned. To get stats for an NPC/enemy, use your tools in this order:
+    1.  **Identify ALL Combatants:** Your first job is to read the 'How it Started' context and identify EVERYONE involved: the player's party and any enemies or NPCs mentioned. To get stats for an NPC/enemy, use your tools in this order:
         -   **First, try \`adventureLookupTool\`:** Use the NPC's name (e.g., 'Linene Vientogrís') to find their specific data in the adventure. This is the most accurate source.
         -   **Then, use \`dndApiLookupTool\`:** If the NPC is not in the adventure data, deduce a generic type (like 'commoner', 'guard') and use that to get base stats.
-    3.  **Roll Initiative:** You MUST roll initiative for EVERY combatant you identified.
+    2.  **Roll Initiative:** You MUST roll initiative for EVERY combatant you identified.
         - For each, calculate \`d20 + dexterity modifier\`.
         - You MUST populate the 'initiativeRolls' field with the detailed results for each combatant. This is mandatory.
-    4.  **Establish Turn Order:** Your narration's primary job is to state the turn order clearly (e.g., "El orden de combate es: Merryl, Orco 1, Galador, Elara...").
-    5.  **Execute First Turn:**
-        -   **If a player-controlled character has the highest initiative:** Your narration MUST end with: "Es tu turno, ¿qué haces?". DO NOT take any action for the player. Do not describe them attacking or dodging. Just cede the turn.
-        -   **If an AI-controlled character or NPC has the highest initiative:** Narrate their action, roll dice, and then proceed to the next character in the initiative order until it's a player's turn. Your narration MUST end by prompting the player for their next action (e.g., "Es tu turno, ¿qué haces?").
+    3. **Narrate Briefly:** Write a short, one-sentence narration to set the scene (e.g., "The battle begins as everyone rolls for initiative."). DO NOT narrate the turn order in the chat.
+    4.  **Execute First Turn (Based on provided \`turnOrder\`):**
+        -   **If a player-controlled character is first:** Your narration MUST end with: "Es tu turno, ¿qué haces?". DO NOT take any action for the player.
+        -   **If an AI-controlled character or NPC is first:** Narrate their action, roll dice, and then proceed to the next character in the \`turnOrder\` list until it's a player's turn. Your final narration MUST end by prompting the player for their next action (e.g., "Es tu turno, ¿qué haces?").
 
 **STATE: SUBSEQUENT TURNS**
 - If the player's action is anything other than "Comienza la batalla", this is a regular combat turn.
 - **Combat Protocol (Strictly follow):**
     1.  **Narrate Player's Turn:** Describe the outcome of the player's action: "{{{playerAction}}}".
-    2.  **Process NPC/AI Turns:** After the player's turn, process the turns for any AI characters or NPCs that act next in the initiative order, up until the next player turn.
-    3.  **NPC Actions:** For each character, determine their action based on their stats and tactics.
+    2.  **Process NPC/AI Turns:** Following the player's turn, process the turns for any AI characters or NPCs that act next according to the \`turnOrder\`, up until the next player turn.
+    3.  **Targeting Rule (CRITICAL):** AI-controlled party members should NEVER attack the Player-controlled character unless the player explicitly gives permission for PvP. AI party members should prioritize attacking hostile NPCs/enemies.
     4.  **Roll and Report:** For any action requiring a roll (attack, damage, save), you MUST provide the details in the 'diceRolls' field.
         - The 'description' of the roll MUST include the dice notation and the ability modifier abbreviation (e.g., 'Tirada de Ataque (1d20+FUE)').
         - **Attack Flow:** First, make the attack roll. Narrate if it hits or misses based on the target's AC. A natural 20 is a 'crit', a natural 1 is a 'pifia'. ONLY if it hits, then make the damage roll.

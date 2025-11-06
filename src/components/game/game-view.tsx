@@ -58,7 +58,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   const addDebugMessage = (message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setDebugMessages(prev => [ `[${timestamp}] ${message}`, ...prev.slice(0, 49)]);
+    setDebugMessages(prev => [ `[${timestamp}] ${message}`, ...prev].slice(0, 50));
   };
 
   const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
@@ -183,6 +183,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           }
         }
 
+        const currentTurnOrder = initiativeOrder.map(c => c.characterName);
         addDebugMessage(`Ejecutando el turno del Dungeon Master en modo ${inCombat || isSystem ? 'Combate' : 'Narrativo'}...`);
         
         const dmTurnResult = await runDungeonMasterTurn(
@@ -192,6 +193,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           locationDescription,
           party, // Pass the whole party
           inCombat || isSystem, // If it's a system message, we might be starting combat
+          currentTurnOrder,
           isSystem ? "" : history,
           systemCombatStartNarration,
         );
@@ -225,7 +227,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
               const partyMember = party.find(p => p.name === roll.characterName);
               return {
                 ...roll,
-                id: partyMember?.id || roll.characterName, // Use character ID if available
+                id: partyMember?.id || roll.characterName + Date.now(), // Use character ID or unique name for NPCs
                 type: partyMember ? 'player' : 'npc',
               };
             }).sort((a, b) => b.total - a.total);
@@ -254,7 +256,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
             setDiceRolls(prev => [...prev, ...newDiceRolls.map((r, i) => ({...r, id: Date.now().toString() + i, timestamp: new Date()}))]);
         }
         
-        if (dmTurnResult.startCombat) {
+        if (dmTurnResult.startCombat && !inCombat) {
             addDebugMessage("CAMBIO DE MODO: Entrando en combate.");
             if (dmTurnResult.dmNarration?.originalContent) {
                 setCombatStartNarration(dmTurnResult.dmNarration.originalContent);
@@ -297,11 +299,31 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   };
 
   useEffect(() => {
+    // This effect triggers only when we enter combat AND have a narration for it.
     if (inCombat && combatStartNarration) {
+      // It immediately calls the system message to roll initiative.
       handleSendMessage('Comienza la batalla', { isSystem: true, systemCombatStartNarration: combatStartNarration });
-      setCombatStartNarration(undefined); // Clear after use
+      // It then clears the narration so this doesn't run again.
+      setCombatStartNarration(undefined); 
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inCombat, combatStartNarration]);
+
+
+  useEffect(() => {
+    // This effect triggers *after* the initiative has been set.
+    if (inCombat && initiativeOrder.length > 0) {
+      const firstCombatant = initiativeOrder[0];
+      const playerCharacter = party.find(p => p.controlledBy === 'Player');
+      
+      // If the first person to act is NOT the player, the DM needs to take a turn for the NPCs.
+      if (firstCombatant.characterName !== playerCharacter?.name) {
+          const firstTurnAction = "Comienza la primera ronda de combate.";
+          handleSendMessage(firstTurnAction, { isSystem: true });
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initiativeOrder]);
 
 
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
@@ -366,3 +388,5 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     </GameLayout>
   );
 }
+
+    

@@ -66,6 +66,7 @@ export async function runDungeonMasterTurn(
   locationDescription: string,
   party: Character[],
   inCombat: boolean,
+  turnOrder: string[],
   conversationHistory?: string,
   combatStartNarration?: string,
 ) {
@@ -78,6 +79,7 @@ export async function runDungeonMasterTurn(
     party: party,
     conversationHistory: conversationHistory,
     combatStartNarration: combatStartNarration,
+    turnOrder: turnOrder,
   };
 
   let dmResponse: any;
@@ -123,3 +125,5 @@ export async function runDungeonMasterTurn(
     endCombat: dmResponse.endCombat,
   };
 }
+
+    
