@@ -109,12 +109,12 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
         </div>
 
         <Card>
-          <CardHeader className="py-4">
+          <CardHeader className="py-3">
             <CardTitle className="text-lg font-headline">
               Habilidades
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-2">
+          <CardContent className="px-2 pb-2">
             <div className="grid grid-cols-3 gap-1.5 text-center">
               {Object.entries(character.abilityScores).map(([key, value]) => (
                 <div key={key} className="flex flex-col items-center p-2 rounded-md bg-secondary">

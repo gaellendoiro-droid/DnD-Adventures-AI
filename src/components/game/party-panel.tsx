@@ -20,7 +20,7 @@ export function PartyPanel({
 }: PartyPanelProps) {
   return (
     <>
-      <CardHeader className="flex-row items-center gap-2">
+      <CardHeader className="flex-row items-center gap-2 pt-2 pb-4">
         <Users className="w-6 h-6" />
         <CardTitle className="font-headline text-xl">Grupo</CardTitle>
       </CardHeader>

@@ -27,7 +27,7 @@ export function DiceLogPanel({ diceRolls }: DiceLogPanelProps) {
 
   return (
     <>
-      <CardHeader className="flex-row items-center gap-2">
+      <CardHeader className="flex-row items-center gap-2 pt-4 pb-2">
         <Dices className="w-6 h-6" />
         <CardTitle className="font-headline text-xl">Tiradas</CardTitle>
       </CardHeader>

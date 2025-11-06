@@ -24,7 +24,7 @@ export function DebugPanel({ messages }: DebugPanelProps) {
 
   return (
     <>
-      <CardHeader className="flex-row items-center gap-2 pt-0 pb-2">
+      <CardHeader className="flex-row items-center gap-2 pt-4 pb-2">
         <Terminal className="w-5 h-5" />
         <CardTitle className="font-headline text-lg">Debug Log</CardTitle>
       </CardHeader>

@@ -14,7 +14,7 @@ interface InitiativeTrackerProps {
 export function InitiativeTracker({ combatants }: InitiativeTrackerProps) {
   return (
     <>
-      <CardHeader className="flex-row items-center gap-2">
+      <CardHeader className="flex-row items-center gap-2 pt-4 pb-2">
         <ShieldAlert className="w-6 h-6 text-destructive" />
         <CardTitle className="font-headline text-xl">Orden de Combate</CardTitle>
       </CardHeader>
