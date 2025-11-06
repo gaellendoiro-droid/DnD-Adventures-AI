@@ -1,37 +1,37 @@
 
 'use server';
 /**
- * @fileOverview This file contains the Genkit flow for the DungeonMasterOocParser, which handles out-of-character player questions.
+ * @fileOverview This file contains the Genkit flow for the OocAssistant, which handles out-of-character player questions.
  *
- * - dungeonMasterOocParser - A function that takes player OOC input and returns the AI's response.
- * - DungeonMasterOocParserInput - The input type for the dungeonMasterOocParser function.
- * - DungeonMasterOocParserOutput - The return type for the dungeonMasterOocParser function.
+ * - oocAssistant - A function that takes player OOC input and returns the AI's response.
+ * - OocAssistantInput - The input type for the oocAssistant function.
+ * - OocAssistantOutput - The return type for the oocAssistant function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 
-const DungeonMasterOocParserInputSchema = z.object({
+const OocAssistantInputSchema = z.object({
   playerQuery: z.string().describe('The out-of-character question from the player to the Dungeon Master.'),
   gameState: z.string().optional().describe('The current state of the game for context.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
 });
-export type DungeonMasterOocParserInput = z.infer<typeof DungeonMasterOocParserInputSchema>;
+export type OocAssistantInput = z.infer<typeof OocAssistantInputSchema>;
 
-const DungeonMasterOocParserOutputSchema = z.object({
+const OocAssistantOutputSchema = z.object({
   dmReply: z.string().describe('The Dungeon Master\'s helpful, out-of-character reply to the player.'),
 });
-export type DungeonMasterOocParserOutput = z.infer<typeof DungeonMasterOocParserOutputSchema>;
+export type OocAssistantOutput = z.infer<typeof OocAssistantOutputSchema>;
 
-export async function dungeonMasterOocParser(input: DungeonMasterOocParserInput): Promise<DungeonMasterOocParserOutput> {
-  return dungeonMasterOocParserFlow(input);
+export async function oocAssistant(input: OocAssistantInput): Promise<OocAssistantOutput> {
+  return oocAssistantFlow(input);
 }
 
-const dungeonMasterOocParserPrompt = ai.definePrompt({
-  name: 'dungeonMasterOocParserPrompt',
-  input: {schema: DungeonMasterOocParserInputSchema},
-  output: {schema: DungeonMasterOocParserOutputSchema},
+const oocAssistantPrompt = ai.definePrompt({
+  name: 'oocAssistantPrompt',
+  input: {schema: OocAssistantInputSchema},
+  output: {schema: OocAssistantOutputSchema},
   tools: [dndApiLookupTool],
   prompt: `You are an AI Dungeon Master for a D&D 5e game. A player is asking you a question out-of-character. Your role is to be a helpful and clear assistant. You MUST ALWAYS reply in Spanish.
 
@@ -51,14 +51,14 @@ const dungeonMasterOocParserPrompt = ai.definePrompt({
   }`,
 });
 
-const dungeonMasterOocParserFlow = ai.defineFlow(
+const oocAssistantFlow = ai.defineFlow(
   {
-    name: 'dungeonMasterOocParserFlow',
-    inputSchema: DungeonMasterOocParserInputSchema,
-    outputSchema: DungeonMasterOocParserOutputSchema,
+    name: 'oocAssistantFlow',
+    inputSchema: OocAssistantInputSchema,
+    outputSchema: OocAssistantOutputSchema,
   },
   async input => {
-    const {output} = await dungeonMasterOocParserPrompt(input);
+    const {output} = await oocAssistantPrompt(input);
     return output!;
   }
 );

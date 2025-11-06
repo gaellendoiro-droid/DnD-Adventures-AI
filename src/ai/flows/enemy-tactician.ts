@@ -1,11 +1,11 @@
 
 'use server';
 /**
- * @fileOverview This file contains the Genkit flow for the AiCombatManager, which acts as the "enemy brain" in combat.
+ * @fileOverview This file contains the Genkit flow for the EnemyTactician, which acts as the "enemy brain" in combat.
  *
- * - aiCombatManager - A function that takes the current combat state and returns the action for a specific enemy.
- * - AiCombatManagerInput - The input type for the aiCombatManager function.
- * - AiCombatManagerOutput - The return type for the aiCombatManager function.
+ * - enemyTactician - A function that takes the current combat state and returns the action for a specific enemy.
+ * - EnemyTacticianInput - The input type for the enemyTactician function.
+ * - EnemyTacticianOutput - The return type for the enemyTactician function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -41,7 +41,7 @@ const CharacterSchema = z.object({
 });
 
 
-const AiCombatManagerInputSchema = z.object({
+const EnemyTacticianInputSchema = z.object({
   activeCombatant: z.string().describe("The name of the hostile NPC/monster whose turn it is."),
   party: z.array(CharacterSchema).describe('An array containing the data for all characters in the party (player and AI-controlled).'),
   enemies: z.array(z.object({name: z.string(), hp: z.string()})).describe("A list of all hostile NPCs/monsters currently in combat and their HP status (e.g., 'Healthy', 'Wounded', 'Badly Wounded')."),
@@ -49,9 +49,9 @@ const AiCombatManagerInputSchema = z.object({
   conversationHistory: z.string().describe("A transcript of the last few turns of combat to provide immediate context."),
   gameState: z.string().optional().describe('The current state of the game, for looking up entity/monster stats.'),
 });
-export type AiCombatManagerInput = z.infer<typeof AiCombatManagerInputSchema>;
+export type EnemyTacticianInput = z.infer<typeof EnemyTacticianInputSchema>;
 
-const AiCombatManagerOutputSchema = z.object({
+const EnemyTacticianOutputSchema = z.object({
   action: z.string().describe("The chosen action for the active combatant (e.g., 'Attacks Galador with its Greatsword', 'Casts a spell on Elara'). This should be a concise description of the intended action."),
   narration: z.string().describe("The AI Dungeon Master's brief narration for this enemy's action. Do not include dice rolls here."),
   diceRolls: z.array(z.object({
@@ -60,16 +60,16 @@ const AiCombatManagerOutputSchema = z.object({
     description: z.string().describe("A brief description of the roll's purpose (e.g., 'Attack Roll', 'Damage Roll')."),
   })).optional().describe("An array of dice rolls required to resolve the action. For an attack, this would include an attack roll and a damage roll."),
 });
-export type AiCombatManagerOutput = z.infer<typeof AiCombatManagerOutputSchema>;
+export type EnemyTacticianOutput = z.infer<typeof EnemyTacticianOutputSchema>;
 
-export async function aiCombatManager(input: AiCombatManagerInput): Promise<AiCombatManagerOutput> {
-  return aiCombatManagerFlow(input);
+export async function enemyTactician(input: EnemyTacticianInput): Promise<EnemyTacticianOutput> {
+  return enemyTacticianFlow(input);
 }
 
-const aiCombatManagerPrompt = ai.definePrompt({
-  name: 'aiCombatManagerPrompt',
-  input: {schema: AiCombatManagerInputSchema},
-  output: {schema: AiCombatManagerOutputSchema},
+const enemyTacticianPrompt = ai.definePrompt({
+  name: 'enemyTacticianPrompt',
+  input: {schema: EnemyTacticianInputSchema},
+  output: {schema: EnemyTacticianOutputSchema},
   tools: [dndApiLookupTool, adventureLookupTool],
   prompt: `You are the AI brain for hostile NPCs and monsters in a D&D 5e combat. You MUST ALWAYS reply in Spanish.
 
@@ -109,15 +109,15 @@ Execute the turn for **{{{activeCombatant}}}** ONLY.
 `,
 });
 
-const aiCombatManagerFlow = ai.defineFlow(
+const enemyTacticianFlow = ai.defineFlow(
   {
-    name: 'aiCombatManagerFlow',
-    inputSchema: AiCombatManagerInputSchema,
-    outputSchema: AiCombatManagerOutputSchema,
+    name: 'enemyTacticianFlow',
+    inputSchema: EnemyTacticianInputSchema,
+    outputSchema: EnemyTacticianOutputSchema,
   },
   async (input) => {
     try {
-      const {output} = await aiCombatManagerPrompt(input, {
+      const {output} = await enemyTacticianPrompt(input, {
         model: 'googleai/gemini-2.5-flash',
         config: {
           safetySettings: [
@@ -135,7 +135,7 @@ const aiCombatManagerFlow = ai.defineFlow(
       return output;
 
     } catch (e: any) {
-      console.error("Critical error in aiCombatManagerFlow.", e);
+      console.error("Critical error in enemyTacticianFlow.", e);
       return {
         action: "Do nothing.",
         narration: `El combatiente ${input.activeCombatant} parece confundido y no hace nada en su turno.`,

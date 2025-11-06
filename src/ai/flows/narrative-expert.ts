@@ -1,11 +1,11 @@
 
 'use server';
 /**
- * @fileOverview This file contains the Genkit flow for the AiDungeonMasterParser, which handles the narrative/exploration mode of the game.
+ * @fileOverview This file contains the Genkit flow for the NarrativeExpert, which handles the narrative/exploration mode of the game.
  *
- * - aiDungeonMasterParser - A function that takes player input and returns the AI's response to drive the story.
- * - AiDungeonMasterParserInput - The input type for the aiDungeonMasterParser function.
- * - AiDungeonMasterParserOutput - The return type for the aiDungeonMasterParser function.
+ * - narrativeExpert - A function that takes player input and returns the AI's response to drive the story.
+ * - NarrativeExpertInput - The input type for the narrativeExpert function.
+ * - NarrativeExpertOutput - The return type for the narrativeExpert function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -13,7 +13,7 @@ import {z} from 'genkit';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
 
-const AiDungeonMasterParserInputSchema = z.object({
+const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
   characterActions: z.string().optional().describe('The actions or dialogue of AI-controlled characters in response to the player. This field may be empty.'),
   gameState: z.string().optional().describe('The current state of the game.'),
@@ -21,25 +21,25 @@ const AiDungeonMasterParserInputSchema = z.object({
   characterStats: z.string().optional().describe('The current stats of the character.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
 });
-export type AiDungeonMasterParserInput = z.infer<typeof AiDungeonMasterParserInputSchema>;
+export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
 
-const AiDungeonMasterParserOutputSchema = z.object({
+const NarrativeExpertOutputSchema = z.object({
   narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown. If the characters are just talking, this can be an empty string."),
   nextLocationDescription: z.string().optional().nullable().describe('A description of the next location, if the player moved.'),
   updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}, \"inventory\": [{\"id\":\"item-gp-1\",\"name\":\"Monedas de Oro\",\"quantity\":10}]}'. Must be a valid JSON string or null."),
   startCombat: z.boolean().describe("Set to true if the player's action or the narrative circumstances have definitively initiated combat."),
   combatStartNarration: z.string().optional().describe("If startCombat is true, this field MUST contain a brief, exciting narration of how the combat begins (e.g., 'An arrow whistles past your ear and you see three goblins emerging from the bushes!'). This will be used by the app to identify the combatants."),
 });
-export type AiDungeonMasterParserOutput = z.infer<typeof AiDungeonMasterParserOutputSchema>;
+export type NarrativeExpertOutput = z.infer<typeof NarrativeExpertOutputSchema>;
 
-export async function aiDungeonMasterParser(input: AiDungeonMasterParserInput): Promise<AiDungeonMasterParserOutput> {
-  return aiDungeonMasterParserFlow(input);
+export async function narrativeExpert(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
+  return narrativeExpertFlow(input);
 }
 
-const aiDungeonMasterParserPrompt = ai.definePrompt({
-  name: 'aiDungeonMasterParserPrompt',
-  input: {schema: AiDungeonMasterParserInputSchema},
-  output: {schema: AiDungeonMasterParserOutputSchema},
+const narrativeExpertPrompt = ai.definePrompt({
+  name: 'narrativeExpertPrompt',
+  input: {schema: NarrativeExpertInputSchema},
+  output: {schema: NarrativeExpertOutputSchema},
   tools: [dndApiLookupTool, adventureLookupTool],
   prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish. DO NOT translate proper nouns (names, places, etc.).
 
@@ -80,15 +80,15 @@ Based on all directives, narrate what happens next. If combat starts, follow the
 `,
 });
 
-const aiDungeonMasterParserFlow = ai.defineFlow(
+const narrativeExpertFlow = ai.defineFlow(
   {
-    name: 'aiDungeonMasterParserFlow',
-    inputSchema: AiDungeonMasterParserInputSchema,
-    outputSchema: AiDungeonMasterParserOutputSchema,
+    name: 'narrativeExpertFlow',
+    inputSchema: NarrativeExpertInputSchema,
+    outputSchema: NarrativeExpertOutputSchema,
   },
   async (input) => {
     try {
-        const {output} = await aiDungeonMasterParserPrompt(input, {
+        const {output} = await narrativeExpertPrompt(input, {
             model: 'googleai/gemini-2.5-flash',
             tools: [dndApiLookupTool, adventureLookupTool],
             config: {
@@ -116,7 +116,7 @@ const aiDungeonMasterParserFlow = ai.defineFlow(
         
         return output;
     } catch(e: any) {
-        console.error("Critical error in aiDungeonMasterParserFlow. The AI did not return valid JSON.", e);
+        console.error("Critical error in narrativeExpertFlow. The AI did not return valid JSON.", e);
         return {
             narration: "El Dungeon Master está confundido por tu última acción. ¿Podrías reformular lo que quieres hacer de una manera más clara? Por ejemplo: 'Ataco al orco con mi espada' o 'Intento abrir la puerta'.",
             startCombat: false,

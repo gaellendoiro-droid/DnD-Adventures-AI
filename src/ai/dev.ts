@@ -3,10 +3,10 @@ config();
 
 import '@/ai/flows/parse-adventure-from-json.ts';
 import '@/ai/flows/generate-monster-encounters.ts';
-import '@/ai/flows/ai-dungeon-master-parser.ts';
-import '@/ai/flows/ai-combat-manager.ts';
-import '@/ai/flows/generate-character-action.ts';
-import '@/ai/flows/dungeon-master-ooc-parser.ts';
+import '@/ai/flows/narrative-expert.ts';
+import '@/ai/flows/enemy-tactician.ts';
+import '@/ai/flows/companion-expert.ts';
+import '@/ai/flows/ooc-assistant.ts';
 import '@/ai/flows/generate-dm-narration-audio.ts';
 import '@/ai/flows/markdown-to-html.ts';
 import '@/ai/tools/dnd-api-lookup.ts';

@@ -3,9 +3,9 @@
 /**
  * @fileOverview Generates actions or dialogue for a list of characters based on the current game state.
  *
- * - generateCharacterAction - A function that handles the character action generation.
- * - GenerateCharacterActionInput - The input type for the generateCharacterAction function.
- * - GenerateCharacterActionOutput - The return type for the generateCharacterAction function.
+ * - companionExpert - A function that handles the character action generation.
+ * - CompanionExpertInput - The input type for the companionExpert function.
+ * - CompanionExpertOutput - The return type for the companionExpert function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -19,36 +19,36 @@ const CharacterInfoSchema = z.object({
   personality: z.string().describe("A brief description of the character's personality and background."),
 });
 
-const GenerateCharacterActionInputSchema = z.object({
+const CompanionExpertInputSchema = z.object({
   characters: z.array(CharacterInfoSchema).describe("The list of AI-controlled characters in the party."),
   context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
   inCombat: z.boolean().describe("Whether the party is currently in combat."),
   enemies: z.array(z.string()).optional().describe("A list of enemy names, if in combat."),
 });
-export type GenerateCharacterActionInput = z.infer<typeof GenerateCharacterActionInputSchema>;
+export type CompanionExpertInput = z.infer<typeof CompanionExpertInputSchema>;
 
 const CharacterActionSchema = z.object({
     characterId: z.string().describe("The ID of the character taking the action."),
     action: z.string().describe("The character's action or dialogue. Can be an empty string for no action."),
 });
 
-const GenerateCharacterActionOutputSchema = z.object({
+const CompanionExpertOutputSchema = z.object({
   actions: z.array(CharacterActionSchema).describe("A list of character actions, in the order they should be performed. The list can be empty if no one acts."),
 });
-export type GenerateCharacterActionOutput = z.infer<typeof GenerateCharacterActionOutputSchema>;
+export type CompanionExpertOutput = z.infer<typeof CompanionExpertOutputSchema>;
 
-export async function generateCharacterAction(input: GenerateCharacterActionInput): Promise<GenerateCharacterActionOutput> {
+export async function companionExpert(input: CompanionExpertInput): Promise<CompanionExpertOutput> {
   // If there are no AI characters, don't call the flow.
   if (input.characters.length === 0) {
     return { actions: [] };
   }
-  return generateCharacterActionFlow(input);
+  return companionExpertFlow(input);
 }
 
 const prompt = ai.definePrompt({
-  name: 'generateCharacterActionPrompt',
-  input: {schema: GenerateCharacterActionInputSchema},
-  output: {schema: GenerateCharacterActionOutputSchema},
+  name: 'companionExpertPrompt',
+  input: {schema: CompanionExpertInputSchema},
+  output: {schema: CompanionExpertOutputSchema},
   prompt: `You are orchestrating the AI-controlled characters in a D&D party. Your goal is to make their interactions feel natural and true to their unique personalities.
 
 **Guiding Principle: Realism over Reactivity. Not everyone has to speak or act every time.**
@@ -88,11 +88,11 @@ State the action clearly (e.g., "Elara casts Healing Word on Galador", "Merryl a
 `,
 });
 
-const generateCharacterActionFlow = ai.defineFlow(
+const companionExpertFlow = ai.defineFlow(
   {
-    name: 'generateCharacterActionFlow',
-    inputSchema: GenerateCharacterActionInputSchema,
-    outputSchema: GenerateCharacterActionOutputSchema,
+    name: 'companionExpertFlow',
+    inputSchema: CompanionExpertInputSchema,
+    outputSchema: CompanionExpertOutputSchema,
   },
   async input => {
     const {output} = await prompt(input);

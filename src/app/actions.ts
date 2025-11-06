@@ -1,12 +1,12 @@
 
 'use server';
 
-import { dungeonMasterOocParser } from "@/ai/flows/dungeon-master-ooc-parser";
-import { generateCharacterAction } from "@/ai/flows/generate-character-action";
-import { aiDungeonMasterParser } from "@/ai/flows/ai-dungeon-master-parser";
+import { oocAssistant } from "@/ai/flows/ooc-assistant";
+import { companionExpert } from "@/ai/flows/companion-expert";
+import { narrativeExpert } from "@/ai/flows/narrative-expert";
 import { markdownToHtml } from "@/ai/flows/markdown-to-html";
 import { Character, GameMessage } from "@/lib/types";
-import { aiCombatManager } from "@/ai/flows/ai-combat-manager";
+import { enemyTactician } from "@/ai/flows/enemy-tactician";
 
 // Placeholder for a more sophisticated dice roller if needed
 function rollDice(notation: string): number {
@@ -22,7 +22,7 @@ function rollDice(notation: string): number {
  * Handles out-of-character messages from the player.
  */
 export async function handleOocMessage(playerQuery: string, gameState: string, conversationHistory: string): Promise<string | null> {
-  const oocResponse = await dungeonMasterOocParser({
+  const oocResponse = await oocAssistant({
     playerQuery,
     gameState: gameState,
     conversationHistory: conversationHistory,
@@ -47,7 +47,7 @@ export async function runTurn(
   let companionMessages: GameMessage[] = [];
   let companionActionsContent = "";
   if (aiCharacters.length > 0) {
-      const companionActionsResponse = await generateCharacterAction({
+      const companionActionsResponse = await companionExpert({
         characters: aiCharacters,
         context: `Player action: ${playerAction}`,
         inCombat: false,
@@ -73,7 +73,7 @@ export async function runTurn(
   
   // 2. Call the Narrative Expert to get the main story progression
   const playerCharacter = party.find(c => c.controlledBy === 'Player');
-  const narrativeResponse = await aiDungeonMasterParser({
+  const narrativeResponse = await narrativeExpert({
       playerAction,
       characterActions: companionActionsContent,
       locationDescription,
