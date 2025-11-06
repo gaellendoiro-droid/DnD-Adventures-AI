@@ -85,7 +85,7 @@ The other characters in the party have just said or done the following:
 (No other characters have acted.)
 {{/if}}
 
-Based on the player's action, the other characters' actions, and all your directives, narrate what happens next. Be descriptive, engaging, and follow the rules. If applicable, update the game state, character stats or location description. Remember to use your tools to look up any information you don't have.`,
+Based on the player's action, the other characters' actions, and all your directives, narrate what happens next. Be descriptive, engaging, and follow the rules. If applicable, update the game state, character stats or location description. Remember to use your tools to look up any information you don't be.`,
 });
 
 const aiDungeonMasterParserFlow = ai.defineFlow(
