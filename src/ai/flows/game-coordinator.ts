@@ -71,10 +71,9 @@ const gameCoordinatorFlow = ai.defineFlow(
       };
     }
     
-    const locationData = await lookupAdventureEntityInDb(locationId, gameState);
-    
     // 2. Handle Combat mode
     if (inCombat) {
+        const locationData = await lookupAdventureEntityInDb(locationId, gameState);
         const combatResult = await combatManagerTool({
             ...input,
             locationDescription: locationData?.description || "una zona de combate",
@@ -83,10 +82,12 @@ const gameCoordinatorFlow = ai.defineFlow(
     }
 
     // 3. Handle Narrative/Exploration mode
+    const locationData = await lookupAdventureEntityInDb(locationId, gameState);
     const narrativeResult = await narrativeExpert({
         playerAction: input.playerAction,
         gameState, 
         locationId: input.locationId,
+        locationContext: JSON.stringify(locationData),
         characterStats: JSON.stringify(input.party.find(c => c.controlledBy === 'Player')),
         conversationHistory: input.conversationHistory,
     });

@@ -17,6 +17,7 @@ const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
   gameState: z.string().describe('A JSON string representing the entire adventure data. This is the primary source of truth for locations, entities, and interactable objects.'),
   locationId: z.string().describe('The ID of the current location (e.g., "phandalin-plaza-del-pueblo").'),
+  locationContext: z.string().describe('A JSON string with the full data of the current location, including its description, exits, and interactable objects.'),
   characterStats: z.string().optional().describe('The current stats of the character.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
 });
@@ -40,13 +41,11 @@ const narrativeExpertPrompt = ai.definePrompt({
   prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish. DO NOT translate proper nouns (names, places, etc.).
 
 **Your Priorities & Directives:**
-1.  **Primary Task: Contextual Narrative.** Your main goal is to be a descriptive and engaging storyteller.
-    -   **FIRST, get context:** Your very first step should always be to use the \`adventureLookupTool\` to understand where you are, what's there, and who is present. You MUST provide the tool with the \`locationId\` and the full \`gameState\`.
-    -   **THEN, narrate:** Use this full context to react to the player's choices, portray non-player characters (NPCs), and create an immersive experience. Your narration must always end by prompting the player for their next action (e.g., "¿Qué haces?").
-2.  **Tool Directive: Use Your Tools.** You have two tools:
-    -   \`adventureLookupTool\`: Your primary source of truth. Use this to get information about ANY location, character, monster, or interactable item from the adventure data. You MUST pass the gameState JSON to this tool every time.
+1.  **Primary Task: Contextual Narrative.** Your main goal is to be a descriptive and engaging storyteller. You have been given all the context for the current location. Use this to react to the player's choices, portray non-player characters (NPCs), and create an immersive experience. Your narration must always end by prompting the player for their next action (e.g., "¿Qué haces?").
+2.  **Tool Directive: Use Your Tools for New Information.** You have two tools:
+    -   \`adventureLookupTool\`: Use this ONLY when the player wants to move to a NEW location or asks about an entity NOT present in the current location context.
     -   \`dndApiLookupTool\`: For general D&D rules, spells, or monster stats.
-3.  **Interaction Directive:** After getting the location context, when the player wants to interact with something (e.g., "leo el tablón de anuncios" or "hablo con Linene"), use the information you already have about the location. Refer to the 'interactionResults' or 'description' fields from the data you looked up to describe the outcome. **DO NOT INVENT THE RESULT.**
+3.  **Interaction Directive:** When the player wants to interact with something (e.g., "leo el tablón de anuncios" or "hablo con Linene"), use the 'locationContext' you already have. Refer to the 'interactionResults' or 'description' fields from the context to describe the outcome. **DO NOT INVENT THE RESULT. DO NOT use a tool to look up something you already have context for.**
 4.  **Movement Directive:** When the player wants to move to a new place (e.g., "voy a la Colina del Resentimiento"), you **MUST** use the \`adventureLookupTool\` to get the data for the destination. If the exit is valid, you MUST set the \`nextLocationId\` field in your response to the ID of the new location. Narrate the journey and the arrival at the new location based on its 'description' from the tool's response.
 5.  **Question Answering Directive:** If the player asks about a location, person, or thing (e.g., "¿Quién es Cryovain?"), you **MUST** use the \`adventureLookupTool\` to find that information and use it to formulate your answer.
 6.  **Combat Detection Directive (VERY IMPORTANT):**
@@ -68,16 +67,19 @@ const narrativeExpertPrompt = ai.definePrompt({
 
 **CONTEXT:**
 - You are currently at location ID: \`{{{locationId}}}\`.
+- Here is all the information about your current location: \`\`\`json
+{{{locationContext}}}
+\`\`\`
 - Here are the player character stats: {{{characterStats}}}
 - This is the recent conversation history: \`\`\`{{{conversationHistory}}}\`\`\`
-- This is the complete adventure data that you MUST pass to the adventureLookupTool: \`\`\`json
+- This is the complete adventure data that you MUST pass to the adventureLookupTool if you need to look up something NEW: \`\`\`json
 {{{gameState}}}
 \`\`\`
 
 **PLAYER'S ACTION:**
 "{{{playerAction}}}"
 
-Based on all directives, get your location context first, then narrate what happens next. Use your tools for accurate information. If combat starts, follow the protocol exactly.
+Based on all directives, use the provided location context to narrate what happens next. Use your tools only for looking up new information. If combat starts, follow the protocol exactly.
 `,
 });
 
