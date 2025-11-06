@@ -3,6 +3,7 @@
 import type { Character, DiceRoll } from "@/lib/types";
 import { PartyPanel } from "@/components/game/party-panel";
 import { DiceLogPanel } from "@/components/game/dice-log-panel";
+import { DebugPanel } from "@/components/game/debug-panel";
 import { Separator } from "../ui/separator";
 
 interface LeftPanelProps {
@@ -10,6 +11,7 @@ interface LeftPanelProps {
   selectedCharacterId?: string;
   onSelectCharacter: (character: Character) => void;
   diceRolls: DiceRoll[];
+  debugMessages?: string[];
   children?: React.ReactNode;
 }
 
@@ -18,6 +20,7 @@ export function LeftPanel({
   selectedCharacterId,
   onSelectCharacter,
   diceRolls,
+  debugMessages,
   children,
 }: LeftPanelProps) {
   return (
@@ -33,6 +36,14 @@ export function LeftPanel({
       <div className="flex-grow min-h-0">
         <DiceLogPanel diceRolls={diceRolls} />
       </div>
+      {debugMessages && (
+        <>
+          <Separator className="my-2" />
+          <div className="flex-shrink-0">
+            <DebugPanel messages={debugMessages} />
+          </div>
+        </>
+      )}
       {children && (
         <>
             <Separator className="my-2" />

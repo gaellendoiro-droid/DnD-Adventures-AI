@@ -33,6 +33,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     party.find(c => c.controlledBy === 'Player') || null
   );
   const [isDMThinking, setIsDMThinking] = useState(false);
+  const [debugMessages, setDebugMessages] = useState<string[]>([]);
 
   useEffect(() => {
     // When initialData changes (e.g. loading a new adventure), reset the state
@@ -42,7 +43,13 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setGameState(initialData.gameState);
     setLocationDescription(initialData.locationDescription);
     setSelectedCharacter(initialData.party.find(c => c.controlledBy === 'Player') || null);
+    setDebugMessages([]);
   }, [initialData]);
+
+  const addDebugMessage = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    setDebugMessages(prev => [`[${timestamp}] ${message}`, ...prev].slice(0, 50)); // Keep last 50 messages
+  };
 
   const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
     
@@ -90,7 +97,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setParty(currentParty => {
         const newParty = currentParty.map(c => {
             if (c.id === characterId) {
-                updatedCharacter = { ...c, ...updates };
+                updatedCharacter = { ...c, ...updates, hp: { ...c.hp, ...updates.hp } };
                 return updatedCharacter;
             }
             return c;
@@ -120,15 +127,19 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     }
     
     setIsDMThinking(true);
+    addDebugMessage("Turno iniciado...");
 
     try {
       if (content.startsWith('//')) {
+        addDebugMessage("Detectada query OOC (fuera de personaje).");
         const oocReply = await handleOocMessage(content.substring(2).trim(), gameState);
         if (oocReply) {
           addMessage({ sender: "DM", content: oocReply });
+          addDebugMessage("Respuesta OOC recibida y mostrada.");
         }
       } else {
         const playerAction = content;
+        addDebugMessage(`Acción del jugador: "${playerAction}"`);
         
         // Create conversation history
         const history = messages
@@ -141,20 +152,24 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           })
           .filter(Boolean)
           .join('\n');
+        addDebugMessage("Historial de conversación reciente creado.");
 
         const lastDmMessage = messages.findLast(m => m.sender === 'DM');
         
+        addDebugMessage("Generando acciones de PNJ...");
         const { newMessages, characterActionsContent } = await generateNpcActions(
           party, 
           lastDmMessage?.originalContent || locationDescription,
           playerAction
         );
+        addDebugMessage(`Se generaron ${newMessages.length} acciones de PNJ.`);
         
         if (newMessages.length > 0) {
           addMessages(newMessages, isRetry);
         }
 
         const playerCharacter = party.find(c => c.controlledBy === 'Player');
+        addDebugMessage("Ejecutando el turno del Dungeon Master...");
         const { dmNarration, updatedGameState, nextLocationDescription, updatedCharacterStats } = await runDungeonMasterTurn(
           playerAction,
           characterActionsContent,
@@ -163,21 +178,31 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           playerCharacter || null,
           history
         );
+        addDebugMessage("Turno del DM completado.");
 
         if (dmNarration) {
           addMessage(dmNarration, isRetry);
+          addDebugMessage("Narración del DM recibida y mostrada.");
         }
         
-        if(updatedGameState) setGameState(updatedGameState);
-        if(nextLocationDescription) setLocationDescription(nextLocationDescription);
+        if(updatedGameState) {
+          setGameState(updatedGameState);
+          addDebugMessage("Estado del juego actualizado.");
+        }
+        if(nextLocationDescription) {
+          setLocationDescription(nextLocationDescription);
+          addDebugMessage("Descripción de la ubicación actualizada.");
+        }
         
         if (updatedCharacterStats && playerCharacter) {
           updateCharacter(playerCharacter.id, updatedCharacterStats);
+          addDebugMessage("Estadísticas del personaje actualizadas.");
         }
 
       }
     } catch (error: any) {
       console.error("Error during AI turn:", error);
+      addDebugMessage(`ERROR: ${error.message}`);
       
       const errorMessage = error.message || "An unknown error occurred.";
       if (errorMessage.includes("503") || errorMessage.includes("model is overloaded")) {
@@ -194,6 +219,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       }
     } finally {
       setIsDMThinking(false);
+      addDebugMessage("Turno finalizado.");
     }
   };
 
@@ -227,6 +253,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           selectedCharacterId={selectedCharacter?.id}
           onSelectCharacter={setSelectedCharacter}
           diceRolls={diceRolls}
+          debugMessages={debugMessages}
         >
             <div className="p-2">
                 <Button size="sm" variant="outline" onClick={handleInternalSaveGame} className="w-full">
