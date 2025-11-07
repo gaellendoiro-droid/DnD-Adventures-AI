@@ -77,8 +77,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     addDebugMessage("Game state initialized from initialData.");
   }, [initialData, addDebugMessage]);
 
-  const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
-    const messageToAdd = {
+  const addMessage = useCallback((message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
+    const messageToAdd: GameMessage = {
         ...message,
         id: Date.now().toString() + Math.random(),
         timestamp: new Date().toLocaleTimeString([], {
@@ -91,14 +91,19 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         const filteredMessages = isRetryMessage ? prevMessages.filter(m => m.sender !== 'Error') : prevMessages;
         return [...filteredMessages, messageToAdd];
     });
-  };
+  }, []);
 
-  const addMessages = (newMessages: GameMessage[], isRetry: boolean = false) => {
+  const addMessages = useCallback((newMessages: Omit<GameMessage, 'id' | 'timestamp'>[], isRetry: boolean = false) => {
+     const messagesToAdd = newMessages.map(m => ({
+        ...m,
+        id: Date.now().toString() + Math.random(),
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+     }));
      setMessages((prev) => {
         const filteredMessages = isRetry ? prev.filter(m => m.sender !== 'Error') : prev;
-        return [...filteredMessages, ...newMessages];
+        return [...filteredMessages, ...messagesToAdd];
     });
-  }
+  }, []);
   
   const addDiceRolls = (rolls: Omit<DiceRoll, 'id' | 'timestamp'>[]) => {
     if (!rolls || rolls.length === 0) return;
@@ -221,20 +226,17 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         const firstCombatant = sortedCombatants[0];
         addMessage({ sender: 'System', content: `Es el turno de ${firstCombatant.characterName}.`});
       }
-  }, [addDebugMessage, party, gameState]);
+  }, [addDebugMessage, addMessage, party, gameState]);
 
 
   const handleSendMessage = useCallback(async (content: string, options: { isRetry?: boolean, isContinuation?: boolean } = {}) => {
     const { isRetry = false, isContinuation = false } = options;
 
     if (!isRetry && !isContinuation) {
-        const playerMessage: GameMessage = {
-          id: Date.now().toString(),
+        addMessage({
           sender: "Player",
           content,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        };
-        setMessages(prev => [...prev.filter(m => m.sender !== 'Error'), playerMessage]);
+        }, isRetry);
     } else if (isRetry) {
        setMessages(prev => [...prev.filter(m => m.sender !== 'Error')]);
     }
@@ -300,7 +302,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       setIsDMThinking(false);
       addDebugMessage("Turn finished.");
     }
-  }, [addDebugMessage, buildConversationHistory, gameState, inCombat, locationId, party, startCombatFlow, initiativeOrder, enemies, turnIndex]);
+  }, [addDebugMessage, addMessage, addMessages, buildConversationHistory, gameState, inCombat, locationId, party, startCombatFlow, initiativeOrder, enemies, turnIndex]);
   
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
      addDiceRolls([{

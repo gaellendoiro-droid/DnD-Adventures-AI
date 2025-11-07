@@ -31,18 +31,16 @@ const CombatManagerOutputSchema = z.object({
   endCombat: z.boolean(),
 });
 
-async function addMessage(messages: GameMessage[], msg: Omit<GameMessage, 'id' | 'timestamp'>) {
-    const { html, originalContent } = (msg.sender === 'DM' && typeof msg.content === 'string')
+async function createMessage(msg: Omit<GameMessage, 'id' | 'timestamp' | 'content'> & { content: string }) {
+    const { html, originalContent } = (msg.sender === 'DM')
         ? { html: (await markdownToHtml({ markdown: msg.content })).html, originalContent: msg.content }
-        : { html: msg.content, originalContent: typeof msg.content === 'string' ? msg.content : '' };
-    
-    messages.push({
+        : { html: msg.content, originalContent: msg.content };
+
+    return {
         ...msg,
-        id: Date.now().toString() + Math.random(),
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         content: html,
         originalContent: originalContent
-    });
+    };
 }
 
 export const combatManagerTool = ai.defineTool(
@@ -55,8 +53,8 @@ export const combatManagerTool = ai.defineTool(
   async (input) => {
     const { playerAction, party, enemies, initiativeOrder, currentTurnIndex, gameState, locationDescription, conversationHistory } = input;
     
-    const messages: GameMessage[] = [];
-    const diceRolls: DiceRoll[] = [];
+    const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
+    const diceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = [];
     let updatedParty = [...party];
     let updatedEnemies = [...enemies];
     
@@ -67,8 +65,8 @@ export const combatManagerTool = ai.defineTool(
     if (playerCombatant.type === 'player' && playerAction) {
       const playerCharacter = party.find(c => c.id === playerCombatant.id);
       if (playerCharacter?.controlledBy === 'Player') {
-        await addMessage(messages, { sender: 'System', content: `Turno de ${playerCharacter.name}.` });
-        await addMessage(messages, { sender: 'DM', content: `Tú (${playerCharacter.name}) declaras: ${playerAction}` });
+        messages.push(await createMessage({ sender: 'System', content: `Turno de ${playerCharacter.name}.` }));
+        messages.push(await createMessage({ sender: 'DM', content: `Tú (${playerCharacter.name}) declaras: ${playerAction}` }));
       }
       turnIndex = (turnIndex + 1) % initiativeOrder.length;
     }
@@ -81,7 +79,7 @@ export const combatManagerTool = ai.defineTool(
 
       if (isCompanion) {
         const companion = party.find(p => p.id === currentCombatant.id)!;
-        await addMessage(messages, { sender: 'System', content: `Turno de ${companion.name}.` });
+        messages.push(await createMessage({ sender: 'System', content: `Turno de ${companion.name}.` }));
         
         const response = await companionExpert({
           character: companion,
@@ -92,13 +90,13 @@ export const combatManagerTool = ai.defineTool(
         });
 
         if (response.action) {
-          await addMessage(messages, { sender: 'Character', senderName: companion.name, characterColor: companion.color, content: `${response.action}` });
+          messages.push(await createMessage({ sender: 'Character', senderName: companion.name, characterColor: companion.color, content: `${response.action}` }));
         }
 
       } else { // It's an enemy
         const enemy = enemies.find(e => e.id === currentCombatant.id);
         if (enemy) {
-            await addMessage(messages, { sender: 'System', content: `Turno de ${enemy.name}.` });
+            messages.push(await createMessage({ sender: 'System', content: `Turno de ${enemy.name}.` }));
             
             const enemyResponse = await enemyTactician({
                 activeCombatant: enemy.name,
@@ -109,7 +107,7 @@ export const combatManagerTool = ai.defineTool(
                 gameState,
             });
 
-            await addMessage(messages, { sender: 'DM', content: enemyResponse.narration });
+            messages.push(await createMessage({ sender: 'DM', content: enemyResponse.narration }));
             if (enemyResponse.diceRolls) diceRolls.push(...enemyResponse.diceRolls as DiceRoll[]);
         }
       }
@@ -120,7 +118,7 @@ export const combatManagerTool = ai.defineTool(
 
     const endCombat = updatedEnemies.every(e => e.hp?.current <= 0);
     if (endCombat) {
-      await addMessage(messages, { sender: 'System', content: '¡Combate Finalizado!' });
+      messages.push(await createMessage({ sender: 'System', content: '¡Combate Finalizado!' }));
     }
 
     return {
