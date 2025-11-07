@@ -189,7 +189,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
 
     const narrativeInput = {
         playerAction: input.playerAction,
-        partySummary: partySummary, // Pass the summary for the prompt text
+        partySummary: partySummary,
         locationId: input.locationId,
         locationContext: JSON.stringify(locationData),
         conversationHistory: input.conversationHistory,
