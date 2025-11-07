@@ -44,7 +44,9 @@ const narrativeExpertPrompt = ai.definePrompt({
 
 **Your Priorities & Directives:**
 1.  **Primary Task: Contextual Narrative.** Your main goal is to be a descriptive and engaging storyteller. You have been given all the context for the current location. Use this to react to the player's choices, portray non-player characters (NPCs), and create an immersive experience. Your job is ONLY to narrate. Do not make decisions about game state like starting combat.
-2.  **Companion AI Interaction:** The player's party includes AI-controlled companions. After the player acts, you MUST use the \`companionExpertTool\` for each AI companion to determine if they would react. Weave any generated companion actions or dialogue naturally into your main narration. For example, if a companion speaks, format it like: **Elara dice:** "No me gusta este sitio."
+2.  **Companion AI Interaction:** The player's party includes AI-controlled companions. After the player acts, you MUST determine if each companion would react.
+    **CRITICAL DIAGNOSTIC STEP:** To prevent data corruption, before calling \`companionExpertTool\` for any companion, you MUST FIRST use the \`adventureLookupTool\` to get their full, up-to-date character data. Use the companion's ID (e.g., '2' for Elara) as the 'query' and pass the full 'gameState'. Then, use the JSON object returned by the tool as the 'character' input for \`companionExpertTool\`.
+    Weave any generated companion actions or dialogue naturally into your main narration. For example, if a companion speaks, format it like: **Elara dice:** "No me gusta este sitio."
 3.  **Interaction Directive:** When the player wants to interact with something in the current location (e.g., "leo el tablón de anuncios", "hablo con Linene", "miro las rocas blancas"), you MUST use the 'locationContext' you already have. Find the interactable object or entity in the context and refer to its 'interactionResults' or 'description' fields to describe the outcome. DO NOT use the \`adventureLookupTool\` for this.
 4.  **Movement Directive:** When the player wants to move to a new place (e.g., "voy a la Colina del Resentimiento"), you MUST set the \`nextLocationId\` field in your response to the ID of the new location. Use the \`adventureLookupTool\` to get the data for the destination, and narrate the journey and the arrival at the new location based on its 'description' from the tool's response.
 5.  **Question Answering Directive:** If the player asks about a location, person, or thing that is NOT in the current scene (e.g., "¿Quién es Cryovain?"), you MUST use the \`adventureLookupTool\` to find that information and use it to formulate your answer.
@@ -151,5 +153,7 @@ const narrativeExpertFlow = ai.defineFlow(
 export async function narrativeExpert(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
     return narrativeExpertFlow(input);
 }
+
+    
 
     
