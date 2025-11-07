@@ -36,9 +36,10 @@ const actionInterpreterPrompt = ai.definePrompt({
 3.  **Movement:** Compare the action to the \`exits\` in \`locationContext\`. If it matches an intent to move, classify as 'move' and set 'targetId' to the destination's \`toLocationId\`.
 4.  **Attack:** If the action is an attack (e.g., "ataco al orco"), classify as 'attack' and set 'targetId' to the creature's name (e.g., "orco").
 5.  **Interaction (Very Specific):**
-    *   If the player wants to interact with an object or person (e.g., "hablo con el posadero", "miro el tablón"), look at the \`interactables\` in \`locationContext\`.
+    *   If the player wants to interact with an object or person (e.g., "hablo con el posadero", "miro el tablón", "que pone en la mision X"), look at the \`interactables\` in \`locationContext\`.
     *   Find the specific \`interactionResults.action\` that most closely matches the player's intent.
-    *   Classify the action as 'interact' and set 'targetId' to the **exact string of that specific sub-action** (e.g., "Leer Misión de la Colina del Resentimiento", NOT "Tablón de oportunidades").
+    *   If the player action is generic (e.g., "miro el tablón"), and there are multiple interaction options, **default to the FIRST interaction action available** (e.g., "Leer anuncios (General)").
+    *   Classify the action as 'interact' and set 'targetId' to the **exact string of that specific sub-action** (e.g., "Leer Misión de la Colina del Resentimiento", "Leer anuncios (General)").
 6.  **Default to Narration:** If none of the above apply, it's a general descriptive action. Classify it as 'narrate'.
 
 **Location Context:**
@@ -49,7 +50,7 @@ const actionInterpreterPrompt = ai.definePrompt({
 **Player Action:**
 "{{{playerAction}}}"
 
-Determine the player's intent. If it's an interaction, find the **most specific interaction action** from the context and use its exact name as the targetId.
+Determine the player's intent. If it's an interaction, find the **most specific interaction action** from the context and use its exact name as the targetId. If the interaction is generic, use the first available interaction action.
 `,
 });
 
