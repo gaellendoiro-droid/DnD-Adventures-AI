@@ -17,10 +17,6 @@ const turnLogs: { [turnId: string]: string[] } = {};
 export async function processPlayerAction(
   input: Omit<GameCoordinatorInput, 'log'> & { turnId: string }
 ) {
-  console.log("--- DEBUG: Data arriving at processPlayerAction from client ---");
-  console.log(JSON.stringify(input.party, null, 2));
-  console.log("-----------------------------------------------------------");
-
   const { turnId, party } = input;
   turnLogs[turnId] = []; // Reset logs for the new turn
 
