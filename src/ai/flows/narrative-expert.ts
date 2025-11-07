@@ -44,7 +44,6 @@ const narrativeExpertPrompt = ai.definePrompt({
     locationContext: z.string(),
     characterStats: z.string().optional(),
     conversationHistory: z.string().optional(),
-    gameState: z.string(), // We still need this for lookups
   })},
   output: {schema: NarrativeExpertOutputSchema},
   tools: [dndApiLookupTool, adventureLookupTool, companionExpertTool],
@@ -62,7 +61,6 @@ const narrativeExpertPrompt = ai.definePrompt({
 **Rules:**
 -   ALWAYS return a valid JSON object matching the output schema.
 -   Do not decide to start combat. The game coordinator will handle that. Describe the scene, and if it's hostile, the player's action will determine the next step.
--   When you use a tool like \`adventureLookupTool\`, you MUST provide the 'gameState' from your context.
 
 **CONTEXT:**
 - You are currently at location ID: \`{{{locationId}}}\`.
@@ -72,9 +70,6 @@ const narrativeExpertPrompt = ai.definePrompt({
 - The player's party is: {{{json party}}}
 - Here are the player character stats: {{{characterStats}}}
 - This is the recent conversation history: \`\`\`{{{conversationHistory}}}\`\`\`
-- This is the complete adventure data that you MUST pass to tools if they require it: \`\`\`json
-{{{gameState}}}
-\`\`\`
 
 **PLAYER'S ACTION:**
 "{{{playerAction}}}"
@@ -99,14 +94,8 @@ export const narrativeExpertFlow = ai.defineFlow(
 
     try {
         localLog("NarrativeExpert: Generating narration based on player action and context...");
-        
-        // Load gameState only when needed, inside the flow.
-        const adventureData = await getAdventureData();
-        const gameState = JSON.stringify(adventureData);
-        
-        const promptInput = { ...input, gameState };
-        
-        const {output, usage} = await narrativeExpertPrompt(promptInput);
+                
+        const {output, usage} = await narrativeExpertPrompt(input);
         
         if (usage?.toolCalls?.length) {
             usage.toolCalls.forEach(call => {
@@ -117,7 +106,7 @@ export const narrativeExpertFlow = ai.defineFlow(
         if (!output) {
             localLog("NarrativeExpert: AI returned null output. This could be due to safety filters or an internal model error. Retrying once...");
             // Retry logic
-            const { output: retryOutput, usage: retryUsage } = await narrativeExpertPrompt(promptInput);
+            const { output: retryOutput, usage: retryUsage } = await narrativeExpertPrompt(input);
             if (retryUsage?.toolCalls?.length) {
                 retryUsage.toolCalls.forEach(call => {
                     localLog(`NarrativeExpert (Retry): Called tool '${call.tool}...'`);
@@ -134,6 +123,7 @@ export const narrativeExpertFlow = ai.defineFlow(
         
         // Final validation for location ID before returning
         if (output.nextLocationId) {
+            const adventureData = await getAdventureData();
             const locationExists = (adventureData.locations || []).some((loc: any) => loc.id === output.nextLocationId);
             if (!locationExists) {
                 localLog(`NarrativeExpert: WARNING - AI returned a non-existent nextLocationId: '${output.nextLocationId}'. Discarding it.`);

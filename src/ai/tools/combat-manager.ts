@@ -17,7 +17,6 @@ export const CombatManagerInputSchema = z.object({
   enemies: z.array(z.any()),
   initiativeOrder: z.array(z.any()),
   currentTurnIndex: z.number(),
-  gameState: z.string(),
   locationDescription: z.string().optional(),
   conversationHistory: z.string(),
 });
@@ -41,7 +40,7 @@ export const combatManagerTool = ai.defineTool(
       outputSchema: CombatManagerOutputSchema,
     },
     async (input) => {
-        const { playerAction, party, enemies, initiativeOrder, currentTurnIndex, gameState, locationDescription, conversationHistory } = input;
+        const { playerAction, party, enemies, initiativeOrder, currentTurnIndex, locationDescription, conversationHistory } = input;
         
         const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
         const diceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = [];
@@ -106,7 +105,6 @@ export const combatManagerTool = ai.defineTool(
                     enemies: enemies.map(e => ({ name: e.name, hp: 'Unknown' })), // Placeholder HP
                     locationDescription: locationDescription || '',
                     conversationHistory,
-                    gameState,
                 });
     
                 debugLogs.push(`EnemyTactician action for ${enemy.name}: ${enemyResponse.narration}`);

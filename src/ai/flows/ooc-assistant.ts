@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview This file contains the Genkit flow for the OocAssistant, which handles out-of-character player questions.
@@ -10,7 +11,6 @@ import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 const OocAssistantInputSchema = z.object({
   playerQuery: z.string().describe('The out-of-character question from the player to the Dungeon Master.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
-  gameState: z.string().describe('A JSON string representing the entire adventure data.'),
 });
 export type OocAssistantInput = z.infer<typeof OocAssistantInputSchema>;
 

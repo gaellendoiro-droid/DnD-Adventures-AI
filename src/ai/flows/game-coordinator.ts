@@ -12,7 +12,7 @@ import { combatManagerTool } from '../tools/combat-manager';
 import type { GameMessage, DiceRoll, InitiativeRoll } from '@/lib/types';
 import { markdownToHtml } from './markdown-to-html';
 import { narrativeExpert } from './narrative-expert';
-import { lookupAdventureEntityInDb, getAdventureData } from '@/app/game-state-actions';
+import { getAdventureData } from '@/app/game-state-actions';
 
 // Schemas for the main coordinator flow
 const GameCoordinatorInputSchema = z.object({
@@ -58,16 +58,12 @@ export const gameCoordinatorFlow = ai.defineFlow(
     
     log(`GameCoordinator: Received action: "${playerAction}". InCombat: ${inCombat}.`);
 
-    const adventureData = await getAdventureData();
-    const gameState = JSON.stringify(adventureData);
-    
     // 1. Handle Out-of-Character (OOC) queries first
     if (playerAction.startsWith('//')) {
       log("GameCoordinator: OOC query detected. Calling OOC Assistant...");
       const oocResult = await oocAssistant({
         playerQuery: playerAction.substring(2).trim(),
         conversationHistory,
-        gameState,
       });
       (oocResult.debugLogs || []).forEach(log);
 
@@ -79,15 +75,19 @@ export const gameCoordinatorFlow = ai.defineFlow(
       };
     }
     
+    const adventureData = await getAdventureData();
+    if (!adventureData) {
+        throw new Error("Failed to load adventure data.");
+    }
+    const locationData = adventureData.locations.find((l: any) => l.id === locationId);
+
     // 2. Handle Combat mode
     if (inCombat) {
-        log("GameCoordinator: Combat mode detected. Looking up location data...");
-        const locationData = adventureData.locations.find((l: any) => l.id === locationId);
-        log("GameCoordinator: Calling Combat Manager Tool...");
+        log("GameCoordinator: Combat mode detected. Calling Combat Manager Tool...");
         const combatResult = await combatManagerTool({
             ...input,
             locationDescription: locationData?.description || "una zona de combate",
-            gameState,
+            conversationHistory,
         });
         (combatResult.debugLogs || []).forEach(log);
         return { ...combatResult };
@@ -98,13 +98,12 @@ export const gameCoordinatorFlow = ai.defineFlow(
     if (attackRegex.test(playerAction)) {
       log(`GameCoordinator: Attack action detected ("${playerAction}"). Attempting to start combat.`);
       const targetName = playerAction.split(attackRegex)[1].trim();
-      log(`GameCoordinator: Extracted target name: "${targetName}". Looking up location data...`);
-      const locationData = adventureData.locations.find((l: any) => l.id === locationId);
+      log(`GameCoordinator: Extracted target name: "${targetName}".`);
       
-      const targetEntity = locationData?.entitiesPresent?.find((e: string) => e.toLowerCase().includes(targetName.toLowerCase()))
+      const targetEntityId = locationData?.entitiesPresent?.find((e: string) => e.toLowerCase().includes(targetName.toLowerCase()))
       
-      if (targetEntity) {
-          log(`GameCoordinator: Valid target entity ID '${targetEntity}' found in location. Looking up all entities present for combat...`);
+      if (targetEntityId) {
+          log(`GameCoordinator: Valid target entity ID '${targetEntityId}' found in location. Looking up all entities present for combat...`);
           
           let identifiedEnemies: any[] = [];
           if (locationData.entitiesPresent.length > 0) {
@@ -174,9 +173,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
     }
 
     // 4. Handle Narrative/Exploration mode
-    log("GameCoordinator: Narrative mode. Looking up location data...");
-    const locationData = adventureData.locations.find((l: any) => l.id === locationId);
-    log("GameCoordinator: Location data found. Preparing to call Narrative Expert...");
+    log("GameCoordinator: Narrative mode. Preparing to call Narrative Expert...");
     
     const narrativeInput = {
         playerAction: input.playerAction,

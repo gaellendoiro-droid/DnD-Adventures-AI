@@ -4,6 +4,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { getAdventureData } from '@/app/game-state-actions';
 
 export const adventureLookupTool = ai.defineTool(
   {
@@ -11,22 +12,14 @@ export const adventureLookupTool = ai.defineTool(
     description: 'Looks up information about a specific location or entity (character, monster, item) from the main adventure data file. Use this to get details when a player moves to a new area or interacts with a specific named entity like "tablón de anuncios" or an NPC.',
     inputSchema: z.object({
         query: z.string().describe("The search query, which can be the entity's ID or name. For example: 'phandalin-plaza-del-pueblo' or 'Linene Vientogrís' or 'Tablón de oportunidades'."),
-        gameState: z.string().describe("The full JSON string of the current adventure state. This MUST be passed from the prompt's context."),
         currentLocationId: z.string().optional().describe("The ID of the character's current location, to help narrow down searches for interactable objects."),
     }),
     outputSchema: z.string().describe('A JSON string containing the requested information, or an error message if not found.'),
   },
-  async ({ query, gameState, currentLocationId }) => {
-    if (!gameState) {
-      return "Error: Adventure data (gameState) is not available. It must be provided.";
-    }
-
-    let adventureData: any;
-    try {
-      adventureData = JSON.parse(gameState);
-    } catch (e: any) {
-      console.error("[adventureLookupTool] Failed to parse gameState JSON:", e.message);
-      return `Error: The provided gameState is not valid JSON. Error: ${e.message}`;
+  async ({ query, currentLocationId }) => {
+    const adventureData = await getAdventureData();
+    if (!adventureData) {
+      return "Error: Adventure data is not available. It must be provided.";
     }
 
     const locations = adventureData.locations || [];
@@ -61,5 +54,3 @@ export const adventureLookupTool = ai.defineTool(
     return `Error: No location, entity or interactable found matching '${query}'. Try a broader query.`;
   }
 );
-
-    
