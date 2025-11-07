@@ -49,12 +49,24 @@ const narrativeExpertPrompt = ai.definePrompt({
   })},
   output: {schema: NarrativeExpertOutputSchema},
   tools: [dndApiLookupTool, adventureLookupTool, companionExpertTool],
+  config: { // Add safety settings to be less restrictive
+    safetySettings: [
+        {
+          category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+          threshold: 'BLOCK_ONLY_HIGH',
+        },
+        {
+          category: 'HARM_CATEGORY_HARASSMENT',
+          threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+        },
+    ],
+  },
   prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish from Spain. DO NOT translate proper nouns (names, places, etc.).
 
 **Your Priorities & Directives:**
 1.  **Primary Task: Narrate the World:** Your main goal is to be a descriptive and engaging storyteller. React to the player's choices, portray non-player characters (NPCs), and describe the environment. Your narration goes in the \`dmNarration\` field.
-2.  **Companion Actions:** After narrating, consider if any AI companions would react. If a companion would say or do something, you MUST use the \`companionExpertTool\` for EACH companion that acts. The tool will decide the specific action. Do not invent companion actions yourself. Their actions will be handled separately by the system based on your tool calls.
-3.  **Interaction Directive:** When the player interacts with something in the current location (e.g., "leo el tablón de anuncios", "hablo con Linene"), you MUST use the 'locationContext' you already have. Find the object/entity and use its 'interactionResults' or 'description' to formulate your \`dmNarration\`. DO NOT use other tools for this.
+2.  **Companion Actions:** After narrating, consider if any AI companions would react. If a companion would say or do something, you MUST use the \`companionExpertTool\` for EACH companion that acts. Do not invent companion actions yourself.
+3.  **Interaction Directive:** When the player interacts with something in the current location (e.g., "leo el tablón de anuncios", "hablo con Linene"), you MUST use the 'locationContext' you already have. Find the object/entity and use its 'interactionResults' or 'description' to formulate your \`dmNarration\`.
 4.  **Movement Directive:** When the player wants to move (e.g., "voy a la Colina del Resentimiento"), use the \`adventureLookupTool\` to get the destination data. Narrate the journey and arrival in \`dmNarration\`, and set the \`nextLocationId\` field in your response.
 5.  **Question Answering:** If the player asks about something NOT in the current scene (e.g., "¿Quién es Cryovain?"), use the \`adventureLookupTool\` to find that info and use it for your \`dmNarration\`.
 6.  **Tense Situations**: If enemies are present but haven't attacked, describe the tense situation. DO NOT initiate combat yourself. The game coordinator handles combat initiation.
@@ -62,7 +74,7 @@ const narrativeExpertPrompt = ai.definePrompt({
 **Rules:**
 -   ALWAYS return a valid JSON object matching the output schema.
 -   Your primary narration goes into \`dmNarration\`.
--   Use the \`companionExpertTool\` to generate actions for AI companions; do not write their dialogue or actions directly into the \`dmNarration\`. The tool's output will be handled by the system.
+-   Use the \`companionExpertTool\` to generate actions for AI companions; do not write their dialogue or actions directly into the \`dmNarration\`.
 
 **CONTEXT:**
 - You are currently at location ID: \`{{{locationId}}}\`.
@@ -110,21 +122,8 @@ export const narrativeExpertFlow = ai.defineFlow(
         const output = llmResponse.output;
 
         if (!output) {
-            localLog("NarrativeExpert: AI returned null output. This could be due to safety filters or an internal model error. Retrying once...");
-            // Retry logic
-            const { output: retryOutput, usage: retryUsage } = await narrativeExpertPrompt(input);
-            if (retryUsage?.toolCalls?.length) {
-                retryUsage.toolCalls.forEach(call => {
-                    localLog(`NarrativeExpert (Retry): Called tool '${call.tool}...'`);
-                });
-            }
-            if (!retryOutput) {
-                localLog("NarrativeExpert: AI returned null output on second attempt. Failing.");
-                throw new Error("The AI failed to return a valid output after a retry. It might have been blocked by safety filters.");
-            }
-            const finalOutput = { ...retryOutput, debugLogs };
-            localLog("NarrativeExpert: Successfully generated narration object on retry.");
-            return finalOutput;
+            localLog("NarrativeExpert: AI returned null output. This could be due to safety filters or an internal model error.");
+            throw new Error("The AI failed to return a valid output. It might have been blocked by safety filters or an internal error.");
         }
 
         const companionActions: { characterId: string; action: string }[] = [];
@@ -180,3 +179,5 @@ export const narrativeExpertFlow = ai.defineFlow(
 export async function narrativeExpert(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
     return narrativeExpertFlow(input);
 }
+
+    
