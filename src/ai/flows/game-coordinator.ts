@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview The central AI coordinator for the D&D game.
@@ -170,9 +171,9 @@ const gameCoordinatorFlow = ai.defineFlow(
     }
 
     // 4. Handle Narrative/Exploration mode
-    log("GameCoordinator: Narrative mode detected. Looking up location data...");
+    log("GameCoordinator: Narrative mode. Looking up location data...");
     const locationData = await lookupAdventureEntityInDb(locationId, gameState);
-    log("GameCoordinator: Location data found. Calling Narrative Expert...");
+    log("GameCoordinator: Location data found. Preparing to call Narrative Expert...");
     
     const narrativeInput = {
         playerAction: input.playerAction,
@@ -182,9 +183,11 @@ const gameCoordinatorFlow = ai.defineFlow(
         locationContext: JSON.stringify(locationData),
         characterStats: JSON.stringify(input.party.find(c => c.controlledBy === 'Player')),
         conversationHistory: input.conversationHistory,
-        log: log,
+        log,
     };
     
+    log(`GameCoordinator: Calling NarrativeExpert with input: ${JSON.stringify(narrativeInput, null, 2)}`);
+
     const narrativeResult = await narrativeExpert(narrativeInput);
     (narrativeResult.debugLogs || []).forEach(log);
 
