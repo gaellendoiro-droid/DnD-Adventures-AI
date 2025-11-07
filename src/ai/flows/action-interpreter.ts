@@ -8,8 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { ActionInterpreterInput, ActionInterpreterOutput } from './game-coordinator';
-import { ActionInterpreterInputSchema, ActionInterpreterOutputSchema } from './game-coordinator';
+import { ActionInterpreterInputSchema, ActionInterpreterOutputSchema, type ActionInterpreterInput, type ActionInterpreterOutput } from './schemas';
 
 
 const actionInterpreterPrompt = ai.definePrompt({
@@ -25,7 +24,7 @@ const actionInterpreterPrompt = ai.definePrompt({
 4.  **Attack:** If the action is an attack (e.g., "ataco al orco"), classify as 'attack' and set 'targetId' to the creature's name (e.g., "orco").
 5.  **Interaction (CRITICAL):**
     *   Your primary goal for interactions is to find the **most specific 'interactionResults.action' string** from the 'interactables' in the 'locationContext' that matches the player's intent.
-    *   If the player's action is specific (e.g., "leo la misión de la colina del resentimiento", "¿qué pone sobre los enanos?"), find the corresponding interaction action in the JSON and use its **exact string value** as the \`targetId\`.
+    *   If the player's action is specific (e.g., "leo la misión de la colina del resentimiento", "¿qué pone sobre los enanos?"), find the corresponding interaction action in the JSON and use its **exact string value** as the 'targetId'.
     *   If the player's action is generic (e.g., "miro el tablón", "hablo con el posadero"), you MUST find the most logical default action for that interactable. **This will almost always be the FIRST action listed in its 'interactionResults' array** (e.g., "Leer anuncios (General)").
     *   Once you've identified the specific action string, classify the action as 'interact' and set 'targetId' to that **exact string**.
 

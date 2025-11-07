@@ -9,27 +9,13 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { oocAssistant } from './ooc-assistant';
 import { combatManagerTool } from '../tools/combat-manager';
-import type { GameMessage, DiceRoll, InitiativeRoll } from '@/lib/types';
+import type { GameMessage } from '@/lib/types';
 import { markdownToHtml } from './markdown-to-html';
 import { narrativeExpert } from './narrative-expert';
 import { getAdventureData } from '@/app/game-state-actions';
-import { CharacterSummarySchema } from '@/lib/schemas';
 import { companionExpertTool } from '../tools/companion-expert';
 import { actionInterpreter } from './action-interpreter';
-
-// Schemas for the action interpreter, moved here to avoid 'use server' export issues.
-export const ActionInterpreterInputSchema = z.object({
-  playerAction: z.string().describe('The action taken by the player.'),
-  locationContext: z.string().describe('A JSON string with the full data of the current location, including its exits, interactable objects and entities present.'),
-});
-export type ActionInterpreterInput = z.infer<typeof ActionInterpreterInputSchema>;
-
-export const ActionInterpreterOutputSchema = z.object({
-  actionType: z.enum(['move', 'interact', 'attack', 'narrate', 'ooc']).describe("The interpreted type of the player's action."),
-  targetId: z.string().optional().nullable().describe("The ID of the target for the action. For 'move', it's the destination ID. For 'attack', the entity ID. For 'interact', it's the specific interaction action name (e.g., 'Leer Misión de la Colina del Resentimiento')."),
-});
-export type ActionInterpreterOutput = z.infer<typeof ActionInterpreterOutputSchema>;
-
+import { ActionInterpreterInputSchema, ActionInterpreterOutputSchema } from './schemas';
 
 // Schemas for the main coordinator flow
 const GameCoordinatorInputSchema = z.object({
