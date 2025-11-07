@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A Genkit tool for generating actions for AI-controlled companions.
@@ -24,7 +25,7 @@ const companionExpertPrompt = ai.definePrompt({
     name: 'companionExpertPrompt',
     input: {schema: CompanionExpertInputSchema},
     output: {schema: CompanionExpertOutputSchema},
-    prompt: `You are orchestrating the AI-controlled character in a D&D party. Your goal is to make their interactions feel natural and true to their unique personality.
+    prompt: `You are orchestrating the AI-controlled character in a D&D party. Your goal is to make their interactions feel natural and true to their unique personality. You MUST ALWAYS reply in Spanish from Spain.
 
     **Guiding Principle: Realism over Reactivity. The character should only act if it makes sense for them.**
 
@@ -78,3 +79,5 @@ export const companionExpertTool = ai.defineTool(
         return output || { action: "" };
     }
 );
+
+    

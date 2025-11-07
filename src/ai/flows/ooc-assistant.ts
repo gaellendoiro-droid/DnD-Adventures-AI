@@ -25,7 +25,7 @@ const oocAssistantPrompt = ai.definePrompt({
   input: {schema: OocAssistantInputSchema},
   output: {schema: OocAssistantOutputSchema},
   tools: [dndApiLookupTool],
-  prompt: `You are an AI Dungeon Master for a D&D 5e game. A player is asking you a question out-of-character. Your role is to be a helpful and clear assistant. You MUST ALWAYS reply in Spanish.
+  prompt: `You are an AI Dungeon Master for a D&D 5e game. A player is asking you a question out-of-character. Your role is to be a helpful and clear assistant. You MUST ALWAYS reply in Spanish from Spain.
 
   Here is the recent conversation history for context:
   \`\`\`
@@ -64,3 +64,5 @@ const oocAssistantFlow = ai.defineFlow(
 export async function oocAssistant(input: OocAssistantInput): Promise<OocAssistantOutput> {
     return oocAssistantFlow(input);
 }
+
+    

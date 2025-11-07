@@ -47,7 +47,7 @@ const narrativeExpertPrompt = ai.definePrompt({
   })},
   output: {schema: NarrativeExpertOutputSchema},
   tools: [dndApiLookupTool, adventureLookupTool, companionExpertTool],
-  prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish. DO NOT translate proper nouns (names, places, etc.).
+  prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish from Spain. DO NOT translate proper nouns (names, places, etc.).
 
 **Your Priorities & Directives:**
 1.  **Primary Task: Contextual Narrative.** Your main goal is to be a descriptive and engaging storyteller. You have been given all the context for the current location. Use this to react to the player's choices, portray non-player characters (NPCs), and create an immersive experience. Your job is ONLY to narrate. Do not make decisions about game state like starting combat.
@@ -155,3 +155,5 @@ export const narrativeExpertFlow = ai.defineFlow(
 export async function narrativeExpert(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
     return narrativeExpertFlow(input);
 }
+
+    

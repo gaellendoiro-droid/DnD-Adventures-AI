@@ -37,7 +37,7 @@ const enemyTacticianPrompt = ai.definePrompt({
   input: {schema: EnemyTacticianInputSchema},
   output: {schema: EnemyTacticianOutputSchema},
   tools: [dndApiLookupTool, adventureLookupTool],
-  prompt: `You are the AI brain for hostile NPCs and monsters in a D&D 5e combat. You MUST ALWAYS reply in Spanish.
+  prompt: `You are the AI brain for hostile NPCs and monsters in a D&D 5e combat. You MUST ALWAYS reply in Spanish from Spain.
 
 **Your ONLY job is to decide the action for a SINGLE enemy on its turn.**
 
@@ -101,3 +101,5 @@ export const enemyTacticianTool = ai.defineTool(
       }
     }
   );
+
+    
