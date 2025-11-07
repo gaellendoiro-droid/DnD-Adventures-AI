@@ -14,6 +14,7 @@ import { markdownToHtml } from './markdown-to-html';
 import { narrativeExpert } from './narrative-expert';
 import { getAdventureData } from '@/app/game-state-actions';
 import { CharacterSummarySchema } from '@/lib/schemas';
+import { companionExpertTool } from '../tools/companion-expert';
 
 // Schemas for the main coordinator flow
 const GameCoordinatorInputSchema = z.object({
@@ -201,13 +202,40 @@ export const gameCoordinatorFlow = ai.defineFlow(
     const narrativeResult = await narrativeExpert(narrativeInput);
     (narrativeResult.debugLogs || []).forEach(log);
 
+    let finalNarration = narrativeResult.narration;
+
+    // After getting the main narration, check if companions should act.
+    const aiCompanions = party.filter(c => c.controlledBy === 'AI');
+    if (aiCompanions.length > 0) {
+        log(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
+        const companionActions: string[] = [];
+        for (const companion of aiCompanions) {
+             const companionSummary = partySummary.find(p => p.id === companion.id)!;
+             log(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
+             const companionResult = await companionExpertTool({
+                characterSummary: companionSummary,
+                context: `${finalNarration}\nPlayer action was: ${playerAction}`,
+                inCombat: false,
+                partySummary,
+             });
+             if (companionResult.action) {
+                log(`GameCoordinator: ${companion.name} reacts: "${companionResult.action}"`);
+                companionActions.push(`**${companion.name}:** *${companionResult.action}*`);
+             }
+        }
+        if (companionActions.length > 0) {
+            finalNarration += `\n\n${companionActions.join('\n')}`;
+        }
+    }
+
+
     const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
     
     // Process narration
-    if (narrativeResult.narration) {
+    if (finalNarration) {
         messages.push({
             sender: 'DM',
-            content: narrativeResult.narration,
+            content: finalNarration,
         } as Omit<GameMessage, 'id' | 'timestamp'>);
     }
 
