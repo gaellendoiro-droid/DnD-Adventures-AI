@@ -224,7 +224,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
              }
         }
         if (companionActions.length > 0) {
-            finalNarration += `\n\n${companionActions.join('\n')}`;
+            finalNarration += `\n\n<div class="mt-4 p-3 border-l-4 border-accent bg-accent/10 rounded-r-lg">${companionActions.join('\n\n')}</div>`;
         }
     }
 
