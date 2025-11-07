@@ -145,6 +145,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
             
             log(`GameCoordinator: Calling NarrativeExpert for location '${locationId}'...`);
             const narrativeResult = await narrativeExpert(narrativeInput);
+            (narrativeResult.debugLogs || []).forEach(log);
 
             let dmNarrationHtml = "";
             if (narrativeResult.dmNarration) {
@@ -162,7 +163,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
             // 5. Generate Companion Reactions (Temporarily Disabled)
             // const aiCompanions = party.filter(p => p.controlledBy === 'AI');
             // log(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
-            // (narrativeResult.debugLogs || []).forEach(log);
+            
             // for (const companion of aiCompanions) {
             //     const companionSummary = partySummary.find(p => p.id === companion.id)!;
             //     log(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
@@ -239,5 +240,3 @@ export const gameCoordinatorFlow = ai.defineFlow(
 export async function gameCoordinator(input: GameCoordinatorInput): Promise<GameCoordinatorOutput> {
     return gameCoordinatorFlow(input);
 }
-
-    
