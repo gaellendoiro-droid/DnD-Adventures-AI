@@ -167,6 +167,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     const turnId = Date.now().toString();
     currentTurnIdRef.current = turnId;
 
+    console.log("1. Estado 'party' al inicio del turno en handleSendMessage:", JSON.stringify(party, null, 2));
+
     if (!isRetry && !isContinuation) {
         addMessage({
           sender: "Player",
@@ -190,7 +192,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     try {
       const history = buildConversationHistory();
       
-      const result = await processPlayerAction({
+      const actionInput = {
         playerAction: content,
         party,
         locationId,
@@ -200,7 +202,11 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         turnIndex,
         conversationHistory: history,
         turnId
-      });
+      };
+      
+      console.log("2. Objeto enviado a processPlayerAction:", JSON.stringify(actionInput, null, 2));
+
+      const result = await processPlayerAction(actionInput);
       
       if (result.debugLogs) {
         addDebugMessages(result.debugLogs);
@@ -329,3 +335,5 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     </GameLayout>
   );
 }
+
+    
