@@ -24,18 +24,10 @@ export const adventureLookupTool = ai.defineTool(
 
     const locations = adventureData.locations || [];
     const entities = adventureData.entities || [];
-    const allData = [...locations, ...entities];
     
     const normalizedQuery = query.toLowerCase().trim();
 
-    // 1. Exact match by ID or name
-    let result = allData.find((item: any) => 
-        (item.id && item.id.toLowerCase() === normalizedQuery) || 
-        (item.name && item.name.toLowerCase() === normalizedQuery)
-    );
-    if (result) return JSON.stringify(result);
-
-    // 2. Search for interactables within the current location
+    // 1. Search for interactables within the current location
     if (currentLocationId) {
         const currentLocation = locations.find((loc:any) => loc.id === currentLocationId);
         if (currentLocation && currentLocation.interactables) {
@@ -43,6 +35,14 @@ export const adventureLookupTool = ai.defineTool(
             if (interactable) return JSON.stringify(interactable);
         }
     }
+
+    // 2. Exact match by ID or name across all locations and entities
+    const allData = [...locations, ...entities];
+    let result = allData.find((item: any) => 
+        (item.id && item.id.toLowerCase() === normalizedQuery) || 
+        (item.name && item.name.toLowerCase() === normalizedQuery)
+    );
+    if (result) return JSON.stringify(result);
 
     // 3. Partial match / fuzzy search if no exact match is found
     const partialMatch = allData.find((item: any) => 

@@ -61,7 +61,13 @@ export const gameCoordinatorFlow = ai.defineFlow(
     const { playerAction, inCombat, conversationHistory, party, log = () => {} } = input;
     let { locationId } = input;
     
-    log(`GameCoordinator: Received action: "${playerAction}". InCombat: ${inCombat}. Location: ${locationId}.`);
+    const debugLogs: string[] = [];
+    const localLog = (message: string) => {
+        log(message);
+        debugLogs.push(message);
+    };
+    
+    localLog(`GameCoordinator: Received action: "${playerAction}". InCombat: ${inCombat}. Location: ${locationId}.`);
     
     const adventureData = await getAdventureData();
     if (!adventureData) {
@@ -73,23 +79,22 @@ export const gameCoordinatorFlow = ai.defineFlow(
     // 1. Handle Combat mode
     if (inCombat) {
         const locationData = adventureData.locations.find((l: any) => l.id === locationId);
-        log("GameCoordinator: Combat mode detected. Calling Combat Manager Tool...");
+        localLog("GameCoordinator: Combat mode detected. Calling Combat Manager Tool...");
         const combatResult = await combatManagerTool({
             ...input,
             locationDescription: locationData?.description || "una zona de combate",
             conversationHistory,
         });
-        (combatResult.debugLogs || []).forEach(log);
-        return { ...combatResult };
+        (combatResult.debugLogs || []).forEach(localLog);
+        return { ...combatResult, debugLogs };
     }
 
     // 2. Interpret Player Action
     const currentLocationData = adventureData.locations.find((l: any) => l.id === locationId);
-    log("GameCoordinator: Calling ActionInterpreter...");
+    localLog("GameCoordinator: Calling ActionInterpreter...");
     const interpretation = await actionInterpreter({
         playerAction,
         locationContext: JSON.stringify(currentLocationData),
-        log,
     });
     
     let newLocationId: string | null = null;
@@ -98,32 +103,33 @@ export const gameCoordinatorFlow = ai.defineFlow(
     // 3. Process action based on interpretation
     switch(interpretation.actionType) {
         case 'ooc':
-            log("GameCoordinator: OOC query detected. Calling OOC Assistant...");
+            localLog("GameCoordinator: OOC query detected. Calling OOC Assistant...");
             const oocResult = await oocAssistant({
                 playerQuery: playerAction.substring(2).trim(),
                 conversationHistory,
             });
-            (oocResult.debugLogs || []).forEach(log);
+            (oocResult.debugLogs || []).forEach(localLog);
             messages.push({ sender: 'DM', content: `(OOC) ${oocResult.dmReply}`});
             return { messages };
 
         case 'move':
             if (interpretation.targetId) {
-                log(`GameCoordinator: Movement interpreted to '${interpretation.targetId}'.`);
+                localLog(`GameCoordinator: Movement interpreted to '${interpretation.targetId}'.`);
                 newLocationId = interpretation.targetId;
                 locationId = newLocationId; // Update locationId for the current turn's context
                 finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
             }
-            log(`GameCoordinator: Action is 'move', proceeding to Narrative Expert.`);
+            localLog(`GameCoordinator: Action is 'move', proceeding to Narrative Expert.`);
             // Fall through to narrate the arrival
         
         case 'interact':
         case 'narrate':
-        case 'attack': // Also falls through for failed attack narration
-            log(`GameCoordinator: Action is '${interpretation.actionType}', proceeding to Narrative Expert.`);
+        case 'attack': // Also falls through for narration of failed attacks or tense moments before combat
+        case 'default':
+            localLog(`GameCoordinator: Action is '${interpretation.actionType}', proceeding to Narrative Expert.`);
             
             // 4. Generate Narrative
-            log("GameCoordinator: Preparing to call Narrative Expert...");
+            localLog("GameCoordinator: Preparing to call Narrative Expert...");
             const partySummary = input.party.map(c => ({
                 id: c.id,
                 name: c.name,
@@ -140,33 +146,31 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 locationId: locationId,
                 locationContext: JSON.stringify(finalLocationData),
                 conversationHistory: input.conversationHistory,
-                log,
+                log: localLog,
             };
             
-            log(`GameCoordinator: Calling NarrativeExpert for location '${locationId}'...`);
+            localLog(`GameCoordinator: Calling NarrativeExpert for location '${locationId}'...`);
             const narrativeResult = await narrativeExpert(narrativeInput);
-            (narrativeResult.debugLogs || []).forEach(log);
+            (narrativeResult.debugLogs || []).forEach(localLog);
 
-            let dmNarrationHtml = "";
             if (narrativeResult.dmNarration) {
-                log("GameCoordinator: Converting DM narration to HTML...");
+                localLog("GameCoordinator: Converting DM narration to HTML...");
                 const { html } = await markdownToHtml({ markdown: narrativeResult.dmNarration });
-                dmNarrationHtml = html;
-                log("GameCoordinator: HTML conversion complete.");
+                localLog("GameCoordinator: HTML conversion complete.");
                 messages.push({
                     sender: 'DM',
-                    content: dmNarrationHtml,
+                    content: html,
                     originalContent: narrativeResult.dmNarration,
                 });
             }
 
-            // 5. Generate Companion Reactions (Temporarily Disabled)
+            // 5. Generate Companion Reactions (Temporarily Disabled for debugging)
             // const aiCompanions = party.filter(p => p.controlledBy === 'AI');
-            // log(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
+            // localLog(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
             
             // for (const companion of aiCompanions) {
             //     const companionSummary = partySummary.find(p => p.id === companion.id)!;
-            //     log(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
+            //     localLog(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
                 
             //     const companionContext = `The player just did this: "${playerAction}"\n\nThe Dungeon Master described the result as: "${narrativeResult.dmNarration}"`;
                 
@@ -179,7 +183,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
             //     });
         
             //     if (companionResult.action) {
-            //         log(`GameCoordinator: ${companion.name} reacts: "${companionResult.action}"`);
+            //         localLog(`GameCoordinator: ${companion.name} reacts: "${companionResult.action}"`);
             //         messages.push({
             //             sender: 'Character',
             //             senderName: companion.name,
@@ -199,39 +203,18 @@ export const gameCoordinatorFlow = ai.defineFlow(
                         updatedParty = input.party.map(c => c.id === player.id ? { ...c, ...updates } : c);
                     } catch (e) {
                         console.warn("Invalid JSON in updatedCharacterStats, ignoring.", narrativeResult.updatedCharacterStats);
-                        log("GameCoordinator: WARNING - NarrativeExpert returned invalid JSON for updatedCharacterStats.");
+                        localLog("GameCoordinator: WARNING - NarrativeExpert returned invalid JSON for updatedCharacterStats.");
                     }
                 }
             }
             
-            log(`GameCoordinator: Turn finished successfully. Current location: ${locationId}`);
+            localLog(`GameCoordinator: Turn finished successfully. Current location: ${locationId}`);
             return {
               messages,
+              debugLogs,
               updatedParty,
               nextLocationId: newLocationId,
             };
-
-        default:
-            log(`GameCoordinator: Unhandled action type '${interpretation.actionType}'. Defaulting to simple narration.`);
-            // This is a fallback, similar to the main block above
-            const defaultNarrativeInput = {
-                playerAction: input.playerAction,
-                partySummary: party.map(c => ({ id: c.id, name: c.name, race: c.race, class: c.class, sex: c.sex, personality: c.personality, controlledBy: c.controlledBy })),
-                locationId: locationId,
-                locationContext: JSON.stringify(finalLocationData),
-                conversationHistory: input.conversationHistory,
-                log,
-            };
-            const defaultNarrativeResult = await narrativeExpert(defaultNarrativeInput);
-            if (defaultNarrativeResult.dmNarration) {
-                const { html } = await markdownToHtml({ markdown: defaultNarrativeResult.dmNarration });
-                messages.push({
-                    sender: 'DM',
-                    content: html,
-                    originalContent: defaultNarrativeResult.dmNarration,
-                });
-            }
-            return { messages };
     }
   }
 );

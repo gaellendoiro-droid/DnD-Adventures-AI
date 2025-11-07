@@ -55,21 +55,22 @@ const narrativeExpertPrompt = ai.definePrompt({
 **Your ONLY Task: Narrate the Scene**
 Your one and only job is to be a descriptive and engaging storyteller. Based on the context provided, narrate the outcome of the player's action. Your narration goes in the \`dmNarration\` field.
 
-**Directives:**
-- **Describe the World:** React to the player's choices, portray non-player characters (NPCs), and describe the environment based on the provided context.
-- **Use Your Tools:** If you need information about something (a monster, a spell, an item, another location), use the provided tools like \`adventureLookupTool\` or \`dndApiLookupTool\`.
-- **Be a Referee:** If the player's action requires a skill check (e.g., trying to persuade someone, investigating a clue), describe it in the narration. For example: "Para convencer al guardia, necesitarás hacer una tirada de Persuasión."
+**Directives & Information Hierarchy:**
+1.  **Prioritize Local Context:** Your primary source of truth is the \`locationContext\` JSON. If the player's action involves anything within the current scene (reading a sign, talking to a present NPC, looking at an object), use the information from \`locationContext\` to describe the outcome.
+2.  **Use Tools for Global Knowledge:** If the player asks about a person, place, or concept that is NOT in the current \`locationContext\` (e.g., asking an innkeeper about a hermit who lives in the hills), you MUST use the \`adventureLookupTool\` to search for that information (e.g., \`adventureLookupTool({query: 'nombre del ermitaño'})\`).
+3.  **Use Tools for Rules:** If you need general D&D 5e rules, spell descriptions, or item stats, use the \`dndApiLookupTool\`.
+4.  **Be a Referee:** If an action requires a skill check, state it in the narration (e.g., "Para convencer al guardia, necesitarás hacer una tirada de Persuasión.").
 
 **CRITICAL RULES:**
 -   ALWAYS return a valid JSON object matching the output schema.
 -   Your entire story narration goes into the \`dmNarration\` field.
--   **DO NOT** generate actions, dialogue, or thoughts for any AI-controlled companions. Another part of the system handles that.
--   **DO NOT** decide if the party moves to a new location. Another part of the system handles that. Just narrate the current scene based on the context you are given.
--   **DO NOT** initiate combat. Just describe the tense situation if enemies are present.
+-   **DO NOT** generate actions or dialogue for AI-controlled companions. Another system handles that.
+-   **DO NOT** decide if the party moves. Another system handles that. Just narrate the scene.
+-   **DO NOT** initiate combat. Just describe tense situations.
 
 **CONTEXT:**
 - You are at location: \`{{{locationId}}}\`.
-- Information about this location: \`\`\`json
+- **Primary Information Source (Local Context):** \`\`\`json
 {{{locationContext}}}
 \`\`\`
 - The player's party: 
@@ -81,7 +82,7 @@ Your one and only job is to be a descriptive and engaging storyteller. Based on 
 **PLAYER'S ACTION:**
 "{{{playerAction}}}"
 
-Based on all directives, narrate what happens next.
+Based on all directives and the information hierarchy, narrate what happens next.
 `,
 });
 
