@@ -29,11 +29,11 @@ export function LeftPanel({
     <ResizablePanelGroup direction="vertical" className="h-full">
       <ResizablePanel defaultSize={60} minSize={30}>
         <ResizablePanelGroup direction="vertical">
-          <ResizablePanel defaultSize={70} minSize={30}>
+          <ResizablePanel defaultSize={50} minSize={30}>
             <DiceLogPanel diceRolls={diceRolls} />
           </ResizablePanel>
           <ResizableHandle />
-          <ResizablePanel defaultSize={30} minSize={30}>
+          <ResizablePanel defaultSize={50} minSize={30}>
             <InitiativeTracker combatants={initiativeOrder} />
           </ResizablePanel>
         </ResizablePanelGroup>
