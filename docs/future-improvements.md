@@ -34,7 +34,7 @@ Esta es la mejora más solicitada y de mayor impacto, surgida directamente de la
 
 *   **Base de Datos Real:** Reemplazar el sistema de guardado y carga mediante archivos JSON por una base de datos (como Firestore) para permitir un guardado automático y continuo.
 *   **Múltiples Partidas:** Permitir a los usuarios tener varias partidas guardadas simultáneamente.
-*   **Creación de Personajes:** Implementar un flujo guiado para que los jugadores puedan crear sus propios personajes desde cero en lugar de usar siempre a Galador.
+*   **Creación de Personajes:** Implementar un flujo guiado para que los jugadores puedan crear sus propios personajes desde cero, con tiradas de características, selección de clase, trasfondo, etc., en lugar de usar siempre a Galador.
 
 ---
 
@@ -51,6 +51,13 @@ Esta es la mejora más solicitada y de mayor impacto, surgida directamente de la
 
 ### 5. Calidad y Robustez de la IA
 
-*   **Memoria a Largo Plazo:** Implementar un sistema (posiblemente usando embeddings y una base de datos vectorial) para que la IA recuerde eventos y decisiones clave de la aventura que ocurrieron mucho antes, influyendo en la narrativa a largo plazo. Por ejemplo, recordar una promesa que el jugador hizo a un PNJ hace varias sesiones.
+*   **Implementación de un Sistema RAG (Retrieval-Augmented Generation):**
+    *   **Problema Actual:** La IA depende de la herramienta `adventureLookupTool` para buscar en el JSON, lo que requiere consultas precisas por nombre o ID. Es un sistema rígido.
+    *   **Mejora Propuesta:** Migrar de la búsqueda por JSON a un sistema RAG. Esto implicaría procesar todo el documento de la aventura, dividirlo en fragmentos (por ubicación, PNJ, etc.), crear *embeddings* de cada fragmento y almacenarlos en una base de datos vectorial.
+    *   **Impacto:** La IA podría hacer "preguntas" en lenguaje natural a la base de datos de la aventura (ej: "¿qué se sabe sobre el dragón que amenaza Phandalin?") en lugar de necesitar saber el ID "Cryovain". Esto desbloquearía una comprensión del `lore` mucho más profunda y permitiría usar módulos de aventura completos escritos en formato de texto, no solo JSON estructurados.
+
+*   **Memoria a Largo Plazo:** Implementar un sistema (posiblemente usando el propio sistema RAG) para que la IA recuerde eventos y decisiones clave de la aventura que ocurrieron mucho antes, influyendo en la narrativa a largo plazo. Por ejemplo, recordar una promesa que el jugador hizo a un PNJ hace varias sesiones.
+
 *   **Flujo de Errores Más Inteligente:** En lugar de simplemente fallar, si una IA devuelve una respuesta mal formada, intentar "auto-corregirla" con una segunda llamada o recurrir a una respuesta de respaldo predefinida.
+
 *   **Generación de Aventuras Procedural:** A largo plazo, la IA podría generar sus propias misiones secundarias, PNJ o incluso pequeñas mazmorras basadas en las acciones y el nivel del jugador, creando una experiencia de juego verdaderamente infinita y única para cada usuario.
