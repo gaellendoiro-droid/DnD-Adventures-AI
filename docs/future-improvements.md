@@ -43,10 +43,14 @@ Esta es la mejora más solicitada y de mayor impacto, surgida directamente de la
 *   **Mapa Visual Interactivo:** En lugar de solo texto, mostrar un mapa simple de la región o de la ubicación actual, donde se destaquen las salidas y puntos de interés.
 *   **Mejoras en la Ficha de Personaje:** Hacerla más interactiva, permitiendo usar objetos o lanzar conjuros directamente desde ella.
 *   **Historial de Trivialidades (Lore):** Una sección en la interfaz que recopile automáticamente información importante sobre lugares, personajes y objetos descubiertos durante la aventura.
+*   **Gestión de Música y Sonido Dinámicos:**
+    *   **Contexto Musical:** La IA podría analizar el contexto de la escena (exploración tranquila, tensión, combate épico, visita a una ciudad bulliciosa) y seleccionar una pista de música de fondo adecuada de una librería predefinida.
+    *   **Efectos de Sonido:** Acciones clave como un golpe crítico, el lanzamiento de un hechizo de fuego o el fallo de una tirada podrían ir acompañados de efectos de sonido para aumentar la inmersión.
 
 ---
 
 ### 5. Calidad y Robustez de la IA
 
-*   **Memoria a Largo Plazo:** Implementar un sistema (posiblemente usando embeddings y una base de datos vectorial) para que la IA recuerde eventos y decisiones clave de la aventura que ocurrieron mucho antes, influyendo en la narrativa a largo plazo.
+*   **Memoria a Largo Plazo:** Implementar un sistema (posiblemente usando embeddings y una base de datos vectorial) para que la IA recuerde eventos y decisiones clave de la aventura que ocurrieron mucho antes, influyendo en la narrativa a largo plazo. Por ejemplo, recordar una promesa que el jugador hizo a un PNJ hace varias sesiones.
 *   **Flujo de Errores Más Inteligente:** En lugar de simplemente fallar, si una IA devuelve una respuesta mal formada, intentar "auto-corregirla" con una segunda llamada o recurrir a una respuesta de respaldo predefinida.
+*   **Generación de Aventuras Procedural:** A largo plazo, la IA podría generar sus propias misiones secundarias, PNJ o incluso pequeñas mazmorras basadas en las acciones y el nivel del jugador, creando una experiencia de juego verdaderamente infinita y única para cada usuario.
