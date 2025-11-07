@@ -71,7 +71,7 @@ const narrativeExpertPrompt = ai.definePrompt({
 \`\`\`
 - The player's party is: 
   {{#each partySummary}}
-  - {{this.name}} ({{this.class}} {{this.race}}, ID: {{this.id}}), {{#if (eq this.controlledBy "Player")}}controlled by the Player{{else}}controlled by AI, personality: {{this.personality}}{{/if}}
+  - {{this.name}} ({{this.class}} {{this.race}}, ID: {{this.id}}), controlado por {{this.controlledBy}}. Personalidad: {{this.personality}}
   {{/each}}
 - This is the recent conversation history: \`\`\`{{{conversationHistory}}}\`\`\`
 
