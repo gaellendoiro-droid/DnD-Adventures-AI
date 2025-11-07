@@ -91,8 +91,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         locationContext: JSON.stringify(currentLocationData),
         log,
     });
-    (interpretation.debugLogs || []).forEach(log);
-
+    
     let newLocationId: string | null = null;
     let finalLocationData = currentLocationData;
     
