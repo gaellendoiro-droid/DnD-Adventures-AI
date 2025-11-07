@@ -46,14 +46,26 @@ Esta es la mejora más solicitada y de mayor impacto, surgida directamente de la
 
 ---
 
-### 4. Persistencia de Datos y Gestión de Partidas
+### 4. Gestión de Inventario y Economía del Juego
+
+*   **Comercio con PNJs:**
+    *   **Propuesta:** Mejorar la interacción con los comerciantes (como Elmar Barthen). Cuando un jugador dice "quiero comprar una cuerda", la IA debería entender la intención, consultar el inventario del comerciante, mostrar el precio y, si el jugador acepta, realizar la transacción actualizando el oro y el inventario de ambos. Esto requeriría que el `narrativeExpert` pudiera modificar el estado del juego.
+    *   **Impacto:** Le da un propósito real al oro y a los tesoros encontrados, haciendo que la economía del juego sea funcional.
+
+*   **Gestión de Inventario:**
+    *   **Propuesta:** Permitir a los jugadores usar, equipar o dar objetos desde su ficha de personaje. Por ejemplo, un botón "Usar" junto a una "Poción de curación" que inicie la acción correspondiente.
+    *   **Impacto:** Hace que la gestión del equipo sea más táctil e interactiva.
+
+---
+
+### 5. Persistencia de Datos y Gestión de Partidas
 
 *   **Base de Datos Real:** Reemplazar el sistema de guardado y carga mediante archivos JSON por una base de datos (como Firestore) para permitir un guardado automático y continuo.
 *   **Múltiples Partidas:** Permitir a los usuarios tener varias partidas guardadas simultáneamente.
 
 ---
 
-### 5. Enriquecimiento de la Interfaz y la Experiencia
+### 6. Enriquecimiento de la Interfaz y la Experiencia
 
 *   **Mapa Visual Interactivo:** En lugar de solo texto, mostrar un mapa simple de la región o de la ubicación actual, donde se destaquen las salidas y puntos de interés.
 *   **Mejoras en la Ficha de Personaje:** Hacerla más interactiva, permitiendo usar objetos o lanzar conjuros directamente desde ella.
@@ -64,7 +76,7 @@ Esta es la mejora más solicitada y de mayor impacto, surgida directamente de la
 
 ---
 
-### 6. Calidad y Robustez de la IA
+### 7. Calidad y Robustez de la IA
 
 *   **Implementación de un Sistema RAG (Retrieval-Augmented Generation):**
     *   **Problema Actual:** La IA depende de la herramienta `adventureLookupTool` para buscar en el JSON, lo que requiere consultas precisas por nombre o ID. Es un sistema rígido.
