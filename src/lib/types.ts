@@ -25,7 +25,7 @@ export interface Spell {
   id: string;
   name: string;
   level: number;
-  description: string;
+  description: string | null;
 }
 
 export interface Character {

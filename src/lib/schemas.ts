@@ -28,5 +28,5 @@ export const CharacterSchema = z.object({
     ac: z.number(),
     controlledBy: z.enum(["Player", "AI"]),
     inventory: z.array(z.object({ id: z.string(), name: z.string(), quantity: z.number(), description: z.string().optional().nullable() })),
-    spells: z.array(z.object({ id: z.string(), name: z.string(), level: z.number(), description: z.string() })),
+    spells: z.array(z.object({ id: z.string(), name: z.string(), level: z.number(), description: z.string().nullable() })),
 });

@@ -13,6 +13,7 @@ import { processPlayerAction, getDebugLogs } from "@/app/actions";
 import { PartyPanel } from "@/components/game/party-panel";
 import { Separator } from "../ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { markdownToHtml } from "@/ai/flows/markdown-to-html";
 
 
 interface GameViewProps {
@@ -47,20 +48,19 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   const { toast } = useToast();
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const addDebugMessage = useCallback((message: string) => {
-    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setDebugMessages(prev => [...prev, `[${timestamp}] ${message}`].slice(-100));
-  }, []);
+  const currentTurnIdRef = useRef<string>("");
 
   const addDebugMessages = useCallback((newLogs: string[]) => {
     if (!newLogs || newLogs.length === 0) return;
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const formattedLogs = newLogs.map(log => `[${timestamp}] ${log}`);
+    
     setDebugMessages(prev => {
-        const existingLogs = new Set(prev);
-        const uniqueNewLogs = formattedLogs.filter(log => !existingLogs.has(log.substring(log.indexOf(']') + 2)));
-        return [...prev, ...uniqueNewLogs].slice(-200);
+        const prevLogsSet = new Set(prev.map(l => l.substring(l.indexOf(']') + 2)));
+        const uniqueNewLogs = newLogs.filter(log => !prevLogsSet.has(log));
+        if (uniqueNewLogs.length === 0) return prev;
+
+        const formattedLogs = uniqueNewLogs.map(log => `[${timestamp}] ${log}`);
+        return [...prev, ...formattedLogs].slice(-200);
     });
   }, []);
 
@@ -76,12 +76,28 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setDebugMessages([]);
     setTurnIndex(0);
     setEnemies([]);
-    addDebugMessage("Game state initialized from initialData.");
-  }, [initialData, addDebugMessage]);
+    addDebugMessages(["Game state initialized from initialData."]);
+  }, [initialData, addDebugMessages]);
 
-  const addMessage = useCallback((message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
+  const addMessage = useCallback(async (message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
+    let finalContent = message.content;
+    let originalContent = typeof message.content === 'string' ? message.content : undefined;
+
+    if (message.sender === 'DM' && typeof message.content === 'string') {
+        try {
+            const { html } = await markdownToHtml({ markdown: message.content });
+            finalContent = html;
+            originalContent = message.content;
+        } catch (e) {
+            console.error("Failed to convert markdown to HTML, showing raw content.", e);
+            finalContent = message.content;
+        }
+    }
+
     const messageToAdd: GameMessage = {
         ...message,
+        content: finalContent,
+        originalContent: originalContent,
         id: Date.now().toString() + Math.random(),
         timestamp: new Date().toLocaleTimeString([], {
             hour: "2-digit",
@@ -95,13 +111,31 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     });
   }, []);
 
-  const addMessages = useCallback((newMessages: Omit<GameMessage, 'id' | 'timestamp'>[], isRetry: boolean = false) => {
+  const addMessages = useCallback(async (newMessages: Omit<GameMessage, 'id' | 'timestamp'>[], isRetry: boolean = false) => {
      if (!newMessages || newMessages.length === 0) return;
-     const messagesToAdd = newMessages.map(m => ({
-        ...m,
-        id: Date.now().toString() + Math.random(),
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+
+     const messagesToAdd = await Promise.all(newMessages.map(async m => {
+        let finalContent = m.content;
+        let originalContent = typeof m.content === 'string' ? m.content : undefined;
+        if (m.sender === 'DM' && typeof m.content === 'string') {
+             try {
+                const { html } = await markdownToHtml({ markdown: m.content });
+                finalContent = html;
+                originalContent = m.content;
+            } catch (e) {
+                console.error("Failed to convert markdown to HTML, showing raw content.", e);
+                finalContent = m.content;
+            }
+        }
+        return {
+            ...m,
+            content: finalContent,
+            originalContent,
+            id: Date.now().toString() + Math.random(),
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        }
      }));
+
      setMessages((prev) => {
         const filteredMessages = isRetry ? prev.filter(m => m.sender !== 'Error') : prev;
         return [...filteredMessages, ...messagesToAdd];
@@ -117,29 +151,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     }));
     setDiceRolls(prevRolls => [...prevRolls, ...newRolls]);
   }
-
-  const updateCharacter = useCallback((characterId: string, updates: Partial<Character>) => {
-    let updatedCharacter: Character | null = null;
-    setParty(currentParty => {
-        const newParty = currentParty.map(c => {
-            if (c.id === characterId) {
-                const newHp = { ...c.hp, ...updates.hp };
-                if (newHp.current < 0) newHp.current = 0;
-                if (newHp.current > newHp.max) newHp.current = newHp.max;
-
-                updatedCharacter = { ...c, ...updates, hp: newHp };
-                return updatedCharacter;
-            }
-            return c;
-        });
-        
-        if (updatedCharacter && selectedCharacter?.id === characterId) {
-            setSelectedCharacter(updatedCharacter);
-        }
-        
-        return newParty;
-    });
-  }, [selectedCharacter]);
 
   const buildConversationHistory = () => {
     return messages
@@ -157,6 +168,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const handleSendMessage = useCallback(async (content: string, options: { isRetry?: boolean, isContinuation?: boolean } = {}) => {
     const { isRetry = false, isContinuation = false } = options;
     const turnId = Date.now().toString();
+    currentTurnIdRef.current = turnId;
 
     if (!isRetry && !isContinuation) {
         addMessage({
@@ -169,15 +181,10 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     
     setIsDMThinking(true);
     
-    // Start polling for logs
     pollingIntervalRef.current = setInterval(async () => {
         try {
             const logs = await getDebugLogs(turnId);
-            const currentLogs = new Set(debugMessages);
-            const newLogs = logs.filter(l => !currentLogs.has(`[${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}] ${l}`));
-            if (newLogs.length > 0) {
-               addDebugMessages(logs);
-            }
+            addDebugMessages(logs);
         } catch (e) {
             console.error("Log polling failed:", e);
         }
@@ -207,14 +214,12 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         throw new Error(result.error);
       }
       
-      if(result.messages) addMessages(result.messages.map(m => ({ ...m, content: m.originalContent || m.content})), isRetry);
+      if(result.messages) addMessages(result.messages.map(m => ({ ...m, content: m.content || ''})), isRetry);
       if(result.diceRolls) addDiceRolls(result.diceRolls);
       if(result.nextLocationId) setLocationId(result.nextLocationId);
       
-      // Check for character updates
       if (result.updatedParty) {
         setParty(result.updatedParty);
-        // Also update selected character if they were changed
         const player = result.updatedParty.find(p => p.id === selectedCharacter?.id);
         if(player) setSelectedCharacter(player);
       }
@@ -251,7 +256,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
     } catch (error: any) {
       console.error("Error during turn:", error);
-      addDebugMessage(`CRITICAL ERROR: ${error.message}`);
+      addDebugMessages([`CRITICAL ERROR: ${error.message}`]);
       addMessage({
         sender: 'Error',
         content: `El Dungeon Master está confundido y no puede procesar tu última acción. Error: ${error.message}`,
@@ -263,7 +268,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       }
       setIsDMThinking(false);
     }
-  }, [addDebugMessage, addDebugMessages, addMessage, addMessages, buildConversationHistory, gameState, inCombat, locationId, party, initiativeOrder, enemies, turnIndex, debugMessages, selectedCharacter, updateCharacter]);
+  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, gameState, inCombat, locationId, party, initiativeOrder, enemies, turnIndex, selectedCharacter?.id]);
   
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
      addDiceRolls([{
@@ -329,5 +334,3 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     </GameLayout>
   );
 }
-
-    
