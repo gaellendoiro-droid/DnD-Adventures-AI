@@ -13,7 +13,7 @@ const turnLogs: { [turnId: string]: string[] } = {};
  * It acts as a bridge between the UI and the central AI coordinator.
  */
 export async function processPlayerAction(
-  input: GameCoordinatorInput & { turnId: string }
+  input: Omit<GameCoordinatorInput, 'log'> & { turnId: string }
 ) {
   const { turnId } = input;
   turnLogs[turnId] = []; // Reset logs for the new turn
@@ -57,6 +57,6 @@ export async function getDebugLogs(turnId: string): Promise<string[]> {
  * Server action to look up an entity from the adventure data.
  * This is needed because the client-side components cannot run the tool directly.
  */
-export async function lookupAdventureEntity(entityName: string, gameState: string): Promise<any | null> {
-    return lookupAdventureEntityInDb(entityName, gameState);
+export async function lookupAdventureEntity(entityName: string): Promise<any | null> {
+    return lookupAdventureEntityInDb(entityName);
 }

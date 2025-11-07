@@ -14,11 +14,11 @@ import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
 import { companionExpertTool } from '../tools/companion-expert';
 import { CharacterSchema } from '@/lib/schemas';
+import { getAdventureData } from '@/app/game-state-actions';
 
 const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
   party: z.array(CharacterSchema).describe("The player's party."),
-  gameState: z.string().describe('A JSON string representing the entire adventure data. This is the primary source of truth for locations, entities, and interactable objects.'),
   locationId: z.string().describe('The ID of the current location (e.g., "phandalin-plaza-del-pueblo").'),
   locationContext: z.string().describe('A JSON string with the full data of the current location, including its description, exits, and interactable objects.'),
   characterStats: z.string().optional().describe('The current stats of the character.'),
@@ -37,16 +37,22 @@ export type NarrativeExpertOutput = z.infer<typeof NarrativeExpertOutputSchema>;
 
 const narrativeExpertPrompt = ai.definePrompt({
   name: 'narrativeExpertPrompt',
-  input: {schema: NarrativeExpertInputSchema},
+  input: {schema: z.object({
+    playerAction: z.string(),
+    party: z.array(CharacterSchema),
+    locationId: z.string(),
+    locationContext: z.string(),
+    characterStats: z.string().optional(),
+    conversationHistory: z.string().optional(),
+    gameState: z.string(), // We still need this for lookups
+  })},
   output: {schema: NarrativeExpertOutputSchema},
   tools: [dndApiLookupTool, adventureLookupTool, companionExpertTool],
   prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish. DO NOT translate proper nouns (names, places, etc.).
 
 **Your Priorities & Directives:**
 1.  **Primary Task: Contextual Narrative.** Your main goal is to be a descriptive and engaging storyteller. You have been given all the context for the current location. Use this to react to the player's choices, portray non-player characters (NPCs), and create an immersive experience. Your job is ONLY to narrate. Do not make decisions about game state like starting combat.
-2.  **Companion AI Interaction:** The player's party includes AI-controlled companions. After the player acts, you MUST determine if each companion would react.
-    **CRITICAL DIAGNOSTIC STEP:** To prevent data corruption, before calling \`companionExpertTool\` for any companion, you MUST FIRST use the \`adventureLookupTool\` to get their full, up-to-date character data. Use the companion's ID (e.g., '2' for Elara) as the 'query' and pass the full 'gameState'. Then, use the JSON object returned by the tool as the 'character' input for \`companionExpertTool\`.
-    Weave any generated companion actions or dialogue naturally into your main narration. For example, if a companion speaks, format it like: **Elara dice:** "No me gusta este sitio."
+2.  **Companion AI Interaction:** The player's party includes AI-controlled companions. After the player acts, you MUST determine if each companion would react. To do this, call the \`companionExpertTool\`. For the 'character' parameter of the tool, use the full character object from the 'party' array in your context.
 3.  **Interaction Directive:** When the player wants to interact with something in the current location (e.g., "leo el tablón de anuncios", "hablo con Linene", "miro las rocas blancas"), you MUST use the 'locationContext' you already have. Find the interactable object or entity in the context and refer to its 'interactionResults' or 'description' fields to describe the outcome. DO NOT use the \`adventureLookupTool\` for this.
 4.  **Movement Directive:** When the player wants to move to a new place (e.g., "voy a la Colina del Resentimiento"), you MUST set the \`nextLocationId\` field in your response to the ID of the new location. Use the \`adventureLookupTool\` to get the data for the destination, and narrate the journey and the arrival at the new location based on its 'description' from the tool's response.
 5.  **Question Answering Directive:** If the player asks about a location, person, or thing that is NOT in the current scene (e.g., "¿Quién es Cryovain?"), you MUST use the \`adventureLookupTool\` to find that information and use it to formulate your answer.
@@ -56,6 +62,7 @@ const narrativeExpertPrompt = ai.definePrompt({
 **Rules:**
 -   ALWAYS return a valid JSON object matching the output schema.
 -   Do not decide to start combat. The game coordinator will handle that. Describe the scene, and if it's hostile, the player's action will determine the next step.
+-   When you use a tool like \`adventureLookupTool\`, you MUST provide the 'gameState' from your context.
 
 **CONTEXT:**
 - You are currently at location ID: \`{{{locationId}}}\`.
@@ -65,7 +72,7 @@ const narrativeExpertPrompt = ai.definePrompt({
 - The player's party is: {{{json party}}}
 - Here are the player character stats: {{{characterStats}}}
 - This is the recent conversation history: \`\`\`{{{conversationHistory}}}\`\`\`
-- This is the complete adventure data that you MUST pass to the adventureLookupTool if you need to look up something NEW: \`\`\`json
+- This is the complete adventure data that you MUST pass to tools if they require it: \`\`\`json
 {{{gameState}}}
 \`\`\`
 
@@ -76,7 +83,7 @@ Based on all directives, use the provided context and tools to narrate what happ
 `,
 });
 
-const narrativeExpertFlow = ai.defineFlow(
+export const narrativeExpertFlow = ai.defineFlow(
   {
     name: 'narrativeExpertFlow',
     inputSchema: NarrativeExpertInputSchema,
@@ -92,7 +99,14 @@ const narrativeExpertFlow = ai.defineFlow(
 
     try {
         localLog("NarrativeExpert: Generating narration based on player action and context...");
-        const {output, usage} = await narrativeExpertPrompt(input);
+        
+        // Load gameState only when needed, inside the flow.
+        const adventureData = await getAdventureData();
+        const gameState = JSON.stringify(adventureData);
+        
+        const promptInput = { ...input, gameState };
+        
+        const {output, usage} = await narrativeExpertPrompt(promptInput);
         
         if (usage?.toolCalls?.length) {
             usage.toolCalls.forEach(call => {
@@ -103,7 +117,7 @@ const narrativeExpertFlow = ai.defineFlow(
         if (!output) {
             localLog("NarrativeExpert: AI returned null output. This could be due to safety filters or an internal model error. Retrying once...");
             // Retry logic
-            const { output: retryOutput, usage: retryUsage } = await narrativeExpertPrompt(input);
+            const { output: retryOutput, usage: retryUsage } = await narrativeExpertPrompt(promptInput);
             if (retryUsage?.toolCalls?.length) {
                 retryUsage.toolCalls.forEach(call => {
                     localLog(`NarrativeExpert (Retry): Called tool '${call.tool}...'`);
@@ -120,7 +134,6 @@ const narrativeExpertFlow = ai.defineFlow(
         
         // Final validation for location ID before returning
         if (output.nextLocationId) {
-            const adventureData = JSON.parse(input.gameState);
             const locationExists = (adventureData.locations || []).some((loc: any) => loc.id === output.nextLocationId);
             if (!locationExists) {
                 localLog(`NarrativeExpert: WARNING - AI returned a non-existent nextLocationId: '${output.nextLocationId}'. Discarding it.`);
@@ -153,7 +166,3 @@ const narrativeExpertFlow = ai.defineFlow(
 export async function narrativeExpert(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
     return narrativeExpertFlow(input);
 }
-
-    
-
-    

@@ -21,7 +21,6 @@ interface GameViewProps {
     party: Character[];
     messages: GameMessage[];
     diceRolls: DiceRoll[];
-    gameState: string;
     locationId: string;
     inCombat?: boolean;
     initiativeOrder?: Combatant[];
@@ -33,7 +32,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const [party, setParty] = useState<Character[]>(initialData.party);
   const [messages, setMessages] = useState<GameMessage[]>(initialData.messages);
   const [diceRolls, setDiceRolls] = useState<DiceRoll[]>(initialData.diceRolls);
-  const [gameState, setGameState] = useState(initialData.gameState);
   const [locationId, setLocationId] = useState(initialData.locationId);
   const [inCombat, setInCombat] = useState(initialData.inCombat || false);
   const [initiativeOrder, setInitiativeOrder] = useState<Combatant[]>(initialData.initiativeOrder || []);
@@ -68,7 +66,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setParty(initialData.party);
     setMessages(initialData.messages);
     setDiceRolls(initialData.diceRolls);
-    setGameState(initialData.gameState);
     setLocationId(initialData.locationId);
     setSelectedCharacter(initialData.party.find(c => c.controlledBy === 'Player') || null);
     setInCombat(initialData.inCombat || false);
@@ -201,7 +198,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         initiativeOrder,
         enemies,
         turnIndex,
-        gameState,
         conversationHistory: history,
         turnId
       });
@@ -268,7 +264,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       }
       setIsDMThinking(false);
     }
-  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, gameState, inCombat, locationId, party, initiativeOrder, enemies, turnIndex, selectedCharacter?.id]);
+  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, inCombat, locationId, party, initiativeOrder, enemies, turnIndex, selectedCharacter?.id]);
   
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
      addDiceRolls([{
@@ -287,7 +283,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       party,
       messages,
       diceRolls,
-      gameState,
       locationId,
       inCombat,
       initiativeOrder,

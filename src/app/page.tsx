@@ -15,7 +15,6 @@ interface InitialGameData {
   party: Character[];
   messages: GameMessage[];
   diceRolls: DiceRoll[];
-  gameState: string;
   locationId: string;
   inCombat?: boolean;
   initiativeOrder?: Combatant[];
@@ -43,14 +42,12 @@ export default function Home() {
       const defaultAdventure = await response.json();
       setAdventureData(defaultAdventure);
       
-      const newGameState = JSON.stringify(defaultAdventure);
       const firstLocation = defaultAdventure.locations[0];
       
       setInitialGameData({
         party: initialParty,
         messages: [initialMessage],
         diceRolls: [],
-        gameState: newGameState,
         locationId: firstLocation.id,
         inCombat: false,
         initiativeOrder: [],
@@ -107,8 +104,8 @@ export default function Home() {
             initiativeOrder: [],
             enemies: [],
             turnIndex: 0,
-            gameState: newGameState,
             conversationHistory: "",
+            turnId: 'load-adventure-turn'
         });
 
         const messages: GameMessage[] = result.messages || [];
@@ -117,7 +114,6 @@ export default function Home() {
           party: initialParty,
           messages: messages,
           diceRolls: [],
-          gameState: newGameState,
           locationId: firstLocation.id,
           inCombat: false,
           initiativeOrder: [],
@@ -149,10 +145,10 @@ export default function Home() {
         setLoading('loadGame');
         const jsonContent = e.target?.result as string;
         const saveData = JSON.parse(jsonContent);
-        const adventure = JSON.parse(saveData.gameState);
-        setAdventureData(adventure);
+        // Adventure data is not saved in the save file anymore, it's loaded from source
+        fetch('/api/load-adventure').then(res => res.json()).then(setAdventureData);
 
-        if (!saveData.party || !saveData.messages || !saveData.gameState || !saveData.locationId) {
+        if (!saveData.party || !saveData.messages || !saveData.locationId) {
           throw new Error("El archivo de guardado no es válido.");
         }
 
@@ -160,7 +156,6 @@ export default function Home() {
           party: saveData.party,
           messages: saveData.messages,
           diceRolls: saveData.diceRolls || [],
-          gameState: saveData.gameState,
           locationId: saveData.locationId,
           inCombat: saveData.inCombat || false,
           initiativeOrder: saveData.initiativeOrder || [],
@@ -195,7 +190,9 @@ export default function Home() {
         <GameView 
           initialData={initialGameData}
           onSaveGame={(saveData) => {
-              const jsonString = JSON.stringify(saveData, null, 2);
+              // We don't save the gameState anymore as it's static
+              const { gameState, ...rest } = saveData;
+              const jsonString = JSON.stringify(rest, null, 2);
               const blob = new Blob([jsonString], { type: 'application/json' });
               const url = URL.createObjectURL(blob);
               const link = document.createElement('a');
