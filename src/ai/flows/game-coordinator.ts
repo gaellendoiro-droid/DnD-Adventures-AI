@@ -175,6 +175,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
 
     // 4. Handle Narrative/Exploration mode
     log("GameCoordinator: Narrative mode. Preparing to call Narrative Expert...");
+    log(`LOG A (Input Party): ${JSON.stringify(input.party, null, 2)}`);
     
     // Create a summarized version of the party for the narrative expert prompt
     const partySummary: z.infer<typeof CharacterSummarySchema>[] = input.party.map(c => ({
@@ -186,6 +187,9 @@ export const gameCoordinatorFlow = ai.defineFlow(
         personality: c.personality,
         controlledBy: c.controlledBy,
     }));
+    
+    console.log(`LOG B (Transformed Party Summary): ${JSON.stringify(partySummary, null, 2)}`);
+    throw new Error(`DEBUG INTERRUPT - partySummary data: ${JSON.stringify(partySummary, null, 2)}`);
 
     const narrativeInput = {
         playerAction: input.playerAction,
