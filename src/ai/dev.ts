@@ -12,6 +12,7 @@ import '@/ai/flows/ooc-assistant.ts';
 
 import '@/ai/tools/dnd-api-lookup.ts';
 import '@/ai/tools/adventure-lookup.ts';
+import '@/ai/tools/character-lookup.ts';
 import '@/ai/tools/combat-manager.ts';
 import '@/ai/tools/companion-expert.ts';
 import '@/ai/tools/enemy-tactician.ts';

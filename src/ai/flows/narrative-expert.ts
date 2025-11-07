@@ -18,7 +18,7 @@ import { getAdventureData } from '@/app/game-state-actions';
 
 const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
-  party: z.array(CharacterSchema).describe("The full data for the player's party. This is for tool use."),
+  party: z.array(CharacterSchema).describe("The full data for the player's party. This is for tool use, NOT for the prompt context."),
   partySummary: z.array(CharacterSummarySchema).describe("A lightweight summary of the player's party. This is for prompt context."),
   locationId: z.string().describe('The ID of the current location (e.g., "phandalin-plaza-del-pueblo").'),
   locationContext: z.string().describe('A JSON string with the full data of the current location, including its description, exits, and interactable objects.'),
@@ -51,7 +51,7 @@ const narrativeExpertPrompt = ai.definePrompt({
 
 **Your Priorities & Directives:**
 1.  **Primary Task: Contextual Narrative.** Your main goal is to be a descriptive and engaging storyteller. You have been given all the context for the current location. Use this to react to the player's choices, portray non-player characters (NPCs), and create an immersive experience. Your job is ONLY to narrate. Do not make decisions about game state like starting combat.
-2.  **Companion AI Interaction:** The player's party includes AI-controlled companions (identified by \`controlledBy: "AI"\`). After the player acts, you MUST determine if each AI companion would react. To do this, call the \`companionExpertTool\`. For the 'character' parameter of the tool, you MUST pass the full, detailed character object from the 'party' array you received in the input, not the summary.
+2.  **Companion AI Interaction:** The player's party includes AI-controlled companions (identified by \`controlledBy: "AI"\`). After the player acts, you MUST determine if each AI companion would react. To do this, call the \`companionExpertTool\`. For the 'character' parameter of the tool, you MUST pass the full, detailed character object from the 'party' array you received in the input, not the summary. For the 'partySummary' parameter, pass the summary you were given.
 3.  **Interaction Directive:** When the player wants to interact with something in the current location (e.g., "leo el tablón de anuncios", "hablo con Linene", "miro las rocas blancas"), you MUST use the 'locationContext' you already have. Find the interactable object or entity in the context and refer to its 'interactionResults' or 'description' fields to describe the outcome. DO NOT use the \`adventureLookupTool\` for this.
 4.  **Movement Directive:** When the player wants to move to a new place (e.g., "voy a la Colina del Resentimiento"), you MUST set the \`nextLocationId\` field in your response to the ID of the new location. Use the \`adventureLookupTool\` to get the data for the destination, and narrate the journey and the arrival at the new location based on its 'description' from the tool's response.
 5.  **Question Answering Directive:** If the player asks about a location, person, or thing that is NOT in the current scene (e.g., "¿Quién es Cryovain?"), you MUST use the \`adventureLookupTool\` to find that information and use it to formulate your answer.
@@ -155,5 +155,3 @@ export const narrativeExpertFlow = ai.defineFlow(
 export async function narrativeExpert(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
     return narrativeExpertFlow(input);
 }
-
-    

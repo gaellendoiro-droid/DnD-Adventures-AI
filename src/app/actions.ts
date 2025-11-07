@@ -3,6 +3,8 @@
 
 import { gameCoordinator, type GameCoordinatorInput } from "@/ai/flows/game-coordinator";
 import { lookupAdventureEntityInDb } from "./game-state-actions";
+import { updatePartyDataForTools } from "@/ai/tools/character-lookup";
+
 
 // In-memory store for debug logs for a "real-time" feel.
 // In a real multi-user app, this would need a more robust solution (e.g., Redis, DB).
@@ -15,8 +17,12 @@ const turnLogs: { [turnId: string]: string[] } = {};
 export async function processPlayerAction(
   input: Omit<GameCoordinatorInput, 'log'> & { turnId: string }
 ) {
-  const { turnId } = input;
+  const { turnId, party } = input;
   turnLogs[turnId] = []; // Reset logs for the new turn
+
+  // HACK: Update the in-memory data for the character lookup tool.
+  // In a real app, this would be a database or a proper state management system.
+  updatePartyDataForTools(party);
 
   const log = (message: string) => {
     if (!turnLogs[turnId]) {
