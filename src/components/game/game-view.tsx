@@ -13,7 +13,6 @@ import { processPlayerAction, getDebugLogs } from "@/app/actions";
 import { PartyPanel } from "@/components/game/party-panel";
 import { Separator } from "../ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { markdownToHtml } from "@/ai/flows/markdown-to-html";
 
 
 interface GameViewProps {
@@ -76,25 +75,9 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     addDebugMessages(["Game state initialized from initialData."]);
   }, [initialData, addDebugMessages]);
 
-  const addMessage = useCallback(async (message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
-    let finalContent = message.content;
-    let originalContent = typeof message.content === 'string' ? message.content : undefined;
-
-    if (message.sender === 'DM' && typeof message.content === 'string') {
-        try {
-            const { html } = await markdownToHtml({ markdown: message.content });
-            finalContent = html;
-            originalContent = message.content;
-        } catch (e) {
-            console.error("Failed to convert markdown to HTML, showing raw content.", e);
-            finalContent = message.content;
-        }
-    }
-
+  const addMessage = useCallback((message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
     const messageToAdd: GameMessage = {
         ...message,
-        content: finalContent,
-        originalContent: originalContent,
         id: Date.now().toString() + Math.random(),
         timestamp: new Date().toLocaleTimeString([], {
             hour: "2-digit",
@@ -108,29 +91,13 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     });
   }, []);
 
-  const addMessages = useCallback(async (newMessages: Omit<GameMessage, 'id' | 'timestamp'>[], isRetry: boolean = false) => {
+  const addMessages = useCallback((newMessages: Omit<GameMessage, 'id' | 'timestamp'>[], isRetry: boolean = false) => {
      if (!newMessages || newMessages.length === 0) return;
 
-     const messagesToAdd = await Promise.all(newMessages.map(async m => {
-        let finalContent = m.content;
-        let originalContent = typeof m.content === 'string' ? m.content : undefined;
-        if (m.sender === 'DM' && typeof m.content === 'string') {
-             try {
-                const { html } = await markdownToHtml({ markdown: m.content });
-                finalContent = html;
-                originalContent = m.content;
-            } catch (e) {
-                console.error("Failed to convert markdown to HTML, showing raw content.", e);
-                finalContent = m.content;
-            }
-        }
-        return {
-            ...m,
-            content: finalContent,
-            originalContent,
-            id: Date.now().toString() + Math.random(),
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        }
+     const messagesToAdd = newMessages.map(m => ({
+        ...m,
+        id: Date.now().toString() + Math.random(),
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
      }));
 
      setMessages((prev) => {
@@ -331,3 +298,5 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     </GameLayout>
   );
 }
+
+    

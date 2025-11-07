@@ -198,41 +198,38 @@ export const gameCoordinatorFlow = ai.defineFlow(
     };
     
     log(`GameCoordinator: Calling NarrativeExpert...`);
-
     const narrativeResult = await narrativeExpert(narrativeInput);
     (narrativeResult.debugLogs || []).forEach(log);
 
     const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
     
-    // Process narration from the DM first
+    // Process narration from the DM first, converting Markdown to HTML here
     if (narrativeResult.dmNarration) {
+        log("GameCoordinator: Converting DM narration to HTML...");
+        const { html } = await markdownToHtml({ markdown: narrativeResult.dmNarration });
         messages.push({
             sender: 'DM',
-            content: narrativeResult.dmNarration,
+            content: html,
+            originalContent: narrativeResult.dmNarration,
         });
+        log("GameCoordinator: HTML conversion complete.");
     }
 
-    // Process companion actions by calling the tool from the coordinator
+    // Process companion actions
     const aiCompanions = party.filter(p => p.controlledBy === 'AI');
     log(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
 
     for (const companion of aiCompanions) {
+        const companionSummary = partySummary.find(p => p.id === companion.id)!;
         log(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
-        const companionSummary = {
-            id: companion.id,
-            name: companion.name,
-            race: companion.race,
-            class: companion.class,
-            sex: companion.sex,
-            personality: companion.personality,
-            controlledBy: companion.controlledBy,
-        };
+        
         const companionResult = await companionExpertTool({
             characterSummary: companionSummary,
             partySummary: partySummary,
             context: `${narrativeResult.dmNarration}\nPlayer action: ${playerAction}`,
             inCombat: false,
         });
+
         if (companionResult.action) {
             log(`GameCoordinator: ${companion.name} reacts: "${companionResult.action}"`);
             messages.push({
@@ -243,7 +240,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
             });
         }
     }
-
 
     // Process character stat updates
     let updatedParty = input.party;
@@ -273,3 +269,5 @@ export const gameCoordinatorFlow = ai.defineFlow(
 export async function gameCoordinator(input: GameCoordinatorInput): Promise<GameCoordinatorOutput> {
     return gameCoordinatorFlow(input);
 }
+
+    
