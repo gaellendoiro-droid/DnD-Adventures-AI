@@ -130,7 +130,7 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
           </CardContent>
         </Card>
 
-        <Accordion type="single" collapsible className="w-full" defaultValue="inventory">
+        <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="personality">
             <AccordionTrigger className="font-semibold text-base">
                 <Info className="mr-2"/> Personalidad
