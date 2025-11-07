@@ -6,9 +6,9 @@ Este documento describe la arquitectura de la IA del juego, centrada en un módu
 
 ### Módulo Central de IA: `gameCoordinator`
 
-*   **Tipo**: **Flujo Lógico (Función de TypeScript)**
+*   **Tipo**: **Flujo de IA (Flujo con Prompt)**
 *   **Archivo**: `src/ai/flows/game-coordinator.ts`
-*   **Rol**: El cerebro central del Dungeon Master. Su única responsabilidad es analizar el estado actual del juego y la acción del jugador, y decidir qué herramienta experta es la más adecuada para manejar la situación. No es una IA, es un director de orquesta.
+*   **Rol**: El cerebro central del Dungeon Master. Su única responsabilidad es analizar el estado actual del juego y la acción del jugador, y decidir qué herramienta experta es la más adecuada para manejar la situación.
 *   **Input**:
     *   `playerAction`: La acción o el diálogo del jugador.
     *   `gameState`: El estado completo del juego (quién está en el grupo, dónde están, si están en combate, etc.).
@@ -54,11 +54,17 @@ Estos módulos son "expertos" en tareas específicas. Algunos son IA con su prop
 
 Estas son herramientas y funciones de apoyo utilizadas por los módulos principales.
 
-#### Herramienta: `companionExpert` & `enemyTactician`
-*   **Tipo**: **Módulos de IA (Flujos con Prompt)**
-*   **Archivos**: `src/ai/tools/companion-expert.ts` y `src/ai/tools/enemy-tactician.ts`
-*   **Rol**: Son los "cerebros" para los compañeros de grupo y los enemigos, respectivamente.
-*   **Función**: Son invocados por el `combatManagerTool` durante el combate, y ahora también por el `narrativeExpert` durante la exploración. Cada uno tiene su propio prompt para decidir la acción más lógica para el personaje o monstruo.
+#### Herramienta: `companionExpert`
+*   **Tipo**: **Módulo de IA (Flujo con Prompt)**
+*   **Archivo**: `src/ai/tools/companion-expert.ts`
+*   **Rol**: El "cerebro" para los compañeros de grupo controlados por la IA.
+*   **Función**: Invocado por `narrativeExpert` (durante la exploración) y `combatManagerTool` (durante el combate). Decide la acción o diálogo más lógico para un compañero basándose en su personalidad y el contexto actual.
+
+#### Herramienta: `enemyTactician`
+*   **Tipo**: **Módulo de IA (Flujo con Prompt)**
+*   **Archivo**: `src/ai/tools/enemy-tactician.ts`
+*   **Rol**: El "cerebro" táctico para los enemigos en combate.
+*   **Función**: Es invocado por el `combatManagerTool` durante el turno de un enemigo. Decide la acción más efectiva (atacar, usar una habilidad, etc.) basándose en el estado del combate y las capacidades del monstruo.
 
 #### Herramienta: `adventureLookupTool`
 *   **Tipo**: **Herramienta de Búsqueda (Función)**
