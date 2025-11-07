@@ -7,35 +7,8 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { dndApiLookupTool } from './dnd-api-lookup';
 import { adventureLookupTool } from './adventure-lookup';
+import { CharacterSchema } from '@/lib/schemas';
 
-
-// Input Schema
-// This schema is defined here but not exported to comply with 'use server' constraints.
-const CharacterSchema = z.object({
-    id: z.string(),
-    name: z.string(),
-    race: z.string(),
-    class: z.string(),
-    level: z.number(),
-    sex: z.string(),
-    background: z.string(),
-    color: z.string(),
-    personality: z.string(),
-    abilityScores: z.object({
-        fuerza: z.number(),
-        destreza: z.number(),
-        constitución: z.number(),
-        inteligencia: z.number(),
-        sabiduría: z.number(),
-        carisma: z.number(),
-    }),
-    skills: z.array(z.object({ name: z.string(), proficient: z.boolean() })),
-    hp: z.object({ current: z.number(), max: z.number() }),
-    ac: z.number(),
-    controlledBy: z.enum(["Player", "AI"]),
-    inventory: z.array(z.object({ id: z.string(), name: z.string(), quantity: z.number(), description: z.string().optional() })),
-    spells: z.array(z.object({ id: z.string(), name: z.string(), level: z.number(), description: z.string() })),
-});
 
 const EnemyTacticianInputSchema = z.object({
   activeCombatant: z.string().describe("The name of the hostile NPC/monster whose turn it is."),
@@ -73,7 +46,7 @@ const enemyTacticianPrompt = ai.definePrompt({
 - **Location:** {{{locationDescription}}}
 - **Player's Party:**
   {{#each party}}
-  - **{{this.name}}** (HP: {{this.hp.current}}/{{this.hp.max}}, AC: {{this.ac}})
+  - **{{this.name}}** (HP: {{this.hp.current}}/{{this.hp.max}}, AC: {{this.ac}}, Class: {{this.class}})
   {{/each}}
 - **Your Allies (Enemies of the Party):**
   {{#each enemies}}
@@ -138,5 +111,3 @@ const enemyTacticianFlow = ai.defineFlow(
 export async function enemyTactician(input: EnemyTacticianInput): Promise<EnemyTacticianOutput> {
     return enemyTacticianFlow(input);
 }
-
-    
