@@ -8,17 +8,19 @@ Este documento describe la arquitectura de la IA del juego, centrada en un módu
 
 *   **Tipo**: **Flujo de IA (Flujo con Prompt)**
 *   **Archivo**: `src/ai/flows/game-coordinator.ts`
-*   **Rol**: El cerebro central del Dungeon Master. Su única responsabilidad es analizar el estado actual del juego y la acción del jugador, y decidir qué herramienta experta es la más adecuada para manejar la situación.
+*   **Rol**: El cerebro central del Dungeon Master. Su única responsabilidad es analizar el estado actual del juego y la acción del jugador, y decidir qué herramienta experta es la más adecuada para manejar la situación. Pre-carga el contexto necesario (como los datos de la ubicación actual) para pasárselo a los expertos.
 *   **Input**:
     *   `playerAction`: La acción o el diálogo del jugador.
     *   `gameState`: El estado completo del juego (quién está en el grupo, dónde están, si están en combate, etc.).
 *   **Lógica Interna**:
     1.  Determina el contexto: ¿Es una pregunta fuera de personaje (`//`)? ¿Estamos en combate? ¿Es una acción narrativa?
-    2.  Invoca a la herramienta experta apropiada para la tarea.
+    2.  Busca y carga la información de la ubicación actual.
+    3.  Invoca a la herramienta experta apropiada para la tarea, pasándole el contexto necesario.
 *   **Herramientas que utilizará**:
     *   `narrativeExpert` (IA)
     *   `combatManagerTool` (Herramienta Lógica)
     *   `oocAssistant` (IA)
+    *   `adventureLookupTool` (Herramienta de Búsqueda)
 
 ---
 
@@ -30,7 +32,7 @@ Estos módulos son "expertos" en tareas específicas. Algunos son IA con su prop
 *   **Tipo**: **Módulo de IA (Flujo con Prompt)**
 *   **Archivo**: `src/ai/flows/narrative-expert.ts`
 *   **Rol**: El experto en **narración y exploración**.
-*   **Función**: Cuando la coordinadora lo llama, este se encarga de generar la historia, describir los resultados de las acciones de exploración y decidir si se inicia un combate. Su lógica interna se basa en un prompt detallado.
+*   **Función**: Cuando la coordinadora lo llama, este se encarga de generar la historia. Utiliza el contexto de la ubicación actual que le proporciona el `gameCoordinator` para describir los resultados de las acciones de exploración. Conserva el acceso a las herramientas de búsqueda para obtener información sobre *nuevos* elementos (como moverse a otra ubicación o preguntar por un PNJ).
 *   **Herramientas que utiliza**:
     *   `adventureLookupTool` (Herramienta de Búsqueda)
     *   `dndApiLookupTool` (Herramienta de Búsqueda)
