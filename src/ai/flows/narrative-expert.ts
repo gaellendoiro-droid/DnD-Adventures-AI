@@ -13,6 +13,8 @@ import {z} from 'genkit';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
 import { CharacterSummarySchema } from '@/lib/schemas';
+import type { ActionInterpreterOutput } from './game-coordinator';
+import { ActionInterpreterOutputSchema } from './game-coordinator';
 
 const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
@@ -21,6 +23,7 @@ const NarrativeExpertInputSchema = z.object({
   locationContext: z.string().describe('A JSON string with the full data of the current location, including its description, exits, and interactable objects.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
   log: z.function(z.tuple([z.string()]), z.void()).optional().describe("A function to log debug messages in real-time."),
+  interpretedAction: ActionInterpreterOutputSchema.describe("The structured interpretation of the player's action, provided by the actionInterpreter."),
 });
 export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
 
@@ -33,13 +36,7 @@ export type NarrativeExpertOutput = z.infer<typeof NarrativeExpertOutputSchema>;
 
 const narrativeExpertPrompt = ai.definePrompt({
   name: 'narrativeExpertPrompt',
-  input: {schema: z.object({
-    playerAction: z.string(),
-    partySummary: z.array(CharacterSummarySchema),
-    locationId: z.string(),
-    locationContext: z.string(),
-    conversationHistory: z.string().optional(),
-  })},
+  input: {schema: NarrativeExpertInputSchema},
   output: {schema: NarrativeExpertOutputSchema},
   tools: [dndApiLookupTool, adventureLookupTool],
   config: {
@@ -52,20 +49,22 @@ const narrativeExpertPrompt = ai.definePrompt({
   },
   prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish from Spain. DO NOT translate proper nouns (names, places, etc.).
 
-**Your ONLY Task: Narrate the Scene**
-Your one and only job is to be a descriptive and engaging storyteller. Based on the context provided, narrate the outcome of the player's action. Your narration goes in the \`dmNarration\` field.
+**Your ONLY Task: Narrate the Scene based on a Specific Action**
+Your job is to be a descriptive storyteller based on a PRE-INTERPRETED action. You are the "executor", not the "decider".
 
 **Directives & Information Hierarchy:**
-1.  **Prioritize Local Context:** Your primary source of truth is the \`locationContext\` JSON. If the player's action involves anything within the current scene (reading a sign, talking to a present NPC, looking at an object), use the information from \`locationContext\` to describe the outcome.
-2.  **Use Tools for Global Knowledge:** If the player asks about a person, place, or concept that is NOT in the current \`locationContext\` (e.g., asking an innkeeper about a hermit who lives in the hills), you MUST use the \`adventureLookupTool\` to search for that information (e.g., \`adventureLookupTool({query: 'nombre del ermitaño'})\`).
-3.  **Use Tools for Rules:** If you need general D&D 5e rules, spell descriptions, or item stats, use the \`dndApiLookupTool\`.
+1.  **Trust the Interpreted Action:** You will receive an \`interpretedAction\` object. This is your primary instruction. Your task is to narrate the outcome of THIS specific action.
+2.  **Use Local Context:** Your primary source of truth is the \`locationContext\` JSON.
+    *   If the \`interpretedAction.actionType\` is \`interact\`, you MUST find the exact entry in \`locationContext.interactables.interactionResults\` where \`action\` matches the \`interpretedAction.targetId\`. Then, use the corresponding \`result\` string to form your narration.
+    *   If the \`interpretedAction.actionType\` is \`move\`, narrate the arrival at the new location using its \`description\`.
+    *   If the \`interpretedAction.actionType\` is \`narrate\`, describe the general scene or the minor action the player is taking.
+3.  **Use Tools for External Knowledge:** Only if the player's original text (\`playerAction\`) contains a question about something NOT in the local context (like asking a barman about a dragon), should you use \`adventureLookupTool\` to find that information and weave it into your narration.
 4.  **Be a Referee:** If an action requires a skill check, state it in the narration (e.g., "Para convencer al guardia, necesitarás hacer una tirada de Persuasión.").
 
 **CRITICAL RULES:**
 -   ALWAYS return a valid JSON object matching the output schema.
 -   Your entire story narration goes into the \`dmNarration\` field.
 -   **DO NOT** generate actions or dialogue for AI-controlled companions. Another system handles that.
--   **DO NOT** decide if the party moves. Another system handles that. Just narrate the scene.
 -   **DO NOT** initiate combat. Just describe tense situations.
 
 **CONTEXT:**
@@ -78,11 +77,12 @@ Your one and only job is to be a descriptive and engaging storyteller. Based on 
   - {{this.name}} ({{this.class}} {{this.race}})
   {{/each}}
 - Recent conversation: \`\`\`{{{conversationHistory}}}\`\`\`
+- **Player's raw action:** "{{{playerAction}}}"
+- **YOUR SPECIFIC INSTRUCTION (Interpreted Action):** \`\`\`json
+{{{JSONstringify interpretedAction}}}
+\`\`\`
 
-**PLAYER'S ACTION:**
-"{{{playerAction}}}"
-
-Based on all directives and the information hierarchy, narrate what happens next.
+Based on your specific instruction and the context, narrate what happens next. Find the specific result in the JSON if it is an interaction.
 `,
 });
 

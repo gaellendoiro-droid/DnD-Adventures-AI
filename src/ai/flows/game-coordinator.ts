@@ -17,6 +17,19 @@ import { CharacterSummarySchema } from '@/lib/schemas';
 import { companionExpertTool } from '../tools/companion-expert';
 import { actionInterpreter } from './action-interpreter';
 
+// Schemas for the action interpreter, moved here to avoid 'use server' export issues.
+export const ActionInterpreterInputSchema = z.object({
+  playerAction: z.string().describe('The action taken by the player.'),
+  locationContext: z.string().describe('A JSON string with the full data of the current location, including its exits, interactable objects and entities present.'),
+});
+export type ActionInterpreterInput = z.infer<typeof ActionInterpreterInputSchema>;
+
+export const ActionInterpreterOutputSchema = z.object({
+  actionType: z.enum(['move', 'interact', 'attack', 'narrate', 'ooc']).describe("The interpreted type of the player's action."),
+  targetId: z.string().optional().nullable().describe("The ID of the target for the action. For 'move', it's the destination ID. For 'attack', the entity ID. For 'interact', it's the specific interaction action name (e.g., 'Leer Misión de la Colina del Resentimiento')."),
+});
+export type ActionInterpreterOutput = z.infer<typeof ActionInterpreterOutputSchema>;
+
 
 // Schemas for the main coordinator flow
 const GameCoordinatorInputSchema = z.object({
@@ -28,7 +41,6 @@ const GameCoordinatorInputSchema = z.object({
   enemies: z.array(z.any()),
   turnIndex: z.number(),
   conversationHistory: z.string(),
-  log: z.function(z.tuple([z.string()]), z.void()).optional().describe("A function to log debug messages in real-time."),
 });
 
 const GameCoordinatorOutputSchema = z.object({
@@ -58,12 +70,11 @@ export const gameCoordinatorFlow = ai.defineFlow(
     outputSchema: GameCoordinatorOutputSchema,
   },
   async (input) => {
-    const { playerAction, inCombat, conversationHistory, party, log = () => {} } = input;
+    const { playerAction, inCombat, conversationHistory, party } = input;
     let { locationId } = input;
     
     const debugLogs: string[] = [];
     const localLog = (message: string) => {
-        log(message);
         debugLogs.push(message);
     };
     
@@ -110,7 +121,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
             });
             (oocResult.debugLogs || []).forEach(localLog);
             messages.push({ sender: 'DM', content: `(OOC) ${oocResult.dmReply}`});
-            return { messages };
+            return { messages, debugLogs };
 
         case 'move':
             if (interpretation.targetId) {
@@ -125,7 +136,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         case 'interact':
         case 'narrate':
         case 'attack': // Also falls through for narration of failed attacks or tense moments before combat
-        case 'default':
+        default:
             localLog(`GameCoordinator: Action is '${interpretation.actionType}', proceeding to Narrative Expert.`);
             
             // 4. Generate Narrative
@@ -147,6 +158,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 locationContext: JSON.stringify(finalLocationData),
                 conversationHistory: input.conversationHistory,
                 log: localLog,
+                interpretedAction: interpretation,
             };
             
             localLog(`GameCoordinator: Calling NarrativeExpert for location '${locationId}'...`);
@@ -164,34 +176,37 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 });
             }
 
-            // 5. Generate Companion Reactions (Temporarily Disabled for debugging)
-            // const aiCompanions = party.filter(p => p.controlledBy === 'AI');
-            // localLog(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
+            // 5. Generate Companion Reactions
+            const aiCompanions = party.filter(p => p.controlledBy === 'AI');
+            localLog(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
             
-            // for (const companion of aiCompanions) {
-            //     const companionSummary = partySummary.find(p => p.id === companion.id)!;
-            //     localLog(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
+            let accumulatedHistory = narrativeResult.dmNarration;
+
+            for (const companion of aiCompanions) {
+                const companionSummary = partySummary.find(p => p.id === companion.id)!;
+                localLog(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
                 
-            //     const companionContext = `The player just did this: "${playerAction}"\n\nThe Dungeon Master described the result as: "${narrativeResult.dmNarration}"`;
+                const companionContext = `The player just did this: "${playerAction}"\n\nThe Dungeon Master described the result as: "${accumulatedHistory}"`;
                 
-            //     const companionResult = await companionExpertTool({
-            //         characterSummary: companionSummary,
-            //         context: companionContext,
-            //         inCombat: false,
-            //         enemies: [], 
-            //         partySummary: partySummary,
-            //     });
+                const companionResult = await companionExpertTool({
+                    characterSummary: companionSummary,
+                    context: companionContext,
+                    inCombat: false,
+                    enemies: [], 
+                    partySummary: partySummary,
+                });
         
-            //     if (companionResult.action) {
-            //         localLog(`GameCoordinator: ${companion.name} reacts: "${companionResult.action}"`);
-            //         messages.push({
-            //             sender: 'Character',
-            //             senderName: companion.name,
-            //             characterColor: companion.color,
-            //             content: companionResult.action,
-            //         });
-            //     }
-            // }
+                if (companionResult.action) {
+                    localLog(`GameCoordinator: ${companion.name} reacts: "${companionResult.action}"`);
+                    messages.push({
+                        sender: 'Character',
+                        senderName: companion.name,
+                        characterColor: companion.color,
+                        content: companionResult.action,
+                    });
+                    accumulatedHistory += `\n${companion.name}: ${companionResult.action}`;
+                }
+            }
 
             // 6. Finalize Turn
             let updatedParty = input.party;
