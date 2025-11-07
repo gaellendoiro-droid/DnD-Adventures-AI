@@ -129,7 +129,9 @@ async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<Narrati
                 localLog("NarrativeExpert: AI returned null output on second attempt. Failing.");
                 throw new Error("The AI failed to return a valid output after a retry. It might have been blocked by safety filters.");
             }
-            return { ...retryOutput, debugLogs };
+             const finalOutput = { ...retryOutput, debugLogs };
+            localLog("NarrativeExpert: Successfully generated narration object on retry.");
+            return finalOutput;
         }
         
         // Final validation for location ID before returning
@@ -151,8 +153,10 @@ async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<Narrati
             }
         }
         
+        const finalOutput = { ...output, debugLogs };
         localLog("NarrativeExpert: Successfully generated narration object.");
-        return { ...output, debugLogs };
+        return finalOutput;
+
     } catch(e: any) {
         localLog(`NarrativeExpert: CRITICAL - Flow failed. Error: ${e.message}`);
         console.error("Critical error in narrativeExpertFlow.", e);
