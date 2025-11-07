@@ -114,6 +114,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 locationId = newLocationId; // Update locationId for the current turn's context
                 finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
             }
+            // Now, fall through to narrate the arrival at the new location
+            log(`GameCoordinator: Action is 'move', proceeding to Narrative Expert.`);
             break;
             
         case 'attack':
@@ -194,6 +196,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
               } else {
                  log(`GameCoordinator: Attack on "${targetName}" failed, target not present.`);
               }
+              // Fall through to narrate the failed attack attempt.
+              log(`GameCoordinator: Action is 'attack' but failed, proceeding to Narrative Expert.`);
               break;
         
         case 'interact':
@@ -257,6 +261,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
             characterSummary: companionSummary,
             context: companionContext,
             inCombat: false,
+            enemies: [], // No enemies in narrative mode
             partySummary: partySummary,
         });
 
@@ -299,3 +304,5 @@ export const gameCoordinatorFlow = ai.defineFlow(
 export async function gameCoordinator(input: GameCoordinatorInput): Promise<GameCoordinatorOutput> {
     return gameCoordinatorFlow(input);
 }
+
+    
