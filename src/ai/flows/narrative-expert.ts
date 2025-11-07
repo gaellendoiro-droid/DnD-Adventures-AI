@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
 import { NarrativeExpertInputSchema, NarrativeExpertOutputSchema, type NarrativeExpertInput, type NarrativeExpertOutput } from './schemas';
@@ -92,11 +92,17 @@ export const narrativeExpertFlow = ai.defineFlow(
             });
         }
         
-        const output = llmResponse.output;
+        let output = llmResponse.output;
 
         if (!output) {
             localLog("NarrativeExpert: AI returned null output. This could be due to safety filters or an internal model error.");
             throw new Error("The AI failed to return a valid output. It might have been blocked by safety filters or an internal error.");
+        }
+
+        // Robustness check: if the model returns a raw string, wrap it in the expected object.
+        if (typeof output === 'string') {
+            localLog("NarrativeExpert: WARNING - AI returned a raw string instead of a JSON object. Wrapping it manually.");
+            output = { dmNarration: output };
         }
 
         if (output.updatedCharacterStats) {
