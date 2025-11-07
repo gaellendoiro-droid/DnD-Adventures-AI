@@ -188,7 +188,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
 
     const narrativeInput = {
         playerAction: input.playerAction,
-        party: input.party, // Pass the full party data for the companion tool to use
         partySummary: partySummary, // Pass the summary for the prompt text
         locationId: input.locationId,
         locationContext: JSON.stringify(locationData),
