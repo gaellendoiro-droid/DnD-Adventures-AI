@@ -14,6 +14,7 @@ import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
 import { CharacterSummarySchema } from '@/lib/schemas';
 import { getAdventureData } from '@/app/game-state-actions';
+import { companionExpertTool } from '../tools/companion-expert';
 
 const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
@@ -27,7 +28,6 @@ export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
 
 const NarrativeExpertOutputSchema = z.object({
   dmNarration: z.string().describe("The AI Dungeon Master's primary narration in response to the player's action, formatted in Markdown. This should describe the world and outcomes. Do NOT include companion dialogue here."),
-  nextLocationId: z.string().optional().nullable().describe("The ID of the new location, if the player moved. Must be a valid ID from the adventure's 'locations' data."),
   updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, for the PLAYER character only, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}, \"inventory\": [{\"id\":\"item-gp-1\",\"name\":\"Monedas de Oro\",\"quantity\":10}]}'. Must be a valid JSON string or null."),
   debugLogs: z.array(z.string()).optional(),
 });
@@ -48,27 +48,35 @@ const narrativeExpertPrompt = ai.definePrompt({
     safetySettings: [
         {
           category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-          threshold: 'BLOCK_ONLY_HIGH',
+          threshold: 'BLOCK_NONE',
         },
         {
           category: 'HARM_CATEGORY_HARASSMENT',
-          threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+          threshold: 'BLOCK_NONE',
+        },
+         {
+          category: 'HARM_CATEGORY_HATE_SPEECH',
+          threshold: 'BLOCK_NONE',
+        },
+        {
+          category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+          threshold: 'BLOCK_NONE',
         },
     ],
   },
   prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish from Spain. DO NOT translate proper nouns (names, places, etc.).
 
 **Your Priorities & Directives:**
-1.  **Primary Task: Narrate the World:** Your main goal is to be a descriptive and engaging storyteller. React to the player's choices, portray non-player characters (NPCs), and describe the environment. Your narration goes in the \`dmNarration\` field.
+1.  **Primary Task: Narrate the World:** Your main goal is to be a descriptive and engaging storyteller. React to the player's choices, portray non-player characters (NPCs), and describe the environment based on the provided context. Your narration goes in the \`dmNarration\` field.
 2.  **Interaction Directive:** When the player interacts with something in the current location (e.g., "leo el tablón de anuncios", "hablo con Linene"), you MUST use the 'locationContext' you already have. Find the object/entity and use its 'interactionResults' or 'description' to formulate your \`dmNarration\`.
-3.  **Movement Directive:** When the player wants to move (e.g., "voy a la Colina del Resentimiento"), use the \`adventureLookupTool\` to get the destination data. Narrate the journey and arrival in \`dmNarration\`, and set the \`nextLocationId\` field in your response.
-4.  **Question Answering:** If the player asks about something NOT in the current scene (e.g., "¿Quién es Cryovain?"), use the \`adventureLookupTool\` to find that info and use it for your \`dmNarration\`.
-5.  **Tense Situations**: If enemies are present but haven't attacked, describe the tense situation. DO NOT initiate combat yourself. The game coordinator handles combat initiation.
+3.  **Question Answering:** If the player asks about something (e.g., "¿Quién es Cryovain?"), use the \`adventureLookupTool\` to find that info and use it for your \`dmNarration\`.
+4.  **Tense Situations**: If enemies are present but haven't attacked, describe the tense situation. DO NOT initiate combat yourself. The game coordinator handles combat initiation.
 
 **Rules:**
 -   ALWAYS return a valid JSON object matching the output schema.
 -   Your primary narration goes into \`dmNarration\`.
 -   DO NOT generate actions or dialogue for companions. The game coordinator will handle that separately.
+-   DO NOT decide if the party moves to a new location. The game coordinator handles movement. Just narrate the current scene based on the context provided.
 
 **CONTEXT:**
 - You are currently at location ID: \`{{{locationId}}}\`.
@@ -118,16 +126,6 @@ export const narrativeExpertFlow = ai.defineFlow(
         if (!output) {
             localLog("NarrativeExpert: AI returned null output. This could be due to safety filters or an internal model error.");
             throw new Error("The AI failed to return a valid output. It might have been blocked by safety filters or an internal error.");
-        }
-
-        // Final validation for location ID before returning
-        if (output.nextLocationId) {
-            const adventureData = await getAdventureData();
-            const locationExists = (adventureData.locations || []).some((loc: any) => loc.id === output.nextLocationId);
-            if (!locationExists) {
-                localLog(`NarrativeExpert: WARNING - AI returned a non-existent nextLocationId: '${output.nextLocationId}'. Discarding it.`);
-                output.nextLocationId = null;
-            }
         }
 
         if (output.updatedCharacterStats) {

@@ -56,7 +56,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
     outputSchema: GameCoordinatorOutputSchema,
   },
   async (input) => {
-    const { playerAction, inCombat, conversationHistory, locationId, party, log = () => {} } = input;
+    const { playerAction, inCombat, conversationHistory, party, log = () => {} } = input;
+    let { locationId } = input;
     
     log(`GameCoordinator: Received action: "${playerAction}". InCombat: ${inCombat}.`);
 
@@ -81,10 +82,10 @@ export const gameCoordinatorFlow = ai.defineFlow(
     if (!adventureData) {
         throw new Error("Failed to load adventure data.");
     }
-    const locationData = adventureData.locations.find((l: any) => l.id === locationId);
-
+    
     // 2. Handle Combat mode
     if (inCombat) {
+        const locationData = adventureData.locations.find((l: any) => l.id === locationId);
         log("GameCoordinator: Combat mode detected. Calling Combat Manager Tool...");
         const combatResult = await combatManagerTool({
             ...input,
@@ -95,21 +96,42 @@ export const gameCoordinatorFlow = ai.defineFlow(
         return { ...combatResult };
     }
 
-    // 3. Handle transition to combat from Narrative mode
+    // 3. Handle Movement (Pre-Narrative)
+    let newLocationId: string | null = null;
+    const currentLocationData = adventureData.locations.find((l: any) => l.id === locationId);
+    if (currentLocationData && currentLocationData.exits) {
+        for (const exit of currentLocationData.exits) {
+            // Create a regex to match the exit description or location title, case-insensitively
+            const destinationLocation = adventureData.locations.find((l: any) => l.id === exit.toLocationId);
+            const keywords = [exit.description, destinationLocation?.title].filter(Boolean).join('|').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const movementRegex = new RegExp(keywords, 'i');
+            
+            if (movementRegex.test(playerAction)) {
+                log(`GameCoordinator: Movement detected to '${exit.toLocationId}' based on action "${playerAction}".`);
+                newLocationId = exit.toLocationId;
+                locationId = newLocationId; // Update locationId for the current turn
+                break;
+            }
+        }
+    }
+
+    const finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
+
+    // 4. Handle transition to combat from Narrative mode
     const attackRegex = /ataca a|atacar a|ataco al|ataco a la|pego a|disparo a/i;
     if (attackRegex.test(playerAction)) {
       log(`GameCoordinator: Attack action detected ("${playerAction}"). Attempting to start combat.`);
       const targetName = playerAction.split(attackRegex)[1].trim();
       log(`GameCoordinator: Extracted target name: "${targetName}".`);
       
-      const targetEntityId = locationData?.entitiesPresent?.find((e: string) => e.toLowerCase().includes(targetName.toLowerCase()))
+      const targetEntityId = finalLocationData?.entitiesPresent?.find((e: string) => e.toLowerCase().includes(targetName.toLowerCase()))
       
       if (targetEntityId) {
           log(`GameCoordinator: Valid target entity ID '${targetEntityId}' found in location. Looking up all entities present for combat...`);
           
           let identifiedEnemies: any[] = [];
-          if (locationData.entitiesPresent.length > 0) {
-              for (const name of locationData.entitiesPresent) {
+          if (finalLocationData.entitiesPresent.length > 0) {
+              for (const name of finalLocationData.entitiesPresent) {
                   log(`GameCoordinator: Looking up enemy data for '${name}'...`);
                   const enemyData = adventureData.entities.find((e: any) => e.id === name);
                   if (enemyData) {
@@ -170,11 +192,12 @@ export const gameCoordinatorFlow = ai.defineFlow(
             initiativeOrder: sortedCombatants,
             enemies: identifiedEnemies,
             nextTurnIndex: 0,
+            nextLocationId: newLocationId,
           };
       }
     }
 
-    // 4. Handle Narrative/Exploration mode
+    // 5. Handle Narrative/Exploration mode
     log("GameCoordinator: Narrative mode. Preparing to call Narrative Expert...");
     
     // Create a summarized version of the party for the narrative expert prompt
@@ -191,28 +214,25 @@ export const gameCoordinatorFlow = ai.defineFlow(
     const narrativeInput = {
         playerAction: input.playerAction,
         partySummary: partySummary,
-        locationId: input.locationId,
-        locationContext: JSON.stringify(locationData),
+        locationId: locationId, // Use the potentially updated locationId
+        locationContext: JSON.stringify(finalLocationData),
         conversationHistory: input.conversationHistory,
         log,
     };
     
-    log(`GameCoordinator: Calling NarrativeExpert...`);
+    log(`GameCoordinator: Calling NarrativeExpert for location '${locationId}'...`);
     const narrativeResult = await narrativeExpert(narrativeInput);
     (narrativeResult.debugLogs || []).forEach(log);
 
     const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
     
-    // Process narration from the DM first, converting Markdown to HTML here
+    // Process narration from the DM first
     if (narrativeResult.dmNarration) {
-        log("GameCoordinator: Converting DM narration to HTML...");
-        const { html } = await markdownToHtml({ markdown: narrativeResult.dmNarration });
         messages.push({
             sender: 'DM',
-            content: html,
+            content: '', // This will be filled by the client after HTML conversion
             originalContent: narrativeResult.dmNarration,
         });
-        log("GameCoordinator: HTML conversion complete.");
     }
 
     // Process companion actions
@@ -260,7 +280,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
     return {
       messages,
       updatedParty,
-      nextLocationId: narrativeResult.nextLocationId,
+      nextLocationId: newLocationId,
     };
   }
 );
@@ -269,5 +289,3 @@ export const gameCoordinatorFlow = ai.defineFlow(
 export async function gameCoordinator(input: GameCoordinatorInput): Promise<GameCoordinatorOutput> {
     return gameCoordinatorFlow(input);
 }
-
-    

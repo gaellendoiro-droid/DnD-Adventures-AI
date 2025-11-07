@@ -13,6 +13,7 @@ import { processPlayerAction, getDebugLogs } from "@/app/actions";
 import { PartyPanel } from "@/components/game/party-panel";
 import { Separator } from "../ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { markdownToHtml } from "@/ai/flows/markdown-to-html";
 
 
 interface GameViewProps {
@@ -179,7 +180,16 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         throw new Error(result.error);
       }
       
-      if(result.messages) addMessages(result.messages.map(m => ({ ...m, content: m.content || ''})), isRetry);
+      // Convert DM narration to HTML
+      if (result.messages) {
+          for (const msg of result.messages) {
+              if (msg.sender === 'DM' && msg.originalContent) {
+                  const { html } = await markdownToHtml({ markdown: msg.originalContent });
+                  msg.content = html;
+              }
+          }
+          addMessages(result.messages.map(m => ({ ...m, content: m.content || ''})), isRetry);
+      }
       if(result.diceRolls) addDiceRolls(result.diceRolls);
       if(result.nextLocationId) setLocationId(result.nextLocationId);
       
@@ -298,5 +308,3 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     </GameLayout>
   );
 }
-
-    
