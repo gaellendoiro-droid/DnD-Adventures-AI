@@ -14,7 +14,6 @@ import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
 import { companionExpert } from '../tools/companion-expert';
 
-
 const CharacterSchema = z.object({
     id: z.string(),
     name: z.string(),
@@ -42,7 +41,7 @@ const CharacterSchema = z.object({
 });
 
 const CompanionExpertInputSchema = z.object({
-  character: z.any().describe("The AI-controlled character whose action is being decided."),
+  character: CharacterSchema.describe("The AI-controlled character whose action is being decided."),
   context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
   inCombat: z.boolean().describe("Whether the party is currently in combat."),
   enemies: z.array(z.string()).optional().describe("A list of enemy names, if in combat."),
@@ -93,7 +92,7 @@ const narrativeExpertPrompt = ai.definePrompt({
 **Your Priorities & Directives:**
 1.  **Primary Task: Contextual Narrative.** Your main goal is to be a descriptive and engaging storyteller. You have been given all the context for the current location. Use this to react to the player's choices, portray non-player characters (NPCs), and create an immersive experience. Your job is ONLY to narrate. Do not make decisions about game state like starting combat.
 2.  **Companion AI Interaction:** The player's party includes AI-controlled companions. After the player acts, you MUST use the \`companionExpertTool\` for each AI companion to determine if they would react. Weave any generated companion actions or dialogue naturally into your main narration. For example, if a companion speaks, format it like: **Elara dice:** "No me gusta este sitio."
-3.  **Interaction Directive:** When the player wants to interact with something in the current location (e.g., "leo el tablón de anuncios", "hablo con Linene", "miro las rocas blancas"), you MUST use the 'locationContext' you already have. Find the interactable object or entity in the context and refer to its 'interactionResults' or 'description' fields to describe the outcome. DO NOT USE THE \`adventureLookupTool\` FOR THIS.
+3.  **Interaction Directive:** When the player wants to interact with something in the current location (e.g., "leo el tablón de anuncios", "hablo con Linene", "miro las rocas blancas"), you MUST use the 'locationContext' you already have. Find the interactable object or entity in the context and refer to its 'interactionResults' or 'description' fields to describe the outcome. DO NOT use the \`adventureLookupTool\` for this.
 4.  **Movement Directive:** When the player wants to move to a new place (e.g., "voy a la Colina del Resentimiento"), you MUST set the \`nextLocationId\` field in your response to the ID of the new location. Use the \`adventureLookupTool\` to get the data for the destination, and narrate the journey and the arrival at the new location based on its 'description' from the tool's response.
 5.  **Question Answering Directive:** If the player asks about a location, person, or thing that is NOT in the current scene (e.g., "¿Quién es Cryovain?"), you MUST use the \`adventureLookupTool\` to find that information and use it to formulate your answer.
 6.  **Tense Situations**: If enemies are present but haven't attacked, describe the tense situation and ask the player what they do. DO NOT initiate combat yourself. The central coordinator will handle that.
@@ -126,7 +125,13 @@ async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<Narrati
     const debugLogs: string[] = [];
     try {
         debugLogs.push("NarrativeExpert: Generating narration based on player action and context...");
-        const {output} = await narrativeExpertPrompt(input);
+        const {output, usage} = await narrativeExpertPrompt(input, {tools: [adventureLookupTool, companionExpertTool]});
+        
+        if (usage.toolCalls?.length) {
+            usage.toolCalls.forEach(call => {
+                debugLogs.push(`NarrativeExpert: Calling tool '${call.tool}...'`);
+            });
+        }
         
         if (!output) {
             debugLogs.push("NarrativeExpert: AI returned null output. Throwing error.");
@@ -138,7 +143,7 @@ async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<Narrati
             const adventureData = JSON.parse(input.gameState);
             const locationExists = (adventureData.locations || []).some((loc: any) => loc.id === output.nextLocationId);
             if (!locationExists) {
-                debugLogs.push(`NarrativeExpert: AI returned a non-existent nextLocationId: '${output.nextLocationId}'. Discarding it.`);
+                debugLogs.push(`NarrativeExpert: WARNING - AI returned a non-existent nextLocationId: '${output.nextLocationId}'. Discarding it.`);
                 output.nextLocationId = null;
             }
         }
@@ -147,7 +152,7 @@ async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<Narrati
             try {
                 JSON.parse(output.updatedCharacterStats);
             } catch (e) {
-                debugLogs.push(`NarrativeExpert: AI returned invalid JSON for updatedCharacterStats. Discarding. Error: ${e}`);
+                debugLogs.push(`NarrativeExpert: WARNING - AI returned invalid JSON for updatedCharacterStats. Discarding. Error: ${e}`);
                 output.updatedCharacterStats = null;
             }
         }
@@ -155,7 +160,7 @@ async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<Narrati
         debugLogs.push("NarrativeExpert: Successfully generated narration object.");
         return { ...output, debugLogs };
     } catch(e: any) {
-        debugLogs.push(`NarrativeExpert: Critical error in flow. Error: ${e.message}`);
+        debugLogs.push(`NarrativeExpert: CRITICAL - Flow failed. Error: ${e.message}`);
         console.error("Critical error in narrativeExpertFlow.", e);
         // This specific error message will be caught by the action and shown in the UI.
         throw new Error(`narrativeExpertFlow failed: ${e.message || 'Unknown error'}`);

@@ -25,6 +25,7 @@ export const adventureLookupTool = ai.defineTool(
     try {
       adventureData = JSON.parse(gameState);
     } catch (e: any) {
+      console.error("[adventureLookupTool] Failed to parse gameState JSON:", e.message);
       return `Error: The provided gameState is not valid JSON. Error: ${e.message}`;
     }
 

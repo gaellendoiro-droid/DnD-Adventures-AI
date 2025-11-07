@@ -49,13 +49,14 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   const addDebugMessage = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setDebugMessages(prev => [...prev, `[${timestamp}] ${message}`].slice(-50));
+    setDebugMessages(prev => [...prev, `[${timestamp}] ${message}`].slice(-100));
   }, []);
 
   const addDebugMessages = useCallback((newLogs: string[]) => {
+    if (!newLogs || newLogs.length === 0) return;
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const formattedLogs = newLogs.map(log => `[${timestamp}] ${log}`);
-    setDebugMessages(prev => [...prev, ...formattedLogs].slice(-50));
+    setDebugMessages(prev => [...prev, ...formattedLogs].slice(-100));
   }, []);
 
   const getAdventureData = useCallback(() => {
@@ -99,6 +100,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   }, []);
 
   const addMessages = useCallback((newMessages: Omit<GameMessage, 'id' | 'timestamp'>[], isRetry: boolean = false) => {
+     if (!newMessages || newMessages.length === 0) return;
      const messagesToAdd = newMessages.map(m => ({
         ...m,
         id: Date.now().toString() + Math.random(),
@@ -186,6 +188,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         conversationHistory: history
       });
       
+      // Update debug logs as soon as they are received for better "real-time" feedback
       if (result.debugLogs) {
         addDebugMessages(result.debugLogs);
       }
@@ -202,17 +205,19 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       if (result.updatedParty) setParty(result.updatedParty);
       
       if (result.startCombat) {
-          addDebugMessage(`START_COMBAT sequence received from coordinator.`);
+          addDebugMessage(`START_COMBAT sequence received. Kicking off combat flow.`);
           setInCombat(true);
-          addMessage({ sender: "System", content: "¡Comienza el Combate!" });
+          // System message is now sent by coordinator
           if(result.enemies) setEnemies(result.enemies);
           if(result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
           if(result.nextTurnIndex !== undefined) setTurnIndex(result.nextTurnIndex);
           
           const firstCombatant = result.initiativeOrder?.[result.nextTurnIndex];
            if (firstCombatant?.type !== 'player') {
+              addDebugMessage(`First combatant is NPC (${firstCombatant.characterName}). Starting NPC turn loop.`);
               handleSendMessage("", { isContinuation: true }); // Pass empty action to trigger NPC turn
            } else if (firstCombatant) {
+              addDebugMessage(`First combatant is player (${firstCombatant.characterName}). Waiting for player input.`);
               addMessage({ sender: 'System', content: `Es el turno de ${firstCombatant.characterName}.`});
            }
       } else if (result.endCombat) {
@@ -221,21 +226,27 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           setEnemies([]);
           setTurnIndex(0);
           addDebugMessage("Combat has ended.");
-      } else if (result.nextTurnIndex !== undefined) {
-          setTurnIndex(result.nextTurnIndex);
-           if (updatedEnemies) setEnemies(updatedEnemies); // Ensure enemies are updated during combat
-          if (initiativeOrder[result.nextTurnIndex]?.type === 'player') {
-              const nextCombatant = initiativeOrder[result.nextTurnIndex];
+      } else if (inCombat && result.nextTurnIndex !== undefined) {
+          // This block handles turn progression during combat
+          const newIndex = result.nextTurnIndex;
+          setTurnIndex(newIndex);
+          if (result.updatedEnemies) setEnemies(result.updatedEnemies);
+
+          const nextCombatant = initiativeOrder[newIndex];
+          if (nextCombatant?.type === 'player') {
+              addDebugMessage(`Next turn belongs to player: ${nextCombatant.characterName}.`);
               addMessage({ sender: 'System', content: `Es el turno de ${nextCombatant.characterName}.` });
-          } else {
-              // If next turn is also an NPC, continue the loop
+          } else if (nextCombatant) {
+              addDebugMessage(`Next turn belongs to NPC: ${nextCombatant.characterName}. Continuing combat loop.`);
               handleSendMessage("", { isContinuation: true });
+          } else {
+              addDebugMessage(`Error: Next combatant at index ${newIndex} is undefined. Ending turn.`);
           }
       }
 
     } catch (error: any) {
       console.error("Error during turn:", error);
-      addDebugMessage(`ERROR: ${error.message}`);
+      addDebugMessage(`CRITICAL ERROR: ${error.message}`);
       addMessage({
         sender: 'Error',
         content: `El Dungeon Master está confundido y no puede procesar tu última acción. Error: ${error.message}`,
@@ -243,7 +254,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       });
     } finally {
       setIsDMThinking(false);
-      addDebugMessage("Turn finished.");
+      addDebugMessage("--- Turn Processing Finished ---");
     }
   }, [addDebugMessage, addDebugMessages, addMessage, addMessages, buildConversationHistory, gameState, inCombat, locationId, party, initiativeOrder, enemies, turnIndex]);
   
