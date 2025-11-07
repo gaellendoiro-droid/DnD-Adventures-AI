@@ -180,7 +180,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
         party: input.party,
         locationId: input.locationId,
         locationContext: JSON.stringify(locationData),
-        characterStats: JSON.stringify(input.party.find(c => c.controlledBy === 'Player')),
         conversationHistory: input.conversationHistory,
         log,
     };
