@@ -17,6 +17,7 @@ import '@/ai/tools/combat-manager.ts';
 import '@/ai/tools/companion-expert.ts';
 import '@/ai/tools/enemy-tactician.ts';
 import '@/ai/tools/dice-roller.ts';
+import '@/ai/tools/notary-tool.ts'; // Import the new notary tool
 
 // Este archivo se utiliza para importar todos los flujos y herramientas de Genkit,
 // permitiendo que el Developer UI los descubra y los haga disponibles para

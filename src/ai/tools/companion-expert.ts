@@ -79,7 +79,6 @@ export const companionExpertTool = ai.defineTool(
         outputSchema: CompanionExpertOutputSchema,
     },
     async (input) => {
-        // This part of the code is now reachable.
         const validatedInput = CompanionExpertInputSchema.parse(input);
         const { output } = await companionExpertPrompt(validatedInput);
         return output || { action: "" };
