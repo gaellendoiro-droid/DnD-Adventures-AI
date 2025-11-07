@@ -177,7 +177,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
     log("GameCoordinator: Narrative mode. Preparing to call Narrative Expert...");
     
     // Create a summarized version of the party for the narrative expert prompt
-    const partySummary: z.infer<typeof CharacterSummarySchema>[] = input.party.map(c => ({
+    const partySummary = input.party.map(c => ({
         id: c.id,
         name: c.name,
         race: c.race,
