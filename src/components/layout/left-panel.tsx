@@ -28,15 +28,15 @@ export function LeftPanel({
   return (
     <ResizablePanelGroup direction="vertical" className="h-full">
       <ResizablePanel defaultSize={60} minSize={30}>
-        <div className="flex flex-col h-full">
-          <div className="flex-grow min-h-0">
+        <ResizablePanelGroup direction="vertical">
+          <ResizablePanel defaultSize={70} minSize={30}>
             <DiceLogPanel diceRolls={diceRolls} />
-          </div>
-          <Separator className="my-2" />
-          <div className="flex-shrink-0">
+          </ResizablePanel>
+          <ResizableHandle />
+          <ResizablePanel defaultSize={30} minSize={30}>
             <InitiativeTracker combatants={initiativeOrder} />
-          </div>
-        </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </ResizablePanel>
       <ResizableHandle withHandle />
       {debugMessages && (
