@@ -246,35 +246,35 @@ export const gameCoordinatorFlow = ai.defineFlow(
         });
     }
 
-    // 5. Generate Companion Reactions
-    const aiCompanions = party.filter(p => p.controlledBy === 'AI');
-    log(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
+    // 5. Generate Companion Reactions (Temporarily Disabled)
+    // const aiCompanions = party.filter(p => p.controlledBy === 'AI');
+    // log(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
 
-    for (const companion of aiCompanions) {
-        const companionSummary = partySummary.find(p => p.id === companion.id)!;
-        log(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
+    // for (const companion of aiCompanions) {
+    //     const companionSummary = partySummary.find(p => p.id === companion.id)!;
+    //     log(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
         
-        // Build a more specific context for the companion
-        const companionContext = `The player just did this: "${playerAction}"\n\nThe Dungeon Master described the result as: "${narrativeResult.dmNarration}"`;
+    //     // Build a more specific context for the companion
+    //     const companionContext = `The player just did this: "${playerAction}"\n\nThe Dungeon Master described the result as: "${narrativeResult.dmNarration}"`;
         
-        const companionResult = await companionExpertTool({
-            characterSummary: companionSummary,
-            context: companionContext,
-            inCombat: false,
-            enemies: [], // No enemies in narrative mode
-            partySummary: partySummary,
-        });
+    //     const companionResult = await companionExpertTool({
+    //         characterSummary: companionSummary,
+    //         context: companionContext,
+    //         inCombat: false,
+    //         enemies: [], // No enemies in narrative mode
+    //         partySummary: partySummary,
+    //     });
 
-        if (companionResult.action) {
-            log(`GameCoordinator: ${companion.name} reacts: "${companionResult.action}"`);
-            messages.push({
-                sender: 'Character',
-                senderName: companion.name,
-                characterColor: companion.color,
-                content: companionResult.action,
-            });
-        }
-    }
+    //     if (companionResult.action) {
+    //         log(`GameCoordinator: ${companion.name} reacts: "${companionResult.action}"`);
+    //         messages.push({
+    //             sender: 'Character',
+    //             senderName: companion.name,
+    //             characterColor: companion.color,
+    //             content: companionResult.action,
+    //         });
+    //     }
+    // }
 
     // 6. Finalize Turn
     let updatedParty = input.party;
