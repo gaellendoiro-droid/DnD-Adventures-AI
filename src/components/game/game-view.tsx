@@ -12,7 +12,6 @@ import { Save } from "lucide-react";
 import { processPlayerAction, lookupAdventureEntity } from "@/app/actions";
 import { PartyPanel } from "./party-panel";
 import { Separator } from "../ui/separator";
-import { markdownToHtml } from "@/ai/flows/markdown-to-html";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -51,6 +50,12 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const addDebugMessage = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     setDebugMessages(prev => [...prev, `[${timestamp}] ${message}`].slice(-50));
+  }, []);
+
+  const addDebugMessages = useCallback((newLogs: string[]) => {
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const formattedLogs = newLogs.map(log => `[${timestamp}] ${log}`);
+    setDebugMessages(prev => [...prev, ...formattedLogs].slice(-50));
   }, []);
 
   const getAdventureData = useCallback(() => {
@@ -157,8 +162,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       addMessage({ sender: "System", content: "¡Comienza el Combate!" });
       
       if(narration) {
-        const { html } = await markdownToHtml({ markdown: narration });
-        addMessage({ sender: 'DM', content: html, originalContent: narration });
+        addMessage({ sender: 'DM', content: narration });
       }
 
       let identifiedEnemies: any[] = [];
@@ -259,13 +263,17 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         conversationHistory: history
       });
       
+      if (result.debugLogs) {
+        addDebugMessages(result.debugLogs);
+      }
+      
       // Handle errors from the coordinator
       if (result.error) {
         throw new Error(result.error);
       }
       
       // Process results from the coordinator
-      if(result.messages) addMessages(result.messages, isRetry);
+      if(result.messages) addMessages(result.messages.map(m => ({ ...m, content: m.originalContent || m.content})), isRetry);
       if(result.diceRolls) addDiceRolls(result.diceRolls);
       if(result.nextLocationId) setLocationId(result.nextLocationId);
       if (result.updatedParty) setParty(result.updatedParty);
@@ -302,7 +310,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       setIsDMThinking(false);
       addDebugMessage("Turn finished.");
     }
-  }, [addDebugMessage, addMessage, addMessages, buildConversationHistory, gameState, inCombat, locationId, party, startCombatFlow, initiativeOrder, enemies, turnIndex]);
+  }, [addDebugMessage, addDebugMessages, addMessage, addMessages, buildConversationHistory, gameState, inCombat, locationId, party, startCombatFlow, initiativeOrder, enemies, turnIndex]);
   
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
      addDiceRolls([{

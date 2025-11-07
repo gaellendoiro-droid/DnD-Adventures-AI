@@ -39,49 +39,49 @@ const GameCoordinatorOutputSchema = z.object({
   endCombat: z.boolean().optional(),
   nextTurnIndex: z.number().optional(),
   error: z.string().optional(),
+  debugLogs: z.array(z.string()).optional(),
 });
 
 export type GameCoordinatorInput = z.infer<typeof GameCoordinatorInputSchema>;
 export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
 
-const gameCoordinatorFlow = ai.defineFlow(
-  {
-    name: 'gameCoordinatorFlow',
-    inputSchema: GameCoordinatorInputSchema,
-    outputSchema: GameCoordinatorOutputSchema,
-    tools: [combatManagerTool]
-  },
-  async (input) => {
+async function gameCoordinatorFlow(input: GameCoordinatorInput): Promise<GameCoordinatorOutput> {
     const { playerAction, inCombat, conversationHistory, gameState, locationId } = input;
+    const debugLogs: string[] = [];
     
     // 1. Handle Out-of-Character (OOC) queries first
     if (playerAction.startsWith('//')) {
+      debugLogs.push("OOC query detected. Calling OOC Assistant...");
       const oocResult = await oocAssistant({
         playerQuery: playerAction.substring(2).trim(),
         conversationHistory,
         gameState,
       });
-      const { html } = await markdownToHtml({ markdown: `(OOC) ${oocResult.dmReply}` });
+      debugLogs.push(...oocResult.debugLogs || []);
+
       return {
         messages: [{
             sender: 'DM',
-            content: html,
-            originalContent: `(OOC) ${oocResult.dmReply}`
-        }]
+            content: `(OOC) ${oocResult.dmReply}`
+        }],
+        debugLogs,
       };
     }
     
     // 2. Handle Combat mode
     if (inCombat) {
+        debugLogs.push("Combat mode detected. Calling Combat Manager...");
         const locationData = await lookupAdventureEntityInDb(locationId, gameState);
         const combatResult = await combatManagerTool({
             ...input,
             locationDescription: locationData?.description || "una zona de combate",
         });
-        return combatResult;
+        debugLogs.push(...combatResult.debugLogs || []);
+        return { ...combatResult, debugLogs };
     }
 
     // 3. Handle Narrative/Exploration mode
+    debugLogs.push("Narrative mode detected. Calling Narrative Expert...");
     const locationData = await lookupAdventureEntityInDb(locationId, gameState);
     const narrativeResult = await narrativeExpert({
         playerAction: input.playerAction,
@@ -92,16 +92,16 @@ const gameCoordinatorFlow = ai.defineFlow(
         conversationHistory: input.conversationHistory,
     });
 
-    const messages: GameMessage[] = [];
+    debugLogs.push(...narrativeResult.debugLogs || []);
+
+    const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
     
     // Process narration
     if (narrativeResult.narration) {
-        const { html } = await markdownToHtml({ markdown: narrativeResult.narration });
         messages.push({
             sender: 'DM',
-            content: html,
-            originalContent: narrativeResult.narration,
-        } as GameMessage);
+            content: narrativeResult.narration,
+        } as Omit<GameMessage, 'id' | 'timestamp'>);
     }
 
     // Process character stat updates
@@ -125,9 +125,9 @@ const gameCoordinatorFlow = ai.defineFlow(
       startCombat: narrativeResult.startCombat,
       combatStartNarration: narrativeResult.combatStartNarration,
       identifiedEnemies: narrativeResult.identifiedEnemies,
+      debugLogs,
     };
-  }
-);
+}
 
 
 export async function gameCoordinator(input: GameCoordinatorInput): Promise<GameCoordinatorOutput> {

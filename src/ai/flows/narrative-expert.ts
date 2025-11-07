@@ -30,6 +30,7 @@ const NarrativeExpertOutputSchema = z.object({
   startCombat: z.boolean().describe("Set to true if the player's action or the narrative circumstances have definitively initiated combat."),
   combatStartNarration: z.string().optional().describe("If startCombat is true, this field MUST contain a brief, exciting narration of how the combat begins that MENTIONS THE ENEMY NAMES (e.g., '¡Una emboscada! Dos orcos saltan de los arbustos, ¡con las hachas en alto!'). This will be used by the app to identify the combatants."),
   identifiedEnemies: z.array(z.string()).optional().describe("If startCombat is true, this field MUST contain a list of the names of the enemies starting combat."),
+  debugLogs: z.array(z.string()).optional(),
 });
 export type NarrativeExpertOutput = z.infer<typeof NarrativeExpertOutputSchema>;
 
@@ -84,7 +85,9 @@ Based on all directives, use the provided location context to narrate what happe
 });
 
 async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
+    const debugLogs: string[] = [];
     try {
+        debugLogs.push("NarrativeExpert: Generating narration based on player action and context...");
         const {output} = await narrativeExpertPrompt(input);
         
         if (!output) {
@@ -110,7 +113,7 @@ async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<Narrati
             }
         }
         
-        return output;
+        return { ...output, debugLogs };
     } catch(e: any) {
         console.error("Critical error in narrativeExpertFlow.", e);
         // This specific error message will be caught by the action and shown in the UI.

@@ -17,6 +17,7 @@ export type OocAssistantInput = z.infer<typeof OocAssistantInputSchema>;
 
 const OocAssistantOutputSchema = z.object({
   dmReply: z.string().describe('The Dungeon Master\'s helpful, out-of-character reply to the player.'),
+  debugLogs: z.array(z.string()).optional(),
 });
 export type OocAssistantOutput = z.infer<typeof OocAssistantOutputSchema>;
 
@@ -43,20 +44,15 @@ const oocAssistantPrompt = ai.definePrompt({
   }`,
 });
 
-const oocAssistantFlow = ai.defineFlow(
-  {
-    name: 'oocAssistantFlow',
-    inputSchema: OocAssistantInputSchema,
-    outputSchema: OocAssistantOutputSchema,
-  },
-  async (input) => {
+async function oocAssistantFlow(input: OocAssistantInput): Promise<OocAssistantOutput> {
+    const debugLogs: string[] = [];
+    debugLogs.push("OOCAssistant: Processing out-of-character query...");
     const { output } = await oocAssistantPrompt(input);
     if (!output) {
-      return { dmReply: "No se pudo procesar la pregunta." };
+      return { dmReply: "No se pudo procesar la pregunta.", debugLogs };
     }
-    return output;
-  }
-);
+    return { ...output, debugLogs };
+}
 
 export async function oocAssistant(input: OocAssistantInput): Promise<OocAssistantOutput> {
     return oocAssistantFlow(input);
