@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { enemyTactician } from './enemy-tactician';
 import type { GameMessage, DiceRoll } from '@/lib/types';
 import { companionExpert } from './companion-expert';
+import { diceRollerTool } from './dice-roller';
 
 const CombatManagerInputSchema = z.object({
   playerAction: z.string().nullable(),
@@ -51,14 +52,20 @@ export const combatManagerTool = ai.defineTool(
 
     debugLogs.push("CombatManager: Starting combat round management.");
 
+    const addMessage = (message: Omit<GameMessage, 'id' | 'timestamp'>) => {
+        messages.push({
+            ...message,
+        });
+    }
+
     // 1. Process player's action if it's their turn
     const playerCombatant = initiativeOrder[turnIndex];
     if (playerCombatant.type === 'player' && playerAction) {
       const playerCharacter = party.find(c => c.id === playerCombatant.id);
       if (playerCharacter?.controlledBy === 'Player') {
         debugLogs.push(`CombatManager: Processing player action for ${playerCharacter.name}.`);
-        messages.push({ sender: 'System', content: `Turno de ${playerCharacter.name}.` });
-        messages.push({ sender: 'DM', content: `Tú (${playerCharacter.name}) declaras: ${playerAction}` });
+        addMessage({ sender: 'System', content: `Turno de ${playerCharacter.name}.` });
+        addMessage({ sender: 'DM', content: `Tú (${playerCharacter.name}) declaras: ${playerAction}` });
       }
       turnIndex = (turnIndex + 1) % initiativeOrder.length;
     }
@@ -72,7 +79,7 @@ export const combatManagerTool = ai.defineTool(
       if (isCompanion) {
         const companion = party.find(p => p.id === currentCombatant.id)!;
         debugLogs.push(`CombatManager: Companion turn: ${companion.name}. Calling CompanionExpert...`);
-        messages.push({ sender: 'System', content: `Turno de ${companion.name}.` });
+        addMessage({ sender: 'System', content: `Turno de ${companion.name}.` });
         
         const response = await companionExpert({
           character: companion,
@@ -83,14 +90,14 @@ export const combatManagerTool = ai.defineTool(
         });
         debugLogs.push(`CompanionExpert action for ${companion.name}: ${response.action}`);
         if (response.action) {
-          messages.push({ sender: 'Character', senderName: companion.name, characterColor: companion.color, content: `${response.action}` });
+          addMessage({ sender: 'Character', senderName: companion.name, characterColor: companion.color, content: `${response.action}` });
         }
 
       } else { // It's an enemy
         const enemy = enemies.find(e => e.id === currentCombatant.id);
         if (enemy) {
             debugLogs.push(`CombatManager: Enemy turn: ${enemy.name}. Calling EnemyTactician...`);
-            messages.push({ sender: 'System', content: `Turno de ${enemy.name}.` });
+            addMessage({ sender: 'System', content: `Turno de ${enemy.name}.` });
             
             const enemyResponse = await enemyTactician({
                 activeCombatant: enemy.name,
@@ -101,9 +108,15 @@ export const combatManagerTool = ai.defineTool(
                 gameState,
             });
 
-            debugLogs.push(`EnemyTactician action for ${enemy.name}: ${enemyResponse.action}`);
-            messages.push({ sender: 'DM', content: enemyResponse.narration });
-            if (enemyResponse.diceRolls) diceRolls.push(...enemyResponse.diceRolls as Omit<DiceRoll, 'id' | 'timestamp'>[]);
+            debugLogs.push(`EnemyTactician action for ${enemy.name}: ${enemyResponse.narration}`);
+            addMessage({ sender: 'DM', content: enemyResponse.narration });
+            
+            if (enemyResponse.diceRolls) {
+                for (const rollRequest of enemyResponse.diceRolls) {
+                    const rollResult = await diceRollerTool(rollRequest);
+                    diceRolls.push(rollResult);
+                }
+            }
         }
       }
 
@@ -114,7 +127,7 @@ export const combatManagerTool = ai.defineTool(
     const endCombat = updatedEnemies.every(e => e.hp?.current <= 0);
     if (endCombat) {
       debugLogs.push("CombatManager: All enemies defeated. Ending combat.");
-      messages.push({ sender: 'System', content: '¡Combate Finalizado!' });
+      addMessage({ sender: 'System', content: '¡Combate Finalizado!' });
     }
 
     return {

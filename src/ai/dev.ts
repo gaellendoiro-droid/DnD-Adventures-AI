@@ -14,3 +14,4 @@ import '@/ai/tools/adventure-lookup.ts';
 import '@/ai/tools/combat-manager.ts';
 import '@/ai/tools/companion-expert.ts'; 
 import '@/ai/tools/enemy-tactician.ts';
+import '@/ai/tools/dice-roller.ts';

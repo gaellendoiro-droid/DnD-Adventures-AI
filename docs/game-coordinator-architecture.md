@@ -40,7 +40,7 @@ Estos módulos son "expertos" en tareas específicas. Algunos son IA con su prop
 *   **Tipo**: **Herramienta Lógica (Tool)**
 *   **Archivo**: `src/ai/tools/combat-manager.ts`
 *   **Rol**: El **gestor mecánico del combate**. No tiene un prompt propio.
-*   **Función**: Cuando la coordinadora lo invoca, esta herramienta ejecuta un bucle de turnos de combate. Orquesta las acciones de los PNJ llamando a los expertos correspondientes (`companionExpert` y `enemyTactician`) hasta que le vuelva a tocar a un jugador humano.
+*   **Función**: Cuando la coordinadora lo invoca, esta herramienta ejecuta un bucle de turnos de combate. Orquesta las acciones de los PNJ llamando a los expertos correspondientes (`companionExpert` y `enemyTactician`) y resuelve las tiradas de dados usando el `diceRollerTool`, hasta que le vuelva a tocar a un jugador humano.
 
 #### Herramienta: `oocAssistant`
 *   **Tipo**: **Módulo de IA (Flujo con Prompt)**
@@ -77,3 +77,9 @@ Estas son herramientas y funciones de apoyo utilizadas por los módulos principa
 *   **Archivo**: `src/ai/tools/dnd-api-lookup.ts`
 *   **Rol**: El **manual de reglas de D&D 5e**. No es una IA.
 *   **Función**: Una función que busca información general sobre reglas, hechizos, monstruos, etc., en una API externa (dnd5eapi.co).
+
+#### Herramienta: `diceRollerTool`
+*   **Tipo**: **Herramienta Lógica (Tool)**
+*   **Archivo**: `src/ai/tools/dice-roller.ts`
+*   **Rol**: El **motor de dados** del juego. No es una IA.
+*   **Función**: Recibe una notación de dados (ej: "1d20+4") y devuelve el resultado desglosado (tiradas individuales, modificador y total). Es utilizada principalmente por el `combatManagerTool` para resolver las acciones de combate.
