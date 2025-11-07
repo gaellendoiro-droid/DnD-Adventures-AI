@@ -1,4 +1,4 @@
-# Arquitectura de IA con `gameCoordinator`
+# Arquitectura de IA con `gameCoordinator` (Revisada)
 
 Este documento describe la arquitectura de la IA del juego, centrada en un módulo `gameCoordinator` que actúa como cerebro central, orquestando diferentes herramientas expertas para gestionar la narrativa, el combate y las interacciones con el jugador.
 
@@ -6,49 +6,64 @@ Este documento describe la arquitectura de la IA del juego, centrada en un módu
 
 ### Módulo Central de IA: `gameCoordinator`
 
-Este será un nuevo flujo de Genkit y el único al que la aplicación llamará directamente.
-
+*   **Tipo**: **Módulo de IA (Flujo con Prompt)**
+*   **Archivo**: `src/ai/flows/game-coordinator.ts`
 *   **Rol**: El cerebro central del Dungeon Master. Su única responsabilidad es analizar el estado actual del juego y la acción del jugador, y decidir qué herramienta experta es la más adecuada para manejar la situación.
 *   **Input**:
     *   `playerAction`: La acción o el diálogo del jugador.
-    *   `gameState`: El estado completo del juego (quién está en el grupo, dónde están, si están en combate, historial de conversación, etc.).
-*   **Lógica Interna**:
+    *   `gameState`: El estado completo del juego (quién está en el grupo, dónde están, si están en combate, etc.).
+*   **Lógica Interna (Prompt)**:
     1.  Determina el contexto: ¿Es una pregunta fuera de personaje (`//`)? ¿Estamos en combate? ¿Es una acción narrativa?
     2.  Invoca a la herramienta experta apropiada para la tarea.
 *   **Herramientas que utilizará**:
-    *   `narrativeExpertTool`
+    *   `narrativeExpert`
     *   `combatManagerTool`
-    *   `oocAssistantTool`
+    *   `oocAssistant`
 
 ---
 
 ### Herramientas Expertas (Lógica Delegada)
 
-Los módulos que antes eran flujos independientes se convierten en herramientas que la `gameCoordinator` puede utilizar. Esto permite a la coordinadora delegar tareas complejas.
+Estos módulos son "expertos" en tareas específicas. Algunos son IA con su propio cerebro (prompt), mientras que otros son funciones lógicas.
 
-#### Herramienta: `narrativeExpertTool`
-*   **Rol**: Sigue siendo el experto en **narración y exploración**.
-*   **Función**: Cuando la coordinadora lo llama, este se encarga de generar la historia, describir los resultados de las acciones de exploración y decidir si se inicia un combate. Su lógica interna no cambia mucho, pero ahora es "activado" por la coordinadora.
+#### Herramienta: `narrativeExpert`
+*   **Tipo**: **Módulo de IA (Flujo con Prompt)**
+*   **Archivo**: `src/ai/flows/narrative-expert.ts`
+*   **Rol**: El experto en **narración y exploración**.
+*   **Función**: Cuando la coordinadora lo llama, este se encarga de generar la historia, describir los resultados de las acciones de exploración y decidir si se inicia un combate. Su lógica interna se basa en un prompt detallado.
 
 #### Herramienta: `combatManagerTool`
-*   **Rol**: El **experto y gestor del combate**. Encapsula una o más rondas de combate.
-*   **Función**: Cuando la coordinadora detecta que estamos en combate, invoca esta herramienta. `combatManagerTool` orquesta los turnos de los PNJ (llamando internamente a `companionExpert` y `enemyTactician`) hasta que le vuelva a tocar al jugador humano. Mantiene toda la lógica de combate contenida.
-*   ***Nota de Escalabilidad Futura***: *Si la lógica del combate se vuelve significativamente más compleja, este módulo podría dividirse. Podríamos tener un `combatExpertTool` de alto nivel para decisiones estratégicas y narrativas (¿llegan refuerzos?, ¿huyen los enemigos?) que, a su vez, utilizaría un `combatTurnManagerTool` más mecánico solo para procesar la secuencia de turnos.*
+*   **Tipo**: **Herramienta Lógica (Tool)**
+*   **Archivo**: `src/ai/tools/combat-manager.ts`
+*   **Rol**: El **gestor mecánico del combate**. No tiene un prompt propio.
+*   **Función**: Cuando la coordinadora lo invoca, esta herramienta ejecuta un bucle de turnos de combate. Orquesta las acciones de los PNJ llamando a los expertos correspondientes (`companionExpert` y `enemyTactician`) hasta que le vuelva a tocar a un jugador humano.
 
-#### Herramienta: `oocAssistantTool`
+#### Herramienta: `oocAssistant`
+*   **Tipo**: **Módulo de IA (Flujo con Prompt)**
+*   **Archivo**: `src/ai/flows/ooc-assistant.ts`
 *   **Rol**: El experto en **reglas y preguntas fuera de personaje**.
-*   **Función**: Responde a las preguntas del jugador cuando la coordinadora detecta que el mensaje empieza por `//`.
+*   **Función**: Responde a las preguntas del jugador (que empiezan por `//`) basándose en las instrucciones de su prompt.
 
 ---
 
-### Herramientas de Información (Bases de Conocimiento)
+### Sub-Expertos y Bases de Conocimiento
 
-Estas herramientas siguen siendo cruciales para que todas las IAs tengan acceso a la información.
+Estas son herramientas y funciones de apoyo utilizadas por los módulos principales.
+
+#### Herramienta: `companionExpert` & `enemyTactician`
+*   **Tipo**: **Módulos de IA (Flujos con Prompt)**
+*   **Archivos**: `src/ai/tools/companion-expert.ts` y `src/ai/tools/enemy-tactician.ts`
+*   **Rol**: Son los "cerebros" para los compañeros de grupo y los enemigos, respectivamente.
+*   **Función**: Son invocados por el `combatManagerTool` durante el combate. Cada uno tiene su propio prompt para decidir la acción más lógica para el personaje o monstruo en su turno.
 
 #### Herramienta: `adventureLookupTool`
-*   **Rol**: La **enciclopedia de la aventura**.
-*   **Función**: Busca información sobre cualquier lugar, personaje, monstruo u objeto en el archivo JSON de la aventura. Puede ser utilizada por la `gameCoordinator` o por cualquiera de las herramientas expertas para obtener contexto.
+*   **Tipo**: **Herramienta de Búsqueda (Función)**
+*   **Archivo**: `src/ai/tools/adventure-lookup.ts`
+*   **Rol**: La **enciclopedia de la aventura**. No es una IA.
+*   **Función**: Una función que busca información sobre cualquier lugar, personaje, monstruo u objeto en el archivo JSON de la aventura. Es utilizada por los módulos de IA para obtener contexto.
 
 #### Herramienta: `dndApiLookupTool`
-*   **Rol**: El **manual de reglas de D&D 5e**.
-*   **Función**: Busca información general sobre reglas, hechizos, monstruos, etc., en una API externa.
+*   **Tipo**: **Herramienta de Búsqueda (Función)**
+*   **Archivo**: `src/ai/tools/dnd-api-lookup.ts`
+*   **Rol**: El **manual de reglas de D&D 5e**. No es una IA.
+*   **Función**: Una función que busca información general sobre reglas, hechizos, monstruos, etc., en una API externa (dnd5eapi.co).
