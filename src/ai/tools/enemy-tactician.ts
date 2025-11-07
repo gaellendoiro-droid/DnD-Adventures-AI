@@ -10,7 +10,7 @@ import { adventureLookupTool } from './adventure-lookup';
 
 
 // Input Schema
-const CharacterSchema = z.object({
+export const CharacterSchema = z.object({
     id: z.string(),
     name: z.string(),
     race: z.string(),

@@ -12,7 +12,31 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
-import { companionExpertTool } from '../tools/companion-expert';
+import { companionExpert } from '../tools/companion-expert';
+import { CharacterSchema } from '../tools/enemy-tactician';
+
+const CompanionExpertInputSchema = z.object({
+  character: z.any().describe("The AI-controlled character whose action is being decided."),
+  context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
+  inCombat: z.boolean().describe("Whether the party is currently in combat."),
+  enemies: z.array(z.string()).optional().describe("A list of enemy names, if in combat."),
+  party: z.array(CharacterSchema).describe("The full party data."),
+});
+
+const CompanionExpertOutputSchema = z.object({
+    action: z.string().optional().describe("The character's action or dialogue. Can be an empty string for no action."),
+});
+
+const companionExpertTool = ai.defineTool(
+    {
+        name: 'companionExpertTool',
+        description: 'Decides the action or dialogue for an AI-controlled companion based on their personality and the current game context (combat or exploration).',
+        inputSchema: CompanionExpertInputSchema,
+        outputSchema: CompanionExpertOutputSchema,
+    },
+    companionExpert
+);
+
 
 const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
@@ -44,7 +68,7 @@ const narrativeExpertPrompt = ai.definePrompt({
 1.  **Primary Task: Contextual Narrative.** Your main goal is to be a descriptive and engaging storyteller. You have been given all the context for the current location. Use this to react to the player's choices, portray non-player characters (NPCs), and create an immersive experience. Your job is ONLY to narrate. Do not make decisions about game state like starting combat.
 2.  **Companion AI Interaction:** The player's party includes AI-controlled companions. After the player acts, you MUST use the \`companionExpertTool\` for each AI companion to determine if they would react. Weave any generated companion actions or dialogue naturally into your main narration. For example, if a companion speaks, format it like: **Elara dice:** "No me gusta este sitio."
 3.  **Interaction Directive:** When the player wants to interact with something (e.g., "leo el tablón de anuncios" or "hablo con Linene"), use the 'locationContext' you already have. Refer to the 'interactionResults' or 'description' fields from the context to describe the outcome. DO NOT INVENT THE RESULT.
-4.  **Movement Directive:** When the player wants to move to a new place (e.g., "voy a la Colina del Resentimiento"), you MUST use the \`adventureLookupTool\` to get the data for the destination. If the exit is valid, you MUST set the \`nextLocationId\` field in your response to the ID of the new location. Narrate the journey and the arrival at the new location based on its 'description' from the tool's response.
+4.  **Movement Directive:** When the player wants to move to a new place (e.g., "voy a la Colina del Resentimiento"), you MUST set the \`nextLocationId\` field in your response to the ID of the new location. Use the \`adventureLookupTool\` to get the data for the destination, and narrate the journey and the arrival at the new location based on its 'description' from the tool's response.
 5.  **Question Answering Directive:** If the player asks about a location, person, or thing (e.g., "¿Quién es Cryovain?"), you MUST use the \`adventureLookupTool\` to find that information and use it to formulate your answer.
 6.  **Tense Situations**: If enemies are present but haven't attacked, describe the tense situation and ask the player what they do. DO NOT initiate combat yourself. The central coordinator will handle that.
 7.  **Final Narration:** Your final narration should combine the outcome of the player's action, any companion responses, and a prompt for the player's next action (e.g., "¿Qué haces?").

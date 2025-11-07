@@ -8,11 +8,22 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { oocAssistant } from './ooc-assistant';
-import { combatManagerTool } from '../tools/combat-manager';
+import { combatManager, CombatManagerInputSchema, CombatManagerOutputSchema } from '../tools/combat-manager';
 import type { GameMessage, DiceRoll, InitiativeRoll } from '@/lib/types';
 import { markdownToHtml } from './markdown-to-html';
 import { narrativeExpert } from './narrative-expert';
 import { lookupAdventureEntityInDb } from '@/app/game-state-actions';
+
+
+const combatManagerTool = ai.defineTool(
+  {
+    name: 'combatManagerTool',
+    description: 'Manages a sequence of turns in combat, starting from the current turn, until it is a human player\'s turn again or combat ends.',
+    inputSchema: CombatManagerInputSchema,
+    outputSchema: CombatManagerOutputSchema,
+  },
+  combatManager
+);
 
 // Schemas for the main coordinator flow
 const GameCoordinatorInputSchema = z.object({

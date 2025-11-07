@@ -11,7 +11,7 @@ import type { GameMessage, DiceRoll } from '@/lib/types';
 import { companionExpert } from './companion-expert';
 import { diceRollerTool } from './dice-roller';
 
-const CombatManagerInputSchema = z.object({
+export const CombatManagerInputSchema = z.object({
   playerAction: z.string().nullable(),
   party: z.array(z.any()),
   enemies: z.array(z.any()),
@@ -22,7 +22,7 @@ const CombatManagerInputSchema = z.object({
   conversationHistory: z.string(),
 });
 
-const CombatManagerOutputSchema = z.object({
+export const CombatManagerOutputSchema = z.object({
   messages: z.array(z.any()),
   diceRolls: z.array(z.any()),
   updatedParty: z.array(z.any()),
@@ -32,14 +32,8 @@ const CombatManagerOutputSchema = z.object({
   debugLogs: z.array(z.string()).optional(),
 });
 
-export const combatManagerTool = ai.defineTool(
-  {
-    name: 'combatManagerTool',
-    description: 'Manages a sequence of turns in combat, starting from the current turn, until it is a human player\'s turn again or combat ends.',
-    inputSchema: CombatManagerInputSchema,
-    outputSchema: CombatManagerOutputSchema,
-  },
-  async (input) => {
+
+export async function combatManager(input: z.infer<typeof CombatManagerInputSchema>): Promise<z.infer<typeof CombatManagerOutputSchema>> {
     const { playerAction, party, enemies, initiativeOrder, currentTurnIndex, gameState, locationDescription, conversationHistory } = input;
     
     const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
@@ -139,5 +133,4 @@ export const combatManagerTool = ai.defineTool(
       endCombat,
       debugLogs,
     };
-  }
-);
+}

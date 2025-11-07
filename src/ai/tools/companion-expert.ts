@@ -6,14 +6,14 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { Character } from '@/lib/types';
+import { CharacterSchema } from './enemy-tactician';
 
 const CompanionExpertInputSchema = z.object({
   character: z.any().describe("The AI-controlled character whose action is being decided."),
   context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
   inCombat: z.boolean().describe("Whether the party is currently in combat."),
   enemies: z.array(z.string()).optional().describe("A list of enemy names, if in combat."),
-  party: z.array(z.any()).describe("The full party data."),
+  party: z.array(CharacterSchema).describe("The full party data."),
 });
 
 const CompanionExpertOutputSchema = z.object({
@@ -65,21 +65,8 @@ const companionExpertPrompt = ai.definePrompt({
     `,
 });
 
-export const companionExpertTool = ai.defineTool(
-    {
-        name: 'companionExpertTool',
-        description: 'Decides the action or dialogue for an AI-controlled companion based on their personality and the current game context (combat or exploration).',
-        inputSchema: CompanionExpertInputSchema,
-        outputSchema: CompanionExpertOutputSchema,
-    },
-    async (input) => {
-        const { output } = await companionExpertPrompt(input);
-        return output || { action: "" };
-    }
-);
 
-// This function is kept for direct calls from legacy or non-tool-based flows if needed.
-export async function companionExpert(input: CompanionExpertInput): Promise<CompanionExpertOutput> {
+export async function companionExpert(input: z.infer<typeof CompanionExpertInputSchema>): Promise<z.infer<typeof CompanionExpertOutputSchema>> {
     const { output } = await companionExpertPrompt(input);
     return output || { action: "" };
 }
