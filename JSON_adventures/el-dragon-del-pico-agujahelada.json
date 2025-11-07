@@ -353,11 +353,23 @@
       "interactables": [
         {
           "name": "Tablón de oportunidades",
-          "description": "Un tablón de madera con varios anuncios escritos en lengua común por la misma persona. Al leerlos, descubres tres misiones:",
+          "description": "Un tablón de madera con varios anuncios escritos en lengua común por la misma persona. Al leerlos, descubres tres misiones.",
           "interactionResults": [
             {
-              "action": "Leer los anuncios",
-              "result": "Os acercáis al tablón de madera. Distinguís tres misiones principales:\n\n*   **Misión de la Colina del Resentimiento:** \"¡Se buscan aventureros! ¡Ayudad a Adabra Gwynn, la comadrona y boticaria del pueblo! Lleva dos días sin venir al pueblo a por suministros. Aseguraos de que está a salvo y convencedla para que vuelva a Phandalin. ¡Su molino de piedra está en la Colina del Resentimiento! Alcalde Harbin Wester. Recompensa: 50 po\".\n\n*   **Misión de la excavación de los enanos:** \"¡Se buscan exploradores enanos! Dos buscadores de oro, Dazlyn Esquirlagrís y Norbus Runaférrea, necesitan que alguien les advierta de la amenaza de un dragón blanco. ¡Se les vio por última vez en dirección a unas nuevas excavaciones en las estribaciones de las montañas! ¡Encontradlos! Alcalde Harbin Wester. Recompensa: 25 po\".\n\n*   **Misión de Terragnoma:** \"¡Se buscan protectores! Los gnomos de las rocas de Terragnoma están buscando aventureros que les ayuden a encargarse de un supuesto rey que ha enloquecido. Si estáis dispuestos a ayudar a estas extrañas criaturas, id a su asentamiento en la montaña. ¡Pero id con cuidado! Alcalde Harbin Wester. Recompensa: 50 po\"."
+              "action": "Leer anuncios (General)",
+              "result": "Distinguís tres misiones principales: La Misión de la Colina del Resentimiento, la Misión de la excavación de los enanos y la Misión de Terragnoma. Podéis pedir detalles sobre cada una."
+            },
+            {
+              "action": "Leer Misión de la Colina del Resentimiento",
+              "result": "¡Se buscan aventureros! ¡Ayudad a Adabra Gwynn, la comadrona y boticaria del pueblo! Lleva dos días sin venir al pueblo a por suministros. Aseguraos de que está a salvo y convencedla para que vuelva a Phandalin. ¡Su molino de piedra está en la Colina del Resentimiento! Alcalde Harbin Wester. Recompensa: 50 po."
+            },
+            {
+              "action": "Leer Misión de la excavación de los enanos",
+              "result": "¡Se buscan exploradores enanos! Dos buscadores de oro, Dazlyn Esquirlagrís y Norbus Runaférrea, necesitan que alguien les advierta de la amenaza de un dragón blanco. ¡Se les vio por última vez en dirección a unas nuevas excavaciones en las estribaciones de las montañas! ¡Encontradlos! Alcalde Harbin Wester. Recompensa: 25 po."
+            },
+            {
+              "action": "Leer Misión de Terragnoma",
+              "result": "¡Se buscan protectores! Los gnomos de las rocas de Terragnoma están buscando aventureros que les ayuden a encargarse de un supuesto rey que ha enloquecido. Si estáis dispuestos a ayudar a estas extrañas criaturas, id a su asentamiento en la montaña. ¡Pero id con cuidado! Alcalde Harbin Wester. Recompensa: 50 po."
             }
           ]
         }
@@ -1801,4 +1813,3 @@
     }
   ]
 }
-    
