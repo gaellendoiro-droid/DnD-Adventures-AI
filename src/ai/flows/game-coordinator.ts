@@ -48,10 +48,11 @@ export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
 async function gameCoordinatorFlow(input: GameCoordinatorInput): Promise<GameCoordinatorOutput> {
     const { playerAction, inCombat, conversationHistory, gameState, locationId } = input;
     const debugLogs: string[] = [];
+    debugLogs.push(`GameCoordinator: Received action: "${playerAction}".`);
     
     // 1. Handle Out-of-Character (OOC) queries first
     if (playerAction.startsWith('//')) {
-      debugLogs.push("OOC query detected. Calling OOC Assistant...");
+      debugLogs.push("GameCoordinator: OOC query detected. Calling OOC Assistant...");
       const oocResult = await oocAssistant({
         playerQuery: playerAction.substring(2).trim(),
         conversationHistory,
@@ -70,7 +71,7 @@ async function gameCoordinatorFlow(input: GameCoordinatorInput): Promise<GameCoo
     
     // 2. Handle Combat mode
     if (inCombat) {
-        debugLogs.push("Combat mode detected. Calling Combat Manager...");
+        debugLogs.push("GameCoordinator: Combat mode detected. Calling Combat Manager...");
         const locationData = await lookupAdventureEntityInDb(locationId, gameState);
         const combatResult = await combatManagerTool({
             ...input,
@@ -81,7 +82,7 @@ async function gameCoordinatorFlow(input: GameCoordinatorInput): Promise<GameCoo
     }
 
     // 3. Handle Narrative/Exploration mode
-    debugLogs.push("Narrative mode detected. Calling Narrative Expert...");
+    debugLogs.push("GameCoordinator: Narrative mode detected. Calling Narrative Expert...");
     const locationData = await lookupAdventureEntityInDb(locationId, gameState);
     const narrativeResult = await narrativeExpert({
         playerAction: input.playerAction,

@@ -8,7 +8,6 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { enemyTactician } from './enemy-tactician';
 import type { GameMessage, DiceRoll } from '@/lib/types';
-import { markdownToHtml } from '../flows/markdown-to-html';
 import { companionExpert } from './companion-expert';
 
 const CombatManagerInputSchema = z.object({
@@ -31,20 +30,6 @@ const CombatManagerOutputSchema = z.object({
   endCombat: z.boolean(),
   debugLogs: z.array(z.string()).optional(),
 });
-
-async function createMessage(msg: Omit<GameMessage, 'id' | 'timestamp' | 'content'> & { content: string }) {
-    const { html, originalContent } = (msg.sender === 'DM')
-        ? { html: (await markdownToHtml({ markdown: msg.content })).html, originalContent: msg.content }
-        : { html: msg.content, originalContent: msg.content };
-
-    return {
-        ...msg,
-        content: html,
-        originalContent: originalContent,
-        id: Date.now().toString() + Math.random(),
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-}
 
 export const combatManagerTool = ai.defineTool(
   {
@@ -71,7 +56,7 @@ export const combatManagerTool = ai.defineTool(
     if (playerCombatant.type === 'player' && playerAction) {
       const playerCharacter = party.find(c => c.id === playerCombatant.id);
       if (playerCharacter?.controlledBy === 'Player') {
-        debugLogs.push(`Processing player action for ${playerCharacter.name}.`);
+        debugLogs.push(`CombatManager: Processing player action for ${playerCharacter.name}.`);
         messages.push({ sender: 'System', content: `Turno de ${playerCharacter.name}.` });
         messages.push({ sender: 'DM', content: `Tú (${playerCharacter.name}) declaras: ${playerAction}` });
       }
@@ -86,7 +71,7 @@ export const combatManagerTool = ai.defineTool(
 
       if (isCompanion) {
         const companion = party.find(p => p.id === currentCombatant.id)!;
-        debugLogs.push(`Companion turn: ${companion.name}. Calling CompanionExpert...`);
+        debugLogs.push(`CombatManager: Companion turn: ${companion.name}. Calling CompanionExpert...`);
         messages.push({ sender: 'System', content: `Turno de ${companion.name}.` });
         
         const response = await companionExpert({
@@ -104,7 +89,7 @@ export const combatManagerTool = ai.defineTool(
       } else { // It's an enemy
         const enemy = enemies.find(e => e.id === currentCombatant.id);
         if (enemy) {
-            debugLogs.push(`Enemy turn: ${enemy.name}. Calling EnemyTactician...`);
+            debugLogs.push(`CombatManager: Enemy turn: ${enemy.name}. Calling EnemyTactician...`);
             messages.push({ sender: 'System', content: `Turno de ${enemy.name}.` });
             
             const enemyResponse = await enemyTactician({
@@ -128,7 +113,7 @@ export const combatManagerTool = ai.defineTool(
 
     const endCombat = updatedEnemies.every(e => e.hp?.current <= 0);
     if (endCombat) {
-      debugLogs.push("All enemies defeated. Ending combat.");
+      debugLogs.push("CombatManager: All enemies defeated. Ending combat.");
       messages.push({ sender: 'System', content: '¡Combate Finalizado!' });
     }
 
