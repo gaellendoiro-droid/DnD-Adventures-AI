@@ -84,14 +84,18 @@ async function gameCoordinatorFlow(input: GameCoordinatorInput): Promise<GameCoo
     // 3. Handle Narrative/Exploration mode
     debugLogs.push("GameCoordinator: Narrative mode detected. Calling Narrative Expert...");
     const locationData = await lookupAdventureEntityInDb(locationId, gameState);
-    const narrativeResult = await narrativeExpert({
+    
+    const narrativeInput = {
         playerAction: input.playerAction,
+        partyJson: JSON.stringify(input.party),
         gameState, 
         locationId: input.locationId,
         locationContext: JSON.stringify(locationData),
         characterStats: JSON.stringify(input.party.find(c => c.controlledBy === 'Player')),
         conversationHistory: input.conversationHistory,
-    });
+    };
+    
+    const narrativeResult = await narrativeExpert(narrativeInput);
 
     debugLogs.push(...narrativeResult.debugLogs || []);
 
