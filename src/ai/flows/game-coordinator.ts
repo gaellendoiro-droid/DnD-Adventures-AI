@@ -9,7 +9,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { oocAssistant } from './ooc-assistant';
 import { combatManagerTool } from '../tools/combat-manager';
-import type { GameMessage } from '@/lib/types';
+import type { GameMessage, DiceRoll, InitiativeRoll } from '@/lib/types';
 import { markdownToHtml } from './markdown-to-html';
 import { narrativeExpert } from './narrative-expert';
 import { lookupAdventureEntityInDb } from '@/app/game-state-actions';
@@ -34,19 +34,20 @@ const GameCoordinatorOutputSchema = z.object({
   updatedEnemies: z.array(z.any()).optional(),
   nextLocationId: z.string().optional().nullable(),
   startCombat: z.boolean().optional(),
-  combatStartNarration: z.string().optional(),
-  identifiedEnemies: z.array(z.string()).optional(),
   endCombat: z.boolean().optional(),
   nextTurnIndex: z.number().optional(),
   error: z.string().optional(),
   debugLogs: z.array(z.string()).optional(),
+  // New fields for combat start
+  initiativeOrder: z.array(z.any()).optional(),
+  enemies: z.array(z.any()).optional(),
 });
 
 export type GameCoordinatorInput = z.infer<typeof GameCoordinatorInputSchema>;
 export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
 
 async function gameCoordinatorFlow(input: GameCoordinatorInput): Promise<GameCoordinatorOutput> {
-    const { playerAction, inCombat, conversationHistory, gameState, locationId } = input;
+    const { playerAction, inCombat, conversationHistory, gameState, locationId, party } = input;
     const debugLogs: string[] = [];
     debugLogs.push(`GameCoordinator: Received action: "${playerAction}".`);
     
@@ -81,7 +82,81 @@ async function gameCoordinatorFlow(input: GameCoordinatorInput): Promise<GameCoo
         return { ...combatResult, debugLogs };
     }
 
-    // 3. Handle Narrative/Exploration mode
+    // 3. Handle transition to combat from Narrative mode
+    const attackRegex = /ataca a|atacar a|ataco al|ataco a la|pego a|disparo a/i;
+    if (attackRegex.test(playerAction)) {
+      debugLogs.push("GameCoordinator: Attack action detected. Attempting to start combat.");
+      const targetName = playerAction.split(attackRegex)[1].trim();
+      const locationData = await lookupAdventureEntityInDb(locationId, gameState);
+      
+      const targetEntity = locationData?.entitiesPresent?.find((e: string) => e.toLowerCase().includes(targetName.toLowerCase()))
+      
+      if (targetEntity) {
+          debugLogs.push(`GameCoordinator: Valid target '${targetName}' found. Initiating combat sequence.`);
+          
+          let identifiedEnemies: any[] = [];
+          if (locationData.entitiesPresent.length > 0) {
+              for (const name of locationData.entitiesPresent) {
+                  const enemyData = await lookupAdventureEntityInDb(name, gameState);
+                  if (enemyData) {
+                      const enemyWithStats = {
+                          ...enemyData,
+                          id: `${enemyData.id}-${Math.random().toString(36).substring(2, 9)}`,
+                          hp: { current: 30, max: 30 }, // Placeholder HP
+                          abilityScores: { destreza: 10, ...enemyData.abilityScores },
+                      };
+                      identifiedEnemies.push(enemyWithStats);
+                  }
+              }
+          }
+
+          if (identifiedEnemies.length === 0) {
+            debugLogs.push("No enemies found in location data despite attack. This is an issue.");
+            return { error: "Intentaste atacar, pero no se encontró un objetivo válido en esta ubicación.", debugLogs };
+          }
+          
+          const combatants: (any)[] = [...party, ...identifiedEnemies];
+          const initiativeRolls: InitiativeRoll[] = combatants.map(c => {
+            const modifier = Math.floor(((c.abilityScores?.destreza || 10) - 10) / 2);
+            const roll = Math.floor(Math.random() * 20) + 1;
+            const combatantType: 'player' | 'npc' = party.some(p => p.id === c.id) ? 'player' : 'npc';
+            return {
+              characterName: c.name,
+              roll: roll,
+              modifier: modifier,
+              total: roll + modifier,
+              id: c.id,
+              type: combatantType,
+            }
+          });
+      
+          const initiativeDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = initiativeRolls.map(roll => ({
+              roller: roll.characterName,
+              rollNotation: `1d20${roll.modifier >= 0 ? '+' : ''}${roll.modifier}`,
+              individualRolls: [roll.roll],
+              modifier: roll.modifier,
+              totalResult: roll.total,
+              outcome: 'initiative' as const,
+              description: `Tirada de Iniciativa`
+          }));
+          
+          const sortedCombatants: any[] = initiativeRolls.sort((a, b) => b.total - a.total).map(r => ({id: r.id, characterName: r.characterName, total: r.total, type: r.type}));
+
+          return {
+            startCombat: true,
+            messages: [
+              { sender: 'DM', content: `¡Tu acción provoca un combate! La batalla contra ${identifiedEnemies.map(e => e.name).join(', ')} ha comenzado.`}
+            ],
+            diceRolls: initiativeDiceRolls,
+            initiativeOrder: sortedCombatants,
+            enemies: identifiedEnemies,
+            nextTurnIndex: 0,
+            debugLogs,
+          };
+      }
+    }
+
+    // 4. Handle Narrative/Exploration mode
     debugLogs.push("GameCoordinator: Narrative mode detected. Calling Narrative Expert...");
     const locationData = await lookupAdventureEntityInDb(locationId, gameState);
     
@@ -127,9 +202,6 @@ async function gameCoordinatorFlow(input: GameCoordinatorInput): Promise<GameCoo
       messages,
       updatedParty,
       nextLocationId: narrativeResult.nextLocationId,
-      startCombat: narrativeResult.startCombat,
-      combatStartNarration: narrativeResult.combatStartNarration,
-      identifiedEnemies: narrativeResult.identifiedEnemies,
       debugLogs,
     };
 }

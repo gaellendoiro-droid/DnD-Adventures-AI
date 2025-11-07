@@ -6,19 +6,17 @@ Este documento describe la arquitectura de la IA del juego, centrada en un módu
 
 ### Módulo Central de IA: `gameCoordinator`
 
-*   **Tipo**: **Flujo de IA (Flujo con Prompt)**
+*   **Tipo**: **Flujo Lógico (Función de TypeScript)**
 *   **Archivo**: `src/ai/flows/game-coordinator.ts`
-*   **Rol**: El cerebro central del Dungeon Master. Su única responsabilidad es analizar el estado actual del juego y la acción del jugador, y decidir qué herramienta experta es la más adecuada para manejar la situación. Pre-carga el contexto necesario (como los datos de la ubicación actual) para pasárselo a los expertos.
-*   **Input**:
-    *   `playerAction`: La acción o el diálogo del jugador.
-    *   `gameState`: El estado completo del juego (quién está en el grupo, dónde están, si están en combate, etc.).
+*   **Rol**: El cerebro central y director de orquesta del Dungeon Master. No es una IA en sí, sino una función de TypeScript que decide qué hacer. Su responsabilidad es analizar el estado del juego y la acción del jugador para determinar el siguiente paso.
 *   **Lógica Interna**:
-    1.  Determina el contexto: ¿Es una pregunta fuera de personaje (`//`)? ¿Estamos en combate? ¿Es una acción narrativa?
-    2.  Busca y carga la información de la ubicación actual.
-    3.  Invoca a la herramienta experta apropiada para la tarea, pasándole el contexto necesario.
+    1.  Determina el contexto: ¿Es una pregunta fuera de personaje (`//`)? ¿Estamos en combate? ¿Es una acción de ataque?
+    2.  Si es una acción de ataque, **él mismo** usa la `adventureLookupTool` para validar al enemigo, inicia el combate, tira la iniciativa y devuelve el nuevo estado de combate.
+    3.  Si es una acción de exploración normal, busca la información de la ubicación actual y se la pasa al `narrativeExpert`.
+    4.  Si estamos en combate, delega la gestión del turno al `combatManagerTool`.
 *   **Herramientas que utilizará**:
     *   `narrativeExpert` (IA)
-    *   `combatManagerTool` (Herramienta Lógica)
+    *   `combatManagerTool` (IA)
     *   `oocAssistant` (IA)
     *   `adventureLookupTool` (Herramienta de Búsqueda)
 
@@ -31,18 +29,22 @@ Estos módulos son "expertos" en tareas específicas. Algunos son IA con su prop
 #### Herramienta: `narrativeExpert`
 *   **Tipo**: **Módulo de IA (Flujo con Prompt)**
 *   **Archivo**: `src/ai/flows/narrative-expert.ts`
-*   **Rol**: El experto en **narración y exploración**.
-*   **Función**: Cuando la coordinadora lo llama, este se encarga de generar la historia. Utiliza el contexto de la ubicación actual que le proporciona el `gameCoordinator` para describir los resultados de las acciones de exploración. Conserva el acceso a las herramientas de búsqueda para obtener información sobre *nuevos* elementos (como moverse a otra ubicación o preguntar por un PNJ).
+*   **Rol**: El experto en **narración y exploración**. Su única tarea es contar la historia.
+*   **Función**: Cuando la coordinadora lo llama, este se encarga de generar la historia. Utiliza el contexto de la ubicación actual que le proporciona el `gameCoordinator` para describir los resultados de las acciones de exploración. Conserva el acceso a las herramientas de búsqueda (`adventureLookupTool`) para obtener información sobre *nuevos* elementos que el coordinador no le haya pasado (como preguntar por un PNJ o un lugar al que no se ha ido aún).
 *   **Herramientas que utiliza**:
     *   `adventureLookupTool` (Herramienta de Búsqueda)
     *   `dndApiLookupTool` (Herramienta de Búsqueda)
     *   `companionExpert` (IA)
 
 #### Herramienta: `combatManagerTool`
-*   **Tipo**: **Herramienta Lógica (Tool)**
+*   **Tipo**: **Módulo de IA (Flujo con Prompt)**
 *   **Archivo**: `src/ai/tools/combat-manager.ts`
-*   **Rol**: El **gestor mecánico del combate**. No tiene un prompt propio.
-*   **Función**: Cuando la coordinadora lo invoca, esta herramienta ejecuta un bucle de turnos de combate. Orquesta las acciones de los PNJ llamando a los expertos correspondientes (`companionExpert` y `enemyTactician`) y resuelve las tiradas de dados usando el `diceRollerTool`, hasta que le vuelva a tocar a un jugador humano.
+*   **Rol**: El **gestor de una ronda de combate de PNJ**.
+*   **Función**: Cuando la coordinadora lo invoca, esta herramienta ejecuta un bucle de turnos de combate. Orquesta las acciones de los PNJ (compañeros y enemigos) llamando a los expertos correspondientes (`companionExpert` y `enemyTactician`) hasta que le vuelva a tocar a un jugador humano o el combate termine.
+*   **Herramientas que utiliza**:
+    *   `companionExpert` (IA)
+    *   `enemyTactician` (IA)
+    *   `diceRollerTool` (Herramienta Lógica)
 
 #### Herramienta: `oocAssistant`
 *   **Tipo**: **Módulo de IA (Flujo con Prompt)**
@@ -69,19 +71,19 @@ Estas son herramientas y funciones de apoyo utilizadas por los módulos principa
 *   **Función**: Es invocado por el `combatManagerTool` durante el turno de un enemigo. Decide la acción más efectiva (atacar, usar una habilidad, etc.) basándose en el estado del combate y las capacidades del monstruo.
 
 #### Herramienta: `adventureLookupTool`
-*   **Tipo**: **Herramienta de Búsqueda (Función)**
+*   **Tipo**: **Herramienta de Búsqueda (Función Lógica)**
 *   **Archivo**: `src/ai/tools/adventure-lookup.ts`
 *   **Rol**: La **enciclopedia de la aventura**. No es una IA.
 *   **Función**: Una función que busca información sobre cualquier lugar, personaje, monstruo u objeto en el archivo JSON de la aventura. Es utilizada por los módulos de IA para obtener contexto.
 
 #### Herramienta: `dndApiLookupTool`
-*   **Tipo**: **Herramienta de Búsqueda (Función)**
+*   **Tipo**: **Herramienta de Búsqueda (Función Lógica)**
 *   **Archivo**: `src/ai/tools/dnd-api-lookup.ts`
 *   **Rol**: El **manual de reglas de D&D 5e**. No es una IA.
 *   **Función**: Una función que busca información general sobre reglas, hechizos, monstruos, etc., en una API externa (dnd5eapi.co).
 
 #### Herramienta: `diceRollerTool`
-*   **Tipo**: **Herramienta Lógica (Tool)**
+*   **Tipo**: **Herramienta Lógica (Función Lógica)**
 *   **Archivo**: `src/ai/tools/dice-roller.ts`
 *   **Rol**: El **motor de dados** del juego. No es una IA.
-*   **Función**: Recibe una notación de dados (ej: "1d20+4") y devuelve el resultado desglosado (tiradas individuales, modificador y total). Es utilizada principalmente por el `combatManagerTool` para resolver las acciones de combate.
+*   **Función**: Recibe una notación de dados (ej: "1d20+4") y devuelve el resultado desglosado (tiradas individuales, modificador y total). Es utilizada principalmente por el `combatManagerTool` para resolver las acciones de combate de los PNJs.
