@@ -117,8 +117,19 @@ async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<Narrati
         }
         
         if (!output) {
-            localLog("NarrativeExpert: AI returned null output. This could be due to safety filters or an internal model error.");
-            throw new Error("The AI failed to return a valid output. It might have been blocked by safety filters.");
+            localLog("NarrativeExpert: AI returned null output. This could be due to safety filters or an internal model error. Retrying once...");
+            // Retry logic
+            const { output: retryOutput, usage: retryUsage } = await narrativeExpertPrompt(input);
+            if (retryUsage?.toolCalls?.length) {
+                retryUsage.toolCalls.forEach(call => {
+                    localLog(`NarrativeExpert (Retry): Called tool '${call.tool}...'`);
+                });
+            }
+            if (!retryOutput) {
+                localLog("NarrativeExpert: AI returned null output on second attempt. Failing.");
+                throw new Error("The AI failed to return a valid output after a retry. It might have been blocked by safety filters.");
+            }
+            return { ...retryOutput, debugLogs };
         }
         
         // Final validation for location ID before returning

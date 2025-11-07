@@ -18,7 +18,7 @@ export interface InventoryItem {
   id: string;
   name: string;
   quantity: number;
-  description?: string;
+  description?: string | null;
 }
 
 export interface Spell {

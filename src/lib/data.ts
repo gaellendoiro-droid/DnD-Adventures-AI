@@ -65,7 +65,7 @@ export const initialParty: Character[] = [
     controlledBy: "AI",
     inventory: [
         { id: "item-5", name: "Maza", quantity: 1, description: "Un arma contundente simple pero efectiva." },
-        { id: "item-6", name: "Armadura de escamas", quantity: 1 },
+        { id: "item-6", name: "Armadura de escamas", quantity: 1, description: null },
         { id: "item-7", name: "Símbolo sagrado", quantity: 1, description: "Un amuleto de plata que canaliza su poder divino." },
         { id: "item-8", name: "Paquete de sacerdote", quantity: 1, description: "Incluye agua bendita, viales y otros objetos para sus rituales." },
         { id: "item-gp-2", name: "Monedas de Oro", quantity: 15, description: "Dinero contante y sonante." },
