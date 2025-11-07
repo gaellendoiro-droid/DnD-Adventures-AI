@@ -28,7 +28,7 @@ export function DebugPanel({ messages }: DebugPanelProps) {
         <Terminal className="w-5 h-5" />
         <CardTitle className="font-headline text-lg">Debug Log</CardTitle>
       </CardHeader>
-      <ScrollArea className="px-2 h-[300px]" viewportRef={scrollViewportRef}>
+      <ScrollArea className="px-2 h-full" viewportRef={scrollViewportRef}>
         <div className="p-2 space-y-2 text-xs font-mono text-muted-foreground">
           {messages.length === 0 ? (
             <p className="text-center">El log de depuración está vacío.</p>
@@ -42,5 +42,3 @@ export function DebugPanel({ messages }: DebugPanelProps) {
     </>
   );
 }
-
-    
