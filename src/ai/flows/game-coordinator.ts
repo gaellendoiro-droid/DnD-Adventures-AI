@@ -15,6 +15,8 @@ import { narrativeExpert } from './narrative-expert';
 import { getAdventureData } from '@/app/game-state-actions';
 import { CharacterSummarySchema } from '@/lib/schemas';
 import { companionExpertTool } from '../tools/companion-expert';
+import { actionInterpreter } from './action-interpreter';
+
 
 // Schemas for the main coordinator flow
 const GameCoordinatorInputSchema = z.object({
@@ -60,30 +62,15 @@ export const gameCoordinatorFlow = ai.defineFlow(
     let { locationId } = input;
     
     log(`GameCoordinator: Received action: "${playerAction}". InCombat: ${inCombat}. Location: ${locationId}.`);
-
-    // 1. Handle Out-of-Character (OOC) queries first
-    if (playerAction.startsWith('//')) {
-      log("GameCoordinator: OOC query detected. Calling OOC Assistant...");
-      const oocResult = await oocAssistant({
-        playerQuery: playerAction.substring(2).trim(),
-        conversationHistory,
-      });
-      (oocResult.debugLogs || []).forEach(log);
-
-      return {
-        messages: [{
-            sender: 'DM',
-            content: `(OOC) ${oocResult.dmReply}`
-        }],
-      };
-    }
     
     const adventureData = await getAdventureData();
     if (!adventureData) {
         throw new Error("Failed to load adventure data.");
     }
     
-    // 2. Handle Combat mode
+    const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
+    
+    // 1. Handle Combat mode
     if (inCombat) {
         const locationData = adventureData.locations.find((l: any) => l.id === locationId);
         log("GameCoordinator: Combat mode detected. Calling Combat Manager Tool...");
@@ -96,108 +83,130 @@ export const gameCoordinatorFlow = ai.defineFlow(
         return { ...combatResult };
     }
 
-    // 3. Handle Movement (Pre-Narrative)
-    let newLocationId: string | null = null;
+    // 2. Interpret Player Action
     const currentLocationData = adventureData.locations.find((l: any) => l.id === locationId);
-    if (currentLocationData && currentLocationData.exits) {
-        for (const exit of currentLocationData.exits) {
-            const destinationLocation = adventureData.locations.find((l: any) => l.id === exit.toLocationId);
-            const keywords = [exit.description, destinationLocation?.title].filter(Boolean).map(kw => kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-            const movementRegex = new RegExp(`\\b(${keywords})\\b`, 'i');
-            
-            if (movementRegex.test(playerAction)) {
-                log(`GameCoordinator: Movement detected to '${exit.toLocationId}' based on action "${playerAction}".`);
-                newLocationId = exit.toLocationId;
-                locationId = newLocationId; // Update locationId for the current turn
-                break;
-            }
-        }
-    }
+    log("GameCoordinator: Calling ActionInterpreter...");
+    const interpretation = await actionInterpreter({
+        playerAction,
+        locationContext: JSON.stringify(currentLocationData),
+        log,
+    });
+    (interpretation.debugLogs || []).forEach(log);
 
-    // 4. Handle transition to combat from Narrative mode
-    const finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
-    const attackRegex = /ataca a|atacar a|ataco al|ataco a la|pego a|disparo a/i;
-    if (attackRegex.test(playerAction)) {
-      log(`GameCoordinator: Attack action detected ("${playerAction}"). Attempting to start combat.`);
-      const targetName = playerAction.split(attackRegex)[1].trim();
-      log(`GameCoordinator: Extracted target name: "${targetName}".`);
-      
-      const targetEntityId = finalLocationData?.entitiesPresent?.find((e: string) => e.toLowerCase().includes(targetName.toLowerCase()))
-      
-      if (targetEntityId) {
-          log(`GameCoordinator: Valid target entity ID '${targetEntityId}' found in location. Looking up all entities present for combat...`);
-          
-          let identifiedEnemies: any[] = [];
-          if (finalLocationData.entitiesPresent.length > 0) {
-              for (const name of finalLocationData.entitiesPresent) {
-                  log(`GameCoordinator: Looking up enemy data for '${name}'...`);
-                  const enemyData = adventureData.entities.find((e: any) => e.id === name);
-                  if (enemyData) {
-                      const enemyWithStats = {
-                          ...enemyData,
-                          id: `${enemyData.id}-${Math.random().toString(36).substring(2, 9)}`,
-                          hp: { current: 30, max: 30 }, // Placeholder HP
-                          abilityScores: { destreza: 10, ...enemyData.abilityScores },
-                      };
-                      identifiedEnemies.push(enemyWithStats);
-                      log(`GameCoordinator: Added '${name}' to combatant list.`);
-                  } else {
-                      log(`GameCoordinator: WARNING - Could not find data for entity '${name}' in location.`);
-                  }
-              }
-          }
-
-          if (identifiedEnemies.length === 0) {
-            log("GameCoordinator: CRITICAL - Attack action detected, but no valid enemies could be loaded for combat.");
-            return { error: "Intentaste atacar, pero no se encontró un objetivo válido en esta ubicación." };
-          }
-          
-          log("GameCoordinator: Calculating initiative...");
-          const combatants: (any)[] = [...party, ...identifiedEnemies];
-          const initiativeRolls: InitiativeRoll[] = combatants.map(c => {
-            const modifier = Math.floor(((c.abilityScores?.destreza || 10) - 10) / 2);
-            const roll = Math.floor(Math.random() * 20) + 1;
-            const combatantType: 'player' | 'npc' = party.some(p => p.id === c.id) ? 'player' : 'npc';
-            return {
-              characterName: c.name,
-              roll: roll,
-              modifier: modifier,
-              total: roll + modifier,
-              id: c.id,
-              type: combatantType,
-            }
-          });
-      
-          const initiativeDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = initiativeRolls.map(roll => ({
-              roller: roll.characterName,
-              rollNotation: `1d20${roll.modifier >= 0 ? '+' : ''}${roll.modifier}`,
-              individualRolls: [roll.roll],
-              modifier: roll.modifier,
-              totalResult: roll.total,
-              outcome: 'initiative' as const,
-              description: `Tirada de Iniciativa`
-          }));
-          
-          const sortedCombatants: any[] = initiativeRolls.sort((a, b) => b.total - a.total).map(r => ({id: r.id, characterName: r.characterName, total: r.total, type: r.type}));
-          log(`GameCoordinator: Initiative order determined: ${sortedCombatants.map(c => c.characterName).join(', ')}`);
-
-          return {
-            startCombat: true,
-            messages: [
-              { sender: 'DM', content: `¡Tu acción provoca un combate! La batalla contra ${identifiedEnemies.map(e => e.name).join(', ')} ha comenzado.`}
-            ],
-            diceRolls: initiativeDiceRolls,
-            initiativeOrder: sortedCombatants,
-            enemies: identifiedEnemies,
-            nextTurnIndex: 0,
-            nextLocationId: newLocationId,
-          };
-      }
-    }
-
-    // 5. Handle Narrative/Exploration mode
-    log("GameCoordinator: Narrative mode. Preparing to call Narrative Expert...");
+    let newLocationId: string | null = null;
+    let finalLocationData = currentLocationData;
     
+    // 3. Process action based on interpretation
+    switch(interpretation.actionType) {
+        case 'ooc':
+            log("GameCoordinator: OOC query detected. Calling OOC Assistant...");
+            const oocResult = await oocAssistant({
+                playerQuery: playerAction.substring(2).trim(),
+                conversationHistory,
+            });
+            (oocResult.debugLogs || []).forEach(log);
+            messages.push({ sender: 'DM', content: `(OOC) ${oocResult.dmReply}`});
+            return { messages };
+
+        case 'move':
+            if (interpretation.targetId) {
+                log(`GameCoordinator: Movement interpreted to '${interpretation.targetId}'.`);
+                newLocationId = interpretation.targetId;
+                locationId = newLocationId; // Update locationId for the current turn's context
+                finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
+            }
+            break;
+            
+        case 'attack':
+             log(`GameCoordinator: Attack action interpreted against "${interpretation.targetId}". Attempting to start combat.`);
+             const targetName = interpretation.targetId || "";
+             
+             const targetEntity = adventureData.entities.find((e: any) => e.name.toLowerCase() === targetName.toLowerCase());
+             const targetEntityId = targetEntity?.id;
+      
+              if (targetEntityId && finalLocationData?.entitiesPresent?.includes(targetEntityId)) {
+                  log(`GameCoordinator: Valid target entity ID '${targetEntityId}' found in location. Looking up all entities present for combat...`);
+                  
+                  let identifiedEnemies: any[] = [];
+                  if (finalLocationData.entitiesPresent.length > 0) {
+                      for (const entityId of finalLocationData.entitiesPresent) {
+                          log(`GameCoordinator: Looking up enemy data for '${entityId}'...`);
+                          const enemyData = adventureData.entities.find((e: any) => e.id === entityId);
+                          if (enemyData) {
+                              const enemyWithStats = {
+                                  ...enemyData,
+                                  id: `${enemyData.id}-${Math.random().toString(36).substring(2, 9)}`,
+                                  hp: { current: 30, max: 30 }, // Placeholder HP
+                                  abilityScores: { destreza: 10, ...enemyData.abilityScores },
+                              };
+                              identifiedEnemies.push(enemyWithStats);
+                              log(`GameCoordinator: Added '${enemyData.name}' to combatant list.`);
+                          } else {
+                              log(`GameCoordinator: WARNING - Could not find data for entity '${entityId}' in location.`);
+                          }
+                      }
+                  }
+
+                  if (identifiedEnemies.length === 0) {
+                    log("GameCoordinator: CRITICAL - Attack action detected, but no valid enemies could be loaded for combat.");
+                    return { error: "Intentaste atacar, pero no se encontró un objetivo válido en esta ubicación." };
+                  }
+                  
+                  log("GameCoordinator: Calculating initiative...");
+                  const combatants: (any)[] = [...party, ...identifiedEnemies];
+                  const initiativeRolls: InitiativeRoll[] = combatants.map(c => {
+                    const modifier = Math.floor(((c.abilityScores?.destreza || 10) - 10) / 2);
+                    const roll = Math.floor(Math.random() * 20) + 1;
+                    const combatantType: 'player' | 'npc' = party.some(p => p.id === c.id) ? 'player' : 'npc';
+                    return {
+                      characterName: c.name,
+                      roll: roll,
+                      modifier: modifier,
+                      total: roll + modifier,
+                      id: c.id,
+                      type: combatantType,
+                    }
+                  });
+              
+                  const initiativeDiceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = initiativeRolls.map(roll => ({
+                      roller: roll.characterName,
+                      rollNotation: `1d20${roll.modifier >= 0 ? '+' : ''}${roll.modifier}`,
+                      individualRolls: [roll.roll],
+                      modifier: roll.modifier,
+                      totalResult: roll.total,
+                      outcome: 'initiative' as const,
+                      description: `Tirada de Iniciativa`
+                  }));
+                  
+                  const sortedCombatants: any[] = initiativeRolls.sort((a, b) => b.total - a.total).map(r => ({id: r.id, characterName: r.characterName, total: r.total, type: r.type}));
+                  log(`GameCoordinator: Initiative order determined: ${sortedCombatants.map(c => c.characterName).join(', ')}`);
+
+                  return {
+                    startCombat: true,
+                    messages: [
+                      { sender: 'DM', content: `¡Tu acción provoca un combate! La batalla contra ${identifiedEnemies.map(e => e.name).join(', ')} ha comenzado.`}
+                    ],
+                    diceRolls: initiativeDiceRolls,
+                    initiativeOrder: sortedCombatants,
+                    enemies: identifiedEnemies,
+                    nextTurnIndex: 0,
+                    nextLocationId: newLocationId,
+                  };
+              } else {
+                 log(`GameCoordinator: Attack on "${targetName}" failed, target not present.`);
+              }
+              break;
+        
+        case 'interact':
+        case 'narrate':
+        default:
+            // For these cases, we just proceed to the narrative expert.
+            log(`GameCoordinator: Action is '${interpretation.actionType}', proceeding to Narrative Expert.`);
+            break;
+    }
+
+    // 4. Generate Narrative
+    log("GameCoordinator: Preparing to call Narrative Expert...");
     const partySummary = input.party.map(c => ({
         id: c.id,
         name: c.name,
@@ -207,7 +216,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         personality: c.personality,
         controlledBy: c.controlledBy,
     }));
-        
+    
     const narrativeInput = {
         playerAction: input.playerAction,
         partySummary: partySummary,
@@ -217,24 +226,24 @@ export const gameCoordinatorFlow = ai.defineFlow(
         log,
     };
     
-    log(`GameCoordinator: Calling NarrativeExpert...`);
+    log(`GameCoordinator: Calling NarrativeExpert for location '${locationId}'...`);
     const narrativeResult = await narrativeExpert(narrativeInput);
     (narrativeResult.debugLogs || []).forEach(log);
 
-    const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
-    
-    // Convert DM narration to HTML as soon as we get it.
+    let dmNarrationHtml = "";
     if (narrativeResult.dmNarration) {
         log("GameCoordinator: Converting DM narration to HTML...");
         const { html } = await markdownToHtml({ markdown: narrativeResult.dmNarration });
+        dmNarrationHtml = html;
         log("GameCoordinator: HTML conversion complete.");
         messages.push({
             sender: 'DM',
-            content: html,
+            content: dmNarrationHtml,
             originalContent: narrativeResult.dmNarration,
         });
     }
 
+    // 5. Generate Companion Reactions
     const aiCompanions = party.filter(p => p.controlledBy === 'AI');
     log(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
 
@@ -242,7 +251,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
         const companionSummary = partySummary.find(p => p.id === companion.id)!;
         log(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
         
-        const companionContext = `Player action: "${playerAction}"\nDM response: "${narrativeResult.dmNarration}"`;
+        // Build a more specific context for the companion
+        const companionContext = `The player just did this: "${playerAction}"\n\nThe Dungeon Master described the result as: "${narrativeResult.dmNarration}"`;
         
         const companionResult = await companionExpertTool({
             characterSummary: companionSummary,
@@ -262,6 +272,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         }
     }
 
+    // 6. Finalize Turn
     let updatedParty = input.party;
     if (narrativeResult.updatedCharacterStats) {
         const player = input.party.find(c => c.controlledBy === 'Player');
@@ -289,5 +300,3 @@ export const gameCoordinatorFlow = ai.defineFlow(
 export async function gameCoordinator(input: GameCoordinatorInput): Promise<GameCoordinatorOutput> {
     return gameCoordinatorFlow(input);
 }
-
-    

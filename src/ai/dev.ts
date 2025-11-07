@@ -9,6 +9,7 @@ import '@/ai/flows/markdown-to-html.ts';
 import '@/ai/flows/game-coordinator.ts';
 import '@/ai/flows/narrative-expert.ts';
 import '@/ai/flows/ooc-assistant.ts';
+import '@/ai/flows/action-interpreter.ts';
 
 import '@/ai/tools/dnd-api-lookup.ts';
 import '@/ai/tools/adventure-lookup.ts';

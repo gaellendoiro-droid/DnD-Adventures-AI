@@ -13,8 +13,6 @@ import {z} from 'genkit';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
 import { CharacterSummarySchema } from '@/lib/schemas';
-import { getAdventureData } from '@/app/game-state-actions';
-import { companionExpertTool } from '../tools/companion-expert';
 
 const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
@@ -46,48 +44,39 @@ const narrativeExpertPrompt = ai.definePrompt({
   tools: [dndApiLookupTool, adventureLookupTool],
   config: {
     safetySettings: [
-        {
-          category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-          threshold: 'BLOCK_NONE',
-        },
-        {
-          category: 'HARM_CATEGORY_HARASSMENT',
-          threshold: 'BLOCK_NONE',
-        },
-         {
-          category: 'HARM_CATEGORY_HATE_SPEECH',
-          threshold: 'BLOCK_NONE',
-        },
-        {
-          category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-          threshold: 'BLOCK_NONE',
-        },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
     ],
   },
   prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish from Spain. DO NOT translate proper nouns (names, places, etc.).
 
-**Your Priorities & Directives:**
-1.  **Primary Task: Narrate the World:** Your main goal is to be a descriptive and engaging storyteller. React to the player's choices, portray non-player characters (NPCs), and describe the environment based on the provided context. Your narration goes in the \`dmNarration\` field.
-2.  **Interaction Directive:** When the player interacts with something in the current location (e.g., "leo el tablón de anuncios", "hablo con Linene"), you MUST use the 'locationContext' you already have. Find the object/entity and use its 'interactionResults' or 'description' to formulate your \`dmNarration\`.
-3.  **Question Answering:** If the player asks about something (e.g., "¿Quién es Cryovain?"), use the \`adventureLookupTool\` to find that info and use it for your \`dmNarration\`.
-4.  **Tense Situations**: If enemies are present but haven't attacked, describe the tense situation. DO NOT initiate combat yourself. The game coordinator handles combat initiation.
+**Your ONLY Task: Narrate the Scene**
+Your one and only job is to be a descriptive and engaging storyteller. Based on the context provided, narrate the outcome of the player's action. Your narration goes in the \`dmNarration\` field.
 
-**Rules:**
+**Directives:**
+- **Describe the World:** React to the player's choices, portray non-player characters (NPCs), and describe the environment based on the provided context.
+- **Use Your Tools:** If you need information about something (a monster, a spell, an item, another location), use the provided tools like \`adventureLookupTool\` or \`dndApiLookupTool\`.
+- **Be a Referee:** If the player's action requires a skill check (e.g., trying to persuade someone, investigating a clue), describe it in the narration. For example: "Para convencer al guardia, necesitarás hacer una tirada de Persuasión."
+
+**CRITICAL RULES:**
 -   ALWAYS return a valid JSON object matching the output schema.
--   Your primary narration goes into \`dmNarration\`.
--   DO NOT generate actions or dialogue for companions. The game coordinator will handle that separately.
--   DO NOT decide if the party moves to a new location. The game coordinator handles movement. Just narrate the current scene based on the context provided.
+-   Your entire story narration goes into the \`dmNarration\` field.
+-   **DO NOT** generate actions, dialogue, or thoughts for any AI-controlled companions. Another part of the system handles that.
+-   **DO NOT** decide if the party moves to a new location. Another part of the system handles that. Just narrate the current scene based on the context you are given.
+-   **DO NOT** initiate combat. Just describe the tense situation if enemies are present.
 
 **CONTEXT:**
-- You are currently at location ID: \`{{{locationId}}}\`.
-- Here is all the information about your current location: \`\`\`json
+- You are at location: \`{{{locationId}}}\`.
+- Information about this location: \`\`\`json
 {{{locationContext}}}
 \`\`\`
-- The player's party is: 
+- The player's party: 
   {{#each partySummary}}
-  - {{this.name}} ({{this.class}} {{this.race}}, ID: {{this.id}}), controlado por {{this.controlledBy}}. Personalidad: {{this.personality}}
+  - {{this.name}} ({{this.class}} {{this.race}})
   {{/each}}
-- This is the recent conversation history: \`\`\`{{{conversationHistory}}}\`\`\`
+- Recent conversation: \`\`\`{{{conversationHistory}}}\`\`\`
 
 **PLAYER'S ACTION:**
 "{{{playerAction}}}"
