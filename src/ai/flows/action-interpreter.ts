@@ -35,12 +35,13 @@ const actionInterpreterPrompt = ai.definePrompt({
 2.  **Out-of-Character (OOC):** If the action starts with \`//\`, classify it as 'ooc'. The targetId is irrelevant.
 3.  **Movement:** Compare the action to the \`exits\` in \`locationContext\`. If it matches an intent to move, classify as 'move' and set 'targetId' to the destination's \`toLocationId\`.
 4.  **Attack:** If the action is an attack (e.g., "ataco al orco"), classify as 'attack' and set 'targetId' to the creature's name (e.g., "orco").
-5.  **Interaction (Very Specific):**
-    *   If the player wants to interact with an object or person (e.g., "hablo con el posadero", "miro el tablón", "que pone en la mision X"), look at the \`interactables\` in \`locationContext\`.
-    *   Find the specific \`interactionResults.action\` that most closely matches the player's intent.
-    *   If the player action is generic (e.g., "miro el tablón"), and there are multiple interaction options, **default to the FIRST interaction action available** (e.g., "Leer anuncios (General)").
-    *   Classify the action as 'interact' and set 'targetId' to the **exact string of that specific sub-action** (e.g., "Leer Misión de la Colina del Resentimiento", "Leer anuncios (General)").
-6.  **Default to Narration:** If none of the above apply, it's a general descriptive action. Classify it as 'narrate'.
+5.  **Interaction (CRITICAL):**
+    *   Your primary goal for interactions is to find the **most specific 'interactionResults.action' string** from the \`interactables\` in the \`locationContext\` that matches the player's intent.
+    *   If the player's action is specific (e.g., "leo la misión de la colina del resentimiento", "¿qué pone sobre los enanos?"), find the corresponding interaction action in the JSON and use its **exact string value** as the \`targetId\`.
+    *   If the player's action is generic (e.g., "miro el tablón", "hablo con el posadero"), you MUST find the most logical default action for that interactable. **This will almost always be the FIRST action listed in its 'interactionResults' array** (e.g., "Leer anuncios (General)").
+    *   Once you've identified the specific action string, classify the action as 'interact' and set 'targetId' to that **exact string**.
+
+6.  **Default to Narration:** If none of the above apply (e.g., "desenvaino mi espada", "miro a mi alrededor"), it's a general descriptive action. Classify it as 'narrate' and leave targetId null.
 
 **Location Context:**
 \`\`\`json
@@ -50,7 +51,7 @@ const actionInterpreterPrompt = ai.definePrompt({
 **Player Action:**
 "{{{playerAction}}}"
 
-Determine the player's intent. If it's an interaction, find the **most specific interaction action** from the context and use its exact name as the targetId. If the interaction is generic, use the first available interaction action.
+Determine the player's intent. If it is an interaction, you MUST find the most specific 'interactionResults.action' from the context and use its exact string as the targetId. If the interaction is generic, use the first available interaction action.
 `,
 });
 
