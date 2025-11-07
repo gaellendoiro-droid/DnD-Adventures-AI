@@ -98,7 +98,13 @@ Based on all directives, use the provided context and tools to narrate what happ
 `,
 });
 
-async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
+const narrativeExpertFlow = ai.defineFlow(
+  {
+    name: 'narrativeExpertFlow',
+    inputSchema: NarrativeExpertInputSchema,
+    outputSchema: NarrativeExpertOutputSchema,
+  },
+  async (input) => {
     const { log = () => {} } = input;
     const debugLogs: string[] = [];
     const localLog = (message: string) => {
@@ -163,8 +169,11 @@ async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<Narrati
         // This specific error message will be caught by the action and shown in the UI.
         throw new Error(`narrativeExpertFlow failed: ${e.message || 'Unknown error'}`);
     }
-}
+  }
+);
 
 export async function narrativeExpert(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
     return narrativeExpertFlow(input);
 }
+
+    
