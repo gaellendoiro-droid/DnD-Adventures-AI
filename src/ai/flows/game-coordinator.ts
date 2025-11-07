@@ -203,12 +203,20 @@ export const gameCoordinatorFlow = ai.defineFlow(
     (narrativeResult.debugLogs || []).forEach(log);
 
     let finalNarration = narrativeResult.narration;
+    const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
+    
+    // Process narration from the DM first
+    if (finalNarration) {
+        messages.push({
+            sender: 'DM',
+            content: finalNarration,
+        });
+    }
 
     // After getting the main narration, check if companions should act.
     const aiCompanions = party.filter(c => c.controlledBy === 'AI');
     if (aiCompanions.length > 0) {
         log(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
-        const companionActions: string[] = [];
         for (const companion of aiCompanions) {
              const companionSummary = partySummary.find(p => p.id === companion.id)!;
              log(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
@@ -220,23 +228,15 @@ export const gameCoordinatorFlow = ai.defineFlow(
              });
              if (companionResult.action) {
                 log(`GameCoordinator: ${companion.name} reacts: "${companionResult.action}"`);
-                companionActions.push(`**${companion.name}:** *${companionResult.action}*`);
+                // Create a separate message for each companion
+                messages.push({
+                    sender: 'Character',
+                    senderName: companion.name,
+                    characterColor: companion.color,
+                    content: companionResult.action,
+                });
              }
         }
-        if (companionActions.length > 0) {
-            finalNarration += `\n\n<div class="mt-4 p-3 border-l-4 border-accent bg-accent/10 rounded-r-lg">${companionActions.join('\n\n')}</div>`;
-        }
-    }
-
-
-    const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
-    
-    // Process narration
-    if (finalNarration) {
-        messages.push({
-            sender: 'DM',
-            content: finalNarration,
-        } as Omit<GameMessage, 'id' | 'timestamp'>);
     }
 
     // Process character stat updates
