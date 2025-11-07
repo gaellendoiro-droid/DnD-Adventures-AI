@@ -75,13 +75,16 @@ export const companionExpertTool = ai.defineTool(
     {
         name: 'companionExpertTool',
         description: 'Decides the action or dialogue for an AI-controlled companion based on their personality and the current game context (combat or exploration).',
-        inputSchema: CompanionExpertInputSchema,
+        inputSchema: z.any(),
         outputSchema: CompanionExpertOutputSchema,
     },
     async (input) => {
         throw new Error(`DEBUG INTERRUPT in companionExpertTool - Input data: ${JSON.stringify(input, null, 2)}`);
         
-        const { output } = await companionExpertPrompt(input);
+        // This part of the code is now unreachable due to the interruption above.
+        // It's kept here for when we remove the debug line.
+        const validatedInput = CompanionExpertInputSchema.parse(input);
+        const { output } = await companionExpertPrompt(validatedInput);
         return output || { action: "" };
     }
 );
