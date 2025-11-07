@@ -60,7 +60,7 @@ Your job is to be a descriptive storyteller based on a PRE-INTERPRETED action. Y
 - Recent conversation: \`\`\`{{{conversationHistory}}}\`\`\`
 - **Player's raw action:** "{{{playerAction}}}"
 - **YOUR SPECIFIC INSTRUCTION (Interpreted Action):** \`\`\`json
-{{{JSONstringify interpretedAction}}}
+{{{interpretedAction}}}
 \`\`\`
 
 Based on your specific instruction and the context, narrate what happens next. Find the specific result in the JSON if it is an interaction.

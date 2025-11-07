@@ -8,45 +8,13 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { oocAssistant } from './ooc-assistant';
-import { combatManagerTool } from '../tools/combat-manager';
 import type { GameMessage } from '@/lib/types';
 import { markdownToHtml } from './markdown-to-html';
 import { narrativeExpert } from './narrative-expert';
 import { getAdventureData } from '@/app/game-state-actions';
 import { companionExpertTool } from '../tools/companion-expert';
 import { actionInterpreter } from './action-interpreter';
-import { ActionInterpreterInputSchema, ActionInterpreterOutputSchema } from './schemas';
-
-// Schemas for the main coordinator flow
-const GameCoordinatorInputSchema = z.object({
-  playerAction: z.string(),
-  party: z.array(z.any()), // Using any to avoid circular dependencies with Character type
-  locationId: z.string(),
-  inCombat: z.boolean(),
-  initiativeOrder: z.array(z.any()),
-  enemies: z.array(z.any()),
-  turnIndex: z.number(),
-  conversationHistory: z.string(),
-});
-
-const GameCoordinatorOutputSchema = z.object({
-  messages: z.array(z.any()).optional(),
-  diceRolls: z.array(z.any()).optional(),
-  updatedParty: z.array(z.any()).optional(),
-  updatedEnemies: z.array(z.any()).optional(),
-  nextLocationId: z.string().optional().nullable(),
-  startCombat: z.boolean().optional(),
-  endCombat: z.boolean().optional(),
-  nextTurnIndex: z.number().optional(),
-  error: z.string().optional(),
-  debugLogs: z.array(z.string()).optional(),
-  // New fields for combat start
-  initiativeOrder: z.array(z.any()).optional(),
-  enemies: z.array(z.any()).optional(),
-});
-
-export type GameCoordinatorInput = z.infer<typeof GameCoordinatorInputSchema>;
-export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
+import { GameCoordinatorInputSchema, GameCoordinatorOutputSchema, type GameCoordinatorInput, type GameCoordinatorOutput } from './schemas';
 
 
 export const gameCoordinatorFlow = ai.defineFlow(
@@ -73,17 +41,10 @@ export const gameCoordinatorFlow = ai.defineFlow(
     
     const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
     
-    // 1. Handle Combat mode
+    // 1. Handle Combat mode - NOT IMPLEMENTED YET, PASS THROUGH
     if (inCombat) {
-        const locationData = adventureData.locations.find((l: any) => l.id === locationId);
-        localLog("GameCoordinator: Combat mode detected. Calling Combat Manager Tool...");
-        const combatResult = await combatManagerTool({
-            ...input,
-            locationDescription: locationData?.description || "una zona de combate",
-            conversationHistory,
-        });
-        (combatResult.debugLogs || []).forEach(localLog);
-        return { ...combatResult, debugLogs };
+        // ... combat logic will go here
+        localLog("GameCoordinator: Combat mode detected, but not implemented. Passing through.");
     }
 
     // 2. Interpret Player Action
@@ -144,7 +105,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 locationContext: JSON.stringify(finalLocationData),
                 conversationHistory: input.conversationHistory,
                 log: localLog,
-                interpretedAction: interpretation,
+                interpretedAction: JSON.stringify(interpretation),
             };
             
             localLog(`GameCoordinator: Calling NarrativeExpert for location '${locationId}'...`);

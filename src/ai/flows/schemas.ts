@@ -4,7 +4,8 @@
  */
 
 import { z } from 'zod';
-import { CharacterSummarySchema } from '@/lib/schemas';
+import { CharacterSchema, CharacterSummarySchema } from '@/lib/schemas';
+import type { GameMessage } from '@/lib/types';
 
 // Schema for the action interpreter
 export const ActionInterpreterInputSchema = z.object({
@@ -28,7 +29,7 @@ export const NarrativeExpertInputSchema = z.object({
   locationContext: z.string().describe('A JSON string with the full data of the current location, including its description, exits, and interactable objects.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
   log: z.function(z.tuple([z.string()]), z.void()).optional().describe("A function to log debug messages in real-time."),
-  interpretedAction: ActionInterpreterOutputSchema.describe("The structured interpretation of the player's action, provided by the actionInterpreter."),
+  interpretedAction: z.string().describe("A JSON string of the structured interpretation of the player's action, provided by the actionInterpreter."),
 });
 export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
 
@@ -38,3 +39,23 @@ export const NarrativeExpertOutputSchema = z.object({
   debugLogs: z.array(z.string()).optional(),
 });
 export type NarrativeExpertOutput = z.infer<typeof NarrativeExpertOutputSchema>;
+
+
+// Schema for the game coordinator
+export const GameCoordinatorInputSchema = z.object({
+  playerAction: z.string(),
+  party: z.array(CharacterSchema),
+  locationId: z.string(),
+  inCombat: z.boolean(),
+  conversationHistory: z.string(),
+});
+export type GameCoordinatorInput = z.infer<typeof GameCoordinatorInputSchema>;
+
+export const GameCoordinatorOutputSchema = z.object({
+  messages: z.array(z.any()).optional(), // Omit<GameMessage, 'id' | 'timestamp'>[] - Zod can't handle this
+  debugLogs: z.array(z.string()).optional(),
+  updatedParty: z.array(CharacterSchema).optional(),
+  nextLocationId: z.string().optional().nullable(),
+  error: z.string().optional(),
+});
+export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
