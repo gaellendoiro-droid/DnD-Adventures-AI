@@ -14,7 +14,6 @@ import { markdownToHtml } from './markdown-to-html';
 import { narrativeExpert } from './narrative-expert';
 import { getAdventureData } from '@/app/game-state-actions';
 import { CharacterSummarySchema } from '@/lib/schemas';
-import { companionExpertTool } from '../tools/companion-expert';
 
 // Schemas for the main coordinator flow
 const GameCoordinatorInputSchema = z.object({
@@ -197,46 +196,34 @@ export const gameCoordinatorFlow = ai.defineFlow(
         log,
     };
     
-    log(`GameCoordinator: Calling NarrativeExpert with summarized party...`);
+    log(`GameCoordinator: Calling NarrativeExpert...`);
 
     const narrativeResult = await narrativeExpert(narrativeInput);
     (narrativeResult.debugLogs || []).forEach(log);
 
-    let finalNarration = narrativeResult.narration;
     const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
     
     // Process narration from the DM first
-    if (finalNarration) {
+    if (narrativeResult.dmNarration) {
         messages.push({
             sender: 'DM',
-            content: finalNarration,
+            content: narrativeResult.dmNarration,
         });
     }
 
-    // After getting the main narration, check if companions should act.
-    const aiCompanions = party.filter(c => c.controlledBy === 'AI');
-    if (aiCompanions.length > 0) {
-        log(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
-        for (const companion of aiCompanions) {
-             const companionSummary = partySummary.find(p => p.id === companion.id)!;
-             log(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
-             const companionResult = await companionExpertTool({
-                characterSummary: companionSummary,
-                context: `${finalNarration}\nPlayer action was: ${playerAction}`,
-                inCombat: false,
-                partySummary,
-             });
-             if (companionResult.action) {
-                log(`GameCoordinator: ${companion.name} reacts: "${companionResult.action}"`);
-                // Create a separate message for each companion
+    // Process companion actions
+    if (narrativeResult.companionActions) {
+        narrativeResult.companionActions.forEach(action => {
+            const companion = party.find(p => p.id === action.characterId);
+            if (companion) {
                 messages.push({
                     sender: 'Character',
                     senderName: companion.name,
                     characterColor: companion.color,
-                    content: companionResult.action,
+                    content: action.action,
                 });
-             }
-        }
+            }
+        });
     }
 
     // Process character stat updates

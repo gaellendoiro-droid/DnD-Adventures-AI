@@ -14,6 +14,7 @@ import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
 import { CharacterSummarySchema } from '@/lib/schemas';
 import { getAdventureData } from '@/app/game-state-actions';
+import { companionExpertTool } from '../tools/companion-expert';
 
 const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
@@ -26,7 +27,11 @@ const NarrativeExpertInputSchema = z.object({
 export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
 
 const NarrativeExpertOutputSchema = z.object({
-  narration: z.string().describe("The AI Dungeon Master's narration in response to the player's action, formatted in Markdown. If characters are talking, include their dialogue in the narration. This can be an empty string if no narration is needed."),
+  dmNarration: z.string().describe("The AI Dungeon Master's primary narration in response to the player's action, formatted in Markdown. This should describe the world and outcomes. Do NOT include companion dialogue here."),
+  companionActions: z.array(z.object({
+    characterId: z.string().describe("The ID of the companion acting."),
+    action: z.string().describe("The dialogue or action of the companion.")
+  })).optional().describe("An array of actions or dialogues for AI companions. This should be a separate field from the main narration."),
   nextLocationId: z.string().optional().nullable().describe("The ID of the new location, if the player moved. Must be a valid ID from the adventure's 'locations' data."),
   updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, for the PLAYER character only, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}, \"inventory\": [{\"id\":\"item-gp-1\",\"name\":\"Monedas de Oro\",\"quantity\":10}]}'. Must be a valid JSON string or null."),
   debugLogs: z.array(z.string()).optional(),
@@ -43,34 +48,37 @@ const narrativeExpertPrompt = ai.definePrompt({
     conversationHistory: z.string().optional(),
   })},
   output: {schema: NarrativeExpertOutputSchema},
-  tools: [dndApiLookupTool, adventureLookupTool],
+  tools: [dndApiLookupTool, adventureLookupTool, companionExpertTool],
   prompt: `You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish from Spain. DO NOT translate proper nouns (names, places, etc.).
 
 **Your Priorities & Directives:**
-1.  **Primary Task: Contextual Narrative.** Your main goal is to be a descriptive and engaging storyteller. You have been given all the context for the current location. Use this to react to the player's choices, portray non-player characters (NPCs), and create an immersive experience. Your job is ONLY to narrate what happens as a result of the player's action. Do not make decisions about game state like starting combat or deciding companion actions.
-2.  **Interaction Directive:** When the player wants to interact with something in the current location (e.g., "leo el tablón de anuncios", "hablo con Linene", "miro las rocas blancas"), you MUST use the 'locationContext' you already have. Find the interactable object or entity in the context and refer to its 'introductionResults' or 'description' fields to describe the outcome. DO NOT use the \`adventureLookupTool\` for this.
-3.  **Movement Directive:** When the player wants to move to a new place (e.g., "voy a la Colina del Resentimiento"), you MUST set the \`nextLocationId\` field in your response to the ID of the new location. Use the \`adventureLookupTool\` to get the data for the destination, and narrate the journey and the arrival at the new location based on its 'description' from the tool's response.
-4.  **Question Answering Directive:** If the player asks about a location, person, or thing that is NOT in the current scene (e.g., "¿Quién es Cryovain?"), you MUST use the \`adventureLookupTool\` to find that information and use it to formulate your answer.
-5.  **Tense Situations**: If enemies are present but haven't attacked, describe the tense situation and ask the player what they do. DO NOT initiate combat yourself.
-6.  **Final Narration:** Your final narration should combine the outcome of the player's action and a prompt for the player's next action (e.g., "¿Qué haces?").
+1.  **Primary Task: Narrate the World:** Your main goal is to be a descriptive and engaging storyteller. React to the player's choices, portray non-player characters (NPCs), and describe the environment. Your narration goes in the \`dmNarration\` field.
+2.  **Companion Actions:** After narrating, consider if any AI companions would react. If a companion would say or do something, you MUST use the \`companionExpertTool\` for EACH companion that acts. The tool will decide the specific action. Do not invent companion actions yourself. Their actions will be handled separately by the system based on your tool calls.
+3.  **Interaction Directive:** When the player interacts with something in the current location (e.g., "leo el tablón de anuncios", "hablo con Linene"), you MUST use the 'locationContext' you already have. Find the object/entity and use its 'interactionResults' or 'description' to formulate your \`dmNarration\`. DO NOT use other tools for this.
+4.  **Movement Directive:** When the player wants to move (e.g., "voy a la Colina del Resentimiento"), use the \`adventureLookupTool\` to get the destination data. Narrate the journey and arrival in \`dmNarration\`, and set the \`nextLocationId\` field in your response.
+5.  **Question Answering:** If the player asks about something NOT in the current scene (e.g., "¿Quién es Cryovain?"), use the \`adventureLookupTool\` to find that info and use it for your \`dmNarration\`.
+6.  **Tense Situations**: If enemies are present but haven't attacked, describe the tense situation. DO NOT initiate combat yourself. The game coordinator handles combat initiation.
 
 **Rules:**
 -   ALWAYS return a valid JSON object matching the output schema.
--   Do not decide to start combat. The game coordinator will handle that. Describe the scene, and if it's hostile, the player's action will determine the next step.
--   Do not decide actions for the AI companions. The game coordinator will handle that after you provide the narration.
+-   Your primary narration goes into \`dmNarration\`.
+-   Use the \`companionExpertTool\` to generate actions for AI companions; do not write their dialogue or actions directly into the \`dmNarration\`. The tool's output will be handled by the system.
 
 **CONTEXT:**
 - You are currently at location ID: \`{{{locationId}}}\`.
 - Here is all the information about your current location: \`\`\`json
 {{{locationContext}}}
 \`\`\`
-- The player's party (including the player character, identified by \`controlledBy: "Player"\`) is: {{{json partySummary}}}
+- The player's party is: 
+  {{#each partySummary}}
+  - {{this.name}} ({{this.class}} {{this.race}}, ID: {{this.id}}), {{#if (eq this.controlledBy "Player")}}controlled by the Player{{else}}controlled by AI, personality: {{this.personality}}{{/if}}
+  {{/each}}
 - This is the recent conversation history: \`\`\`{{{conversationHistory}}}\`\`\`
 
 **PLAYER'S ACTION:**
 "{{{playerAction}}}"
 
-Based on all directives, use the provided context and tools to narrate what happens next.
+Based on all directives, narrate what happens next and call tools for companion actions if necessary.
 `,
 });
 
@@ -91,14 +99,16 @@ export const narrativeExpertFlow = ai.defineFlow(
     try {
         localLog("NarrativeExpert: Generating narration based on player action and context...");
                 
-        const {output, usage} = await narrativeExpertPrompt(input);
+        const llmResponse = await narrativeExpertPrompt(input);
         
-        if (usage?.toolCalls?.length) {
-            usage.toolCalls.forEach(call => {
+        if (llmResponse.usage?.toolCalls?.length) {
+            llmResponse.usage.toolCalls.forEach(call => {
                 localLog(`NarrativeExpert: Called tool '${call.tool}...'`);
             });
         }
         
+        const output = llmResponse.output;
+
         if (!output) {
             localLog("NarrativeExpert: AI returned null output. This could be due to safety filters or an internal model error. Retrying once...");
             // Retry logic
@@ -112,10 +122,28 @@ export const narrativeExpertFlow = ai.defineFlow(
                 localLog("NarrativeExpert: AI returned null output on second attempt. Failing.");
                 throw new Error("The AI failed to return a valid output after a retry. It might have been blocked by safety filters.");
             }
-             const finalOutput = { ...retryOutput, debugLogs };
+            const finalOutput = { ...retryOutput, debugLogs };
             localLog("NarrativeExpert: Successfully generated narration object on retry.");
             return finalOutput;
         }
+
+        const companionActions: { characterId: string; action: string }[] = [];
+        if (llmResponse.usage.toolCalls) {
+            for (const toolCall of llmResponse.usage.toolCalls) {
+                if (toolCall.tool.endsWith('/companionExpertTool')) {
+                    const toolOutput = toolCall.output as { action?: string };
+                    const toolInput = toolCall.input as { characterSummary: { id: string } };
+                    if (toolOutput?.action) {
+                        companionActions.push({
+                            characterId: toolInput.characterSummary.id,
+                            action: toolOutput.action,
+                        });
+                    }
+                }
+            }
+        }
+
+        output.companionActions = companionActions;
         
         // Final validation for location ID before returning
         if (output.nextLocationId) {
