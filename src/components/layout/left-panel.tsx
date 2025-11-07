@@ -26,34 +26,34 @@ export function LeftPanel({
   children,
 }: LeftPanelProps) {
   return (
-    <ResizablePanelGroup direction="vertical" className="h-full">
-      <ResizablePanel defaultSize={60} minSize={30}>
-        <ResizablePanelGroup direction="vertical">
-          <ResizablePanel defaultSize={50} minSize={20}>
-            <DiceLogPanel diceRolls={diceRolls} />
-          </ResizablePanel>
-          <ResizableHandle />
-          <ResizablePanel defaultSize={50} minSize={20}>
-            <InitiativeTracker combatants={initiativeOrder} />
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </ResizablePanel>
-      <ResizableHandle withHandle />
-      {debugMessages && (
-        <ResizablePanel defaultSize={40} minSize={20}>
-            <div className="flex flex-col h-full">
-                <DebugPanel messages={debugMessages} />
-                {children && (
-                    <>
-                        <Separator className="my-2" />
-                        <div className="flex-shrink-0">
-                            {children}
-                        </div>
-                    </>
-                )}
-            </div>
+    <div className="flex flex-col h-full">
+      <ResizablePanelGroup direction="vertical" className="flex-grow">
+        <ResizablePanel defaultSize={60} minSize={30}>
+          <ResizablePanelGroup direction="vertical">
+            <ResizablePanel defaultSize={50} minSize={20}>
+              <DiceLogPanel diceRolls={diceRolls} />
+            </ResizablePanel>
+            <ResizableHandle />
+            <ResizablePanel defaultSize={50} minSize={20}>
+              <InitiativeTracker combatants={initiativeOrder} />
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </ResizablePanel>
+        {debugMessages && (
+          <>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={40} minSize={10}>
+                <DebugPanel messages={debugMessages} />
+            </ResizablePanel>
+          </>
+        )}
+      </ResizablePanelGroup>
+      {children && (
+        <div className="flex-shrink-0">
+          <Separator className="my-2" />
+          {children}
+        </div>
       )}
-    </ResizablePanelGroup>
+    </div>
   );
 }
