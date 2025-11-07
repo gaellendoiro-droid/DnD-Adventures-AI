@@ -79,6 +79,8 @@ export const companionExpertTool = ai.defineTool(
         outputSchema: CompanionExpertOutputSchema,
     },
     async (input) => {
+        throw new Error(`DEBUG INTERRUPT in companionExpertTool - Input data: ${JSON.stringify(input, null, 2)}`);
+        
         const { output } = await companionExpertPrompt(input);
         return output || { action: "" };
     }
