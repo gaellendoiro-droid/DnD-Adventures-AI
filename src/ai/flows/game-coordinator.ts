@@ -175,16 +175,28 @@ export const gameCoordinatorFlow = ai.defineFlow(
     // 4. Handle Narrative/Exploration mode
     log("GameCoordinator: Narrative mode. Preparing to call Narrative Expert...");
     
+    // Create a summarized version of the party for the narrative expert prompt
+    const partySummary = input.party.map(c => ({
+        id: c.id,
+        name: c.name,
+        race: c.race,
+        class: c.class,
+        sex: c.sex,
+        personality: c.personality,
+        controlledBy: c.controlledBy,
+    }));
+
     const narrativeInput = {
         playerAction: input.playerAction,
-        party: input.party,
+        party: input.party, // Pass the full party data for the companion tool to use
+        partySummary: partySummary, // Pass the summary for the prompt text
         locationId: input.locationId,
         locationContext: JSON.stringify(locationData),
         conversationHistory: input.conversationHistory,
         log,
     };
     
-    log(`GameCoordinator: Calling NarrativeExpert with input: ${JSON.stringify(narrativeInput, null, 2)}`);
+    log(`GameCoordinator: Calling NarrativeExpert with summarized party...`);
 
     const narrativeResult = await narrativeExpert(narrativeInput);
     (narrativeResult.debugLogs || []).forEach(log);

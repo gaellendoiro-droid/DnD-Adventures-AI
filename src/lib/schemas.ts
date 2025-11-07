@@ -2,8 +2,22 @@
 import { z } from 'zod';
 
 /**
- * The single source of truth for the Character data structure.
- * Used for validation in AI tools and flows.
+ * A "lightweight" version of the character, containing only the essential information
+ * for narrative purposes (e.g., for an AI to know who is in the party without needing full stats).
+ */
+export const CharacterSummarySchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    race: z.string(),
+    class: z.string(),
+    sex: z.string(),
+    personality: z.string(),
+    controlledBy: z.enum(["Player", "AI"]),
+});
+
+/**
+ * The single source of truth for the FULL Character data structure.
+ * Used for validation in AI tools and flows that need all details.
  */
 export const CharacterSchema = z.object({
     id: z.string(),
