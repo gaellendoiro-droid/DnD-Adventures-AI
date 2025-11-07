@@ -89,6 +89,9 @@ export const narrativeExpertFlow = ai.defineFlow(
         debugLogs.push(message);
     };
 
+    // DEBUG: Interrupt and show incoming data
+    throw new Error(`DEBUG INTERRUPT in NarrativeExpert - Input partySummary: ${JSON.stringify(input.partySummary, null, 2)}`);
+
     try {
         localLog("NarrativeExpert: Generating narration based on player action and context...");
                 
