@@ -181,7 +181,7 @@ async function gameCoordinatorFlow(input: GameCoordinatorInput): Promise<GameCoo
     
     const narrativeInput = {
         playerAction: input.playerAction,
-        partyJson: JSON.stringify(input.party),
+        party: input.party,
         gameState, 
         locationId: input.locationId,
         locationContext: JSON.stringify(locationData),

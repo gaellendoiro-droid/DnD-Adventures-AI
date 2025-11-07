@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { Character, GameMessage, DiceRoll, InitiativeRoll, Combatant } from "@/lib/types";
 import { GameLayout } from "@/components/game/game-layout";
 import { LeftPanel } from "@/components/layout/left-panel";
@@ -9,8 +9,8 @@ import { CharacterSheet } from "@/components/game/character-sheet";
 import { ChatPanel } from "@/components/game/chat-panel";
 import { Button } from "../ui/button";
 import { Save } from "lucide-react";
-import { processPlayerAction, lookupAdventureEntity } from "@/app/actions";
-import { PartyPanel } from "./party-panel";
+import { processPlayerAction, getDebugLogs } from "@/app/actions";
+import { PartyPanel } from "@/components/game/party-panel";
 import { Separator } from "../ui/separator";
 import { useToast } from "@/hooks/use-toast";
 
@@ -46,6 +46,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const [turnIndex, setTurnIndex] = useState(0);
 
   const { toast } = useToast();
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const addDebugMessage = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -56,17 +57,12 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     if (!newLogs || newLogs.length === 0) return;
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const formattedLogs = newLogs.map(log => `[${timestamp}] ${log}`);
-    setDebugMessages(prev => [...prev, ...formattedLogs].slice(-100));
+    setDebugMessages(prev => {
+        const existingLogs = new Set(prev);
+        const uniqueNewLogs = formattedLogs.filter(log => !existingLogs.has(log.substring(log.indexOf(']') + 2)));
+        return [...prev, ...uniqueNewLogs].slice(-200);
+    });
   }, []);
-
-  const getAdventureData = useCallback(() => {
-    try {
-        return JSON.parse(gameState);
-    } catch(e) {
-        addDebugMessage("CRITICAL: Failed to parse gameState JSON.");
-        return null;
-    }
-  }, [gameState, addDebugMessage]);
 
   useEffect(() => {
     setParty(initialData.party);
@@ -122,7 +118,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setDiceRolls(prevRolls => [...prevRolls, ...newRolls]);
   }
 
-  const updateCharacter = (characterId: string, updates: Partial<Character>) => {
+  const updateCharacter = useCallback((characterId: string, updates: Partial<Character>) => {
     let updatedCharacter: Character | null = null;
     setParty(currentParty => {
         const newParty = currentParty.map(c => {
@@ -143,7 +139,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         
         return newParty;
     });
-  };
+  }, [selectedCharacter]);
 
   const buildConversationHistory = () => {
     return messages
@@ -160,6 +156,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   const handleSendMessage = useCallback(async (content: string, options: { isRetry?: boolean, isContinuation?: boolean } = {}) => {
     const { isRetry = false, isContinuation = false } = options;
+    const turnId = Date.now().toString();
 
     if (!isRetry && !isContinuation) {
         addMessage({
@@ -172,7 +169,19 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     
     setIsDMThinking(true);
     
-    if(!isContinuation) addDebugMessage(`Player action: "${content}".`);
+    // Start polling for logs
+    pollingIntervalRef.current = setInterval(async () => {
+        try {
+            const logs = await getDebugLogs(turnId);
+            const currentLogs = new Set(debugMessages);
+            const newLogs = logs.filter(l => !currentLogs.has(`[${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}] ${l}`));
+            if (newLogs.length > 0) {
+               addDebugMessages(logs);
+            }
+        } catch (e) {
+            console.error("Log polling failed:", e);
+        }
+    }, 1000);
 
     try {
       const history = buildConversationHistory();
@@ -186,39 +195,40 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         enemies,
         turnIndex,
         gameState,
-        conversationHistory: history
+        conversationHistory: history,
+        turnId
       });
       
-      // Update debug logs as soon as they are received for better "real-time" feedback
       if (result.debugLogs) {
         addDebugMessages(result.debugLogs);
       }
       
-      // Handle errors from the coordinator
       if (result.error) {
         throw new Error(result.error);
       }
       
-      // Process results from the coordinator
       if(result.messages) addMessages(result.messages.map(m => ({ ...m, content: m.originalContent || m.content})), isRetry);
       if(result.diceRolls) addDiceRolls(result.diceRolls);
       if(result.nextLocationId) setLocationId(result.nextLocationId);
-      if (result.updatedParty) setParty(result.updatedParty);
+      
+      // Check for character updates
+      if (result.updatedParty) {
+        setParty(result.updatedParty);
+        // Also update selected character if they were changed
+        const player = result.updatedParty.find(p => p.id === selectedCharacter?.id);
+        if(player) setSelectedCharacter(player);
+      }
       
       if (result.startCombat) {
-          addDebugMessage(`START_COMBAT sequence received. Kicking off combat flow.`);
           setInCombat(true);
-          // System message is now sent by coordinator
           if(result.enemies) setEnemies(result.enemies);
           if(result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
           if(result.nextTurnIndex !== undefined) setTurnIndex(result.nextTurnIndex);
           
           const firstCombatant = result.initiativeOrder?.[result.nextTurnIndex];
            if (firstCombatant?.type !== 'player') {
-              addDebugMessage(`First combatant is NPC (${firstCombatant.characterName}). Starting NPC turn loop.`);
-              handleSendMessage("", { isContinuation: true }); // Pass empty action to trigger NPC turn
+              handleSendMessage("", { isContinuation: true });
            } else if (firstCombatant) {
-              addDebugMessage(`First combatant is player (${firstCombatant.characterName}). Waiting for player input.`);
               addMessage({ sender: 'System', content: `Es el turno de ${firstCombatant.characterName}.`});
            }
       } else if (result.endCombat) {
@@ -226,22 +236,16 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           setInitiativeOrder([]);
           setEnemies([]);
           setTurnIndex(0);
-          addDebugMessage("Combat has ended.");
       } else if (inCombat && result.nextTurnIndex !== undefined) {
-          // This block handles turn progression during combat
           const newIndex = result.nextTurnIndex;
           setTurnIndex(newIndex);
           if (result.updatedEnemies) setEnemies(result.updatedEnemies);
 
           const nextCombatant = initiativeOrder[newIndex];
           if (nextCombatant?.type === 'player') {
-              addDebugMessage(`Next turn belongs to player: ${nextCombatant.characterName}.`);
               addMessage({ sender: 'System', content: `Es el turno de ${nextCombatant.characterName}.` });
           } else if (nextCombatant) {
-              addDebugMessage(`Next turn belongs to NPC: ${nextCombatant.characterName}. Continuing combat loop.`);
               handleSendMessage("", { isContinuation: true });
-          } else {
-              addDebugMessage(`Error: Next combatant at index ${newIndex} is undefined. Ending turn.`);
           }
       }
 
@@ -254,10 +258,12 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         onRetry: () => handleSendMessage(content, { isRetry: true }),
       });
     } finally {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
       setIsDMThinking(false);
-      addDebugMessage("--- Turn Processing Finished ---");
     }
-  }, [addDebugMessage, addDebugMessages, addMessage, addMessages, buildConversationHistory, gameState, inCombat, locationId, party, initiativeOrder, enemies, turnIndex]);
+  }, [addDebugMessage, addDebugMessages, addMessage, addMessages, buildConversationHistory, gameState, inCombat, locationId, party, initiativeOrder, enemies, turnIndex, debugMessages, selectedCharacter, updateCharacter]);
   
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
      addDiceRolls([{

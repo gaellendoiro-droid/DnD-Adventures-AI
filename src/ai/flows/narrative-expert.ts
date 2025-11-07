@@ -41,7 +41,7 @@ const companionExpertTool = ai.defineTool(
 
 const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
-  partyJson: z.string().describe("A JSON string representing the player's party."),
+  party: z.array(CharacterSchema).describe("The player's party."),
   gameState: z.string().describe('A JSON string representing the entire adventure data. This is the primary source of truth for locations, entities, and interactable objects.'),
   locationId: z.string().describe('The ID of the current location (e.g., "phandalin-plaza-del-pueblo").'),
   locationContext: z.string().describe('A JSON string with the full data of the current location, including its description, exits, and interactable objects.'),
@@ -84,7 +84,7 @@ const narrativeExpertPrompt = ai.definePrompt({
 - Here is all the information about your current location: \`\`\`json
 {{{locationContext}}}
 \`\`\`
-- The player's party is: {{{partyJson}}}
+- The player's party is: {{{json party}}}
 - Here are the player character stats: {{{characterStats}}}
 - This is the recent conversation history: \`\`\`{{{conversationHistory}}}\`\`\`
 - This is the complete adventure data that you MUST pass to the adventureLookupTool if you need to look up something NEW: \`\`\`json
