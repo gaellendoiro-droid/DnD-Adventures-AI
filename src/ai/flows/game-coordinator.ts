@@ -76,6 +76,10 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 newLocationId = interpretation.targetId;
                 locationId = newLocationId; // Update locationId for the current turn's context
                 finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
+                 if (!finalLocationData) {
+                    localLog(`GameCoordinator: CRITICAL - Failed to find location data for new locationId '${locationId}'.`);
+                    throw new Error(`Could not find data for location: ${locationId}. The adventure file might be missing this entry.`);
+                }
             }
             localLog(`GameCoordinator: Action is 'move', proceeding to Narrative Expert.`);
             // Fall through to narrate the arrival

@@ -9,6 +9,10 @@
         "id": "phandalin-plaza-del-pueblo"
       },
       {
+        "name": "Camino a las afueras de Phandalin",
+        "id": "camino-a-las-afueras-de-phandalin"
+      },
+      {
         "name": "Posada Rocacolina",
         "id": "posada-rocacolina"
       },
@@ -405,6 +409,36 @@
         }
       ],
       "dmNotes": "Phandalin es el punto de partida de la aventura. Los personajes pueden comprar equipo, descansar y obtener misiones del tablón de anuncios. El alcalde, Harbin Wester, es quien publica las misiones."
+    },
+    {
+      "id": "camino-a-las-afueras-de-phandalin",
+      "title": "Camino a las afueras de Phandalin",
+      "description": "Dejáis atrás la relativa seguridad de Phandalin y os adentráis en las tierras salvajes. El camino se convierte en un sendero embarrado que serpentea entre colinas cubiertas de nieve y bosques dispersos. El viento frío silba a vuestro alrededor y el imponente Pico Agujahelada domina el horizonte. Desde aquí, podéis dirigiros a varios lugares de interés en la región.",
+      "entitiesPresent": [],
+      "interactables": [],
+      "exits": [
+        {
+          "description": "El camino de vuelta a la plaza de Phandalin.",
+          "toLocationId": "phandalin-plaza-del-pueblo"
+        },
+        {
+          "description": "Un sendero que asciende hacia una colina con un molino. (Colina del Resentimiento)",
+          "toLocationId": "colina-del-resentimiento"
+        },
+        {
+          "description": "Un camino que se adentra en las estribaciones de las montañas. (Excavación de los Enanos)",
+          "toLocationId": "excavacion-de-los-enanos"
+        },
+        {
+          "description": "Un sendero de montaña que lleva a una cascada. (Terragnoma)",
+          "toLocationId": "terragnoma-entrada-cascada"
+        },
+        {
+          "description": "El Camino de Trijabal que se dirige hacia el este. (Rancho de Mantecalavera)",
+          "toLocationId": "rancho-de-mantecalavera"
+        }
+      ],
+      "dmNotes": "Esta es una zona de transición que conecta Phandalin con varias de las primeras ubicaciones de la aventura."
     },
     {
       "id": "posada-rocacolina",
