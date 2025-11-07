@@ -14,6 +14,7 @@ import { markdownToHtml } from './markdown-to-html';
 import { narrativeExpert } from './narrative-expert';
 import { getAdventureData } from '@/app/game-state-actions';
 import { CharacterSummarySchema } from '@/lib/schemas';
+import { companionExpertTool } from '../tools/companion-expert';
 
 // Schemas for the main coordinator flow
 const GameCoordinatorInputSchema = z.object({
@@ -211,20 +212,38 @@ export const gameCoordinatorFlow = ai.defineFlow(
         });
     }
 
-    // Process companion actions
-    if (narrativeResult.companionActions) {
-        narrativeResult.companionActions.forEach(action => {
-            const companion = party.find(p => p.id === action.characterId);
-            if (companion) {
-                messages.push({
-                    sender: 'Character',
-                    senderName: companion.name,
-                    characterColor: companion.color,
-                    content: action.action,
-                });
-            }
+    // Process companion actions by calling the tool from the coordinator
+    const aiCompanions = party.filter(p => p.controlledBy === 'AI');
+    log(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
+
+    for (const companion of aiCompanions) {
+        log(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
+        const companionSummary = {
+            id: companion.id,
+            name: companion.name,
+            race: companion.race,
+            class: companion.class,
+            sex: companion.sex,
+            personality: companion.personality,
+            controlledBy: companion.controlledBy,
+        };
+        const companionResult = await companionExpertTool({
+            characterSummary: companionSummary,
+            partySummary: partySummary,
+            context: `${narrativeResult.dmNarration}\nPlayer action: ${playerAction}`,
+            inCombat: false,
         });
+        if (companionResult.action) {
+            log(`GameCoordinator: ${companion.name} reacts: "${companionResult.action}"`);
+            messages.push({
+                sender: 'Character',
+                senderName: companion.name,
+                characterColor: companion.color,
+                content: companionResult.action,
+            });
+        }
     }
+
 
     // Process character stat updates
     let updatedParty = input.party;
