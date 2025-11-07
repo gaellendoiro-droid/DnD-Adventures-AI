@@ -40,6 +40,7 @@ const CharacterSchema = z.object({
     spells: z.array(z.object({ id: z.string(), name: z.string(), level: z.number(), description: z.string() })),
 });
 
+
 const CompanionExpertInputSchema = z.object({
   character: CharacterSchema.describe("The AI-controlled character whose action is being decided."),
   context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
@@ -125,17 +126,17 @@ async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<Narrati
     const debugLogs: string[] = [];
     try {
         debugLogs.push("NarrativeExpert: Generating narration based on player action and context...");
-        const {output, usage} = await narrativeExpertPrompt(input, {tools: [adventureLookupTool, companionExpertTool]});
+        const {output, usage} = await narrativeExpertPrompt(input);
         
-        if (usage.toolCalls?.length) {
+        if (usage?.toolCalls?.length) {
             usage.toolCalls.forEach(call => {
-                debugLogs.push(`NarrativeExpert: Calling tool '${call.tool}...'`);
+                debugLogs.push(`NarrativeExpert: Called tool '${call.tool}...'`);
             });
         }
         
         if (!output) {
-            debugLogs.push("NarrativeExpert: AI returned null output. Throwing error.");
-            throw new Error("The AI failed to return a valid output.");
+            debugLogs.push("NarrativeExpert: AI returned null output. This could be due to safety filters or an internal model error.");
+            throw new Error("The AI failed to return a valid output. It might have been blocked by safety filters.");
         }
         
         // Final validation for location ID before returning
@@ -170,3 +171,5 @@ async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<Narrati
 export async function narrativeExpert(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
     return narrativeExpertFlow(input);
 }
+
+    
