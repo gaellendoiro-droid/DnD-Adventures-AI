@@ -5,7 +5,7 @@ config();
 import { narrativeExpert, NarrativeExpertInput } from '@/ai/flows/narrative-expert';
 import { initialParty } from '@/lib/data';
 import adventureData from '../../JSON_adventures/el-dragon-del-pico-agujahelada.json';
-import { run } from 'genkit/dev';
+import { run } from 'genkit';
 
 import '@/ai/flows/parse-adventure-from-json.ts';
 import '@/ai/flows/generate-monster-encounters.ts';
