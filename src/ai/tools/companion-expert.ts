@@ -1,13 +1,12 @@
 
 'use server';
 /**
- * @fileOverview A Genkit flow for generating actions for AI-controlled companions.
+ * @fileOverview A Genkit tool for generating actions for AI-controlled companions.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { Character } from '@/lib/types';
-
 
 const CompanionExpertInputSchema = z.object({
   character: z.any().describe("The AI-controlled character whose action is being decided."),
@@ -16,24 +15,16 @@ const CompanionExpertInputSchema = z.object({
   enemies: z.array(z.string()).optional().describe("A list of enemy names, if in combat."),
   party: z.array(z.any()).describe("The full party data."),
 });
-export type CompanionExpertInput = z.infer<typeof CompanionExpertInputSchema>;
 
-
-// Output Schema
 const CompanionExpertOutputSchema = z.object({
     action: z.string().optional().describe("The character's action or dialogue. Can be an empty string for no action."),
 });
-export type CompanionExpertOutput = z.infer<typeof CompanionExpertOutputSchema>;
 
-
-export async function companionExpert(input: CompanionExpertInput): Promise<CompanionExpertOutput> {
-    
-    // Prompt
-    const companionExpertPrompt = ai.definePrompt({
-      name: 'companionExpertPrompt',
-      input: {schema: CompanionExpertInputSchema},
-      output: {schema: CompanionExpertOutputSchema},
-      prompt: `You are orchestrating the AI-controlled character in a D&D party. Your goal is to make their interactions feel natural and true to their unique personality.
+const companionExpertPrompt = ai.definePrompt({
+    name: 'companionExpertPrompt',
+    input: {schema: CompanionExpertInputSchema},
+    output: {schema: CompanionExpertOutputSchema},
+    prompt: `You are orchestrating the AI-controlled character in a D&D party. Your goal is to make their interactions feel natural and true to their unique personality.
 
     **Guiding Principle: Realism over Reactivity. The character should only act if it makes sense for them.**
 
@@ -72,9 +63,23 @@ export async function companionExpert(input: CompanionExpertInput): Promise<Comp
     - Keep actions concise.
     - If the character does nothing, return an empty string for the action.
     `,
-    });
-    
-    const { output } = await companionExpertPrompt(input);
+});
 
+export const companionExpertTool = ai.defineTool(
+    {
+        name: 'companionExpertTool',
+        description: 'Decides the action or dialogue for an AI-controlled companion based on their personality and the current game context (combat or exploration).',
+        inputSchema: CompanionExpertInputSchema,
+        outputSchema: CompanionExpertOutputSchema,
+    },
+    async (input) => {
+        const { output } = await companionExpertPrompt(input);
+        return output || { action: "" };
+    }
+);
+
+// This function is kept for direct calls from legacy or non-tool-based flows if needed.
+export async function companionExpert(input: CompanionExpertInput): Promise<CompanionExpertOutput> {
+    const { output } = await companionExpertPrompt(input);
     return output || { action: "" };
 }
