@@ -13,6 +13,7 @@ import type { GameMessage, DiceRoll, InitiativeRoll } from '@/lib/types';
 import { markdownToHtml } from './markdown-to-html';
 import { narrativeExpert } from './narrative-expert';
 import { getAdventureData } from '@/app/game-state-actions';
+import { CharacterSummarySchema } from '@/lib/schemas';
 
 // Schemas for the main coordinator flow
 const GameCoordinatorInputSchema = z.object({
@@ -176,7 +177,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
     log("GameCoordinator: Narrative mode. Preparing to call Narrative Expert...");
     
     // Create a summarized version of the party for the narrative expert prompt
-    const partySummary = input.party.map(c => ({
+    const partySummary: z.infer<typeof CharacterSummarySchema>[] = input.party.map(c => ({
         id: c.id,
         name: c.name,
         race: c.race,

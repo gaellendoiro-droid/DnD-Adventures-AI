@@ -6,16 +6,16 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { CharacterSchema, CharacterSummarySchema } from '@/lib/schemas';
+import { CharacterSummarySchema } from '@/lib/schemas';
 import { characterLookupTool } from './character-lookup';
 
 
 const CompanionExpertInputSchema = z.object({
-  character: CharacterSchema.describe("The AI-controlled character whose action is being decided."),
+  characterSummary: CharacterSummarySchema.describe("The summary of the AI-controlled character whose action is being decided."),
   context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
   inCombat: z.boolean().describe("Whether the party is currently in combat."),
   enemies: z.array(z.string()).optional().describe("A list of enemy names, if in combat."),
-  partySummary: z.array(CharacterSummarySchema).describe("A summary of the party's current status (names, hp, etc)."),
+  partySummary: z.array(CharacterSummarySchema).describe("A summary of the entire party's current status (names, hp, etc)."),
 });
 
 const CompanionExpertOutputSchema = z.object({
@@ -32,14 +32,14 @@ const companionExpertPrompt = ai.definePrompt({
     **Guiding Principle: Realism over Reactivity. The character should only act if it makes sense for them.**
 
     Your character is:
-    - **Name:** {{{character.name}}} (ID: {{{character.id}}})
-      - **Class:** {{{character.class}}}
-      - **Race:** {{{character.race}}}
-      - **Personality:** {{{character.personality}}}
+    - **Name:** {{{characterSummary.name}}} (ID: {{{characterSummary.id}}})
+      - **Class:** {{{characterSummary.class}}}
+      - **Race:** {{{characterSummary.race}}}
+      - **Personality:** {{{characterSummary.personality}}}
 
     The rest of the party's status is:
     {{#each partySummary}}
-    - **{{this.name}}** (HP: {{this.hp.current}}/{{this.hp.max}}, Class: {{this.class}})
+    - **{{this.name}}** (Class: {{this.class}})
     {{/each}}
     
     This is what's happening:
@@ -48,7 +48,7 @@ const companionExpertPrompt = ai.definePrompt({
     {{#if inCombat}}
     **You are IN COMBAT.** The enemies are: {{#each enemies}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}.
     Decide the combat action for your character. The action should be based on their personality and class abilities.
-    - To know your character's specific abilities, spells, or inventory, you do not need a tool. You have all your data.
+    - To know your character's specific abilities, spells, or inventory, you MUST use the 'characterLookupTool' with your character's name.
     - To know an ally's specific data (like if they have a certain spell), you MUST use the 'characterLookupTool'.
     - A pragmatic cleric might heal the most wounded ally.
     - A reckless mage might use a powerful area-of-effect spell, even if it's risky.
@@ -75,13 +75,7 @@ export const companionExpertTool = ai.defineTool(
     {
         name: 'companionExpertTool',
         description: 'Decides the action or dialogue for an AI-controlled companion based on their personality and the current game context (combat or exploration).',
-        inputSchema: z.object({
-            character: CharacterSchema.describe("The full object of the AI-controlled character whose action is being decided."),
-            context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
-            inCombat: z.boolean().describe("Whether the party is currently in combat."),
-            enemies: z.array(z.string()).optional().describe("A list of enemy names, if in combat."),
-            partySummary: z.array(CharacterSummarySchema).describe("A summary of the party's current status (names, hp, etc)."),
-        }),
+        inputSchema: CompanionExpertInputSchema,
         outputSchema: CompanionExpertOutputSchema,
     },
     async (input) => {
