@@ -1,5 +1,3 @@
-
-'use server';
 /**
  * @fileOverview A Genkit tool to look up information from the adventure JSON.
  */

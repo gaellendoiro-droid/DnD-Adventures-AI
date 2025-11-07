@@ -1,11 +1,9 @@
-
-'use server';
 /**
  * @fileOverview A Genkit tool to look up D&D 5e information from an external API.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 // Helper function to format the JSON data for better readability for the AI
 function formatRelevantInfo(data: any): string {

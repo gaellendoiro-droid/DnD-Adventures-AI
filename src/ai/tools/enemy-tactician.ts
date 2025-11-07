@@ -10,7 +10,8 @@ import { adventureLookupTool } from './adventure-lookup';
 
 
 // Input Schema
-export const CharacterSchema = z.object({
+// This schema is defined here but not exported to comply with 'use server' constraints.
+const CharacterSchema = z.object({
     id: z.string(),
     name: z.string(),
     race: z.string(),
