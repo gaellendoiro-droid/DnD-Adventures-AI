@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A Genkit flow that acts as the "enemy brain" in combat.
@@ -80,34 +79,29 @@ Execute the turn for **{{{activeCombatant}}}** ONLY.
 `,
 });
 
-// Flow
-const enemyTacticianFlow = ai.defineFlow(
-  {
-    name: 'enemyTacticianFlow',
-    inputSchema: EnemyTacticianInputSchema,
-    outputSchema: EnemyTacticianOutputSchema,
-  },
-  async (input) => {
-    try {
-      const { output } = await enemyTacticianPrompt(input);
-
-      if (!output) {
-        throw new Error("The AI failed to return an action for the combatant.");
+export const enemyTacticianTool = ai.defineTool(
+    {
+      name: 'enemyTacticianTool',
+      description: 'Determines the most logical action for a hostile NPC/monster during its turn in combat.',
+      inputSchema: EnemyTacticianInputSchema,
+      outputSchema: EnemyTacticianOutputSchema,
+    },
+    async (input) => {
+      try {
+        const { output } = await enemyTacticianPrompt(input);
+  
+        if (!output) {
+          throw new Error("The AI failed to return an action for the combatant.");
+        }
+        return output;
+  
+      } catch (e: any) {
+        console.error("Critical error in enemyTacticianFlow.", e);
+        return {
+          action: "Do nothing.",
+          narration: `El combatiente ${input.activeCombatant} parece confundido y no hace nada en su turno.`,
+          diceRolls: [],
+        };
       }
-      return output;
-
-    } catch (e: any) {
-      console.error("Critical error in enemyTacticianFlow.", e);
-      return {
-        action: "Do nothing.",
-        narration: `El combatiente ${input.activeCombatant} parece confundido y no hace nada en su turno.`,
-        diceRolls: [],
-      };
     }
-  }
-);
-
-// Exported async function
-export async function enemyTactician(input: EnemyTacticianInput): Promise<EnemyTacticianOutput> {
-    return enemyTacticianFlow(input);
-}
+  );

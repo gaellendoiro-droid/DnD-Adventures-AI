@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview This file contains the Genkit flow for the OocAssistant, which handles out-of-character player questions.
@@ -44,7 +43,13 @@ const oocAssistantPrompt = ai.definePrompt({
   }`,
 });
 
-async function oocAssistantFlow(input: OocAssistantInput): Promise<OocAssistantOutput> {
+const oocAssistantFlow = ai.defineFlow(
+  {
+    name: 'oocAssistantFlow',
+    inputSchema: OocAssistantInputSchema,
+    outputSchema: OocAssistantOutputSchema,
+  },
+  async (input) => {
     const debugLogs: string[] = [];
     debugLogs.push("OOCAssistant: Processing out-of-character query...");
     const { output } = await oocAssistantPrompt(input);
@@ -52,7 +57,9 @@ async function oocAssistantFlow(input: OocAssistantInput): Promise<OocAssistantO
       return { dmReply: "No se pudo procesar la pregunta.", debugLogs };
     }
     return { ...output, debugLogs };
-}
+  }
+);
+
 
 export async function oocAssistant(input: OocAssistantInput): Promise<OocAssistantOutput> {
     return oocAssistantFlow(input);

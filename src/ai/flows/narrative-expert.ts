@@ -12,32 +12,8 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
-import { companionExpert } from '../tools/companion-expert';
+import { companionExpertTool } from '../tools/companion-expert';
 import { CharacterSchema } from '@/lib/schemas';
-
-
-const CompanionExpertInputSchema = z.object({
-  character: CharacterSchema.describe("The AI-controlled character whose action is being decided."),
-  context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
-  inCombat: z.boolean().describe("Whether the party is currently in combat."),
-  enemies: z.array(z.string()).optional().describe("A list of enemy names, if in combat."),
-  party: z.array(CharacterSchema).describe("The full party data."),
-});
-
-const CompanionExpertOutputSchema = z.object({
-    action: z.string().optional().describe("The character's action or dialogue. Can be an empty string for no action."),
-});
-
-const companionExpertTool = ai.defineTool(
-    {
-        name: 'companionExpertTool',
-        description: 'Decides the action or dialogue for an AI-controlled companion based on their personality and the current game context (combat or exploration).',
-        inputSchema: CompanionExpertInputSchema,
-        outputSchema: CompanionExpertOutputSchema,
-    },
-    companionExpert
-);
-
 
 const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),

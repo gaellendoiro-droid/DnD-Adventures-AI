@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A Genkit tool for generating actions for AI-controlled companions.
@@ -67,7 +66,15 @@ const companionExpertPrompt = ai.definePrompt({
 });
 
 
-export async function companionExpert(input: z.infer<typeof CompanionExpertInputSchema>): Promise<z.infer<typeof CompanionExpertOutputSchema>> {
-    const { output } = await companionExpertPrompt(input);
-    return output || { action: "" };
-}
+export const companionExpertTool = ai.defineTool(
+    {
+        name: 'companionExpertTool',
+        description: 'Decides the action or dialogue for an AI-controlled companion based on their personality and the current game context (combat or exploration).',
+        inputSchema: CompanionExpertInputSchema,
+        outputSchema: CompanionExpertOutputSchema,
+    },
+    async (input) => {
+        const { output } = await companionExpertPrompt(input);
+        return output || { action: "" };
+    }
+);

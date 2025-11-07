@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview The central AI coordinator for the D&D game.
@@ -8,22 +7,11 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { oocAssistant } from './ooc-assistant';
-import { combatManager } from '../tools/combat-manager';
+import { combatManagerTool } from '../tools/combat-manager';
 import type { GameMessage, DiceRoll, InitiativeRoll } from '@/lib/types';
 import { markdownToHtml } from './markdown-to-html';
 import { narrativeExpert } from './narrative-expert';
 import { lookupAdventureEntityInDb } from '@/app/game-state-actions';
-import { CombatManagerInputSchema, CombatManagerOutputSchema } from '../tools/combat-manager';
-
-const combatManagerTool = ai.defineTool(
-  {
-    name: 'combatManagerTool',
-    description: 'Manages a sequence of turns in combat, starting from the current turn, until it is a human player\'s turn again or combat ends.',
-    inputSchema: CombatManagerInputSchema,
-    outputSchema: CombatManagerOutputSchema,
-  },
-  combatManager
-);
 
 // Schemas for the main coordinator flow
 const GameCoordinatorInputSchema = z.object({
@@ -58,7 +46,14 @@ const GameCoordinatorOutputSchema = z.object({
 export type GameCoordinatorInput = z.infer<typeof GameCoordinatorInputSchema>;
 export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
 
-async function gameCoordinatorFlow(input: GameCoordinatorInput): Promise<GameCoordinatorOutput> {
+
+const gameCoordinatorFlow = ai.defineFlow(
+  {
+    name: 'gameCoordinatorFlow',
+    inputSchema: GameCoordinatorInputSchema,
+    outputSchema: GameCoordinatorOutputSchema,
+  },
+  async (input) => {
     const { playerAction, inCombat, conversationHistory, gameState, locationId, party, log = () => {} } = input;
     
     log(`GameCoordinator: Received action: "${playerAction}". InCombat: ${inCombat}.`);
@@ -224,7 +219,8 @@ async function gameCoordinatorFlow(input: GameCoordinatorInput): Promise<GameCoo
       updatedParty,
       nextLocationId: narrativeResult.nextLocationId,
     };
-}
+  }
+);
 
 
 export async function gameCoordinator(input: GameCoordinatorInput): Promise<GameCoordinatorOutput> {
