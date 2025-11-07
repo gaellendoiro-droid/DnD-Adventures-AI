@@ -59,9 +59,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
     
     log(`GameCoordinator: Received action: "${playerAction}". InCombat: ${inCombat}.`);
 
-    // -- DEBUG LOG A --
-    log(`LOG A: input.party received by coordinator: ${JSON.stringify(party, null, 2)}`);
-
     // 1. Handle Out-of-Character (OOC) queries first
     if (playerAction.startsWith('//')) {
       log("GameCoordinator: OOC query detected. Calling OOC Assistant...");
@@ -189,9 +186,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
         personality: c.personality,
         controlledBy: c.controlledBy,
     }));
-
-    // -- DEBUG LOG B --
-    log(`LOG B: partySummary created by coordinator: ${JSON.stringify(partySummary, null, 2)}`);
 
     const narrativeInput = {
         playerAction: input.playerAction,
