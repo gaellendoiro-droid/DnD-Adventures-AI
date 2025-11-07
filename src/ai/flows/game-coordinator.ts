@@ -187,6 +187,9 @@ export const gameCoordinatorFlow = ai.defineFlow(
         controlledBy: c.controlledBy,
     }));
     
+    // DEBUG: Interrupt execution to inspect partySummary
+    throw new Error(`DEBUG INTERRUPT after partySummary creation: ${JSON.stringify(partySummary, null, 2)}`);
+    
     const narrativeInput = {
         playerAction: input.playerAction,
         partySummary: partySummary,
