@@ -59,7 +59,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
     const { playerAction, inCombat, conversationHistory, party, log = () => {} } = input;
     let { locationId } = input;
     
-    log(`GameCoordinator: Received action: "${playerAction}". InCombat: ${inCombat}.`);
+    log(`GameCoordinator: Received action: "${playerAction}". InCombat: ${inCombat}. Location: ${locationId}.`);
 
     // 1. Handle Out-of-Character (OOC) queries first
     if (playerAction.startsWith('//')) {
@@ -101,10 +101,9 @@ export const gameCoordinatorFlow = ai.defineFlow(
     const currentLocationData = adventureData.locations.find((l: any) => l.id === locationId);
     if (currentLocationData && currentLocationData.exits) {
         for (const exit of currentLocationData.exits) {
-            // Create a regex to match the exit description or location title, case-insensitively
             const destinationLocation = adventureData.locations.find((l: any) => l.id === exit.toLocationId);
-            const keywords = [exit.description, destinationLocation?.title].filter(Boolean).join('|').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const movementRegex = new RegExp(keywords, 'i');
+            const keywords = [exit.description, destinationLocation?.title].filter(Boolean).map(kw => kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+            const movementRegex = new RegExp(`\\b(${keywords})\\b`, 'i');
             
             if (movementRegex.test(playerAction)) {
                 log(`GameCoordinator: Movement detected to '${exit.toLocationId}' based on action "${playerAction}".`);
@@ -115,9 +114,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
         }
     }
 
-    const finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
-
     // 4. Handle transition to combat from Narrative mode
+    const finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
     const attackRegex = /ataca a|atacar a|ataco al|ataco a la|pego a|disparo a/i;
     if (attackRegex.test(playerAction)) {
       log(`GameCoordinator: Attack action detected ("${playerAction}"). Attempting to start combat.`);
@@ -200,7 +198,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
     // 5. Handle Narrative/Exploration mode
     log("GameCoordinator: Narrative mode. Preparing to call Narrative Expert...");
     
-    // Create a summarized version of the party for the narrative expert prompt
     const partySummary = input.party.map(c => ({
         id: c.id,
         name: c.name,
@@ -214,28 +211,30 @@ export const gameCoordinatorFlow = ai.defineFlow(
     const narrativeInput = {
         playerAction: input.playerAction,
         partySummary: partySummary,
-        locationId: locationId, // Use the potentially updated locationId
+        locationId: locationId,
         locationContext: JSON.stringify(finalLocationData),
         conversationHistory: input.conversationHistory,
         log,
     };
     
-    log(`GameCoordinator: Calling NarrativeExpert for location '${locationId}'...`);
+    log(`GameCoordinator: Calling NarrativeExpert...`);
     const narrativeResult = await narrativeExpert(narrativeInput);
     (narrativeResult.debugLogs || []).forEach(log);
 
     const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
     
-    // Process narration from the DM first
+    // Convert DM narration to HTML as soon as we get it.
     if (narrativeResult.dmNarration) {
+        log("GameCoordinator: Converting DM narration to HTML...");
+        const { html } = await markdownToHtml({ markdown: narrativeResult.dmNarration });
+        log("GameCoordinator: HTML conversion complete.");
         messages.push({
             sender: 'DM',
-            content: '', // This will be filled by the client after HTML conversion
+            content: html,
             originalContent: narrativeResult.dmNarration,
         });
     }
 
-    // Process companion actions
     const aiCompanions = party.filter(p => p.controlledBy === 'AI');
     log(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
 
@@ -243,11 +242,13 @@ export const gameCoordinatorFlow = ai.defineFlow(
         const companionSummary = partySummary.find(p => p.id === companion.id)!;
         log(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
         
+        const companionContext = `Player action: "${playerAction}"\nDM response: "${narrativeResult.dmNarration}"`;
+        
         const companionResult = await companionExpertTool({
             characterSummary: companionSummary,
-            partySummary: partySummary,
-            context: `${narrativeResult.dmNarration}\nPlayer action: ${playerAction}`,
+            context: companionContext,
             inCombat: false,
+            partySummary: partySummary,
         });
 
         if (companionResult.action) {
@@ -261,7 +262,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
         }
     }
 
-    // Process character stat updates
     let updatedParty = input.party;
     if (narrativeResult.updatedCharacterStats) {
         const player = input.party.find(c => c.controlledBy === 'Player');
@@ -276,7 +276,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         }
     }
     
-    log("GameCoordinator: Turn finished successfully.");
+    log(`GameCoordinator: Turn finished successfully. Current location: ${locationId}`);
     return {
       messages,
       updatedParty,
@@ -289,3 +289,5 @@ export const gameCoordinatorFlow = ai.defineFlow(
 export async function gameCoordinator(input: GameCoordinatorInput): Promise<GameCoordinatorOutput> {
     return gameCoordinatorFlow(input);
 }
+
+    
