@@ -72,6 +72,7 @@ const NarrativeExpertInputSchema = z.object({
   locationContext: z.string().describe('A JSON string with the full data of the current location, including its description, exits, and interactable objects.'),
   characterStats: z.string().optional().describe('The current stats of the character.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
+  log: z.function(z.tuple([z.string()]), z.void()).optional().describe("A function to log debug messages in real-time."),
 });
 export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
 
@@ -123,19 +124,25 @@ Based on all directives, use the provided context and tools to narrate what happ
 });
 
 async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
+    const { log = () => {} } = input;
     const debugLogs: string[] = [];
+    const localLog = (message: string) => {
+        log(message);
+        debugLogs.push(message);
+    };
+
     try {
-        debugLogs.push("NarrativeExpert: Generating narration based on player action and context...");
+        localLog("NarrativeExpert: Generating narration based on player action and context...");
         const {output, usage} = await narrativeExpertPrompt(input);
         
         if (usage?.toolCalls?.length) {
             usage.toolCalls.forEach(call => {
-                debugLogs.push(`NarrativeExpert: Called tool '${call.tool}...'`);
+                localLog(`NarrativeExpert: Called tool '${call.tool}...'`);
             });
         }
         
         if (!output) {
-            debugLogs.push("NarrativeExpert: AI returned null output. This could be due to safety filters or an internal model error.");
+            localLog("NarrativeExpert: AI returned null output. This could be due to safety filters or an internal model error.");
             throw new Error("The AI failed to return a valid output. It might have been blocked by safety filters.");
         }
         
@@ -144,7 +151,7 @@ async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<Narrati
             const adventureData = JSON.parse(input.gameState);
             const locationExists = (adventureData.locations || []).some((loc: any) => loc.id === output.nextLocationId);
             if (!locationExists) {
-                debugLogs.push(`NarrativeExpert: WARNING - AI returned a non-existent nextLocationId: '${output.nextLocationId}'. Discarding it.`);
+                localLog(`NarrativeExpert: WARNING - AI returned a non-existent nextLocationId: '${output.nextLocationId}'. Discarding it.`);
                 output.nextLocationId = null;
             }
         }
@@ -153,15 +160,15 @@ async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<Narrati
             try {
                 JSON.parse(output.updatedCharacterStats);
             } catch (e) {
-                debugLogs.push(`NarrativeExpert: WARNING - AI returned invalid JSON for updatedCharacterStats. Discarding. Error: ${e}`);
+                localLog(`NarrativeExpert: WARNING - AI returned invalid JSON for updatedCharacterStats. Discarding. Error: ${e}`);
                 output.updatedCharacterStats = null;
             }
         }
         
-        debugLogs.push("NarrativeExpert: Successfully generated narration object.");
+        localLog("NarrativeExpert: Successfully generated narration object.");
         return { ...output, debugLogs };
     } catch(e: any) {
-        debugLogs.push(`NarrativeExpert: CRITICAL - Flow failed. Error: ${e.message}`);
+        localLog(`NarrativeExpert: CRITICAL - Flow failed. Error: ${e.message}`);
         console.error("Critical error in narrativeExpertFlow.", e);
         // This specific error message will be caught by the action and shown in the UI.
         throw new Error(`narrativeExpertFlow failed: ${e.message || 'Unknown error'}`);
@@ -171,7 +178,3 @@ async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<Narrati
 export async function narrativeExpert(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
     return narrativeExpertFlow(input);
 }
-
-    
-
-    
