@@ -30,15 +30,30 @@ Esta es la mejora más solicitada y de mayor impacto, surgida directamente de la
 
 ---
 
-### 3. Persistencia de Datos y Gestión de Partidas
+### 3. Sistema de Progresión de Personajes
 
-*   **Base de Datos Real:** Reemplazar el sistema de guardado y carga mediante archivos JSON por una base de datos (como Firestore) para permitir un guardado automático y continuo.
-*   **Múltiples Partidas:** Permitir a los usuarios tener varias partidas guardadas simultáneamente.
-*   **Creación de Personajes:** Implementar un flujo guiado para que los jugadores puedan crear sus propios personajes desde cero, con tiradas de características, selección de clase, trasfondo, etc., en lugar de usar siempre a Galador.
+*   **Sistema de Experiencia (XP):**
+    *   **Propuesta:** La IA del DM debería otorgar puntos de experiencia a los jugadores al superar combates, resolver misiones, explorar nuevas áreas o tener interacciones ingeniosas. Esto se podría reflejar en un campo `xp` en la ficha del personaje.
+    *   **Impacto:** Incentiva la participación y proporciona una medida tangible del progreso.
+
+*   **Subida de Nivel (Level Up):**
+    *   **Propuesta:** Cuando un personaje acumula suficiente XP, la interfaz debería notificarlo y guiar al jugador a través de un proceso de subida de nivel. Esto incluiría aumentar los puntos de golpe, mejorar características, aprender nuevos conjuros o ganar nuevas habilidades de clase. La IA podría asistir en este proceso.
+    *   **Impacto:** Es el núcleo del desarrollo de un personaje en D&D y una de las recompensas más satisfactorias para el jugador.
+
+*   **Creación de Personajes:**
+    *   **Propuesta:** Implementar un flujo guiado para que los jugadores puedan crear sus propios personajes desde cero, con tiradas de características, selección de clase, trasfondo, etc., en lugar de usar siempre a Galador.
+    *   **Impacto:** Aumenta enormemente la personalización y la rejugabilidad.
 
 ---
 
-### 4. Enriquecimiento de la Interfaz y la Experiencia
+### 4. Persistencia de Datos y Gestión de Partidas
+
+*   **Base de Datos Real:** Reemplazar el sistema de guardado y carga mediante archivos JSON por una base de datos (como Firestore) para permitir un guardado automático y continuo.
+*   **Múltiples Partidas:** Permitir a los usuarios tener varias partidas guardadas simultáneamente.
+
+---
+
+### 5. Enriquecimiento de la Interfaz y la Experiencia
 
 *   **Mapa Visual Interactivo:** En lugar de solo texto, mostrar un mapa simple de la región o de la ubicación actual, donde se destaquen las salidas y puntos de interés.
 *   **Mejoras en la Ficha de Personaje:** Hacerla más interactiva, permitiendo usar objetos o lanzar conjuros directamente desde ella.
@@ -49,7 +64,7 @@ Esta es la mejora más solicitada y de mayor impacto, surgida directamente de la
 
 ---
 
-### 5. Calidad y Robustez de la IA
+### 6. Calidad y Robustez de la IA
 
 *   **Implementación de un Sistema RAG (Retrieval-Augmented Generation):**
     *   **Problema Actual:** La IA depende de la herramienta `adventureLookupTool` para buscar en el JSON, lo que requiere consultas precisas por nombre o ID. Es un sistema rígido.
