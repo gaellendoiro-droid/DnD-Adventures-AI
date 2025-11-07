@@ -65,8 +65,9 @@ const companionExpertPrompt = ai.definePrompt({
 
     **RULES:**
     - **CRITICAL: Do not use Markdown.** The output must be plain text.
+    - Your output MUST be a valid JSON object matching the schema.
     - Keep actions concise.
-    - If the character does nothing, return an empty string for the action.
+    - If the character does nothing, return an empty string for the action inside the JSON object, like this: {"action": ""}.
     `,
 });
 
@@ -79,8 +80,31 @@ export const companionExpertTool = ai.defineTool(
         outputSchema: CompanionExpertOutputSchema,
     },
     async (input) => {
-        const validatedInput = CompanionExpertInputSchema.parse(input);
-        const { output } = await companionExpertPrompt(validatedInput);
-        return output || { action: "" };
+        try {
+            const validatedInput = CompanionExpertInputSchema.parse(input);
+            const { output } = await companionExpertPrompt(validatedInput);
+            
+            if (!output) {
+                return { action: "" };
+            }
+
+            // This is our robustness check. If the model returned a raw string, we catch it.
+            if (typeof output === 'string') {
+                 // Attempt to parse it, in case it's a stringified JSON
+                try {
+                    return JSON.parse(output);
+                } catch (e) {
+                    // If it's just a plain string, wrap it in the expected object structure.
+                    return { action: output };
+                }
+            }
+            
+            return output;
+
+        } catch (error) {
+            console.error('[CompanionExpertTool Error]', error);
+            // In case of any failure, return a safe, empty action.
+            return { action: "" };
+        }
     }
 );
