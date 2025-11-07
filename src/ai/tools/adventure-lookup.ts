@@ -24,8 +24,8 @@ export const adventureLookupTool = ai.defineTool(
     let adventureData: any;
     try {
       adventureData = JSON.parse(gameState);
-    } catch (e) {
-      return "Error: The provided gameState is not valid JSON.";
+    } catch (e: any) {
+      return `Error: The provided gameState is not valid JSON. Error: ${e.message}`;
     }
 
     const locations = adventureData.locations || [];
