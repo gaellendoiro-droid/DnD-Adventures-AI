@@ -29,7 +29,7 @@ const NarrativeExpertOutputSchema = z.object({
   updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}, \"inventory\": [{\"id\":\"item-gp-1\",\"name\":\"Monedas de Oro\",\"quantity\":10}]}'. Must be a valid JSON string or null."),
   startCombat: z.boolean().describe("Set to true if the player's action or the narrative circumstances have definitively initiated combat."),
   combatStartNarration: z.string().optional().describe("If startCombat is true, this field MUST contain a brief, exciting narration of how the combat begins that MENTIONS THE ENEMY NAMES (e.g., '¡Una emboscada! Dos orcos saltan de los arbustos, ¡con las hachas en alto!'). This will be used by the app to identify the combatants."),
-  identifiedEnemies: z.array(z.string()).optional().describe("If startCombat is true, this field MUST contain a list of the names of the enemies involved in the combat start."),
+  identifiedEnemies: z.array(z.string()).optional().describe("If startCombat is true, this field MUST contain a list of the names of the enemies starting combat."),
 });
 export type NarrativeExpertOutput = z.infer<typeof NarrativeExpertOutputSchema>;
 
@@ -83,13 +83,7 @@ Based on all directives, use the provided location context to narrate what happe
 `,
 });
 
-const narrativeExpertFlow = ai.defineFlow(
-  {
-    name: 'narrativeExpertFlow',
-    inputSchema: NarrativeExpertInputSchema,
-    outputSchema: NarrativeExpertOutputSchema,
-  },
-  async (input) => {
+async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
     try {
         const {output} = await narrativeExpertPrompt(input);
         
@@ -122,8 +116,7 @@ const narrativeExpertFlow = ai.defineFlow(
         // This specific error message will be caught by the action and shown in the UI.
         throw new Error(`narrativeExpertFlow failed: ${e.message || 'Unknown error'}`);
     }
-  }
-);
+}
 
 export async function narrativeExpert(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
     return narrativeExpertFlow(input);
