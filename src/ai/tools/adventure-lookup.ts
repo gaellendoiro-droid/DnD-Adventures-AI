@@ -61,3 +61,5 @@ export const adventureLookupTool = ai.defineTool(
     return `Error: No location, entity or interactable found matching '${query}'. Try a broader query.`;
   }
 );
+
+    

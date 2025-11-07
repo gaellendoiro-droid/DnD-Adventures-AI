@@ -35,7 +35,7 @@ const CharacterSchema = z.object({
 });
 
 const CompanionExpertInputSchema = z.object({
-  character: z.any().describe("The AI-controlled character whose action is being decided."),
+  character: CharacterSchema.describe("The AI-controlled character whose action is being decided."),
   context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
   inCombat: z.boolean().describe("Whether the party is currently in combat."),
   enemies: z.array(z.string()).optional().describe("A list of enemy names, if in combat."),
@@ -96,3 +96,5 @@ export async function companionExpert(input: z.infer<typeof CompanionExpertInput
     const { output } = await companionExpertPrompt(input);
     return output || { action: "" };
 }
+
+    

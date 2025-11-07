@@ -14,6 +14,7 @@ import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
 import { companionExpert } from '../tools/companion-expert';
 
+// Define CharacterSchema locally to avoid 'use server' export issues.
 const CharacterSchema = z.object({
     id: z.string(),
     name: z.string(),
@@ -39,7 +40,6 @@ const CharacterSchema = z.object({
     inventory: z.array(z.object({ id: z.string(), name: z.string(), quantity: z.number(), description: z.string().optional() })),
     spells: z.array(z.object({ id: z.string(), name: z.string(), level: z.number(), description: z.string() })),
 });
-
 
 const CompanionExpertInputSchema = z.object({
   character: CharacterSchema.describe("The AI-controlled character whose action is being decided."),
@@ -171,5 +171,7 @@ async function narrativeExpertFlow(input: NarrativeExpertInput): Promise<Narrati
 export async function narrativeExpert(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
     return narrativeExpertFlow(input);
 }
+
+    
 
     

@@ -3,7 +3,6 @@
  * @fileOverview A Genkit tool that manages a full round or turn of combat.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { enemyTactician } from './enemy-tactician';
 import type { GameMessage, DiceRoll } from '@/lib/types';
@@ -133,6 +132,7 @@ export async function combatManager(input: z.infer<typeof CombatManagerInputSche
             addMessage({ sender: 'DM', content: enemyResponse.narration });
             
             if (enemyResponse.diceRolls) {
+                debugLogs.push(`CombatManager: Enemy action requires ${enemyResponse.diceRolls.length} dice roll(s). Calling diceRollerTool...`);
                 for (const rollRequest of enemyResponse.diceRolls) {
                     const rollResult = await diceRollerTool(rollRequest);
                     diceRolls.push(rollResult);
@@ -161,3 +161,5 @@ export async function combatManager(input: z.infer<typeof CombatManagerInputSche
       debugLogs,
     };
 }
+
+    
