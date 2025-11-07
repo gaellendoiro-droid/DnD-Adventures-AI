@@ -26,12 +26,12 @@ export function DiceLogPanel({ diceRolls }: DiceLogPanelProps) {
 
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <CardHeader className="flex-row items-center gap-2 pt-4 pb-2">
         <Dices className="w-6 h-6" />
         <CardTitle className="font-headline text-xl">Tiradas</CardTitle>
       </CardHeader>
-      <ScrollArea className="px-2 h-full" viewportRef={scrollViewportRef}>
+      <ScrollArea className="px-2 flex-grow" viewportRef={scrollViewportRef}>
         <div className="p-2 space-y-3">
           {diceRolls.length === 0 ? (
             <p className="text-sm text-center text-muted-foreground p-4">
@@ -44,6 +44,6 @@ export function DiceLogPanel({ diceRolls }: DiceLogPanelProps) {
           )}
         </div>
       </ScrollArea>
-    </>
+    </div>
   );
 }
