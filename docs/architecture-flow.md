@@ -38,8 +38,11 @@ Este documento detalla el flujo de trabajo completo, desde la exploración norma
     ```json
     { "id": "elmar-barthen", "name": "Elmar Barthen", "description": "Un humano delgado y con entradas...", "dmNotes": "Puede compartir una historia local." }
     ```
-*   **Salida del Experto en Narrativa**: Con toda esta información, el `narrativeExpertTool` genera la narración completa y se la devuelve a la coordinadora.
-    > **Narración generada**: "Entráis en Suministros Barthen, un local abarrotado de mercancías. Un humano delgado de unos cincuenta años, Elmar Barthen, os saluda desde el mostrador. Cuando le preguntas por rumores, se rasca la barbilla y dice: 'Pues se oye que Adabra Gwynn, la comadrona que vive en el viejo molino de la Colina del Resentimiento, no ha venido al pueblo a por suministros. La gente empieza a preocuparse'. ¿Qué hacéis?"
+*   **Lógica del Experto en Narrativa (cont. NUEVO)**: "Ahora que sé qué está pasando, ¿alguno de los compañeros de IA diría algo? Voy a consultarlo".
+*   **Uso de Herramienta de Compañero (Paso C)**: El `narrativeExpertTool` invoca a `companionExpert` para Elara y Merryl con el contexto "El jugador está preguntando por rumores a Elmar Barthen".
+*   **Respuesta de la Herramienta (Paso C)**: `companionExpert` devuelve que Elara (cautelosa) permanece en silencio, pero Merryl (curioso) podría decir algo. Devuelve: `{ characterId: "3", action: "Merryl mira con curiosidad los objetos más brillantes de la tienda." }`.
+*   **Salida del Experto en Narrativa**: Con toda esta información, el `narrativeExpertTool` genera la narración completa, incluyendo la acción del compañero, y se la devuelve a la coordinadora.
+    > **Narración generada**: "Entráis en Suministros Barthen, un local abarrotado de mercancías. Un humano delgado de unos cincuenta años, Elmar Barthen, os saluda desde el mostrador. Mientras Galador pregunta por rumores, Merryl mira con curiosidad los objetos más brillantes de la tienda. Elmar se rasca la barbilla y dice: 'Pues se oye que Adabra Gwynn, la comadrona que vive en el viejo molino de la Colina del Resentimiento, no ha venido al pueblo a por suministros. La gente empieza a preocuparse'. ¿Qué hacéis?"
 
 ---
 

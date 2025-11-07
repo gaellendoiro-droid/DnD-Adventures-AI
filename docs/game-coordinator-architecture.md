@@ -6,19 +6,19 @@ Este documento describe la arquitectura de la IA del juego, centrada en un módu
 
 ### Módulo Central de IA: `gameCoordinator`
 
-*   **Tipo**: **Módulo de IA (Flujo con Prompt)**
+*   **Tipo**: **Flujo Lógico (Función de TypeScript)**
 *   **Archivo**: `src/ai/flows/game-coordinator.ts`
-*   **Rol**: El cerebro central del Dungeon Master. Su única responsabilidad es analizar el estado actual del juego y la acción del jugador, y decidir qué herramienta experta es la más adecuada para manejar la situación.
+*   **Rol**: El cerebro central del Dungeon Master. Su única responsabilidad es analizar el estado actual del juego y la acción del jugador, y decidir qué herramienta experta es la más adecuada para manejar la situación. No es una IA, es un director de orquesta.
 *   **Input**:
     *   `playerAction`: La acción o el diálogo del jugador.
     *   `gameState`: El estado completo del juego (quién está en el grupo, dónde están, si están en combate, etc.).
-*   **Lógica Interna (Prompt)**:
+*   **Lógica Interna**:
     1.  Determina el contexto: ¿Es una pregunta fuera de personaje (`//`)? ¿Estamos en combate? ¿Es una acción narrativa?
     2.  Invoca a la herramienta experta apropiada para la tarea.
 *   **Herramientas que utilizará**:
-    *   `narrativeExpert`
-    *   `combatManagerTool`
-    *   `oocAssistant`
+    *   `narrativeExpert` (IA)
+    *   `combatManagerTool` (Herramienta Lógica)
+    *   `oocAssistant` (IA)
 
 ---
 
@@ -31,6 +31,10 @@ Estos módulos son "expertos" en tareas específicas. Algunos son IA con su prop
 *   **Archivo**: `src/ai/flows/narrative-expert.ts`
 *   **Rol**: El experto en **narración y exploración**.
 *   **Función**: Cuando la coordinadora lo llama, este se encarga de generar la historia, describir los resultados de las acciones de exploración y decidir si se inicia un combate. Su lógica interna se basa en un prompt detallado.
+*   **Herramientas que utiliza**:
+    *   `adventureLookupTool` (Herramienta de Búsqueda)
+    *   `dndApiLookupTool` (Herramienta de Búsqueda)
+    *   `companionExpert` (IA)
 
 #### Herramienta: `combatManagerTool`
 *   **Tipo**: **Herramienta Lógica (Tool)**
@@ -54,7 +58,7 @@ Estas son herramientas y funciones de apoyo utilizadas por los módulos principa
 *   **Tipo**: **Módulos de IA (Flujos con Prompt)**
 *   **Archivos**: `src/ai/tools/companion-expert.ts` y `src/ai/tools/enemy-tactician.ts`
 *   **Rol**: Son los "cerebros" para los compañeros de grupo y los enemigos, respectivamente.
-*   **Función**: Son invocados por el `combatManagerTool` durante el combate. Cada uno tiene su propio prompt para decidir la acción más lógica para el personaje o monstruo en su turno.
+*   **Función**: Son invocados por el `combatManagerTool` durante el combate, y ahora también por el `narrativeExpert` durante la exploración. Cada uno tiene su propio prompt para decidir la acción más lógica para el personaje o monstruo.
 
 #### Herramienta: `adventureLookupTool`
 *   **Tipo**: **Herramienta de Búsqueda (Función)**
