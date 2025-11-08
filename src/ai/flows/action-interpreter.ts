@@ -63,25 +63,45 @@ export const actionInterpreterFlow = ai.defineFlow(
     {
       name: 'actionInterpreterFlow',
       inputSchema: ActionInterpreterInputSchema,
-      outputSchema: ActionInterpreterOutputSchema,
+      outputSchema: z.object({
+        interpretation: ActionInterpreterOutputSchema,
+        debugLogs: z.array(z.string()),
+      }),
     },
     async (input) => {
+        const debugLogs: string[] = [];
         try {
-            const { output } = await actionInterpreterPrompt(input);
+            debugLogs.push(`ActionInterpreter Input: ${JSON.stringify(input)}`);
+            
+            const llmResponse = await actionInterpreterPrompt(input);
+            const output = llmResponse.output;
 
             if (!output) {
-                console.error("ActionInterpreter: CRITICAL - AI returned null output. Defaulting to 'narrate'.");
-                return { actionType: 'narrate' };
+                const msg = "ActionInterpreter: CRITICAL - AI returned null output. Defaulting to 'narrate'.";
+                console.error(msg);
+                debugLogs.push(msg);
+                return { interpretation: { actionType: 'narrate' }, debugLogs };
             }
-            return output;
+
+            debugLogs.push(`ActionInterpreter Raw Output: ${JSON.stringify(output)}`);
+
+            if (llmResponse.usage?.toolCalls?.length) {
+                llmResponse.usage.toolCalls.forEach(call => {
+                    debugLogs.push(`ActionInterpreter: Called tool '${call.tool}' with input ${JSON.stringify(call.input)}`);
+                });
+            }
+
+            return { interpretation: output, debugLogs };
 
         } catch (e: any) {
-            console.error(`ActionInterpreter: CRITICAL - Flow failed. Error: ${e.message}. Defaulting to 'narrate'.`);
-            return { actionType: 'narrate' };
+            const msg = `ActionInterpreter: CRITICAL - Flow failed. Error: ${e.message}. Defaulting to 'narrate'.`;
+            console.error(msg);
+            debugLogs.push(msg);
+            return { interpretation: { actionType: 'narrate' }, debugLogs };
         }
     }
 );
 
-export async function actionInterpreter(input: ActionInterpreterInput): Promise<ActionInterpreterOutput> {
+export async function actionInterpreter(input: ActionInterpreterInput): Promise<{interpretation: ActionInterpreterOutput, debugLogs: string[]}> {
     return actionInterpreterFlow(input);
 }

@@ -50,10 +50,11 @@ export const gameCoordinatorFlow = ai.defineFlow(
     // 2. Interpret Player Action
     const currentLocationData = adventureData.locations.find((l: any) => l.id === locationId);
     localLog("GameCoordinator: Calling ActionInterpreter...");
-    const interpretation = await actionInterpreter({
+    const { interpretation, debugLogs: interpreterLogs } = await actionInterpreter({
         playerAction,
         locationContext: JSON.stringify(currentLocationData),
     });
+    interpreterLogs.forEach(localLog);
     
     let newLocationId: string | null = null;
     let finalLocationData = currentLocationData;
