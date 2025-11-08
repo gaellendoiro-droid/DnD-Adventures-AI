@@ -20,7 +20,7 @@ const actionInterpreterPrompt = ai.definePrompt({
 **Directives:**
 1.  **Analyze the Player's Action:** Read the player's action carefully.
 2.  **Out-of-Character (OOC):** If the action starts with \`//\`, classify it as 'ooc'. The targetId is irrelevant.
-3.  **Movement (High Priority):** Check for explicit movement verbs (e.g., "ir", "vamos a", "dirigirse a", "viajar a"). If present, you MUST classify the action as 'move'. Compare the destination in the action to the \`exits\` in \`locationContext\`. Find the corresponding \`toLocationId\`. If you can't find a direct match, still classify as 'move' and let the next step handle the ambiguity.
+3.  **Movement (High Priority):** Check for explicit movement verbs (e.g., "ir", "vamos a", "dirigirse a", "viajar a", "entramos en"). If present, you MUST classify the action as 'move'. Compare the destination in the action to the \`description\` of the \`exits\` in the \`locationContext\`. Find the corresponding exit and use its exact \`toLocationId\` as the 'targetId'. This is critical.
 4.  **Interaction (CRITICAL):** If the action is not a clear movement, evaluate it as an interaction.
     *   Your primary goal is to find the **most specific 'interactionResults.action' string** from the 'interactables' in the 'locationContext' that matches the player's intent.
     *   If the player's action is specific (e.g., "leo la misión de la colina del resentimiento", "¿qué pone sobre los enanos?"), find the corresponding interaction action in the JSON and use its **exact string value** as the 'targetId'.
@@ -37,7 +37,7 @@ const actionInterpreterPrompt = ai.definePrompt({
 **Player Action:**
 "{{{playerAction}}}"
 
-Determine the player's intent. If it is an interaction, you MUST find the most specific 'interactionResults.action' from the context and use its exact string as the targetId. If the interaction is generic, use the first available interaction action.
+Determine the player's intent. If it is a movement action, you MUST use the 'toLocationId' from the exits context as the targetId. If it is an interaction, you MUST find the most specific 'interactionResults.action' from the context and use its exact string as the targetId. If the interaction is generic, use the first available interaction action.
 `,
 });
 
