@@ -85,9 +85,14 @@ export const actionInterpreterFlow = ai.defineFlow(
 
             debugLogs.push(`ActionInterpreter Raw Output: ${JSON.stringify(output)}`);
 
-            if (llmResponse.usage?.toolCalls?.length) {
-                llmResponse.usage.toolCalls.forEach(call => {
-                    debugLogs.push(`ActionInterpreter: Called tool '${call.tool}' with input ${JSON.stringify(call.input)}`);
+            if (llmResponse.history?.length) {
+                llmResponse.history.forEach(turn => {
+                    if (turn.role === 'tool_response' && turn.content[0].toolResponse.name === 'locationLookupTool') {
+                        const toolOutput = turn.content[0].toolResponse.output;
+                         if (toolOutput === null || toolOutput === 'null') {
+                             debugLogs.push(`ActionInterpreter: locationLookupTool was called and returned null. Proceeding with non-movement logic.`);
+                         }
+                    }
                 });
             }
 
