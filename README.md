@@ -57,4 +57,4 @@ El cerebro de la aplicación es un sistema modular construido con Genkit, orques
     *   **`combatManagerTool` y `enemyTacticianTool`:** Gestionan la lógica y las decisiones tácticas de los enemigos en combate.
     *   **Herramientas de Búsqueda y Lógica:** Varias herramientas (`adventureLookupTool`, `diceRollerTool`) proporcionan a los flujos de IA la capacidad de consultar datos de la aventura y realizar acciones como tirar dados.
 
-Este diseño modular permite depurar y mejorar cada parte del sistema de forma aislada, garantizando un comportamiento predecible y robusto. Para una descripción más detallada, consulta `docs/game-coordinator-architecture.md`.
+Este diseño modular permite depurar y mejorar cada parte del sistema de forma aislada, garantizando un comportamiento predecible y robusto. Para una descripción más detallada, consulta `docs/ia-architecture.md`.
