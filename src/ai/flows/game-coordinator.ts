@@ -49,10 +49,20 @@ export const gameCoordinatorFlow = ai.defineFlow(
 
     // 2. Interpret Player Action
     const currentLocationData = adventureData.locations.find((l: any) => l.id === locationId);
+    
+    // Create a lean context object for the interpreter to avoid passing unnecessary/sensitive data.
+    const locationContextForInterpreter = {
+        id: currentLocationData.id,
+        title: currentLocationData.title,
+        exits: currentLocationData.exits,
+        interactables: currentLocationData.interactables,
+        entitiesPresent: currentLocationData.entitiesPresent,
+    };
+
     localLog("GameCoordinator: Calling ActionInterpreter...");
     const { interpretation, debugLogs: interpreterLogs } = await actionInterpreter({
         playerAction,
-        locationContext: JSON.stringify(currentLocationData),
+        locationContext: JSON.stringify(locationContextForInterpreter),
     });
     interpreterLogs.forEach(localLog);
     
@@ -107,7 +117,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 playerAction: input.playerAction,
                 partySummary: partySummary,
                 locationId: locationId,
-                locationContext: JSON.stringify(finalLocationData),
+                locationContext: JSON.stringify(finalLocationData), // The expert gets the full context
                 conversationHistory: input.conversationHistory,
                 log: localLog,
                 interpretedAction: JSON.stringify(interpretation),
