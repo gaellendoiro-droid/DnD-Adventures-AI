@@ -22,7 +22,22 @@ Esta es la mejora más solicitada y de mayor impacto, surgida directamente de la
 
 ---
 
-### 2. Sistema de Combate Más Profundo
+### 2. Sistema de Inicio de Combate Dinámico (Alta Prioridad)
+
+*   **Problema Actual:** El combate solo se inicia si el jugador declara explícitamente un ataque (`actionType: "attack"`). El juego no reacciona si una acción narrativa (como insultar a un guardia o robar un objeto a la vista) debería lógicamente provocar un enfrentamiento.
+
+*   **Mejora Propuesta:**
+    *   **Paso de "Evaluación de Hostilidad":** Añadir un nuevo paso al final del flujo del `gameCoordinator`.
+    *   **Lógica de Evaluación:** Después de que la narración y las reacciones de los compañeros se hayan generado, el sistema evaluaría el estado del mundo:
+        1.  **Revisión de Entidades Presentes:** Comprobaría la disposición (`disposition: 'hostile' | 'neutral'`) de todas las entidades en la ubicación actual. Si hay una entidad intrínsecamente hostil (como un monstruo guardián), el combate comenzaría automáticamente.
+        2.  **Análisis de Reacción:** Para entidades neutrales, se podría invocar un micro-flujo de IA (`reactionAssessor`) que evalúe si la acción del jugador ha cruzado un límite. Por ejemplo, si el jugador realiza una acción provocadora, este asesor determinaría si la entidad se vuelve hostil.
+    *   **Inicio Automático del Combate:** Si la evaluación resulta positiva, el `gameCoordinator` iniciaría el modo de combate (calcularía iniciativa, etc.), creando una experiencia mucho más dinámica.
+
+*   **Impacto:** Haría que el mundo se sintiera más vivo y peligroso. Las acciones de los jugadores tendrían consecuencias reales e inmediatas, aumentando la inmersión y la tensión del juego.
+
+---
+
+### 3. Sistema de Combate Más Profundo
 
 *   **Tiradas de Ataque y Daño del Jugador:** Implementar una forma para que el jugador pueda declarar una acción de ataque y que la interfaz le pida las tiradas de dados correspondientes, en lugar de solo describir la acción en texto.
 *   **Gestión de Efectos y Condiciones:** Añadir lógica para manejar estados como "envenenado", "aturdido", "agarrado", que afecten a las acciones y estadísticas de los combatientes.
@@ -30,7 +45,7 @@ Esta es la mejora más solicitada y de mayor impacto, surgida directamente de la
 
 ---
 
-### 3. Sistema de Progresión de Personajes
+### 4. Sistema de Progresión de Personajes
 
 *   **Sistema de Experiencia (XP):**
     *   **Propuesta:** La IA del DM debería otorgar puntos de experiencia a los jugadores al superar combates, resolver misiones, explorar nuevas áreas o tener interacciones ingeniosas. Esto se podría reflejar en un campo `xp` en la ficha del personaje.
@@ -46,7 +61,7 @@ Esta es la mejora más solicitada y de mayor impacto, surgida directamente de la
 
 ---
 
-### 4. Gestión de Inventario y Economía del Juego
+### 5. Gestión de Inventario y Economía del Juego
 
 *   **Comercio con PNJs:**
     *   **Propuesta:** Mejorar la interacción con los comerciantes (como Elmar Barthen). Cuando un jugador dice "quiero comprar una cuerda", la IA debería entender la intención, consultar el inventario del comerciante, mostrar el precio y, si el jugador acepta, realizar la transacción actualizando el oro y el inventario de ambos. Esto requeriría que el `narrativeExpert` pudiera modificar el estado del juego.
@@ -58,14 +73,14 @@ Esta es la mejora más solicitada y de mayor impacto, surgida directamente de la
 
 ---
 
-### 5. Persistencia de Datos y Gestión de Partidas
+### 6. Persistencia de Datos y Gestión de Partidas
 
 *   **Base de Datos Real:** Reemplazar el sistema de guardado y carga mediante archivos JSON por una base de datos (como Firestore) para permitir un guardado automático y continuo.
 *   **Múltiples Partidas:** Permitir a los usuarios tener varias partidas guardadas simultáneamente.
 
 ---
 
-### 6. Enriquecimiento de la Interfaz y la Experiencia
+### 7. Enriquecimiento de la Interfaz y la Experiencia
 
 *   **Mapa Visual Interactivo:** En lugar de solo texto, mostrar un mapa simple de la región o de la ubicación actual, donde se destaquen las salidas y puntos de interés.
 *   **Mejoras en la Ficha de Personaje:** Hacerla más interactiva, permitiendo usar objetos o lanzar conjuros directamente desde ella.
@@ -76,7 +91,7 @@ Esta es la mejora más solicitada y de mayor impacto, surgida directamente de la
 
 ---
 
-### 7. Calidad y Robustez de la IA
+### 8. Calidad y Robustez de la IA
 
 *   **Implementación de un Sistema RAG (Retrieval-Augmented Generation):**
     *   **Problema Actual:** La IA depende de la herramienta `adventureLookupTool` para buscar en el JSON, lo que requiere consultas precisas por nombre o ID. Es un sistema rígido.
