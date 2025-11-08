@@ -74,6 +74,17 @@ export const actionInterpreterFlow = ai.defineFlow(
             debugLogs.push(`ActionInterpreter Input: ${JSON.stringify(input)}`);
             
             const llmResponse = await actionInterpreterPrompt(input);
+            
+            // Log tool output for debugging
+            if (llmResponse.history?.length) {
+                llmResponse.history.forEach(turn => {
+                    if (turn.role === 'tool_response' && turn.content[0].toolResponse?.name === 'locationLookupTool') {
+                         const toolOutput = turn.content[0].toolResponse.output;
+                         debugLogs.push(`ActionInterpreter: locationLookupTool was called and returned: ${JSON.stringify(toolOutput)}`);
+                    }
+                });
+            }
+
             let output = llmResponse.output;
 
             if (!output) {
@@ -87,7 +98,7 @@ export const actionInterpreterFlow = ai.defineFlow(
                         if (turn.role === 'tool_response' && turn.content[0].toolResponse?.name === 'locationLookupTool') {
                              const toolOutput = turn.content[0].toolResponse.output;
                              if (toolOutput === null || toolOutput === 'null') {
-                                 debugLogs.push(`ActionInterpreter: locationLookupTool was called and returned null, which likely caused the failure. Proceeding with non-movement logic.`);
+                                 debugLogs.push(`ActionInterpreter: locationLookupTool returned null, which likely caused the failure. Proceeding with non-movement logic.`);
                              }
                         }
                     });
