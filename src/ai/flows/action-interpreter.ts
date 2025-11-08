@@ -71,7 +71,7 @@ export const actionInterpreterFlow = ai.defineFlow(
     async (input) => {
         const debugLogs: string[] = [];
         try {
-            debugLogs.push(`ActionInterpreter Input: ${JSON.stringify(input)}`);
+            // debugLogs.push(`ActionInterpreter Input: ${JSON.stringify(input)}`);
             
             const llmResponse = await actionInterpreterPrompt(input);
             
