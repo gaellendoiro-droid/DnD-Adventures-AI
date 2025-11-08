@@ -92,8 +92,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
                     throw new Error(`Could not find data for location: ${locationId}. The adventure file might be missing this entry.`);
                 }
             }
-            localLog(`GameCoordinator: Action is 'move', proceeding to Narrative Expert.`);
-            // Fall through to narrate the arrival
+            // INTENTIONAL FALL-THROUGH: After moving, we always narrate the result.
         
         case 'interact':
         case 'narrate':
