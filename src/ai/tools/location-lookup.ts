@@ -51,7 +51,7 @@ export const locationLookupTool = ai.defineTool(
 
     // 3. Fallback for partial matches on locations if no exact match is found
      const partialLocationMatch = locations.find((loc: any) => 
-        loc.name && loc.name.toLowerCase().includes(normalizedQuery)
+        loc.name && (loc.name.toLowerCase().includes(normalizedQuery) || normalizedQuery.includes(loc.name.toLowerCase()))
      );
      if (partialLocationMatch) {
         return JSON.stringify(partialLocationMatch);
