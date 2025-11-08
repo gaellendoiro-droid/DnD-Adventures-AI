@@ -15,7 +15,7 @@ export const locationLookupTool = ai.defineTool(
     inputSchema: z.object({
         query: z.string().describe("The name of the location or unique entity to find. E.g., 'Colina del Resentimiento' or 'Adabra Gwynn'."),
     }),
-    outputSchema: z.string().describe('A JSON string containing the full location object if found, or null if not found.'),
+    outputSchema: z.string().nullable().describe('A JSON string containing the full location object if found, or null if not found.'),
   },
   async ({ query }) => {
     const adventureData = await getAdventureData();
@@ -30,7 +30,7 @@ export const locationLookupTool = ai.defineTool(
     // 1. Direct search for a location by exact name or ID match.
     const directLocationMatch = locations.find((loc: any) => 
         (loc.id && loc.id.toLowerCase() === normalizedQuery) || 
-        (loc.name && loc.name.toLowerCase() === normalizedQuery)
+        (loc.title && loc.title.toLowerCase() === normalizedQuery)
     );
     if (directLocationMatch) {
       return JSON.stringify(directLocationMatch);
@@ -49,7 +49,7 @@ export const locationLookupTool = ai.defineTool(
 
     // 3. Fallback to partial match on locations if no exact match is found.
     const partialLocationMatch = locations.find((loc: any) => 
-       loc.name && (loc.name.toLowerCase().includes(normalizedQuery) || normalizedQuery.includes(loc.name.toLowerCase()))
+       loc.title && (loc.title.toLowerCase().includes(normalizedQuery) || normalizedQuery.includes(loc.title.toLowerCase()))
     );
     if (partialLocationMatch) {
        return JSON.stringify(partialLocationMatch);
