@@ -1,4 +1,4 @@
-# D&D Adventures AI (v0.4.0)
+# D&D Adventures AI (v0.4.5)
 
 Este proyecto es una aplicación web interactiva que simula una partida de Dungeons & Dragons 5ª Edición. Utiliza un Dungeon Master (DM) impulsado por Inteligencia Artificial para crear una experiencia de juego de rol conversacional y dinámica, todo en español. Los jugadores pueden explorar un mundo, interactuar con personajes, tomar decisiones y participar en combates, todo ello narrado y gestionado por la IA.
 
@@ -44,13 +44,17 @@ Para poner en marcha el proyecto en un entorno de desarrollo, sigue estos pasos:
 
 ## Arquitectura de la IA
 
-El cerebro de la aplicación es un sistema modular construido con Genkit, orquestado por un flujo principal llamado `gameCoordinator`.
+El cerebro de la aplicación es un sistema modular construido con Genkit, orquestado por un flujo lógico principal llamado `gameCoordinator`. La clave de su funcionamiento es la especialización de tareas.
 
-1.  **`gameCoordinator` (El Director):** Es la función principal que se ejecuta en cada turno. No es una IA en sí, sino el código que dirige el flujo.
-2.  **`actionInterpreter` (El Intérprete):** Su única misión es recibir la acción del jugador en texto libre (ej: "voy a la taberna") y traducirla a una acción estructurada que el código pueda entender (ej: `{ actionType: "move", targetId: "posada-rocacolina" }`).
-3.  **`narrativeExpert` (El Narrador):** Una vez que el `gameCoordinator` conoce la intención, llama a este experto para que genere la descripción de la escena, el resultado de una acción o la llegada a un nuevo lugar.
-4.  **`companionExpertTool` (El Alma de los Compañeros):** Genera las reacciones, diálogos o acciones de los personajes controlados por la IA, basándose en su personalidad y el contexto del turno.
-5.  **`combatManagerTool` y `enemyTacticianTool` (Los Estrategas):** Cuando se inicia un combate, estos módulos toman el control para gestionar los turnos de los enemigos y decidir sus acciones tácticas.
-6.  **Herramientas de Apoyo:** Varias herramientas lógicas y de búsqueda (`adventureLookupTool`, `diceRollerTool`, etc.) proporcionan a los flujos de IA la capacidad de consultar datos de la aventura y realizar acciones como tirar dados.
+1.  **`gameCoordinator` (El Director Lógico):** No es una IA, sino una función de TypeScript que dirige el flujo de cada turno. Recibe la acción del jugador e invoca a los expertos necesarios para procesarla. Su lógica ha sido optimizada para ejecutar cada paso una única vez, evitando bucles y llamadas duplicadas.
 
-Para una descripción más detallada del flujo, consulta `docs/architecture-flow.md`.
+2.  **`actionInterpreter` (El Traductor de Intención):** Es un flujo de IA cuya única misión es convertir el texto libre del jugador (ej: "voy a la taberna y hablo con el posadero") en una acción estructurada que el código pueda entender (ej: `{ actionType: "move", targetId: "posada-rocacolina" }`). Para los movimientos a lugares lejanos, utiliza una herramienta de búsqueda interna (`locationLookupTool`) que ha sido robustecida para encontrar destinos de forma flexible.
+
+3.  **`narrativeExpert` (El Narrador):** Una vez que el `gameCoordinator` tiene la intención clara, llama a este experto para que genere la descripción de la escena. Este flujo se encarga de crear la historia, describir los lugares y narrar el resultado de las acciones del jugador, basándose en la información de la aventura y la acción interpretada.
+
+4.  **Expertos y Herramientas de Apoyo:**
+    *   **`companionExpertTool`:** Genera las reacciones, diálogos o acciones de los personajes controlados por la IA.
+    *   **`combatManagerTool` y `enemyTacticianTool`:** Gestionan la lógica y las decisiones tácticas de los enemigos en combate.
+    *   **Herramientas de Búsqueda y Lógica:** Varias herramientas (`adventureLookupTool`, `diceRollerTool`) proporcionan a los flujos de IA la capacidad de consultar datos de la aventura y realizar acciones como tirar dados.
+
+Este diseño modular permite depurar y mejorar cada parte del sistema de forma aislada, garantizando un comportamiento predecible y robusto. Para una descripción más detallada, consulta `docs/game-coordinator-architecture.md`.

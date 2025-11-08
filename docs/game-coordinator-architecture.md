@@ -11,14 +11,14 @@ Este documento describe la arquitectura de la IA del juego, centrada en un `game
 *   **Rol**: El **director de orquesta** del Dungeon Master. No es una IA, sino el código principal que gestiona el estado del juego y decide qué hacer a continuación.
 *   **Lógica Interna**:
     1.  Recibe la acción del jugador.
-    2.  **Llama al `actionInterpreter`** para obtener una intención estructurada (ej: `{ "actionType": "move", "targetId": "posada-rocacolina" }`).
+    2.  **Llama al `actionInterpreter`** para obtener una intención estructurada (ej: `{ "actionType": "move", "targetId": "posada-rocacolina" }`). Este paso es crucial y ahora es muy robusto gracias a la mejora de sus herramientas internas.
     3.  **Actúa según la intención**:
-        *   Si es `move`, actualiza el estado (`locationId`) y luego llama al `narrativeExpert` para describir la nueva escena.
-        *   Si es `interact` o `narrate`, llama directamente al `narrativeExpert` con el contexto actual para que describa el resultado.
-        *   Si es `attack`, inicia el modo de combate (calcula iniciativa, etc.).
-        *   Si es `ooc` (fuera de personaje), llama al `oocAssistant`.
-    4.  Tras la narración principal, llama al `companionExpertTool` en un bucle para generar las reacciones de cada compañero de IA.
-    5.  Si está en modo combate, delega los turnos de los PNJ al `combatManagerTool`.
+        *   Si es `move`, actualiza el estado (`locationId`) antes de proceder.
+        *   Si es `ooc` (fuera de personaje), llama al `oocAssistant` y termina el turno.
+    4.  **Llama al `narrativeExpert` (una sola vez)**: Con la intención y el contexto claros, invoca al narrador para que describa la escena y el resultado de la acción. Este flujo ha sido optimizado para evitar ejecuciones duplicadas.
+    5.  **Gestiona Reacciones**: Tras la narración principal, llama al `companionExpertTool` en un bucle para generar las reacciones de cada compañero de IA (si están activadas).
+    6.  **Gestiona el Combate**: Si está en modo combate, delega los turnos de los PNJ al `combatManagerTool`.
+    7.  **Devuelve el Resultado Final**: Empaqueta todos los mensajes y cambios de estado y los devuelve al cliente.
 
 ---
 
@@ -27,10 +27,10 @@ Este documento describe la arquitectura de la IA del juego, centrada en un `game
 Estos módulos son "expertos" en tareas específicas, invocados por el `gameCoordinator`.
 
 #### Herramienta: `actionInterpreter`
-*   **Tipo**: **Módulo de IA (Flujo con Prompt)**
+*   **Tipo**: **Módulo de IA (Flujo con Prompt y Herramientas)**
 *   **Archivo**: `src/ai/flows/action-interpreter.ts`
 *   **Rol**: El **traductor de intención**. Su única tarea es convertir el texto libre del jugador en una acción estructurada.
-*   **Función**: Recibe el texto del jugador y el contexto de la ubicación. Devuelve un objeto JSON simple que clasifica la acción (`move`, `interact`, `attack`, `ooc`, `narrate`) e identifica el objetivo. **No narra nada.**
+*   **Función**: Recibe el texto del jugador y el contexto de la ubicación. Utiliza la `locationLookupTool` para resolver destinos de viaje. Devuelve un objeto JSON simple que clasifica la acción (`move`, `interact`, `attack`, `ooc`, `narrate`). **No narra nada.**
 
 #### Herramienta: `narrativeExpert`
 *   **Tipo**: **Módulo de IA (Flujo con Prompt)**
@@ -38,50 +38,8 @@ Estos módulos son "expertos" en tareas específicas, invocados por el `gameCoor
 *   **Rol**: El experto en **narración y descripción**.
 *   **Función**: Es invocado por el `gameCoordinator` después de que la intención ya ha sido interpretada. Describe la escena, el resultado de una interacción o la llegada a un nuevo lugar. Su `prompt` es simple: solo debe narrar.
 
-#### Herramienta: `combatManagerTool`
-*   **Tipo**: **Herramienta de IA (con Lógica Interna)**
-*   **Archivo**: `src/ai/tools/combat-manager.ts`
-*   **Rol**: El **gestor de una ronda de combate de PNJ**.
-*   **Función**: Cuando el `gameCoordinator` lo invoca durante el combate, esta herramienta ejecuta en bucle los turnos de los PNJ (compañeros y enemigos) hasta que le toca a un jugador humano o el combate termina. Para ello, invoca a su vez al `enemyTacticianTool` y al `companionExpertTool`.
-
-#### Herramienta: `oocAssistant`
-*   **Tipo**: **Módulo de IA (Flujo con Prompt)**
-*   **Archivo**: `src/ai/flows/ooc-assistant.ts`
-*   **Rol**: El experto en **reglas y preguntas fuera de personaje** (OOC).
-*   **Función**: Responde a las preguntas del jugador que empiezan por `//`.
-
----
-
-### Sub-Expertos y Herramientas de Apoyo
-
-Estas son herramientas más pequeñas que los módulos principales utilizan para obtener información o realizar tareas específicas.
-
-#### Herramienta: `companionExpertTool`
-*   **Tipo**: **Herramienta de IA**
-*   **Archivo**: `src/ai/tools/companion-expert.ts`
-*   **Rol**: El "cerebro" para un compañero de grupo controlado por la IA.
-*   **Función**: Decide la acción o diálogo para un compañero basándose en su personalidad y el contexto. Es invocado por el `gameCoordinator` (en exploración) o el `combatManagerTool` (en combate).
-
-#### Herramienta: `enemyTacticianTool`
-*   **Tipo**: **Herramienta de IA**
-*   **Archivo**: `src/ai/tools/enemy-tactician.ts`
-*   **Rol**: El "cerebro" táctico para los enemigos en combate.
-*   **Función**: Invocado por el `combatManagerTool`. Decide la acción de un enemigo durante su turno.
-
-#### Herramienta: `adventureLookupTool`
+#### Herramienta: `locationLookupTool`
 *   **Tipo**: **Herramienta de Búsqueda (Lógica)**
-*   **Archivo**: `src/ai/tools/adventure-lookup.ts`
-*   **Rol**: La **enciclopedia de la aventura**.
-*   **Función**: Busca información sobre lugares, personajes, monstruos u objetos en el archivo JSON de la aventura.
-
-#### Herramienta: `dndApiLookupTool`
-*   **Tipo**: **Herramienta de Búsqueda (API Externa)**
-*   **Archivo**: `src/ai/tools/dnd-api-lookup.ts`
-*   **Rol**: El **manual de reglas de D&D 5e**.
-*   **Función**: Busca información general sobre reglas, hechizos, etc., en la API pública `dnd5eapi.co`.
-
-#### Herramienta: `diceRollerTool`
-*   **Tipo**: **Herramienta Lógica**
-*   **Archivo**: `src/ai/tools/dice-roller.ts`
-*   **Rol**: El **motor de dados** del juego.
-*   **Función**: Recibe una notación de dados (ej: "1d20+4") y devuelve el resultado numérico.
+*   **Archivo**: `src/ai/tools/location-lookup.ts`
+*   **Rol**: El **GPS de la aventura**.
+*   **Función**: Busca de forma inteligente una ubicación en la aventura, ya sea por su nombre, por una entidad que contiene, o por una coincidencia parcial. Es la herramienta clave que permite al `actionInterpreter` entender movimientos a lugares lejanos.
