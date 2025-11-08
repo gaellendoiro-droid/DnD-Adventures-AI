@@ -42,12 +42,10 @@ export const gameCoordinatorFlow = ai.defineFlow(
     
     const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
     
-    // 1. Handle Combat mode - NOT IMPLEMENTED YET, PASS THROUGH
     if (inCombat) {
         localLog("GameCoordinator: Combat mode detected, but not implemented. Passing through.");
     }
 
-    // 2. Interpret Player Action
     const currentLocationData = adventureData.locations.find((l: any) => l.id === locationId);
     
     const locationContextForInterpreter = {
@@ -65,7 +63,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
     });
     interpreterLogs.forEach(localLog);
     
-    // Handle OOC actions first, as they stop the main flow.
     if (interpretation.actionType === 'ooc') {
         localLog("GameCoordinator: OOC query detected. Calling OOC Assistant...");
         const oocResult = await oocAssistant({
@@ -79,23 +76,21 @@ export const gameCoordinatorFlow = ai.defineFlow(
 
     let newLocationId: string | null = null;
     let finalLocationData = currentLocationData;
-    
-    // 3. Process movement
+
+    // Handle movement BEFORE calling the narrative expert
     if (interpretation.actionType === 'move' && interpretation.targetId) {
-        localLog(`GameCoordinator: Movement interpreted to '${interpretation.targetId}'.`);
+        localLog(`GameCoordinator: Movement interpreted to '${interpretation.targetId}'. Updating location.`);
         newLocationId = interpretation.targetId;
         locationId = newLocationId; // Update locationId for the current turn's context
         finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
-            if (!finalLocationData) {
+        if (!finalLocationData) {
             localLog(`GameCoordinator: CRITICAL - Failed to find location data for new locationId '${locationId}'.`);
             throw new Error(`Could not find data for location: ${locationId}. The adventure file might be missing this entry.`);
         }
     }
     
-    localLog(`GameCoordinator: Action is '${interpretation.actionType}', proceeding to Narrative Expert.`);
+    localLog("GameCoordinator: START Narrative Generation.");
     
-    // 4. Generate Narrative (common for 'move', 'interact', 'attack', 'narrate')
-    localLog("GameCoordinator: Preparing to call Narrative Expert...");
     const partySummary = input.party.map(c => ({
         id: c.id,
         name: c.name,
@@ -110,7 +105,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         playerAction: input.playerAction,
         partySummary: partySummary,
         locationId: locationId,
-        locationContext: JSON.stringify(finalLocationData), // The expert gets the full context
+        locationContext: JSON.stringify(finalLocationData),
         conversationHistory: input.conversationHistory,
         log: localLog,
         interpretedAction: JSON.stringify(interpretation),
@@ -119,6 +114,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
     localLog(`GameCoordinator: Calling NarrativeExpert for location '${locationId}'...`);
     const narrativeResult = await narrativeExpert(narrativeInput);
     (narrativeResult.debugLogs || []).forEach(localLog);
+
+    let accumulatedHistoryForCompanions = "";
 
     if (narrativeResult.dmNarration) {
         localLog("GameCoordinator: Converting DM narration to HTML...");
@@ -129,27 +126,25 @@ export const gameCoordinatorFlow = ai.defineFlow(
             content: html,
             originalContent: narrativeResult.dmNarration,
         });
+        accumulatedHistoryForCompanions = narrativeResult.dmNarration;
     }
 
-    // 5. Generate Companion Reactions (TEMPORARILY DISABLED FOR DEBUGGING)
-    localLog(`GameCoordinator: Companion reactions are temporarily disabled for debugging.`);
-    /*
+    localLog("GameCoordinator: END Narrative Generation.");
+    
+    localLog("GameCoordinator: START Companion Reactions.");
     const aiCompanions = party.filter(p => p.controlledBy === 'AI');
     localLog(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
     
-    let accumulatedHistory = narrativeResult.dmNarration;
-
     for (const companion of aiCompanions) {
         const companionSummary = partySummary.find(p => p.id === companion.id)!;
         localLog(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
         
-        const companionContext = `The player just did this: "${playerAction}"\n\nThe Dungeon Master described the result as: "${accumulatedHistory}"`;
+        const companionContext = `The player just did this: "${playerAction}"\n\nThe Dungeon Master described the result as: "${accumulatedHistoryForCompanions}"`;
         
         const companionResult = await companionExpertTool({
             characterSummary: companionSummary,
             context: companionContext,
             inCombat: false,
-            enemies: [], 
             partySummary: partySummary,
         });
 
@@ -161,12 +156,12 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 characterColor: companion.color,
                 content: companionResult.action,
             });
-            accumulatedHistory += `\n${companion.name}: ${companionResult.action}`;
+            accumulatedHistoryForCompanions += `\n${companion.name}: ${companionResult.action}`;
         }
     }
-    */
+    localLog("GameCoordinator: END Companion Reactions.");
 
-    // 6. Finalize Turn
+
     let updatedParty = input.party;
     if (narrativeResult.updatedCharacterStats) {
         const player = input.party.find(c => c.controlledBy === 'Player');
@@ -181,7 +176,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         }
     }
     
-    localLog(`GameCoordinator: Turn finished successfully. Current location: ${locationId}`);
+    localLog(`GameCoordinator: Turn finished successfully. Final location: ${locationId}`);
     return {
         messages,
         debugLogs,
