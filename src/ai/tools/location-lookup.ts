@@ -27,7 +27,7 @@ export const locationLookupTool = ai.defineTool(
     const entities = adventureData.entities || [];
     const normalizedQuery = query.toLowerCase().trim();
 
-    // 1. Direct search for a location by name or ID.
+    // 1. Direct search for a location by exact name or ID match.
     const directLocationMatch = locations.find((loc: any) => 
         (loc.id && loc.id.toLowerCase() === normalizedQuery) || 
         (loc.name && loc.name.toLowerCase() === normalizedQuery)
@@ -36,11 +36,9 @@ export const locationLookupTool = ai.defineTool(
       return JSON.stringify(directLocationMatch);
     }
 
-    // 2. Search for a unique, named entity.
+    // 2. Search for a unique, named entity and return its location.
     const entityMatch = entities.find((ent: any) => ent.name && ent.name.toLowerCase() === normalizedQuery);
-    
     if (entityMatch && entityMatch.id) {
-        // If entity is found, now find which location it's in.
         const locationOfEntity = locations.find((loc: any) => 
             loc.entitiesPresent && loc.entitiesPresent.includes(entityMatch.id)
         );
@@ -49,13 +47,24 @@ export const locationLookupTool = ai.defineTool(
         }
     }
 
-    // 3. Fallback for partial matches on locations if no exact match is found
-     const partialLocationMatch = locations.find((loc: any) => 
-        loc.name && (loc.name.toLowerCase().includes(normalizedQuery) || normalizedQuery.includes(loc.name.toLowerCase()))
-     );
-     if (partialLocationMatch) {
-        return JSON.stringify(partialLocationMatch);
-     }
+    // 3. Fallback to partial match on locations if no exact match is found.
+    const partialLocationMatch = locations.find((loc: any) => 
+       loc.name && (loc.name.toLowerCase().includes(normalizedQuery) || normalizedQuery.includes(loc.name.toLowerCase()))
+    );
+    if (partialLocationMatch) {
+       return JSON.stringify(partialLocationMatch);
+    }
+
+    // 4. Fallback to partial match on entities if still no match.
+    const partialEntityMatch = entities.find((ent: any) => ent.name && (ent.name.toLowerCase().includes(normalizedQuery) || normalizedQuery.includes(ent.name.toLowerCase())));
+    if (partialEntityMatch && partialEntityMatch.id) {
+        const locationOfEntity = locations.find((loc: any) => 
+            loc.entitiesPresent && loc.entitiesPresent.includes(partialEntityMatch.id)
+        );
+        if (locationOfEntity) {
+            return JSON.stringify(locationOfEntity);
+        }
+    }
     
     return null;
   }
