@@ -94,7 +94,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
             }
             localLog(`GameCoordinator: Action is 'move', proceeding to Narrative Expert.`);
             // Fall through to narrate the arrival
-            break; // <--- THIS WAS THE MISSING PIECE!
         
         case 'interact':
         case 'narrate':
