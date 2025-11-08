@@ -74,27 +74,29 @@ export const actionInterpreterFlow = ai.defineFlow(
             debugLogs.push(`ActionInterpreter Input: ${JSON.stringify(input)}`);
             
             const llmResponse = await actionInterpreterPrompt(input);
-            const output = llmResponse.output;
+            let output = llmResponse.output;
 
             if (!output) {
-                const msg = "ActionInterpreter: CRITICAL - AI returned null output. Defaulting to 'narrate'.";
+                const msg = "ActionInterpreter: CRITICAL - AI returned null output. This can happen if a tool fails or returns an unexpected type. Defaulting to 'narrate'.";
                 console.error(msg);
                 debugLogs.push(msg);
-                return { interpretation: { actionType: 'narrate' }, debugLogs };
+
+                // Check tool history for clues
+                if (llmResponse.history?.length) {
+                    llmResponse.history.forEach(turn => {
+                        if (turn.role === 'tool_response' && turn.content[0].toolResponse?.name === 'locationLookupTool') {
+                             const toolOutput = turn.content[0].toolResponse.output;
+                             if (toolOutput === null || toolOutput === 'null') {
+                                 debugLogs.push(`ActionInterpreter: locationLookupTool was called and returned null, which likely caused the failure. Proceeding with non-movement logic.`);
+                             }
+                        }
+                    });
+                }
+
+                output = { actionType: 'narrate' };
             }
 
             debugLogs.push(`ActionInterpreter Raw Output: ${JSON.stringify(output)}`);
-
-            if (llmResponse.history?.length) {
-                llmResponse.history.forEach(turn => {
-                    if (turn.role === 'tool_response' && turn.content[0].toolResponse.name === 'locationLookupTool') {
-                        const toolOutput = turn.content[0].toolResponse.output;
-                         if (toolOutput === null || toolOutput === 'null') {
-                             debugLogs.push(`ActionInterpreter: locationLookupTool was called and returned null. Proceeding with non-movement logic.`);
-                         }
-                    }
-                });
-            }
 
             return { interpretation: output, debugLogs };
 
