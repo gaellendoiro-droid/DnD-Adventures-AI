@@ -20,14 +20,13 @@ const actionInterpreterPrompt = ai.definePrompt({
 **Directives:**
 1.  **Analyze the Player's Action:** Read the player's action carefully.
 2.  **Out-of-Character (OOC):** If the action starts with \`//\`, classify it as 'ooc'. The targetId is irrelevant.
-3.  **Movement:** Compare the action to the \`exits\` in \`locationContext\`. If it matches an intent to move, classify as 'move' and set 'targetId' to the destination's \`toLocationId\`.
-4.  **Attack:** If the action is an attack (e.g., "ataco al orco"), classify as 'attack' and set 'targetId' to the creature's name (e.g., "orco").
-5.  **Interaction (CRITICAL):**
-    *   Your primary goal for interactions is to find the **most specific 'interactionResults.action' string** from the 'interactables' in the 'locationContext' that matches the player's intent.
+3.  **Movement (High Priority):** Check for explicit movement verbs (e.g., "ir", "vamos a", "dirigirse a", "viajar a"). If present, you MUST classify the action as 'move'. Compare the destination in the action to the \`exits\` in \`locationContext\`. Find the corresponding \`toLocationId\`. If you can't find a direct match, still classify as 'move' and let the next step handle the ambiguity.
+4.  **Interaction (CRITICAL):** If the action is not a clear movement, evaluate it as an interaction.
+    *   Your primary goal is to find the **most specific 'interactionResults.action' string** from the 'interactables' in the 'locationContext' that matches the player's intent.
     *   If the player's action is specific (e.g., "leo la misión de la colina del resentimiento", "¿qué pone sobre los enanos?"), find the corresponding interaction action in the JSON and use its **exact string value** as the 'targetId'.
     *   If the player's action is generic (e.g., "miro el tablón", "hablo con el posadero"), you MUST find the most logical default action for that interactable. **This will almost always be the FIRST action listed in its 'interactionResults' array** (e.g., "Leer anuncios (General)").
     *   Once you've identified the specific action string, classify the action as 'interact' and set 'targetId' to that **exact string**.
-
+5.  **Attack:** If the action is an attack (e.g., "ataco al orco"), classify as 'attack' and set 'targetId' to the creature's name (e.g., "orco").
 6.  **Default to Narration:** If none of the above apply (e.g., "desenvaino mi espada", "miro a mi alrededor"), it's a general descriptive action. Classify it as 'narrate' and leave targetId null.
 
 **Location Context:**
