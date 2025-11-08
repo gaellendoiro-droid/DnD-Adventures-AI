@@ -131,7 +131,9 @@ export const gameCoordinatorFlow = ai.defineFlow(
         });
     }
 
-    // 5. Generate Companion Reactions
+    // 5. Generate Companion Reactions (TEMPORARILY DISABLED FOR DEBUGGING)
+    localLog(`GameCoordinator: Companion reactions are temporarily disabled for debugging.`);
+    /*
     const aiCompanions = party.filter(p => p.controlledBy === 'AI');
     localLog(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
     
@@ -162,6 +164,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
             accumulatedHistory += `\n${companion.name}: ${companionResult.action}`;
         }
     }
+    */
 
     // 6. Finalize Turn
     let updatedParty = input.party;
