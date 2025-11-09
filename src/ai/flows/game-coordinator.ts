@@ -48,16 +48,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
     
     const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
     
-    const partySummary = input.party.map(c => ({
-        id: c.id,
-        name: c.name,
-        race: c.race,
-        class: c.class,
-        sex: c.sex,
-        personality: c.personality,
-        controlledBy: c.controlledBy,
-    }));
-
     if (inCombat) {
         localLog("GameCoordinator: Combat turn received. Delegating to Combat Manager...");
         const combatResult = await combatManagerTool(input);
@@ -118,6 +108,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
             nextLocationId: combatResult.nextLocationId,
         }
         localLog(`GameCoordinator: Received result from combatManager: ${JSON.stringify(logSummary, null, 2)}`);
+        // Return the FULL combat result, including diceRolls and initiativeOrder
         return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
     }
 
@@ -127,7 +118,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
     let narrativeAction = interpretation;
 
     // Smart logic for companion interaction vs. information request
-    const isInfoRequestToCompanion = interpretation.actionType === 'interact' && partySummary.some(p => p.name === interpretation.targetId);
+    const isInfoRequestToCompanion = interpretation.actionType === 'interact' && party.some(p => p.name === interpretation.targetId);
 
     if (isInfoRequestToCompanion) {
         localLog(`GameCoordinator: Detected info request to companion '${interpretation.targetId}'. Re-interpreting for environment interaction.`);
