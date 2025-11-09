@@ -15,8 +15,7 @@ import { getAdventureData } from '@/app/game-state-actions';
 import { companionExpertTool } from '../tools/companion-expert';
 import { actionInterpreter } from './action-interpreter';
 import { GameCoordinatorInputSchema, GameCoordinatorOutputSchema, type GameCoordinatorInput, type GameCoordinatorOutput } from './schemas';
-import { diceRollerTool } from '../tools/dice-roller';
-import { adventureLookupTool } from '../tools/adventure-lookup';
+import { combatManagerTool } from '../tools/combat-manager';
 
 
 export const gameCoordinatorFlow = ai.defineFlow(
@@ -55,9 +54,9 @@ export const gameCoordinatorFlow = ai.defineFlow(
     }));
 
     if (inCombat) {
-        localLog("GameCoordinator: Combat mode detected. Combat logic to be implemented.");
-        // Future: Call combat manager tool here
-        return { messages, debugLogs };
+        localLog("GameCoordinator: Combat turn received. Delegating to Combat Manager...");
+        const combatResult = await combatManagerTool(input);
+        return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
     }
 
     const currentLocationData = adventureData.locations.find((l: any) => l.id === locationId);
@@ -89,73 +88,18 @@ export const gameCoordinatorFlow = ai.defineFlow(
         return { messages, debugLogs, inCombat: false };
     }
     
-    // HANDLE ATTACK AND COMBAT INITIATION
     if (interpretation.actionType === 'attack') {
-        localLog(`GameCoordinator: Attack action interpreted against target '${interpretation.targetId}'. Initiating combat sequence.`);
+        localLog(`GameCoordinator: Attack action interpreted. Delegating to Combat Manager to initiate combat.`);
         
-        const enemiesInLocation = (currentLocationData.entitiesPresent || [])
-            .map((entityId: string) => adventureData.entities.find((e:any) => e.id === entityId))
-            .filter((e: any) => e); // Filter out any nulls
-
-        if (enemiesInLocation.length === 0) {
-            messages.push({ sender: 'DM', content: "Atacas al aire, ya que no hay enemigos presentes." });
-            return { messages, debugLogs, inCombat: false };
-        }
-        
-        localLog(`GameCoordinator: Found ${enemiesInLocation.length} potential enemies in location.`);
-
-        messages.push({ sender: 'System', content: `¡Comienza el Combate!`});
-
-        const combatants: { id: string, name: string, type: 'player' | 'npc', dex: number }[] = [];
-        
-        party.forEach(p => {
-            combatants.push({ id: p.id, name: p.name, type: 'player', dex: p.abilityScores.destreza });
+        // Pass the full context to the combat manager, which will handle initiation.
+        const combatResult = await combatManagerTool({
+            ...input,
+            interpretedAction: interpretation,
+            locationContext: currentLocationData,
         });
-        
-        enemiesInLocation.forEach((e: any, index: number) => {
-            // HACK: We need a way to get monster stats, especially dexterity. We'll have to use a tool or hardcode for now.
-            // For now, we'll assign a random dexterity for initiative purposes.
-             combatants.push({ id: `${e.id}-${index}`, name: e.name, type: 'npc', dex: 10 }); // Placeholder DEX
-             localLog(`GameCoordinator: Added enemy '${e.name}' to combatants list.`);
-        });
-        
-        const initiativeRolls: { id: string, name: string, total: number, type: 'player' | 'npc' }[] = [];
-        
-        for (const combatant of combatants) {
-            const dexModifier = Math.floor((combatant.dex - 10) / 2);
-            const roll = await diceRollerTool({ roller: combatant.name, rollNotation: `1d20+${dexModifier}`, description: 'Iniciativa' });
-            initiativeRolls.push({ id: combatant.id, name: combatant.name, total: roll.totalResult, type: combatant.type });
-        }
-        
-        initiativeRolls.sort((a, b) => b.total - a.total);
-        const initiativeOrder: Combatant[] = initiativeRolls.map(r => ({ id: r.id, characterName: r.name, total: r.total, type: r.type }));
-        
-        localLog(`GameCoordinator: Initiative order determined: ${JSON.stringify(initiativeOrder.map(c => c.characterName))}`);
-        
-        // Let's also include the narrative of the first attack
-        const narrativeResult = await narrativeExpert({
-             playerAction: input.playerAction,
-             partySummary: partySummary,
-             locationId: locationId,
-             locationContext: JSON.stringify(currentLocationData),
-             conversationHistory: input.conversationHistory,
-             interpretedAction: JSON.stringify(interpretation),
-        });
-        (narrativeResult.debugLogs || []).forEach(localLog);
-        if (narrativeResult.dmNarration) {
-            const { html } = await markdownToHtml({ markdown: narrativeResult.dmNarration });
-            messages.push({ sender: 'DM', content: html, originalContent: narrativeResult.dmNarration });
-        }
 
-        return {
-            messages,
-            debugLogs,
-            inCombat: true,
-            initiativeOrder: initiativeOrder,
-            enemies: enemiesInLocation.map((e: any, index: number) => ({...e, id: `${e.id}-${index}`})), // Give unique IDs
-        };
+        return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
     }
-
 
     let skipCompanions = false;
     let newLocationId: string | null = null;
@@ -278,5 +222,3 @@ export const gameCoordinatorFlow = ai.defineFlow(
 export async function gameCoordinator(input: GameCoordinatorInput): Promise<GameCoordinatorOutput> {
     return gameCoordinatorFlow(input);
 }
-
-    

@@ -97,7 +97,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     });
   }, []);
   
-  const addDiceRolls = (rolls: Omit<DiceRoll, 'id' | 'timestamp'>[]) => {
+  const addDiceRolls = useCallback((rolls: Omit<DiceRoll, 'id' | 'timestamp'>[]) => {
     if (!rolls || rolls.length === 0) return;
     const newRolls = rolls.map(roll => ({
         ...roll,
@@ -105,7 +105,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         timestamp: new Date(),
     }));
     setDiceRolls(prevRolls => [...prevRolls, ...newRolls]);
-  }
+  }, []);
 
   const buildConversationHistory = () => {
     return messages
@@ -157,8 +157,9 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       if (result.messages) {
           addMessages(result.messages.map(m => ({ ...m, content: m.content || ''})), isRetry);
       }
+      if(result.diceRolls) addDiceRolls(result.diceRolls);
       if(result.nextLocationId) setLocationId(result.nextLocationId);
-      if(result.inCombat) setInCombat(result.inCombat);
+      if(result.inCombat !== undefined) setInCombat(result.inCombat);
       if(result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
       if(result.enemies) setEnemies(result.enemies);
       
@@ -179,13 +180,14 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     } finally {
       setIsDMThinking(false);
     }
-  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, inCombat, locationId, party, selectedCharacter]);
+  }, [addDebugMessages, addMessage, addMessages, addDiceRolls, buildConversationHistory, inCombat, locationId, party, selectedCharacter]);
   
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
      addDiceRolls([{
         roller: selectedCharacter?.name ?? 'Player',
         rollNotation: `1d${roll.sides}`,
         individualRolls: [roll.result],
+        modifier: 0,
         totalResult: roll.result,
         outcome: 'neutral',
         description: `Tirada de d${roll.sides} del jugador`
@@ -244,5 +246,3 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     </GameLayout>
   );
 }
-
-    
