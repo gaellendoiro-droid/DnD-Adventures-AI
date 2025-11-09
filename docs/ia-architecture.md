@@ -39,7 +39,12 @@ Estos módulos son "expertos" en tareas específicas, invocados por el `gameCoor
 *   **Función**: Es invocado por el `gameCoordinator` después de que la intención ya ha sido interpretada. Describe la escena, el resultado de una interacción o la llegada a un nuevo lugar. Su `prompt` es simple: solo debe narrar.
 
 #### Herramienta: `locationLookupTool`
-*   **Tipo**: **Herramienta de Búsqueda (Lógica)**
+*   **Tipo**: **Herramienta de Búsqueda (Lógica TypeScript)**
 *   **Archivo**: `src/ai/tools/location-lookup.ts`
-*   **Rol**: El **GPS de la aventura**.
-*   **Función**: Busca de forma inteligente una ubicación en la aventura, ya sea por su nombre, por una entidad que contiene, o por una coincidencia parcial. Es la herramienta clave que permite al `actionInterpreter` entender movimientos a lugares lejanos.
+*   **Rol**: El **GPS de la aventura**. Su objetivo es encontrar una ubicación específica basándose en una consulta flexible del usuario. Es la herramienta clave que permite al `actionInterpreter` entender movimientos a lugares lejanos o que no son una salida directa desde la ubicación actual.
+*   **Función**: Implementa un sistema de búsqueda por capas con un orden de prioridad estricto para garantizar la máxima precisión y flexibilidad:
+    1.  **Capa 1: Coincidencia Exacta:** Comprueba si la consulta coincide exactamente con el `id` o `title` de una ubicación. Es la búsqueda más rápida.
+    2.  **Capa 2: Búsqueda por Entidad (PNJ):** Comprueba si la consulta coincide con el nombre de una entidad (un PNJ). Si lo encuentra, devuelve la ubicación donde esa entidad está presente.
+    3.  **Capa 3: Inclusión del Título:** Comprueba si el título de una ubicación *contiene* la frase de la consulta (ej: "Escudo de León" dentro de "Bazar Escudo de León").
+    4.  **Capa 4: Búsqueda por Palabras Clave:** La capa más flexible. Descompone la consulta en palabras y comprueba si **alguna** de esas palabras clave existe en el título de una ubicación. Esto permite que "tienda Barthen" encuentre "Suministros Barthen".
+*   **Uso Principal**: Es utilizada exclusivamente por el `actionInterpreter` para resolver la intención de movimiento del jugador cuando el destino no es una salida local obvia.
