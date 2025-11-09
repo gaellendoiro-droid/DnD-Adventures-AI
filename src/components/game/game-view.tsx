@@ -111,7 +111,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     return messages
       .slice(-5)
       .map(m => {
-        if (m.sender === 'Player') return `Jugador: ${m.content}`;
+        if (m.sender === 'Player') return `${m.senderName || 'Jugador'}: ${m.content}`;
         if (m.sender === 'DM') return `Dungeon Master: ${m.originalContent || m.content}`;
         if (m.sender === 'Character') return `${m.senderName}: ${m.content}`;
         return null;
@@ -126,6 +126,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     if (!isRetry && !isContinuation) {
         addMessage({
           sender: "Player",
+          senderName: selectedCharacter?.name,
           content,
         }, isRetry);
     } else if (isRetry) {
@@ -142,9 +143,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         party,
         locationId,
         inCombat,
-        initiativeOrder,
-        enemies,
-        turnIndex,
         conversationHistory: history,
       };
       
@@ -159,43 +157,14 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       if (result.messages) {
           addMessages(result.messages.map(m => ({ ...m, content: m.content || ''})), isRetry);
       }
-      if(result.diceRolls) addDiceRolls(result.diceRolls);
+      // This property is not used in the GameCoordinatorOutputSchema
+      // if(result.diceRolls) addDiceRolls(result.diceRolls);
       if(result.nextLocationId) setLocationId(result.nextLocationId);
       
       if (result.updatedParty) {
         setParty(result.updatedParty);
         const player = result.updatedParty.find(p => p.id === selectedCharacter?.id);
         if(player) setSelectedCharacter(player);
-      }
-      
-      if (result.startCombat) {
-          setInCombat(true);
-          if(result.enemies) setEnemies(result.enemies);
-          if(result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
-          if(result.nextTurnIndex !== undefined) setTurnIndex(result.nextTurnIndex);
-          
-          const firstCombatant = result.initiativeOrder?.[result.nextTurnIndex];
-           if (firstCombatant?.type !== 'player') {
-              handleSendMessage("", { isContinuation: true });
-           } else if (firstCombatant) {
-              addMessage({ sender: 'System', content: `Es el turno de ${firstCombatant.characterName}.`});
-           }
-      } else if (result.endCombat) {
-          setInCombat(false);
-          setInitiativeOrder([]);
-          setEnemies([]);
-          setTurnIndex(0);
-      } else if (inCombat && result.nextTurnIndex !== undefined) {
-          const newIndex = result.nextTurnIndex;
-          setTurnIndex(newIndex);
-          if (result.updatedEnemies) setEnemies(result.updatedEnemies);
-
-          const nextCombatant = initiativeOrder[newIndex];
-          if (nextCombatant?.type === 'player') {
-              addMessage({ sender: 'System', content: `Es el turno de ${nextCombatant.characterName}.` });
-          } else if (nextCombatant) {
-              handleSendMessage("", { isContinuation: true });
-          }
       }
 
     } catch (error: any) {
@@ -209,7 +178,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     } finally {
       setIsDMThinking(false);
     }
-  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, inCombat, locationId, party, initiativeOrder, enemies, turnIndex, selectedCharacter?.id]);
+  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, inCombat, locationId, party, selectedCharacter]);
   
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
      addDiceRolls([{
