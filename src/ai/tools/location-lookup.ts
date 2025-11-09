@@ -13,7 +13,7 @@ export const locationLookupTool = ai.defineTool(
     name: 'locationLookupTool',
     description: "Finds the location object for a given query, which can be the name of a location (e.g., 'Phandalin') or a unique named entity (e.g., 'Adabra Gwynn'). It returns the entire location object where the target is found.",
     inputSchema: z.object({
-        query: z.string().describe("The name of the location or unique entity to find. E.g., 'Colina del Resentimiento' or 'Adabra Gwynn'."),
+        query: z.string().describe("The name of the location or unique entity to find. E.g., 'Colina del Resentimiento' or 'Adabra Gwynn' or 'tienda de Barthen'."),
     }),
     outputSchema: z.string().nullable().describe('A JSON string containing the full location object if found, or null if not found.'),
   },
@@ -47,16 +47,16 @@ export const locationLookupTool = ai.defineTool(
         }
     }
 
-    // 3. Fallback to partial match on locations if no exact match is found.
+    // 3. Fallback to partial match on location titles. This helps with queries like "tienda Barthen" matching "Suministros Barthen".
     const partialLocationMatch = locations.find((loc: any) => 
-       loc.title && (loc.title.toLowerCase().includes(normalizedQuery) || normalizedQuery.includes(loc.title.toLowerCase()))
+       loc.title && (loc.title.toLowerCase().includes(normalizedQuery) || normalizedQuery.split(' ').some(word => loc.title.toLowerCase().includes(word)))
     );
     if (partialLocationMatch) {
        return JSON.stringify(partialLocationMatch);
     }
 
     // 4. Fallback to partial match on entities if still no match.
-    const partialEntityMatch = entities.find((ent: any) => ent.name && (ent.name.toLowerCase().includes(normalizedQuery) || normalizedQuery.includes(ent.name.toLowerCase())));
+    const partialEntityMatch = entities.find((ent: any) => ent.name && (ent.name.toLowerCase().includes(normalizedQuery) || normalizedQuery.split(' ').some(word => ent.name.toLowerCase().includes(word))));
     if (partialEntityMatch && partialEntityMatch.id) {
         const locationOfEntity = locations.find((loc: any) => 
             loc.entitiesPresent && loc.entitiesPresent.includes(partialEntityMatch.id)
