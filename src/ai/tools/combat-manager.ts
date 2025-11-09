@@ -110,7 +110,7 @@ export const combatManagerTool = ai.defineTool(
         messages.push({ sender: 'System', content: `¡Comienza el Combate!` });
         const combatantsForInit: { id: string, name: string, type: 'player' | 'npc' }[] = [];
         
-        const partyMembers: any = await characterLookupTool({});
+        const partyMembers: any = await characterLookupTool({ fields: ['name', 'id']});
         if (Array.isArray(partyMembers)) {
             partyMembers.forEach(p => {
                 combatantsForInit.push({ id: p.id, name: p.name, type: 'player' });
@@ -167,10 +167,8 @@ export const combatManagerTool = ai.defineTool(
         const finalResult = {
             messages,
             diceRolls,
-            updatedParty: narrativeResult.updatedCharacterStats ? JSON.parse(narrativeResult.updatedCharacterStats) : undefined,
-            updatedEnemies: updatedEnemies.map(e => ({...e, hp: { current: '?', max: '?'}})),
             inCombat: true,
-            initiativeOrder,
+            initiativeOrder, // Return the full array
             enemies: updatedEnemies.map(e => ({...e, hp: { current: '?', max: '?'}})),
             debugLogs,
         };
