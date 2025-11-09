@@ -10,15 +10,15 @@ import { enemyTacticianTool } from './enemy-tactician';
 import type { GameMessage, DiceRoll, Combatant } from '@/lib/types';
 import { companionExpertTool } from './companion-expert';
 import { diceRollerTool } from './dice-roller';
-import { CharacterSchema, CharacterSummarySchema } from '@/lib/schemas';
+import { CharacterSchema } from '@/lib/schemas';
 import { getAdventureData } from '@/app/game-state-actions';
 import { ActionInterpreterOutputSchema } from '../flows/schemas';
 import { narrativeExpert } from '../flows/narrative-expert';
 import { markdownToHtml } from '../flows/markdown-to-html';
+import { characterLookupTool } from './character-lookup';
 
 export const CombatManagerInputSchema = z.object({
   playerAction: z.string(),
-  party: z.array(CharacterSchema),
   locationId: z.string(),
   inCombat: z.boolean(),
   conversationHistory: z.string(),
@@ -30,7 +30,7 @@ export const CombatManagerInputSchema = z.object({
 export const CombatManagerOutputSchema = z.object({
     messages: z.array(z.any()),
     diceRolls: z.array(z.any()).optional(),
-    updatedParty: z.array(z.any()),
+    updatedParty: z.array(z.any()).optional(),
     updatedEnemies: z.array(z.any()).optional(),
     nextLocationId: z.string().optional().nullable(),
     inCombat: z.boolean(),
@@ -48,11 +48,10 @@ export const combatManagerTool = ai.defineTool(
       outputSchema: CombatManagerOutputSchema,
     },
     async (input) => {
-        const { playerAction, party, inCombat, locationId, interpretedAction, locationContext, conversationHistory } = input;
+        const { playerAction, inCombat, locationId, interpretedAction, locationContext, conversationHistory } = input;
         
         const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
         const diceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = [];
-        let updatedParty = [...party];
         let updatedEnemies: any[] = [];
         const debugLogs: string[] = [];
 
@@ -67,7 +66,6 @@ export const combatManagerTool = ai.defineTool(
             // For now, we'll just return the current state.
             return {
                 messages,
-                updatedParty,
                 inCombat: true,
                 debugLogs
             };
@@ -86,7 +84,7 @@ export const combatManagerTool = ai.defineTool(
         const combatantEntities = new Set<any>();
         
         // Condition 1: The direct target is always a combatant.
-        const directTarget = allEntities.find((e: any) => e.id === interpretedAction.targetId);
+        const directTarget = allEntities.find((e: any) => e.id === interpretedAction.targetId || e.name === interpretedAction.targetId);
         if (directTarget) {
             combatantEntities.add(directTarget);
             localLog(`Direct target '${directTarget.name}' added to combat.`);
@@ -107,32 +105,44 @@ export const combatManagerTool = ai.defineTool(
         if (hostileEntitiesInLocation.length === 0) {
             localLog("Attack action received, but no hostile enemies were identified.");
             messages.push({ sender: 'DM', content: "Atacas fervientemente al aire, pero no parece haber ninguna amenaza real a la vista." });
-            return { messages, updatedParty, inCombat: false, debugLogs };
+            return { messages, inCombat: false, debugLogs };
         }
         
         localLog(`Found ${hostileEntitiesInLocation.length} hostile targets: ${hostileEntitiesInLocation.map((e:any) => e.name).join(', ')}.`);
 
         // --- Initiative Roll ---
         messages.push({ sender: 'System', content: `¡Comienza el Combate!` });
-        const combatantsForInit: { id: string, name: string, type: 'player' | 'npc', dex: number }[] = [];
+        const combatantsForInit: { id: string, name: string, type: 'player' | 'npc' }[] = [];
         
-        party.forEach(p => {
-            combatantsForInit.push({ id: p.id, name: p.name, type: 'player', dex: p.abilityScores.destreza });
-        });
+        const partyMembers = await characterLookupTool({});
+        if (Array.isArray(partyMembers)) {
+            partyMembers.forEach(p => {
+                combatantsForInit.push({ id: p.id, name: p.name, type: 'player' });
+            });
+        }
         
         updatedEnemies = hostileEntitiesInLocation.map((e: any, index: number) => ({
             ...e, 
             uniqueId: `${e.id}-${index}`, // Unique ID for this combat instance
-            dex: 12, // HACK: Using fixed dexterity. 
         }));
 
         updatedEnemies.forEach(e => {
-            combatantsForInit.push({ id: e.uniqueId, name: e.name, type: 'npc', dex: e.dex });
+            combatantsForInit.push({ id: e.uniqueId, name: e.name, type: 'npc' });
         });
         
         const initiativeRolls: { id: string, name: string, total: number, type: 'player' | 'npc' }[] = [];
         for (const combatant of combatantsForInit) {
-            const dexModifier = Math.floor((combatant.dex - 10) / 2);
+            let dex = 10; // Default dexterity
+            if (combatant.type === 'player') {
+                const charData: any = await characterLookupTool({ characterName: combatant.name });
+                if (charData) dex = charData.abilityScores.destreza;
+            } else {
+                const monsterData: any = allEntities.find((e:any) => e.name === combatant.name);
+                // HACK: Using a fixed dexterity. A better approach would be to look this up via dndApiLookupTool.
+                if (monsterData) dex = 12; 
+            }
+            
+            const dexModifier = Math.floor((dex - 10) / 2);
             const roll = await diceRollerTool({ roller: combatant.name, rollNotation: `1d20+${dexModifier}`, description: 'Iniciativa' });
             diceRolls.push(roll);
             initiativeRolls.push({ id: combatant.id, name: combatant.name, total: roll.total, type: combatant.type });
@@ -144,12 +154,9 @@ export const combatManagerTool = ai.defineTool(
         localLog(`Initiative order: ${JSON.stringify(initiativeOrder.map(c => c.characterName))}`);
         
         // --- First Action Narration ---
-        const partySummary = party.map(c => ({ id: c.id, name: c.name, race: c.race, class: c.class, sex: c.sex, personality: c.personality, controlledBy: c.controlledBy }));
-        
         localLog("Narrating the first action of combat...");
         const narrativeResult = await narrativeExpert({
              playerAction: playerAction,
-             partySummary: partySummary,
              locationId: locationId,
              locationContext: JSON.stringify(locationContext),
              conversationHistory: conversationHistory,
@@ -169,7 +176,7 @@ export const combatManagerTool = ai.defineTool(
         const finalResult = {
             messages,
             diceRolls,
-            updatedParty,
+            updatedParty: narrativeResult.updatedCharacterStats ? JSON.parse(narrativeResult.updatedCharacterStats) : undefined, // only return changes
             updatedEnemies: updatedEnemies.map(e => ({...e, hp: { current: '?', max: '?'}})), // Don't reveal full HP yet
             inCombat: true,
             initiativeOrder,
@@ -177,7 +184,12 @@ export const combatManagerTool = ai.defineTool(
             debugLogs,
         };
 
-        localLog(`Data being returned from CombatManager: ${JSON.stringify(finalResult, null, 2)}`);
+        const logSummary = {
+            messages: finalResult.messages?.length,
+            diceRolls: finalResult.diceRolls?.length,
+            inCombat: finalResult.inCombat,
+        };
+        localLog(`Data being returned from CombatManager: ${JSON.stringify(logSummary)}`);
         
         return finalResult;
     }

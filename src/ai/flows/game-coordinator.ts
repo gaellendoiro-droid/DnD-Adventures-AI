@@ -54,7 +54,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
         const logSummary = {
             messages: combatResult.messages?.length,
             diceRolls: combatResult.diceRolls?.length,
-            updatedParty: combatResult.updatedParty?.length,
             inCombat: combatResult.inCombat,
             nextLocationId: combatResult.nextLocationId,
         }
@@ -93,9 +92,12 @@ export const gameCoordinatorFlow = ai.defineFlow(
     if (interpretation.actionType === 'attack') {
         localLog(`GameCoordinator: Attack action interpreted. Delegating to Combat Manager to initiate combat.`);
         
-        // Pass the full context to the combat manager, which will handle initiation.
+        // Pass the minimal context to the combat manager, which will handle initiation.
         const combatResult = await combatManagerTool({
-            ...input,
+            playerAction: input.playerAction,
+            locationId: input.locationId,
+            inCombat: false, // Forcing initiation
+            conversationHistory: input.conversationHistory,
             interpretedAction: interpretation,
             locationContext: currentLocationData,
         });
@@ -107,7 +109,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
             inCombat: combatResult.inCombat,
             nextLocationId: combatResult.nextLocationId,
         }
-        localLog(`GameCoordinator: Received result from combatManager: ${JSON.stringify(logSummary, null, 2)}`);
+        localLog(`GameCoordinator: Received result from combatManager: ${JSON.stringify(logSummary)}`);
         // Return the FULL combat result, including diceRolls and initiativeOrder
         return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
     }
@@ -204,16 +206,14 @@ export const gameCoordinatorFlow = ai.defineFlow(
         }
         localLog("GameCoordinator: END Companion Reactions.");
     }
-
-    let updatedParty = input.party;
     
     localLog(`GameCoordinator: Turn finished. Final location: ${locationId}. InCombat: false.`);
     return {
         messages,
         debugLogs,
-        updatedParty,
+        updatedParty: party, // Return the original party, as no changes are expected in narrative mode.
         nextLocationId: newLocationId,
-        inCombat: false, // Ensure this is false for non-combat turns
+        inCombat: false,
     };
   }
 );

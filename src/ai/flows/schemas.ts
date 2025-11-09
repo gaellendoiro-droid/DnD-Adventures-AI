@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { CharacterSchema } from '@/lib/schemas';
+import { CharacterSchema, CharacterSummarySchema } from '@/lib/schemas';
 import type { GameMessage, Combatant } from '@/lib/types';
 
 // Schema for the action interpreter
@@ -33,7 +33,7 @@ export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
 
 export const NarrativeExpertOutputSchema = z.object({
   dmNarration: z.string().describe("The AI Dungeon Master's primary narration in response to the player's action, formatted in Markdown. This should describe the companion dialogue here."),
-  updatedCharacterStats: z.string().optional().nullable().describe("The updated character stats (e.g., HP, XP, status effects), if any, for the PLAYER character only, as a valid JSON string. For example: '{\"hp\":{\"current\":8,\"max\":12}, \"inventory\": [{\"id\":\"item-gp-1\",\"name\":\"Monedas de Oro\",\"quantity\":10}]}'. Must be a valid JSON string or null."),
+  updatedCharacterStats: z.string().optional().nullable().describe("A valid JSON string representing partial updates for any character involved. For example, if a character takes damage, this would be '[{\"id\":\"char-1\", \"hp\": {\"current\": 5}}]'. It should be an array of partial character objects."),
   debugLogs: z.array(z.string()).optional(),
 });
 export type NarrativeExpertOutput = z.infer<typeof NarrativeExpertOutputSchema>;
@@ -53,7 +53,7 @@ export const GameCoordinatorOutputSchema = z.object({
   messages: z.array(z.any()).optional(), // Omit<GameMessage, 'id' | 'timestamp'>[] - Zod can't handle this
   diceRolls: z.array(z.any()).optional(),
   debugLogs: z.array(z.string()).optional(),
-  updatedParty: z.array(CharacterSchema).optional(),
+  updatedParty: z.array(z.any()).optional(),
   nextLocationId: z.string().optional().nullable(),
   inCombat: z.boolean().optional(),
   initiativeOrder: z.array(z.any()).optional(), // Combatant[]
