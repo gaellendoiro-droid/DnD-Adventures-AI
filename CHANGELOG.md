@@ -24,9 +24,10 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ### Added
 - Documentación de la arquitectura de la aplicación añadida al archivo `README.md`.
 - Archivo `docs/future-improvements.md` creado para separar las posibles mejoras de la documentación de la arquitectura.
+- Se ha reactivado la lógica de los compañeros de IA en el flujo `gameCoordinator`.
 
 ### Changed
 - El sistema de versionado y changelog, anteriormente archivado, se anota como una mejora futura para su automatización.
 
 ### Fixed
-- Se ha reactivado la lógica de los compañeros de IA en el flujo `gameCoordinator`.
+- Se revirtieron cambios no solicitados en `page.tsx`, `game-view.tsx` y `actions.ts` que se habían introducido durante la primera intentona de documentación, restaurando la base de código a un estado estable previo.
