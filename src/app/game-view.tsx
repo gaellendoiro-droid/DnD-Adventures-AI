@@ -146,7 +146,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         conversationHistory: history,
       };
       
-      addDebugMessages([`[game-view] Sending action to server: ${JSON.stringify(actionInput, null, 2)}`]);
+      addDebugMessages([`[game-view] Sending action to server...`]);
       const result = await processPlayerAction(actionInput);
       addDebugMessages([`[game-view] Received result from server: ${JSON.stringify(result, null, 2)}`]);
       
