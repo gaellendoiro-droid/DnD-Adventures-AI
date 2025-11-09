@@ -10,11 +10,12 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { ActionInterpreterInputSchema, ActionInterpreterOutputSchema, type ActionInterpreterInput, type ActionInterpreterOutput } from './schemas';
 import { locationLookupTool } from '../tools/location-lookup';
+import { CharacterSummarySchema } from '@/lib/schemas';
 
 
 const actionInterpreterPrompt = ai.definePrompt({
     name: 'actionInterpreterPrompt',
-    input: { schema: z.object({ playerAction: z.string(), locationContext: z.string() }) },
+    input: { schema: z.object({ playerAction: z.string(), partySummary: z.array(CharacterSummarySchema), locationContext: z.string() }) },
     output: { schema: ActionInterpreterOutputSchema },
     tools: [locationLookupTool],
     prompt: `You are an expert action interpreter for a D&D game. Your ONLY job is to determine the player's intent and return a structured JSON object. You must follow a strict priority flow.
@@ -24,37 +25,40 @@ const actionInterpreterPrompt = ai.definePrompt({
 1.  **PRIORITY 1: Out-of-Character (OOC) Check:**
     *   If the player's action starts with \`//\`, you MUST classify the action as 'ooc'. The 'targetId' is irrelevant. Stop here.
 
-2.  **PRIORITY 2: Movement - Local Exits:**
+2.  **PRIORITY 2: Interaction with a Companion:**
+    *   Analyze if the action is a question or statement directed at a specific companion in the \`partySummary\`. Check if the action starts with or contains a companion's name.
+    *   If it is, you MUST classify the action as 'interact' and use the companion's name (e.g., "Elara") as the 'targetId'. Stop here.
+
+3.  **PRIORITY 3: Movement - Local Exits:**
     *   Analyze the player's action for movement intent (e.g., "vamos a", "entramos en", "ir a").
     *   If movement is intended, check if the destination in the player's action (e.g., "vamos a la posada", "entramos en Suministros Barthen") matches the \`description\` of any \`exits\` in the \`locationContext\`.
     *   If you find a match, you MUST classify the action as 'move' and use the exact \`toLocationId\` from that exit as the 'targetId'. Stop here.
 
-3.  **PRIORITY 3: Movement - Global Search (MANDATORY if Priority 2 Fails):**
+4.  **PRIORITY 4: Movement - Global Search (MANDATORY if Priority 3 Fails):**
     *   If, and ONLY IF, you detected movement intent but did not find a match in local exits, you MUST use the \`locationLookupTool\`.
     *   Use the player's destination as the query for the tool (e.g., "Colina del Resentimiento", "Adabra Gwynn", "tienda Barthen").
     *   If the tool returns a location object, you MUST classify the action as 'move' and use the \`id\` from the returned location object as the 'targetId'. Stop here.
 
-4.  **PRIORITY 4: Interaction (If NOT Movement):**
-    *   If, and ONLY IF, you have determined it is NOT a movement action after checking both local and global options, then evaluate it as an interaction.
+5.  **PRIORITY 5: Interaction (If NOT Movement):**
+    *   If, and ONLY IF, you have determined it is NOT a movement or companion interaction, then evaluate it as an interaction with the environment.
     *   Find the most specific 'interactionResults.action' string from the 'interactables' in the 'locationContext' that matches the player's intent.
     *   If the action is generic (e.g., "miro el tablón"), use the most logical default action.
     *   Classify the action as 'interact' and set 'targetId' to that exact action string. Stop here.
 
-5.  **PRIORITY 5: Attack:**
+6.  **PRIORITY 6: Attack:**
     *   If the action is clearly an attack (e.g., "ataco al orco"), classify as 'attack' and set 'targetId' to the creature's name (e.g., "orco"). Stop here.
 
-6.  **PRIORITY 6: Default to Narration:**
+7.  **PRIORITY 7: Default to Narration:**
     *   If none of the above apply, and only as a last resort, classify it as 'narrate' and leave 'targetId' null.
 
-**Location Context:**
-\`\`\`json
+**CONTEXT:**
+- Party Companions: {{#each partySummary}}{{this.name}}{{#unless @last}}, {{/unless}}{{/each}}
+- Location Context: \`\`\`json
 {{{locationContext}}}
 \`\`\`
+- Player Action: "{{{playerAction}}}"
 
-**Player Action:**
-"{{{playerAction}}}"
-
-Determine the player's intent based on the strict priority flow above. Your highest priority is to exhaust all movement possibilities (local and global) before considering other action types.
+Determine the player's intent based on the strict priority flow above.
 `,
 });
 

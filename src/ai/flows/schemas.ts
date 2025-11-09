@@ -10,13 +10,14 @@ import type { GameMessage } from '@/lib/types';
 // Schema for the action interpreter
 export const ActionInterpreterInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
+  partySummary: z.array(CharacterSummarySchema).describe("A lightweight summary of the player's party. This is for prompt context."),
   locationContext: z.string().describe('A JSON string with the full data of the current location, including its exits, interactable objects and entities present.'),
 });
 export type ActionInterpreterInput = z.infer<typeof ActionInterpreterInputSchema>;
 
 export const ActionInterpreterOutputSchema = z.object({
   actionType: z.enum(['move', 'interact', 'attack', 'narrate', 'ooc']).describe("The interpreted type of the player's action."),
-  targetId: z.string().optional().nullable().describe("The ID of the target for the action. For 'move', it's the destination ID. For 'attack', the entity ID. For 'interact', it's the specific interaction action name (e.g., 'Leer Misión de la Colina del Resentimiento')."),
+  targetId: z.string().optional().nullable().describe("The ID of the target for the action. For 'move', it's the destination ID. For 'attack', the entity ID. For 'interact', it's the specific interaction action name (e.g., 'Leer Misión de la Colina del Resentimiento') or the character name (e.g., 'Elara')."),
 });
 export type ActionInterpreterOutput = z.infer<typeof ActionInterpreterOutputSchema>;
 
