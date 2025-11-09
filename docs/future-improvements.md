@@ -40,7 +40,16 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
     *   El jugador podría revisar el texto transcrito y enviarlo como su acción.
 *   **Impacto:** Aumentaría la accesibilidad y ofrecería una forma más rápida e inmersiva de interactuar con el juego, acercándose a la experiencia de una partida de rol de mesa.
 
-### 6. Automatización del Versionado y Changelog (Prioridad Baja)
+### 6. Música de Fondo Dinámica (Prioridad Baja)
+
+*   **Problema Actual:** La experiencia de juego es silenciosa, careciendo de un fondo sonoro que ayude a la inmersión.
+*   **Mejora Propuesta:**
+    *   Integrar un reproductor de audio que pueda cambiar la pista musical dinámicamente.
+    *   Asociar diferentes pistas de música a ubicaciones específicas (ej: una melodía tranquila para Phandalin, música misteriosa para una cueva).
+    *   Cambiar a música de combate cuando se inicia un enfrentamiento y volver a la música de exploración al terminar.
+*   **Impacto:** Aumentaría enormemente la atmósfera y la inmersión, haciendo que el mundo se sienta más vivo y las situaciones (exploración, combate, tensión) más impactantes.
+
+### 7. Automatización del Versionado y Changelog (Prioridad Baja)
 
 *   **Estado Actual:** Se ha implementado un sistema manual para mantener un archivo `CHANGELOG.md`.
 *   **Objetivo Futuro:** Automatizar la actualización del `CHANGELOG.md` al cambiar la versión en `package.json`.
