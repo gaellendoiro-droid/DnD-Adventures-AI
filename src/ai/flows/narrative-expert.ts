@@ -74,10 +74,8 @@ export const narrativeExpertFlow = ai.defineFlow(
     outputSchema: NarrativeExpertOutputSchema,
   },
   async (input) => {
-    const { log = () => {} } = input;
     const debugLogs: string[] = [];
     const localLog = (message: string) => {
-        log(message);
         debugLogs.push(message);
     };
 

@@ -107,7 +107,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
         locationId: locationId,
         locationContext: JSON.stringify(finalLocationData),
         conversationHistory: input.conversationHistory,
-        log: localLog,
         interpretedAction: JSON.stringify(interpretation),
     };
     
