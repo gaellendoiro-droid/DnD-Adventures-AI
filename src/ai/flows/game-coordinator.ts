@@ -125,12 +125,48 @@ export const gameCoordinatorFlow = ai.defineFlow(
             content: html,
             originalContent: narrativeResult.dmNarration,
         });
-        accumulatedHistoryForCompanions = narrativeResult.dmNarration;
+        accumulatedHistoryForCompanions = `DM: ${narrativeResult.dmNarration}\n`;
     }
 
     localLog("GameCoordinator: END Narrative Generation.");
     
-    localLog("GameCoordinator: Companion reactions are temporarily disabled for debugging.");
+    localLog("GameCoordinator: START Companion Reactions.");
+    for (const character of party) {
+        if (character.controlledBy === 'AI') {
+            localLog(`GameCoordinator: Processing reaction for AI companion: ${character.name}.`);
+            const companionContext = `Player action: "${playerAction}"\n${accumulatedHistoryForCompanions}`;
+
+            const companionResult = await companionExpertTool({
+                characterSummary: {
+                    id: character.id,
+                    name: character.name,
+                    race: character.race,
+                    class: character.class,
+                    sex: character.sex,
+                    personality: character.personality,
+                    controlledBy: "AI",
+                },
+                context: companionContext,
+                inCombat: inCombat,
+                partySummary: partySummary,
+            });
+            
+            if (companionResult.action) {
+                localLog(`GameCoordinator: ${character.name} responded: "${companionResult.action}"`);
+                messages.push({
+                    sender: 'Character',
+                    senderName: character.name,
+                    characterColor: character.color,
+                    content: companionResult.action,
+                });
+                accumulatedHistoryForCompanions += `${character.name}: ${companionResult.action}\n`;
+            } else {
+                localLog(`GameCoordinator: ${character.name} had no reaction.`);
+            }
+        }
+    }
+    localLog("GameCoordinator: END Companion Reactions.");
+
     
     let updatedParty = input.party;
     if (narrativeResult.updatedCharacterStats) {
