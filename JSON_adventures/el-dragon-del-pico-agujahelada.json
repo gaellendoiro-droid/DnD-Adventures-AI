@@ -1566,282 +1566,329 @@
     {
       "id": "cryovain",
       "name": "Cryovain",
+      "type": "monster",
       "description": "Un dragón blanco joven con brillantes escamas blancas. Su mirada es cruel y bestial, y un aliento gélido emana de sus fauces.",
       "dmNotes": "Cryovain es un dragón blanco joven. Es corto de miras y muy cruel. Su guarida es el Bastión de Agujahelada. Es una amenaza errante y puede aparecer en cualquier lugar de la región."
     },
     {
       "id": "orco",
       "name": "Orco",
+      "type": "monster",
       "description": "Un humanoide brutal de piel verdosa, con facciones porcinas y colmillos inferiores prominentes. Viste armadura de pieles y empuña un hacha a dos manos.",
       "dmNotes": "Los orcos fueron expulsados del Bastión de Agujahelada por Cryovain y ahora aterrorizan las tierras bajas. Son agresivos y luchan hasta la muerte."
     },
     {
       "id": "manticora",
       "name": "Mantícora",
+      "type": "monster",
       "description": "Un monstruo grande con cuerpo de león, alas de murciélago y una cola con púas afiladas. Su rostro es vagamente humanoide y malévolo.",
       "dmNotes": "Esta mantícora fue expulsada de su nido en la montaña por Cryovain. Es inteligente y puede ser sobornada."
     },
     {
       "id": "anacoreta-de-talos",
       "name": "Anacoreta de Talos",
+      "type": "monster",
       "description": "Un semiorco eremita con una mirada fanática, ataviado con una armadura de pieles y un guantelete con garras. Adora al dios de las tormentas.",
       "dmNotes": "Estos semiorcos adoran a Talos y pueden cambiar de forma a jabalíes. Son capaces de invocar a Gorthok, el Jabalí del Trueno."
     },
     {
       "id": "gorthok-el-jabali-del-trueno",
       "name": "Gorthok, el Jabalí del Trueno",
+      "type": "monster",
       "description": "Un jabalí del tamaño de un elefante, con pelaje oscuro y colmillos que despiden relámpagos. Sus pisadas resuenan como truenos.",
       "dmNotes": "Gorthok es un espíritu primigenio que sirve a Talos. Es una fuerza de pura destrucción."
     },
     {
       "id": "harbin-wester",
       "name": "Harbin Wester",
+      "type": "npc",
       "description": "La voz nerviosa de un hombre de mediana edad que habla desde detrás de una puerta cerrada.",
       "dmNotes": "El alcalde de Phandalin. Es un banquero pretencioso y cobarde que está aterrorizado por el dragón. Es la fuente de las misiones del tablón de anuncios."
     },
     {
       "id": "toblen-rocacolina",
       "name": "Toblen Rocacolina",
+      "type": "npc",
       "description": "Un humano bajito y amigable, dueño de la posada Rocacolina.",
       "dmNotes": "Un plebeyo. Puede proporcionar rumores y ganchos de aventura."
     },
     {
       "id": "elmar-barthen",
       "name": "Elmar Barthen",
+      "type": "npc",
       "description": "Un humano delgado y con entradas de cincuenta años, propietario de Suministros Barthen.",
       "dmNotes": "Un plebeyo. Proporciona los suministros para la misión del campamento de leñadores."
     },
     {
       "id": "linene-vientogris",
       "name": "Linene Vientogrís",
+      "type": "npc",
       "description": "Una humana de lengua mordaz de unos treinta y cinco años, dueña del Bazar Escudo de León.",
       "dmNotes": "Una plebeya. Vende armas y armaduras pero es cautelosa."
     },
     {
       "id": "halia-thornton",
       "name": "Halia Thornton",
+      "type": "npc",
       "description": "Una humana de mente calculadora, maestra del gremio de la Casa de Cambio.",
       "dmNotes": "Una plebeya. Es una agente secreta de los Zhentarim que busca controlar Phandalin."
     },
     {
       "id": "adabra-gwynn",
       "name": "Adabra Gwynn",
+      "type": "npc",
       "description": "Una matrona y acólita de Chauntea que vive en un molino de viento.",
       "dmNotes": "Una plebeya. Vende pociones de curación."
     },
     {
       "id": "dazlyn-esquirlagris",
       "name": "Dazlyn Esquirlagrís",
+      "type": "npc",
       "description": "Un enano escudo buscador de oro. Es directo y sincero en exceso.",
       "dmNotes": "Un plebeyo. Junto con su socio Norbus, encontró unas antiguas ruinas enanas."
     },
     {
       "id": "norbus-runaferrea",
       "name": "Norbus Runaférrea",
+      "type": "npc",
       "description": "Un enano escudo buscador de oro. Es brusco y demasiado precavido.",
       "dmNotes": "Un plebeyo. Socio de Dazlyn en la excavación."
     },
     {
       "id": "gnomo-de-las-rocas-solitario",
       "name": "Gnomo de las rocas solitario",
+      "type": "npc",
       "description": "Un gnomo pequeño y enérgico, con una inclinación por los inventos y la magia.",
       "dmNotes": "Los habitantes de Terragnoma. Son solitarios y reservados."
     },
     {
       "id": "rey-korboz",
       "name": "Rey Korboz",
+      "type": "npc",
       "description": "Un rey gnomo con una corona de metal dentada que parece extremadamente nervioso y paranoico.",
       "dmNotes": "Ha enloquecido tras un encuentro con un mimeto. Ha encerrado a su esposo Gnerkli para 'protegerlo'."
     },
     {
       "id": "rey-gnerkli",
       "name": "Rey Gnerkli",
+      "type": "npc",
       "description": "Un rey gnomo que está apresado y pegado a una silla, parece asustado pero cuerdo.",
       "dmNotes": "El esposo de Korboz. Necesita ser rescatado."
     },
     {
       "id": "don-jon-raskin",
       "name": "Don-Jon Raskin",
+      "type": "npc",
       "description": "Un fanfarrón que camina y habla como un gigante, siempre listo para narrar sus grandes hazañas.",
       "dmNotes": "Un capataz contratado para poner orden en la Mina de Oro del Dedo de la Montaña. Es un PNJ con perfil propio."
     },
     {
       "id": "tibor-wester",
       "name": "Tibor Wester",
+      "type": "npc",
       "description": "Un hombre asustado escondido en su oficina.",
       "dmNotes": "Un plebeyo. El hermanastro oportunista y cobarde del alcalde Harbin Wester. Está a cargo del campamento de leñadores."
     },
     {
       "id": "alfonse-kalazorn",
       "name": "Alfonse 'Gran Al' Kalazorn",
+      "type": "npc",
       "description": "Un hombre grande y robusto, un alguacil jubilado que ahora es dueño de un rancho.",
       "dmNotes": "Un veterano. Fue capturado por los orcos que atacaron su rancho."
     },
     {
       "id": "vyldara-la-banshee",
       "name": "Vyldara la Banshee",
+      "type": "monster",
       "description": "El espectro luminoso y delgado de una elfa flota en el pasillo. Su rostro lo enmarca una mata de fino pelo enredado y su cuerpo lo cubre un vestido andrajoso.",
       "dmNotes": "El espíritu atormentado de una embajadora de los elfos lunares que maldijo Alcazhacha. Atacará a los intrusos."
     },
     {
       "id": "gul",
       "name": "Gul",
+      "type": "monster",
       "description": "Una criatura humanoide encorvada con piel gris y tensa, garras afiladas y un hambre insaciable por la carne de los vivos.",
       "dmNotes": "Estos muertos vivientes infestan Alcazhacha."
     },
     {
       "id": "estirge",
       "name": "Estirge",
+      "type": "monster",
       "description": "Una criatura voladora parecida a un murciélago con un largo y afilado probóscide para chupar sangre.",
       "dmNotes": "Se alimentan de la sangre de los seres vivos."
     },
     {
       "id": "arana-gigante",
       "name": "Araña Gigante",
+      "type": "monster",
       "description": "Una araña monstruosa del tamaño de un lobo, con múltiples ojos negros y brillantes y quelíceros goteantes.",
       "dmNotes": "Tejen redes para atrapar a sus presas."
     },
     {
       "id": "saqueador-sangrefria",
       "name": "Saqueador Sangrefría",
+      "type": "npc",
       "description": "Un mercenario humano de aspecto rudo, bien armado y con una mirada calculadora.",
       "dmNotes": "Un grupo de veteranos neutrales malvados que planean robar el tesoro del dragón. Sus nombres son Syleen Lunargéntea, Runa Vokdottir, Brakkis Elspaar y Jabarl el Muerdeorcos."
     },
     {
       "id": "caballo-de-monta",
       "name": "Caballo de Monta",
+      "type": "npc",
       "description": "Un caballo fuerte y domesticado, apto para la monta.",
       "dmNotes": "Una bestia común."
     },
     {
       "id": "buey",
       "name": "Buey",
+      "type": "npc",
       "description": "Una bestia de tiro grande y fuerte, con cuernos.",
       "dmNotes": "Usa el perfil de la vaca. Se usa para tirar de la carreta de suministros."
     },
     {
       "id": "ankheg",
       "name": "Ankheg",
+      "type": "monster",
       "description": "Un enorme insecto de múltiples patas con poderosas mandíbulas. Emerge de la tierra para atacar.",
       "dmNotes": "Monstruos excavadores que pueden escupir ácido."
     },
     {
       "id": "jabali",
       "name": "Jabalí",
+      "type": "monster",
       "description": "Un jabalí salvaje con pelaje grueso y colmillos afilados.",
       "dmNotes": "Una bestia común. Algunos son anacoretas de Talos transformados."
     },
     {
       "id": "rama-marchita",
       "name": "Rama Marchita",
+      "type": "monster",
       "description": "Una criatura que parece un arbusto leñoso, con ramas retorcidas que forman un cuerpo humanoide.",
       "dmNotes": "Una planta monstruosa vulnerable al fuego."
     },
     {
       "id": "aguja-marchita",
       "name": "Aguja Marchita",
+      "type": "monster",
       "description": "Una criatura que parece un humanoide encorvado cubierto de agujas de conífera.",
       "dmNotes": "Una planta monstruosa que puede lanzar sus agujas."
     },
     {
       "id": "enredadera-marchita",
       "name": "Enredadera Marchita",
+      "type": "monster",
       "description": "Una masa de enredaderas serpenteantes que se retuercen y se mueven con intención malévola.",
       "dmNotes": "Una planta monstruosa que puede enredar a sus enemigos."
     },
     {
       "id": "grannoc",
       "name": "Grannoc",
+      "type": "monster",
       "description": "Un anacoreta semiorco de Talos que realiza un ritual espeluznante.",
       "dmNotes": "El líder de los anacoretas en la Casa del Bosque. Creó el Árbol de Gulthias en el pozo."
     },
     {
       "id": "xanth-el-centauro",
       "name": "Xanth el Centauro",
+      "type": "npc",
       "description": "Un centauro, con el torso de un humano y el cuerpo de un caballo. Parece sabio y en paz con la naturaleza.",
       "dmNotes": "Un vagabundo solitario que huyó de los orcos. Puede guiar a los personajes al Círculo del Trueno."
     },
     {
       "id": "gelatina-ocre",
       "name": "Gelatina Ocre",
+      "type": "monster",
       "description": "Una masa amorfa de color amarillento que se desliza por el suelo y las paredes.",
       "dmNotes": "Un cieno que puede dividirse cuando recibe daño cortante o de relámpago."
     },
     {
       "id": "mimeto",
       "name": "Mimeto",
+      "type": "monster",
       "description": "Un depredador cambiaformas que puede adoptar la apariencia de objetos inanimados como cofres o barriles.",
       "dmNotes": "Se ha infiltrado en Terragnoma y se está alimentando de los gnomos."
     },
     {
       "id": "cangrejo-gigante",
       "name": "Cangrejo Gigante",
+      "type": "monster",
       "description": "Un cangrejo del tamaño de un humano, con un caparazón grueso y pinzas poderosas.",
       "dmNotes": "Este cangrejo gigante en la Torre de las Tormentas es inteligente y puede hablar."
     },
     {
       "id": "miraal-la-banshee",
       "name": "Miraal la Banshee",
+      "type": "monster",
       "description": "Una elfa fantasmagórica con branquias y manos y pies palmeados. Sus ropas espectrales se mecen como si estuviera bajo el agua.",
       "dmNotes": "El espíritu de una elfa marina asesinada por Moesko. Su espíritu está atado a una caracola que él robó."
     },
     {
       "id": "arpia",
       "name": "Arpía",
+      "type": "monster",
       "description": "Una criatura con el cuerpo de un humanoide y las alas y patas de un buitre. Su rostro es repulsivo y su canción es peligrosamente seductora.",
       "dmNotes": "Usan su canción para atraer a sus presas a la muerte."
     },
     {
       "id": "moesko",
       "name": "Moesko",
+      "type": "monster",
       "description": "Un anacoreta semiorco de Talos ataviado con una armadura hecha de piel de pulpo gigante. Tiene un agujero en el pecho donde debería estar su corazón.",
       "dmNotes": "El guardián de la Torre de las Tormentas. Su corazón alimenta el fanal del faro."
     },
     {
       "id": "tiburon-cazador",
       "name": "Tiburón Cazador",
+      "type": "monster",
       "description": "Un tiburón grande y depredador que patrulla las aguas.",
       "dmNotes": "Atraído por la sangre en el agua."
     },
     {
       "id": "fuego-fatuo",
       "name": "Fuego Fatuo",
+      "type": "monster",
       "description": "Una luz parpadeante y fantasmal que flota en el aire.",
       "dmNotes": "Espíritus maliciosos que se alimentan de la desesperación y atraen a las criaturas a su perdición."
     },
     {
       "id": "acechador-invisible",
       "name": "Acechador Invisible",
+      "type": "monster",
       "description": "Una distorsión en el aire sugiere la presencia de una criatura invisible y elemental.",
       "dmNotes": "Una criatura de aire elemental convocada para proteger la espada matadragones."
     },
     {
       "id": "ogro",
       "name": "Ogro",
+      "type": "monster",
       "description": "Un humanoide grande y corpulento con una mente lenta y una fuerza bruta.",
       "dmNotes": "Viven del saqueo y la rapiña."
     },
     {
       "id": "hombre-rata",
       "name": "Hombre Rata",
+      "type": "monster",
       "description": "Un humanoide astuto con rasgos de rata, capaz de transformarse en una rata gigante o en una forma híbrida.",
       "dmNotes": "Licántropos que operan como un gremio de ladrones."
     },
     {
       "id": "rata-gigante",
       "name": "Rata Gigante",
+      "type": "monster",
       "description": "Una rata del tamaño de un perro pequeño, con pelaje enmarañado y ojos rojos y brillantes.",
       "dmNotes": "A menudo se encuentran en compañía de hombres rata."
     },
     {
       "id": "petunia-la-vaca",
       "name": "Petunia la Vaca",
+      "type": "npc",
       "description": "Una vaca de aspecto tranquilo e imperturbable, con un cencerro alrededor del cuello.",
       "dmNotes": "La preciada vaca del Gran Al, de cuya leche se hace la 'mantecalavera'."
     },
     {
       "id": "halcon-el-cazador",
       "name": "Halcón el Cazador",
+      "type": "npc",
       "description": "Un hombre alto y ancho de hombros, con cabello negro y ojos azules y fríos. Viste una capa forrada de piel y se mueve con la confianza de quien a nada teme.",
       "dmNotes": "Su verdadero nombre es Gustaf Stellern. Es un veterano retirado que ofrece sus servicios como guía a los nobles. Odia a los orcos."
     }

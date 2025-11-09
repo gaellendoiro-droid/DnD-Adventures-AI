@@ -84,17 +84,32 @@ export const combatManagerTool = ai.defineTool(
         const allEntities = adventureData.entities;
 
         const entityIdsInLocation = locationContext.entitiesPresent || [];
-        
-        // Filter for hostile entities. This is a simple heuristic.
-        // A more robust system would involve checking an entity's disposition.
-        const hostileNpcKeywords = ['orco', 'dragón', 'mantícora', 'goblin', 'trasgo', 'esqueleto', 'zombi', 'gul', 'monstruo', 'bestia'];
-        const hostileEntitiesInLocation = entityIdsInLocation
+        const entitiesInLocation = entityIdsInLocation
             .map((id: string) => allEntities.find((e: any) => e.id === id))
-            .filter((e: any) => e && hostileNpcKeywords.some(keyword => e.name.toLowerCase().includes(keyword) || e.description.toLowerCase().includes(keyword)));
+            .filter(Boolean); // Filter out any undefined entities
+
+        const combatantEntities = new Set<any>();
+
+        // Condition 1: The direct target of the attack is always a combatant.
+        const directTarget = entitiesInLocation.find((e:any) => e.id === interpretedAction.targetId);
+        if (directTarget) {
+            combatantEntities.add(directTarget);
+            localLog(`Direct target '${directTarget.name}' added to combat.`);
+        }
+
+        // Condition 2: Any entity present with type 'monster' is also a combatant.
+        entitiesInLocation.forEach((entity: any) => {
+            if (entity.type === 'monster') {
+                combatantEntities.add(entity);
+                localLog(`Entity '${entity.name}' added to combat because it is a 'monster'.`);
+            }
+        });
+        
+        const hostileEntitiesInLocation = Array.from(combatantEntities);
 
         if (hostileEntitiesInLocation.length === 0) {
-            localLog("Attack action received, but no hostile enemies are present.");
-            messages.push({ sender: 'DM', content: "Atacas fervientemente al aire, pero no parece haber ninguna amenaza hostil a la vista." });
+            localLog("Attack action received, but no hostile enemies were identified.");
+            messages.push({ sender: 'DM', content: "Atacas fervientemente al aire, pero no parece haber ninguna amenaza real a la vista." });
             return { messages, updatedParty, inCombat: false, debugLogs };
         }
         
@@ -111,8 +126,8 @@ export const combatManagerTool = ai.defineTool(
         updatedEnemies = hostileEntitiesInLocation.map((e: any, index: number) => ({
             ...e, 
             uniqueId: `${e.id}-${index}`, // Unique ID for this combat instance
-            // HACK: Using fixed dexterity. Future improvement: use dndApiLookupTool.
-            dex: 10, 
+            // HACK: Using fixed dexterity. Future improvement: use dndApiLookupTool or get from entity data.
+            dex: 12, 
         }));
 
         updatedEnemies.forEach(e => {
@@ -124,7 +139,7 @@ export const combatManagerTool = ai.defineTool(
             const dexModifier = Math.floor((combatant.dex - 10) / 2);
             const roll = await diceRollerTool({ roller: combatant.name, rollNotation: `1d20+${dexModifier}`, description: 'Iniciativa' });
             diceRolls.push(roll);
-            initiativeRolls.push({ id: combatant.id, name: combatant.name, total: roll.totalResult, type: combatant.type });
+            initiativeRolls.push({ id: combatant.id, name: combatant.name, total: roll.total, type: combatant.type });
         }
         
         initiativeRolls.sort((a, b) => b.total - a.total);
