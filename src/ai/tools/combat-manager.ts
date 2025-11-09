@@ -168,7 +168,7 @@ export const combatManagerTool = ai.defineTool(
             messages,
             diceRolls,
             inCombat: true,
-            initiativeOrder: initiativeOrder, // FIX: Return the full array, not its length
+            initiativeOrder: initiativeOrder,
             enemies: updatedEnemies.map(e => ({...e, hp: { current: '?', max: '?'}})),
             debugLogs,
         };
@@ -184,3 +184,4 @@ export const combatManagerTool = ai.defineTool(
         return finalResult;
     }
 );
+
