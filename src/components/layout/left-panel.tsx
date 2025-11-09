@@ -28,13 +28,13 @@ export function LeftPanel({
   return (
     <div className="flex flex-col h-full">
       <ResizablePanelGroup direction="vertical" className="flex-grow">
-        <ResizablePanel defaultSize={60} minSize={30}>
+        <ResizablePanel defaultSize={60}>
           <ResizablePanelGroup direction="vertical">
-            <ResizablePanel defaultSize={50} minSize={20}>
+            <ResizablePanel defaultSize={50}>
               <DiceLogPanel diceRolls={diceRolls} />
             </ResizablePanel>
             <ResizableHandle />
-            <ResizablePanel defaultSize={50} minSize={20}>
+            <ResizablePanel defaultSize={50}>
               <InitiativeTracker combatants={initiativeOrder} />
             </ResizablePanel>
           </ResizablePanelGroup>
@@ -42,7 +42,7 @@ export function LeftPanel({
         {debugMessages && (
           <>
             <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={40} minSize={10}>
+            <ResizablePanel defaultSize={40}>
                 <DebugPanel messages={debugMessages} />
             </ResizablePanel>
           </>
