@@ -17,10 +17,11 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
     *   Añadir un paso de **"Evaluación de Hostilidad"** al `gameCoordinator` que, después de una acción, evalúe si la disposición de un PNJ neutral debería cambiar a hostil, iniciando el combate automáticamente.
 *   **Impacto:** Haría que el mundo se sintiera más vivo y peligroso. Las acciones de los jugadores tendrían consecuencias reales e inmediatas.
 
-### 3. Sistema de Versionado y Changelog (Propuesta Archivada)
-*   **Objetivo:** Implementar un sistema robusto y automatizado para mantener un archivo `CHANGELOG.md` que se actualice cada vez que se incremente la versión en `package.json`.
-*   **Desafío:** El sistema debe ser a prueba de fallos, sin depender de la memoria de la IA o de que el usuario recuerde seguir pasos manuales. La simple modificación del número de versión en `package.json` debe desencadenar la actualización del changelog de forma atómica.
-*   **Estado:** Pausado. Se requiere encontrar un mecanismo que permita a la IA detectar de forma inequívoca la intención de "realizar un versionado" y que active un protocolo estricto de actualización de archivos (`package.json` y `CHANGELOG.md`) sin posibilidad de error u olvido.
+### 3. Automatización del Versionado y Changelog
+
+*   **Estado Actual:** Se ha implementado un sistema manual para mantener un archivo `CHANGELOG.md`. El proceso requiere que el usuario indique explícitamente a la IA que registre los cambios y que actualice el archivo al cambiar de versión.
+*   **Objetivo Futuro:** Implementar un sistema robusto y automatizado para que la actualización del número de versión en `package.json` desencadene de forma atómica y obligatoria la actualización del archivo `CHANGELOG.md`, sin depender de la memoria de la IA o de que el usuario recuerde seguir pasos manuales.
+*   **Desafío:** El sistema debe ser a prueba de fallos y no debe depender de flujos de trabajo que puedan olvidarse. Se requiere encontrar un mecanismo que permita a la IA detectar de forma inequívoca la intención de "realizar un versionado" y que active un protocolo estricto de actualización de archivos.
 
 ### 4. Sistema de Progresión y Gestión
 *   **Sistema de Experiencia (XP) y Subida de Nivel:** La IA podría otorgar XP por completar misiones o superar desafíos, permitiendo a los personajes subir de nivel y mejorar sus estadísticas y habilidades.
