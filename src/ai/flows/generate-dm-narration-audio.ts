@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Converts Dungeon Master's narration text to speech.
@@ -68,11 +69,11 @@ const generateDmNarrationAudioFlow = ai.defineFlow(
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Enceladus' },
+            prebuiltVoiceConfig: { voiceName: 'Charon' },
           },
         },
       },
-      prompt: input.narrationText,
+      prompt: `(language: es-ES) (voice: deep and mysterious) ${input.narrationText}`,
     });
 
     if (!media) {
