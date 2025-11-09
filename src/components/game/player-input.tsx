@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -38,7 +39,9 @@ export function PlayerInput({ onSendMessage, onDiceRoll, disabled = false }: Pla
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e as unknown as React.FormEvent);
+      if (!disabled) {
+        handleSubmit(e as unknown as React.FormEvent);
+      }
     }
   };
 
@@ -50,10 +53,10 @@ export function PlayerInput({ onSendMessage, onDiceRoll, disabled = false }: Pla
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={disabled ? "El DM está pensando..." : "¿Qué quieres hacer?"}
+          placeholder={disabled ? "El DM está pensando... pero puedes ir escribiendo." : "¿Qué quieres hacer?"}
           className="flex-1 resize-none"
           rows={1}
-          disabled={disabled || isDicePopoverOpen}
+          disabled={isDicePopoverOpen}
         />
         <Button type="submit" size="icon" aria-label="Enviar acción" disabled={disabled || isDicePopoverOpen}>
           <Send className="h-5 w-5" />
