@@ -29,7 +29,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
     
     const debugLogs: string[] = [];
     const localLog = (message: string) => {
-        console.log(message);
         debugLogs.push(message);
     };
     
@@ -87,55 +86,49 @@ export const gameCoordinatorFlow = ai.defineFlow(
 
     let skipCompanions = false;
     let newLocationId: string | null = null;
-    
-    // If it's an interaction with a companion, we skip the main narrative expert for now
-    // and go straight to the companion reactions.
-    if (interpretation.actionType === 'interact' && party.some(p => p.name === interpretation.targetId)) {
-        localLog(`GameCoordinator: Direct interaction with companion '${interpretation.targetId}' detected. Skipping narrative expert.`);
-    } else {
-        let finalLocationData = currentLocationData;
 
-        // Handle movement BEFORE calling the narrative expert
-        if (interpretation.actionType === 'move' && interpretation.targetId) {
-            localLog(`GameCoordinator: Movement interpreted to '${interpretation.targetId}'. Updating location.`);
-            newLocationId = interpretation.targetId;
-            locationId = newLocationId; // Update locationId for the current turn's context
-            finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
-            if (!finalLocationData) {
-                localLog(`GameCoordinator: CRITICAL - Failed to find location data for new locationId '${locationId}'.`);
-                throw new Error(`Could not find data for location: ${locationId}. The adventure file might be missing this entry.`);
-            }
-            skipCompanions = true; // Companions will react on the next turn, in the new location.
+    let finalLocationData = currentLocationData;
+
+    // Handle movement BEFORE calling the narrative expert
+    if (interpretation.actionType === 'move' && interpretation.targetId) {
+        localLog(`GameCoordinator: Movement interpreted to '${interpretation.targetId}'. Updating location.`);
+        newLocationId = interpretation.targetId;
+        locationId = newLocationId; // Update locationId for the current turn's context
+        finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
+        if (!finalLocationData) {
+            localLog(`GameCoordinator: CRITICAL - Failed to find location data for new locationId '${locationId}'.`);
+            throw new Error(`Could not find data for location: ${locationId}. The adventure file might be missing this entry.`);
         }
-        
-        localLog("GameCoordinator: START Narrative Generation.");
-        
-        const narrativeInput = {
-            playerAction: input.playerAction,
-            partySummary: partySummary,
-            locationId: locationId,
-            locationContext: JSON.stringify(finalLocationData),
-            conversationHistory: input.conversationHistory,
-            interpretedAction: JSON.stringify(interpretation),
-        };
-        
-        localLog(`GameCoordinator: Calling NarrativeExpert for location '${locationId}'...`);
-        const narrativeResult = await narrativeExpert(narrativeInput);
-        (narrativeResult.debugLogs || []).forEach(localLog);
-
-        if (narrativeResult.dmNarration) {
-            localLog("GameCoordinator: Converting DM narration to HTML...");
-            const { html } = await markdownToHtml({ markdown: narrativeResult.dmNarration });
-            localLog("GameCoordinator: HTML conversion complete.");
-            messages.push({
-                sender: 'DM',
-                content: html,
-                originalContent: narrativeResult.dmNarration,
-            });
-        }
-
-        localLog("GameCoordinator: END Narrative Generation.");
+        skipCompanions = true; // Companions will react on the next turn, in the new location.
     }
+    
+    localLog("GameCoordinator: START Narrative Generation.");
+    
+    const narrativeInput = {
+        playerAction: input.playerAction,
+        partySummary: partySummary,
+        locationId: locationId,
+        locationContext: JSON.stringify(finalLocationData),
+        conversationHistory: input.conversationHistory,
+        interpretedAction: JSON.stringify(interpretation),
+    };
+    
+    localLog(`GameCoordinator: Calling NarrativeExpert for location '${locationId}'...`);
+    const narrativeResult = await narrativeExpert(narrativeInput);
+    (narrativeResult.debugLogs || []).forEach(localLog);
+
+    if (narrativeResult.dmNarration) {
+        localLog("GameCoordinator: Converting DM narration to HTML...");
+        const { html } = await markdownToHtml({ markdown: narrativeResult.dmNarration });
+        localLog("GameCoordinator: HTML conversion complete.");
+        messages.push({
+            sender: 'DM',
+            content: html,
+            originalContent: narrativeResult.dmNarration,
+        });
+    }
+
+    localLog("GameCoordinator: END Narrative Generation.");
     
     if (!skipCompanions) {
         let accumulatedHistoryForCompanions = messages.map(m => `DM: ${m.originalContent || m.content}`).join('\n');
