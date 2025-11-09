@@ -17,6 +17,8 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 - Se ha ajustado la configuración de la narración por voz (Texto a Voz), cambiando el modelo, la voz y las instrucciones del prompt para obtener un resultado más adecuado al rol de Dungeon Master.
 
 ### Fixed
+- Corregido un error en el `actionInterpreter` que causaba un fallo al intentar moverse a un objeto interactivo local (como un tablón de anuncios) en lugar de interactuar con él.
+- Corregido el comportamiento del `narrativeExpert` para que, al leer un texto (como una misión), muestre el contenido literal del mismo en lugar de una narración resumida.
 
 ### Removed
 
