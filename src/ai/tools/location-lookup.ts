@@ -27,20 +27,21 @@ export const locationLookupTool = ai.defineTool(
     const entities = adventureData.entities || [];
     const normalizedQuery = query.toLowerCase().trim();
 
-    // 1. Direct search for a location by exact name or ID match.
+    // Layer 1: Exact match by ID or title. Highest priority.
     let match = locations.find((loc: any) => 
         (loc.id && loc.id.toLowerCase() === normalizedQuery) || 
         (loc.title && loc.title.toLowerCase() === normalizedQuery)
     );
     if (match) return JSON.stringify(match);
 
-    // 2. Partial match on location titles. This is higher priority.
+    // Layer 2: Location title *includes* the query.
+    // This is great for "Escudo de Leon" matching "Bazar Escudo de Leon".
     match = locations.find((loc: any) => 
        loc.title && loc.title.toLowerCase().includes(normalizedQuery)
     );
     if (match) return JSON.stringify(match);
 
-    // 3. Search for a unique, named entity and return its location.
+    // Layer 3: Query matches a unique entity name. Return the location of that entity.
     const entityMatch = entities.find((ent: any) => ent.name && ent.name.toLowerCase() === normalizedQuery);
     if (entityMatch && entityMatch.id) {
         const locationOfEntity = locations.find((loc: any) => 
@@ -51,21 +52,14 @@ export const locationLookupTool = ai.defineTool(
         }
     }
     
-    // 4. Fallback to looser partial matches on titles or entities
+    // Layer 4: Fallback to fuzzy word matching for typos.
+    // This allows "tienda barten" to match "Suministros Barthen".
     const queryWords = normalizedQuery.split(' ').filter(w => w.length > 2); // ignore small words
-    match = locations.find((loc: any) => 
-       loc.title && queryWords.some(word => loc.title.toLowerCase().includes(word))
-    );
-    if (match) return JSON.stringify(match);
-
-    const partialEntityMatch = entities.find((ent: any) => ent.name && queryWords.some(word => ent.name.toLowerCase().includes(word)));
-    if (partialEntityMatch && partialEntityMatch.id) {
-        const locationOfEntity = locations.find((loc: any) => 
-            loc.entitiesPresent && loc.entitiesPresent.includes(partialEntityMatch.id)
+    if(queryWords.length > 0) {
+        match = locations.find((loc: any) => 
+           loc.title && queryWords.some(word => loc.title.toLowerCase().includes(word))
         );
-        if (locationOfEntity) {
-            return JSON.stringify(locationOfEntity);
-        }
+        if (match) return JSON.stringify(match);
     }
     
     return null;
