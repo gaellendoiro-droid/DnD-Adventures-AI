@@ -15,12 +15,15 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ### Changed
 - Se ha ajustado la configuración de la narración por voz (Texto a Voz), cambiando el modelo, la voz y las instrucciones del prompt para obtener un resultado más adecuado al rol de Dungeon Master.
+- Se ha renombrado el archivo `src/lib/data.ts` a `src/lib/new-game-data.ts` para que su propósito sea más claro. Se han actualizado las importaciones correspondientes.
+- Mejorado el texto de introducción para una nueva partida, añadiendo más detalles sobre la ubicación inicial para enriquecer la inmersión.
 
 ### Fixed
 - Corregido un error en el `actionInterpreter` que causaba un fallo al intentar moverse a un objeto interactivo local (como un tablón de anuncios) en lugar de interactuar con él.
 - Corregido el comportamiento del `narrativeExpert` para que, al leer un texto (como una misión), muestre el contenido literal del mismo en lugar de una narración resumida.
 
 ### Removed
+- Eliminado el archivo obsoleto `src/lib/data.ts`.
 
 ---
 
