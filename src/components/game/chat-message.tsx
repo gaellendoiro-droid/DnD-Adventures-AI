@@ -137,7 +137,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   }
 
   const isPlayer = sender === "Player";
-  const displayName = sender === "Character" && senderName ? senderName : info.name;
+  const displayName = senderName || info.name;
 
   const bubbleStyle =
     sender === "Character" && characterColor

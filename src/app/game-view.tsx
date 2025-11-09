@@ -111,7 +111,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     return messages
       .slice(-5)
       .map(m => {
-        if (m.sender === 'Player') return `Jugador: ${m.content}`;
+        if (m.sender === 'Player') return `${m.senderName || 'Jugador'}: ${m.content}`;
         if (m.sender === 'DM') return `Dungeon Master: ${m.originalContent || m.content}`;
         if (m.sender === 'Character') return `${m.senderName}: ${m.content}`;
         return null;
@@ -126,6 +126,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     if (!isRetry && !isContinuation) {
         addMessage({
           sender: "Player",
+          senderName: selectedCharacter?.name || "Jugador",
           content,
         }, isRetry);
     } else if (isRetry) {
@@ -209,7 +210,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     } finally {
       setIsDMThinking(false);
     }
-  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, inCombat, locationId, party, initiativeOrder, enemies, turnIndex, selectedCharacter?.id]);
+  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, inCombat, locationId, party, initiativeOrder, enemies, turnIndex, selectedCharacter]);
   
   const handleDiceRoll = (roll: { result: number, sides: number }) => {
      addDiceRolls([{
