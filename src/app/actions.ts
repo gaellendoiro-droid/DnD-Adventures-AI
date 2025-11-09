@@ -21,6 +21,7 @@ export async function processPlayerAction(
   
   try {
     const result = await gameCoordinator(input);
+    console.log(`[actions.ts] Returning result to client: ${JSON.stringify(result, null, 2)}`);
     return result;
 
   } catch (error: any) {

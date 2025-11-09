@@ -84,9 +84,8 @@ export const combatManagerTool = ai.defineTool(
         const allEntities = adventureData.entities;
 
         const combatantEntities = new Set<any>();
-        const entitiesInLocation = locationContext.entitiesPresent || [];
-
-        // Condition 1: The direct target of the attack is always a combatant.
+        
+        // Condition 1: The direct target is always a combatant.
         const directTarget = allEntities.find((e: any) => e.id === interpretedAction.targetId);
         if (directTarget) {
             combatantEntities.add(directTarget);
@@ -94,6 +93,7 @@ export const combatManagerTool = ai.defineTool(
         }
         
         // Condition 2: Any entity present with type 'monster' is also a combatant.
+        const entitiesInLocation = locationContext.entitiesPresent || [];
         entitiesInLocation.forEach((entityId: string) => {
             const entity = allEntities.find((e: any) => e.id === entityId);
             if (entity && entity.type === 'monster') {
@@ -166,7 +166,7 @@ export const combatManagerTool = ai.defineTool(
         // For now, we will return control to the player.
         localLog("Combat initiated. Returning control.");
 
-        return {
+        const finalResult = {
             messages,
             diceRolls,
             updatedParty,
@@ -176,5 +176,9 @@ export const combatManagerTool = ai.defineTool(
             enemies: updatedEnemies.map(e => ({...e, hp: { current: '?', max: '?'}})), // Send enemy list to client
             debugLogs,
         };
+
+        localLog(`Data being returned from CombatManager: ${JSON.stringify(finalResult, null, 2)}`);
+        
+        return finalResult;
     }
 );

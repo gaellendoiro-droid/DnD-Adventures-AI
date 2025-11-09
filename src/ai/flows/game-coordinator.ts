@@ -56,6 +56,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
     if (inCombat) {
         localLog("GameCoordinator: Combat turn received. Delegating to Combat Manager...");
         const combatResult = await combatManagerTool(input);
+        localLog(`GameCoordinator: Received result from combatManager: ${JSON.stringify(combatResult, null, 2)}`);
         return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
     }
 
@@ -98,6 +99,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
             locationContext: currentLocationData,
         });
 
+        localLog(`GameCoordinator: Received result from combatManager: ${JSON.stringify(combatResult, null, 2)}`);
         return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
     }
 
