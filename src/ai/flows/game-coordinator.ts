@@ -165,7 +165,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 });
                 
                 if (companionResult.action) {
-                    localLog(`GameCoordinator: ${character.name} responded: "${companionResult.action}"`);
                     messages.push({
                         sender: 'Character',
                         senderName: character.name,
