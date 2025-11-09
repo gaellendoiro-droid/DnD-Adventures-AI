@@ -131,36 +131,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
 
     localLog("GameCoordinator: END Narrative Generation.");
     
-    localLog("GameCoordinator: START Companion Reactions.");
-    const aiCompanions = party.filter(p => p.controlledBy === 'AI');
-    localLog(`GameCoordinator: Checking for reactions from ${aiCompanions.length} AI companions.`);
+    localLog("GameCoordinator: Companion reactions are temporarily disabled for debugging.");
     
-    for (const companion of aiCompanions) {
-        const companionSummary = partySummary.find(p => p.id === companion.id)!;
-        localLog(`GameCoordinator: Calling CompanionExpert for ${companion.name}.`);
-        
-        const companionContext = `The player just did this: "${playerAction}"\n\nThe Dungeon Master described the result as: "${accumulatedHistoryForCompanions}"`;
-        
-        const companionResult = await companionExpertTool({
-            characterSummary: companionSummary,
-            context: companionContext,
-            inCombat: false,
-            partySummary: partySummary,
-        });
-
-        if (companionResult.action) {
-            messages.push({
-                sender: 'Character',
-                senderName: companion.name,
-                characterColor: companion.color,
-                content: companionResult.action,
-            });
-            accumulatedHistoryForCompanions += `\n${companion.name}: ${companionResult.action}`;
-        }
-    }
-    localLog("GameCoordinator: END Companion Reactions.");
-
-
     let updatedParty = input.party;
     if (narrativeResult.updatedCharacterStats) {
         const player = input.party.find(c => c.controlledBy === 'Player');
