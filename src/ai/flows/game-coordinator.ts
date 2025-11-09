@@ -86,13 +86,34 @@ export const gameCoordinatorFlow = ai.defineFlow(
 
     let skipCompanions = false;
     let newLocationId: string | null = null;
-
     let finalLocationData = currentLocationData;
+    let narrativeAction = interpretation;
+
+    // Smart logic for companion interaction vs. information request
+    const isInfoRequestToCompanion = interpretation.actionType === 'interact' && partySummary.some(p => p.name === interpretation.targetId);
+
+    if (isInfoRequestToCompanion) {
+        localLog(`GameCoordinator: Detected info request to companion '${interpretation.targetId}'. Re-interpreting for environment interaction.`);
+        const tempInterpreterResult = await actionInterpreter({
+            // Re-run interpreter, but this time, ignore companion names to find the real target
+            playerAction: playerAction,
+            partySummary: [], // Empty summary to force it to ignore companions this time
+            locationContext: JSON.stringify(locationContextForInterpreter),
+        });
+        interpreterLogs.forEach(localLog);
+        
+        // If the second pass finds a real action (like 'interact' with an object), use that instead.
+        if (tempInterpreterResult.interpretation.actionType !== 'narrate' && tempInterpreterResult.interpretation.actionType !== 'interact') {
+             narrativeAction = tempInterpreterResult.interpretation;
+             localLog(`GameCoordinator: Overriding action. New interpretation: ${JSON.stringify(narrativeAction)}`);
+        }
+    }
+
 
     // Handle movement BEFORE calling the narrative expert
-    if (interpretation.actionType === 'move' && interpretation.targetId) {
-        localLog(`GameCoordinator: Movement interpreted to '${interpretation.targetId}'. Updating location.`);
-        newLocationId = interpretation.targetId;
+    if (narrativeAction.actionType === 'move' && narrativeAction.targetId) {
+        localLog(`GameCoordinator: Movement interpreted to '${narrativeAction.targetId}'. Updating location.`);
+        newLocationId = narrativeAction.targetId;
         locationId = newLocationId; // Update locationId for the current turn's context
         finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
         if (!finalLocationData) {
@@ -110,7 +131,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         locationId: locationId,
         locationContext: JSON.stringify(finalLocationData),
         conversationHistory: input.conversationHistory,
-        interpretedAction: JSON.stringify(interpretation),
+        interpretedAction: JSON.stringify(narrativeAction),
     };
     
     localLog(`GameCoordinator: Calling NarrativeExpert for location '${locationId}'...`);
