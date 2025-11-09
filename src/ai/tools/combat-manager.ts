@@ -10,7 +10,6 @@ import { enemyTacticianTool } from './enemy-tactician';
 import type { GameMessage, DiceRoll, Combatant } from '@/lib/types';
 import { companionExpertTool } from './companion-expert';
 import { diceRollerTool } from './dice-roller';
-import { CharacterSchema } from '@/lib/schemas';
 import { getAdventureData } from '@/app/game-state-actions';
 import { ActionInterpreterOutputSchema } from '../flows/schemas';
 import { narrativeExpert } from '../flows/narrative-expert';
@@ -83,14 +82,12 @@ export const combatManagerTool = ai.defineTool(
 
         const combatantEntities = new Set<any>();
         
-        // Condition 1: The direct target is always a combatant.
         const directTarget = allEntities.find((e: any) => e.id === interpretedAction.targetId || e.name === interpretedAction.targetId);
         if (directTarget) {
             combatantEntities.add(directTarget);
             localLog(`Direct target '${directTarget.name}' added to combat.`);
         }
         
-        // Condition 2: Any entity present with type 'monster' is also a combatant.
         const entitiesInLocation = locationContext.entitiesPresent || [];
         entitiesInLocation.forEach((entityId: string) => {
             const entity = allEntities.find((e: any) => e.id === entityId);
@@ -110,11 +107,10 @@ export const combatManagerTool = ai.defineTool(
         
         localLog(`Found ${hostileEntitiesInLocation.length} hostile targets: ${hostileEntitiesInLocation.map((e:any) => e.name).join(', ')}.`);
 
-        // --- Initiative Roll ---
         messages.push({ sender: 'System', content: `¡Comienza el Combate!` });
         const combatantsForInit: { id: string, name: string, type: 'player' | 'npc' }[] = [];
         
-        const partyMembers = await characterLookupTool({});
+        const partyMembers: any = await characterLookupTool({});
         if (Array.isArray(partyMembers)) {
             partyMembers.forEach(p => {
                 combatantsForInit.push({ id: p.id, name: p.name, type: 'player' });
@@ -123,7 +119,7 @@ export const combatManagerTool = ai.defineTool(
         
         updatedEnemies = hostileEntitiesInLocation.map((e: any, index: number) => ({
             ...e, 
-            uniqueId: `${e.id}-${index}`, // Unique ID for this combat instance
+            uniqueId: `${e.id}-${index}`,
         }));
 
         updatedEnemies.forEach(e => {
@@ -132,20 +128,18 @@ export const combatManagerTool = ai.defineTool(
         
         const initiativeRolls: { id: string, name: string, total: number, type: 'player' | 'npc' }[] = [];
         for (const combatant of combatantsForInit) {
-            let dex = 10; // Default dexterity
+            let dex = 10;
             if (combatant.type === 'player') {
-                const charData: any = await characterLookupTool({ characterName: combatant.name });
+                const charData: any = await characterLookupTool({ characterName: combatant.name, fields: ['abilityScores'] });
                 if (charData) dex = charData.abilityScores.destreza;
             } else {
-                const monsterData: any = allEntities.find((e:any) => e.name === combatant.name);
-                // HACK: Using a fixed dexterity. A better approach would be to look this up via dndApiLookupTool.
-                if (monsterData) dex = 12; 
+                dex = 12; 
             }
             
             const dexModifier = Math.floor((dex - 10) / 2);
             const roll = await diceRollerTool({ roller: combatant.name, rollNotation: `1d20+${dexModifier}`, description: 'Iniciativa' });
             diceRolls.push(roll);
-            initiativeRolls.push({ id: combatant.id, name: combatant.name, total: roll.total, type: combatant.type });
+            initiativeRolls.push({ id: combatant.id, name: combatant.name, total: roll.totalResult, type: combatant.type });
         }
         
         initiativeRolls.sort((a, b) => b.total - a.total);
@@ -153,7 +147,6 @@ export const combatManagerTool = ai.defineTool(
         
         localLog(`Initiative order: ${JSON.stringify(initiativeOrder.map(c => c.characterName))}`);
         
-        // --- First Action Narration ---
         localLog("Narrating the first action of combat...");
         const narrativeResult = await narrativeExpert({
              playerAction: playerAction,
@@ -169,24 +162,23 @@ export const combatManagerTool = ai.defineTool(
             messages.push({ sender: 'DM', content: html, originalContent: narrativeResult.dmNarration });
         }
 
-        // TODO: This is where we would start the turn loop for NPCs if the player isn't first.
-        // For now, we will return control to the player.
         localLog("Combat initiated. Returning control.");
 
         const finalResult = {
             messages,
             diceRolls,
-            updatedParty: narrativeResult.updatedCharacterStats ? JSON.parse(narrativeResult.updatedCharacterStats) : undefined, // only return changes
-            updatedEnemies: updatedEnemies.map(e => ({...e, hp: { current: '?', max: '?'}})), // Don't reveal full HP yet
+            updatedParty: narrativeResult.updatedCharacterStats ? JSON.parse(narrativeResult.updatedCharacterStats) : undefined,
+            updatedEnemies: updatedEnemies.map(e => ({...e, hp: { current: '?', max: '?'}})),
             inCombat: true,
             initiativeOrder,
-            enemies: updatedEnemies.map(e => ({...e, hp: { current: '?', max: '?'}})), // Send enemy list to client
+            enemies: updatedEnemies.map(e => ({...e, hp: { current: '?', max: '?'}})),
             debugLogs,
         };
 
         const logSummary = {
             messages: finalResult.messages?.length,
             diceRolls: finalResult.diceRolls?.length,
+            initiativeOrder: finalResult.initiativeOrder?.length,
             inCombat: finalResult.inCombat,
         };
         localLog(`Data being returned from CombatManager: ${JSON.stringify(logSummary)}`);
