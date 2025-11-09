@@ -17,17 +17,26 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
     *   Añadir un paso de **"Evaluación de Hostilidad"** al `gameCoordinator` que, después de una acción, evalúe si la disposición de un PNJ neutral debería cambiar a hostil, iniciando el combate automáticamente.
 *   **Impacto:** Haría que el mundo se sintiera más vivo y peligroso. Las acciones de los jugadores tendrían consecuencias reales e inmediatas.
 
-### 3. Automatización del Versionado y Changelog
+### 3. Comandos de Voz (Dictado de Acciones)
+
+*   **Mejora Propuesta:** Integrar la API de Reconocimiento de Voz del navegador (`SpeechRecognition`) para añadir un botón de "dictar" en la interfaz de entrada del jugador.
+*   **Funcionamiento:**
+    *   El jugador podría pulsar un botón de micrófono para activar el reconocimiento de voz.
+    *   Lo que el jugador diga se transcribiría automáticamente en el cuadro de texto.
+    *   El jugador podría revisar el texto transcrito y enviarlo como su acción.
+*   **Impacto:** Aumentaría la accesibilidad y ofrecería una forma más rápida e inmersiva de interactuar con el juego, acercándose a la experiencia de una partida de rol de mesa.
+
+### 4. Automatización del Versionado y Changelog
 
 *   **Estado Actual:** Se ha implementado un sistema manual para mantener un archivo `CHANGELOG.md`. El proceso requiere que el usuario indique explícitamente a la IA que registre los cambios y que actualice el archivo al cambiar de versión.
 *   **Objetivo Futuro:** Implementar un sistema robusto y automatizado para que la actualización del número de versión en `package.json` desencadene de forma atómica y obligatoria la actualización del archivo `CHANGELOG.md`, sin depender de la memoria de la IA o de que el usuario recuerde seguir pasos manuales.
 *   **Desafío:** El sistema debe ser a prueba de fallos y no debe depender de flujos de trabajo que puedan olvidarse. Se requiere encontrar un mecanismo que permita a la IA detectar de forma inequívoca la intención de "realizar un versionado" y que active un protocolo estricto de actualización de archivos.
 
-### 4. Sistema de Progresión y Gestión
+### 5. Sistema de Progresión y Gestión
 *   **Sistema de Experiencia (XP) y Subida de Nivel:** La IA podría otorgar XP por completar misiones o superar desafíos, permitiendo a los personajes subir de nivel y mejorar sus estadísticas y habilidades.
 *   **Gestión de Inventario y Economía:** Mejorar la interacción con comerciantes para que el oro y los tesoros tengan un propósito funcional, permitiendo comprar y vender objetos.
 *   **Persistencia de Datos:** Reemplazar el sistema de guardado en archivos por una base de datos (como Firestore) para un guardado automático y continuo.
 
-### 5. Calidad y Robustez de la IA
+### 6. Calidad y Robustez de la IA
 *   **Implementación de RAG (Retrieval-Augmented Generation):** Migrar de la búsqueda directa en JSON a un sistema RAG. Esto permitiría a la IA "preguntar" en lenguaje natural sobre el lore de la aventura, en lugar de depender de búsquedas por ID, desbloqueando una comprensión del mundo mucho más profunda.
 *   **Memoria a Largo Plazo:** Implementar un sistema para que la IA recuerde eventos y decisiones clave de sesiones anteriores, influyendo en la narrativa a largo plazo.
