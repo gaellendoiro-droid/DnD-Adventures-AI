@@ -28,15 +28,19 @@ export const locationLookupTool = ai.defineTool(
     const normalizedQuery = query.toLowerCase().trim();
 
     // 1. Direct search for a location by exact name or ID match.
-    const directLocationMatch = locations.find((loc: any) => 
+    let match = locations.find((loc: any) => 
         (loc.id && loc.id.toLowerCase() === normalizedQuery) || 
         (loc.title && loc.title.toLowerCase() === normalizedQuery)
     );
-    if (directLocationMatch) {
-      return JSON.stringify(directLocationMatch);
-    }
+    if (match) return JSON.stringify(match);
 
-    // 2. Search for a unique, named entity and return its location.
+    // 2. Partial match on location titles. This is higher priority.
+    match = locations.find((loc: any) => 
+       loc.title && loc.title.toLowerCase().includes(normalizedQuery)
+    );
+    if (match) return JSON.stringify(match);
+
+    // 3. Search for a unique, named entity and return its location.
     const entityMatch = entities.find((ent: any) => ent.name && ent.name.toLowerCase() === normalizedQuery);
     if (entityMatch && entityMatch.id) {
         const locationOfEntity = locations.find((loc: any) => 
@@ -46,17 +50,15 @@ export const locationLookupTool = ai.defineTool(
             return JSON.stringify(locationOfEntity);
         }
     }
-
-    // 3. Fallback to partial match on location titles. This helps with queries like "tienda Barthen" matching "Suministros Barthen".
-    const partialLocationMatch = locations.find((loc: any) => 
-       loc.title && (loc.title.toLowerCase().includes(normalizedQuery) || normalizedQuery.split(' ').some(word => loc.title.toLowerCase().includes(word)))
+    
+    // 4. Fallback to looser partial matches on titles or entities
+    const queryWords = normalizedQuery.split(' ').filter(w => w.length > 2); // ignore small words
+    match = locations.find((loc: any) => 
+       loc.title && queryWords.some(word => loc.title.toLowerCase().includes(word))
     );
-    if (partialLocationMatch) {
-       return JSON.stringify(partialLocationMatch);
-    }
+    if (match) return JSON.stringify(match);
 
-    // 4. Fallback to partial match on entities if still no match.
-    const partialEntityMatch = entities.find((ent: any) => ent.name && (ent.name.toLowerCase().includes(normalizedQuery) || normalizedQuery.split(' ').some(word => ent.name.toLowerCase().includes(word))));
+    const partialEntityMatch = entities.find((ent: any) => ent.name && queryWords.some(word => ent.name.toLowerCase().includes(word)));
     if (partialEntityMatch && partialEntityMatch.id) {
         const locationOfEntity = locations.find((loc: any) => 
             loc.entitiesPresent && loc.entitiesPresent.includes(partialEntityMatch.id)
