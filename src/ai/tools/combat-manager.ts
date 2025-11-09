@@ -1,4 +1,5 @@
 
+
 /**
  * @fileOverview A Genkit tool that manages a full round or turn of combat.
  */
@@ -82,18 +83,22 @@ export const combatManagerTool = ai.defineTool(
         const adventureData = await getAdventureData();
         const allEntities = adventureData.entities;
 
-        const enemyIdsInLocation = locationContext.entitiesPresent || [];
-        const enemiesInLocation = enemyIdsInLocation
+        const entityIdsInLocation = locationContext.entitiesPresent || [];
+        
+        // Filter for hostile entities. This is a simple heuristic.
+        // A more robust system would involve checking an entity's disposition.
+        const hostileNpcKeywords = ['orco', 'dragón', 'mantícora', 'goblin', 'trasgo', 'esqueleto', 'zombi', 'gul', 'monstruo', 'bestia'];
+        const hostileEntitiesInLocation = entityIdsInLocation
             .map((id: string) => allEntities.find((e: any) => e.id === id))
-            .filter((e: any) => e);
+            .filter((e: any) => e && hostileNpcKeywords.some(keyword => e.name.toLowerCase().includes(keyword) || e.description.toLowerCase().includes(keyword)));
 
-        if (enemiesInLocation.length === 0) {
-            localLog("Attack action received, but no enemies are present.");
-            messages.push({ sender: 'DM', content: "Atacas fervientemente al aire. No hay enemigos a la vista." });
+        if (hostileEntitiesInLocation.length === 0) {
+            localLog("Attack action received, but no hostile enemies are present.");
+            messages.push({ sender: 'DM', content: "Atacas fervientemente al aire, pero no parece haber ninguna amenaza hostil a la vista." });
             return { messages, updatedParty, inCombat: false, debugLogs };
         }
         
-        localLog(`Found ${enemiesInLocation.length} potential targets: ${enemiesInLocation.map((e:any) => e.name).join(', ')}.`);
+        localLog(`Found ${hostileEntitiesInLocation.length} hostile targets: ${hostileEntitiesInLocation.map((e:any) => e.name).join(', ')}.`);
 
         // --- Initiative Roll ---
         messages.push({ sender: 'System', content: `¡Comienza el Combate!` });
@@ -103,7 +108,7 @@ export const combatManagerTool = ai.defineTool(
             combatants.push({ id: p.id, name: p.name, type: 'player', dex: p.abilityScores.destreza });
         });
         
-        updatedEnemies = enemiesInLocation.map((e: any, index: number) => ({
+        updatedEnemies = hostileEntitiesInLocation.map((e: any, index: number) => ({
             ...e, 
             uniqueId: `${e.id}-${index}`, // Unique ID for this combat instance
             // HACK: Using fixed dexterity. Future improvement: use dndApiLookupTool.
