@@ -17,11 +17,16 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
     *   Añadir un paso de **"Evaluación de Hostilidad"** al `gameCoordinator` que, después de una acción, evalúe si la disposición de un PNJ neutral debería cambiar a hostil, iniciando el combate automáticamente.
 *   **Impacto:** Haría que el mundo se sintiera más vivo y peligroso. Las acciones de los jugadores tendrían consecuencias reales e inmediatas.
 
-### 3. Sistema de Progresión y Gestión
+### 3. Sistema de Versionado y Changelog (Propuesta Archivada)
+*   **Objetivo:** Implementar un sistema robusto y automatizado para mantener un archivo `CHANGELOG.md` que se actualice cada vez que se incremente la versión en `package.json`.
+*   **Desafío:** El sistema debe ser a prueba de fallos, sin depender de la memoria de la IA o de que el usuario recuerde seguir pasos manuales. La simple modificación del número de versión en `package.json` debe desencadenar la actualización del changelog de forma atómica.
+*   **Estado:** Pausado. Se requiere encontrar un mecanismo que permita a la IA detectar de forma inequívoca la intención de "realizar un versionado" y que active un protocolo estricto de actualización de archivos (`package.json` y `CHANGELOG.md`) sin posibilidad de error u olvido.
+
+### 4. Sistema de Progresión y Gestión
 *   **Sistema de Experiencia (XP) y Subida de Nivel:** La IA podría otorgar XP por completar misiones o superar desafíos, permitiendo a los personajes subir de nivel y mejorar sus estadísticas y habilidades.
 *   **Gestión de Inventario y Economía:** Mejorar la interacción con comerciantes para que el oro y los tesoros tengan un propósito funcional, permitiendo comprar y vender objetos.
 *   **Persistencia de Datos:** Reemplazar el sistema de guardado en archivos por una base de datos (como Firestore) para un guardado automático y continuo.
 
-### 4. Calidad y Robustez de la IA
+### 5. Calidad y Robustez de la IA
 *   **Implementación de RAG (Retrieval-Augmented Generation):** Migrar de la búsqueda directa en JSON a un sistema RAG. Esto permitiría a la IA "preguntar" en lenguaje natural sobre el lore de la aventura, en lugar de depender de búsquedas por ID, desbloqueando una comprensión del mundo mucho más profunda.
 *   **Memoria a Largo Plazo:** Implementar un sistema para que la IA recuerde eventos y decisiones clave de sesiones anteriores, influyendo en la narrativa a largo plazo.
