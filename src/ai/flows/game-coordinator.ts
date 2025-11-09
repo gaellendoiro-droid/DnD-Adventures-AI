@@ -207,7 +207,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
 
     let updatedParty = input.party;
     
-    localLog(`GameCoordinator: Turn finished successfully. Final location: ${locationId}.`);
+    localLog(`GameCoordinator: Turn finished. Final location: ${locationId}. InCombat: false.`);
     return {
         messages,
         debugLogs,
