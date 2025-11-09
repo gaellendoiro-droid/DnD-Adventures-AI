@@ -85,9 +85,12 @@ export const narrativeExpertFlow = ai.defineFlow(
                 
         const llmResponse = await narrativeExpertPrompt(input);
         
-        if (llmResponse.usage?.toolCalls?.length) {
-            llmResponse.usage.toolCalls.forEach(call => {
-                localLog(`NarrativeExpert: Called tool '${call.tool}...'`);
+        if (llmResponse.history?.length) {
+            llmResponse.history.forEach(turn => {
+                if (turn.role === 'tool_response') {
+                     const toolName = turn.content[0].toolResponse?.name;
+                     if(toolName) localLog(`NarrativeExpert: Called tool '${toolName}'.`);
+                }
             });
         }
         
