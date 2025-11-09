@@ -83,23 +83,20 @@ export const combatManagerTool = ai.defineTool(
         const adventureData = await getAdventureData();
         const allEntities = adventureData.entities;
 
-        const entityIdsInLocation = locationContext.entitiesPresent || [];
-        const entitiesInLocation = entityIdsInLocation
-            .map((id: string) => allEntities.find((e: any) => e.id === id))
-            .filter(Boolean); // Filter out any undefined entities
-
         const combatantEntities = new Set<any>();
+        const entitiesInLocation = locationContext.entitiesPresent || [];
 
         // Condition 1: The direct target of the attack is always a combatant.
-        const directTarget = entitiesInLocation.find((e:any) => e.id === interpretedAction.targetId);
+        const directTarget = allEntities.find((e: any) => e.id === interpretedAction.targetId);
         if (directTarget) {
             combatantEntities.add(directTarget);
             localLog(`Direct target '${directTarget.name}' added to combat.`);
         }
-
+        
         // Condition 2: Any entity present with type 'monster' is also a combatant.
-        entitiesInLocation.forEach((entity: any) => {
-            if (entity.type === 'monster') {
+        entitiesInLocation.forEach((entityId: string) => {
+            const entity = allEntities.find((e: any) => e.id === entityId);
+            if (entity && entity.type === 'monster') {
                 combatantEntities.add(entity);
                 localLog(`Entity '${entity.name}' added to combat because it is a 'monster'.`);
             }
@@ -117,25 +114,24 @@ export const combatManagerTool = ai.defineTool(
 
         // --- Initiative Roll ---
         messages.push({ sender: 'System', content: `¡Comienza el Combate!` });
-        const combatants: { id: string, name: string, type: 'player' | 'npc', dex: number }[] = [];
+        const combatantsForInit: { id: string, name: string, type: 'player' | 'npc', dex: number }[] = [];
         
         party.forEach(p => {
-            combatants.push({ id: p.id, name: p.name, type: 'player', dex: p.abilityScores.destreza });
+            combatantsForInit.push({ id: p.id, name: p.name, type: 'player', dex: p.abilityScores.destreza });
         });
         
         updatedEnemies = hostileEntitiesInLocation.map((e: any, index: number) => ({
             ...e, 
             uniqueId: `${e.id}-${index}`, // Unique ID for this combat instance
-            // HACK: Using fixed dexterity. Future improvement: use dndApiLookupTool or get from entity data.
-            dex: 12, 
+            dex: 12, // HACK: Using fixed dexterity. 
         }));
 
         updatedEnemies.forEach(e => {
-            combatants.push({ id: e.uniqueId, name: e.name, type: 'npc', dex: e.dex });
+            combatantsForInit.push({ id: e.uniqueId, name: e.name, type: 'npc', dex: e.dex });
         });
         
         const initiativeRolls: { id: string, name: string, total: number, type: 'player' | 'npc' }[] = [];
-        for (const combatant of combatants) {
+        for (const combatant of combatantsForInit) {
             const dexModifier = Math.floor((combatant.dex - 10) / 2);
             const roll = await diceRollerTool({ roller: combatant.name, rollNotation: `1d20+${dexModifier}`, description: 'Iniciativa' });
             diceRolls.push(roll);
