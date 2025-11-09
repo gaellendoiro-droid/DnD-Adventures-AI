@@ -85,12 +85,14 @@ export const gameCoordinatorFlow = ai.defineFlow(
         return { messages, debugLogs };
     }
 
+    let skipCompanions = false;
+    let newLocationId: string | null = null;
+    
     // If it's an interaction with a companion, we skip the main narrative expert for now
     // and go straight to the companion reactions.
     if (interpretation.actionType === 'interact' && party.some(p => p.name === interpretation.targetId)) {
         localLog(`GameCoordinator: Direct interaction with companion '${interpretation.targetId}' detected. Skipping narrative expert.`);
     } else {
-        let newLocationId: string | null = null;
         let finalLocationData = currentLocationData;
 
         // Handle movement BEFORE calling the narrative expert
@@ -103,6 +105,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 localLog(`GameCoordinator: CRITICAL - Failed to find location data for new locationId '${locationId}'.`);
                 throw new Error(`Could not find data for location: ${locationId}. The adventure file might be missing this entry.`);
             }
+            skipCompanions = true; // Companions will react on the next turn, in the new location.
         }
         
         localLog("GameCoordinator: START Narrative Generation.");
@@ -132,54 +135,51 @@ export const gameCoordinatorFlow = ai.defineFlow(
         }
 
         localLog("GameCoordinator: END Narrative Generation.");
-
-        if (newLocationId) {
-            // Short-circuit and return if there was a move, companions will react on next turn.
-            return { messages, debugLogs, nextLocationId: newLocationId };
-        }
     }
     
-    let accumulatedHistoryForCompanions = messages.map(m => `DM: ${m.originalContent || m.content}`).join('\n');
-    
-    localLog("GameCoordinator: START Companion Reactions.");
-    for (const character of party) {
-        if (character.controlledBy === 'AI') {
-            localLog(`GameCoordinator: Processing reaction for AI companion: ${character.name}.`);
-            
-            // If the interaction was directed at this character, make it explicit in the context.
-            const isTargeted = interpretation.actionType === 'interact' && interpretation.targetId === character.name;
-            const companionContext = `Player action: "${playerAction}"\n${isTargeted ? `(The player is talking directly to ${character.name})` : ''}\n${accumulatedHistoryForCompanions}`;
+    if (!skipCompanions) {
+        let accumulatedHistoryForCompanions = messages.map(m => `DM: ${m.originalContent || m.content}`).join('\n');
+        
+        localLog("GameCoordinator: START Companion Reactions.");
+        for (const character of party) {
+            if (character.controlledBy === 'AI') {
+                localLog(`GameCoordinator: Processing reaction for AI companion: ${character.name}.`);
+                
+                // If the interaction was directed at this character, make it explicit in the context.
+                const isTargeted = interpretation.actionType === 'interact' && interpretation.targetId === character.name;
+                const companionContext = `Player action: "${playerAction}"\n${isTargeted ? `(The player is talking directly to ${character.name})` : ''}\n${accumulatedHistoryForCompanions}`;
 
-            const companionResult = await companionExpertTool({
-                characterSummary: {
-                    id: character.id,
-                    name: character.name,
-                    race: character.race,
-                    class: character.class,
-                    sex: character.sex,
-                    personality: character.personality,
-                    controlledBy: "AI",
-                },
-                context: companionContext,
-                inCombat: inCombat,
-                partySummary: partySummary,
-            });
-            
-            if (companionResult.action) {
-                localLog(`GameCoordinator: ${character.name} responded: "${companionResult.action}"`);
-                messages.push({
-                    sender: 'Character',
-                    senderName: character.name,
-                    characterColor: character.color,
-                    content: companionResult.action,
+                const companionResult = await companionExpertTool({
+                    characterSummary: {
+                        id: character.id,
+                        name: character.name,
+                        race: character.race,
+                        class: character.class,
+                        sex: character.sex,
+                        personality: character.personality,
+                        controlledBy: "AI",
+                    },
+                    context: companionContext,
+                    inCombat: inCombat,
+                    partySummary: partySummary,
                 });
-                accumulatedHistoryForCompanions += `\n${character.name}: ${companionResult.action}`;
-            } else {
-                localLog(`GameCoordinator: ${character.name} had no reaction.`);
+                
+                if (companionResult.action) {
+                    localLog(`GameCoordinator: ${character.name} responded: "${companionResult.action}"`);
+                    messages.push({
+                        sender: 'Character',
+                        senderName: character.name,
+                        characterColor: character.color,
+                        content: companionResult.action,
+                    });
+                    accumulatedHistoryForCompanions += `\n${character.name}: ${companionResult.action}`;
+                } else {
+                    localLog(`GameCoordinator: ${character.name} had no reaction.`);
+                }
             }
         }
+        localLog("GameCoordinator: END Companion Reactions.");
     }
-    localLog("GameCoordinator: END Companion Reactions.");
 
     // This part for updating stats from narrativeExpert is tricky. We'll leave it for now.
     let updatedParty = input.party;
@@ -189,6 +189,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         messages,
         debugLogs,
         updatedParty,
+        nextLocationId: newLocationId
     };
   }
 );
