@@ -5,7 +5,7 @@
 
 import { z } from 'zod';
 import { CharacterSchema, CharacterSummarySchema } from '@/lib/schemas';
-import type { GameMessage } from '@/lib/types';
+import type { GameMessage, Combatant } from '@/lib/types';
 
 // Schema for the action interpreter
 export const ActionInterpreterInputSchema = z.object({
@@ -56,6 +56,11 @@ export const GameCoordinatorOutputSchema = z.object({
   debugLogs: z.array(z.string()).optional(),
   updatedParty: z.array(CharacterSchema).optional(),
   nextLocationId: z.string().optional().nullable(),
+  inCombat: z.boolean().optional(),
+  initiativeOrder: z.array(z.any()).optional(), // Combatant[]
+  enemies: z.array(z.any()).optional(),
   error: z.string().optional(),
 });
 export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
+
+    

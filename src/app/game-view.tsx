@@ -157,9 +157,10 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       if (result.messages) {
           addMessages(result.messages.map(m => ({ ...m, content: m.content || ''})), isRetry);
       }
-      // This property is not used in the GameCoordinatorOutputSchema
-      // if(result.diceRolls) addDiceRolls(result.diceRolls);
       if(result.nextLocationId) setLocationId(result.nextLocationId);
+      if(result.inCombat) setInCombat(result.inCombat);
+      if(result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
+      if(result.enemies) setEnemies(result.enemies);
       
       if (result.updatedParty) {
         setParty(result.updatedParty);
@@ -243,3 +244,5 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     </GameLayout>
   );
 }
+
+    
