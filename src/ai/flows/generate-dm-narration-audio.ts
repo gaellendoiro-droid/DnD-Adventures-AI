@@ -69,11 +69,11 @@ const generateDmNarrationAudioFlow = ai.defineFlow(
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Charon' },
+            prebuiltVoiceConfig: { voiceName: 'Enceladus' },
           },
         },
       },
-      prompt: `(language: es-ES) (voice: deep and mysterious) ${input.narrationText}`,
+      prompt: `(Habla en español de España. Habla como si fueses un experto Dungeon Master especializado en narrar historias ambientadas en los mundos mediavales de fantasía.) ${input.narrationText}`,
     });
 
     if (!media) {
