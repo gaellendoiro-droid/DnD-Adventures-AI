@@ -10,14 +10,14 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { ActionInterpreterInputSchema, ActionInterpreterOutputSchema, type ActionInterpreterInput, type ActionInterpreterOutput } from './schemas';
 import { locationLookupTool } from '../tools/location-lookup';
-import { CharacterSummarySchema } from '@/lib/schemas';
+import { characterLookupTool } from '../tools/character-lookup';
 
 
 const actionInterpreterPrompt = ai.definePrompt({
     name: 'actionInterpreterPrompt',
-    input: { schema: z.object({ playerAction: z.string(), partySummary: z.array(CharacterSummarySchema), locationContext: z.string() }) },
+    input: { schema: z.object({ playerAction: z.string(), locationContext: z.string() }) },
     output: { schema: ActionInterpreterOutputSchema },
-    tools: [locationLookupTool],
+    tools: [locationLookupTool, characterLookupTool],
     prompt: `You are an expert action interpreter for a D&D game. Your ONLY job is to determine the player's intent and return a structured JSON object. You must follow a strict priority flow.
 
 **Directives & Priority Flow:**
@@ -32,7 +32,8 @@ const actionInterpreterPrompt = ai.definePrompt({
     *   The 'targetId' MUST be the name or ID of the creature being attacked. Stop here.
 
 3.  **PRIORITY 3: Interaction with a Companion:**
-    *   Analyze if the action is a question or statement directed at a specific companion in the \`partySummary\`. Check if the action starts with or contains a companion's name.
+    *   To know who the companions are, you MUST use the \`characterLookupTool\` to get the list of party members.
+    *   Analyze if the action is a question or statement directed at a specific companion. Check if the action starts with or contains a companion's name.
     *   If it is, you MUST classify the action as 'interact' and use the companion's name (e.g., "Elara") as the 'targetId'. Stop here.
 
 4.  **PRIORITY 4: Movement - Local Exits:**
@@ -54,7 +55,6 @@ const actionInterpreterPrompt = ai.definePrompt({
     *   If none of the above apply, and only as a last resort, classify it as 'narrate' and leave 'targetId' null.
 
 **CONTEXT:**
-- Party Companions: {{#each partySummary}}{{this.name}}{{#unless @last}}, {{/unless}}{{/each}}
 - Location Context: \`\`\`json
 {{{locationContext}}}
 \`\`\`

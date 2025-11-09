@@ -16,6 +16,7 @@ import { companionExpertTool } from '../tools/companion-expert';
 import { actionInterpreter } from './action-interpreter';
 import { GameCoordinatorInputSchema, GameCoordinatorOutputSchema, type GameCoordinatorInput, type GameCoordinatorOutput } from './schemas';
 import { combatManagerTool } from '../tools/combat-manager';
+import { updatePartyDataForTools } from '../tools/character-lookup';
 
 
 export const gameCoordinatorFlow = ai.defineFlow(
@@ -27,6 +28,10 @@ export const gameCoordinatorFlow = ai.defineFlow(
   async (input) => {
     const { playerAction, inCombat, conversationHistory, party } = input;
     let { locationId } = input;
+    
+    // HACK: Update the in-memory data for the character lookup tool.
+    // In a real app, this would be a database or a proper state management system.
+    updatePartyDataForTools(party);
     
     const debugLogs: string[] = [];
     const localLog = (message: string) => {
@@ -56,7 +61,14 @@ export const gameCoordinatorFlow = ai.defineFlow(
     if (inCombat) {
         localLog("GameCoordinator: Combat turn received. Delegating to Combat Manager...");
         const combatResult = await combatManagerTool(input);
-        localLog(`GameCoordinator: Received result from combatManager: ${JSON.stringify(combatResult, null, 2)}`);
+        const logSummary = {
+            messages: combatResult.messages?.length,
+            diceRolls: combatResult.diceRolls?.length,
+            updatedParty: combatResult.updatedParty?.length,
+            inCombat: combatResult.inCombat,
+            nextLocationId: combatResult.nextLocationId,
+        }
+        localLog(`GameCoordinator: Received result from combatManager: ${JSON.stringify(logSummary, null, 2)}`);
         return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
     }
 
@@ -73,7 +85,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
     localLog("GameCoordinator: Calling ActionInterpreter...");
     const { interpretation, debugLogs: interpreterLogs } = await actionInterpreter({
         playerAction,
-        partySummary,
         locationContext: JSON.stringify(locationContextForInterpreter),
     });
     interpreterLogs.forEach(localLog);
@@ -99,7 +110,14 @@ export const gameCoordinatorFlow = ai.defineFlow(
             locationContext: currentLocationData,
         });
 
-        localLog(`GameCoordinator: Received result from combatManager: ${JSON.stringify(combatResult, null, 2)}`);
+        const logSummary = {
+            messages: combatResult.messages?.length,
+            diceRolls: combatResult.diceRolls?.length,
+            updatedParty: combatResult.updatedParty?.length,
+            inCombat: combatResult.inCombat,
+            nextLocationId: combatResult.nextLocationId,
+        }
+        localLog(`GameCoordinator: Received result from combatManager: ${JSON.stringify(logSummary, null, 2)}`);
         return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
     }
 
@@ -115,7 +133,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
         localLog(`GameCoordinator: Detected info request to companion '${interpretation.targetId}'. Re-interpreting for environment interaction.`);
         const tempInterpreterResult = await actionInterpreter({
             playerAction: playerAction,
-            partySummary: [], 
             locationContext: JSON.stringify(locationContextForInterpreter),
         });
         interpreterLogs.forEach(localLog);
@@ -141,7 +158,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
     
     const narrativeInput = {
         playerAction: input.playerAction,
-        partySummary: partySummary,
         locationId: locationId,
         locationContext: JSON.stringify(finalLocationData),
         conversationHistory: input.conversationHistory,
@@ -177,18 +193,9 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 const companionContext = `Player action: "${playerAction}"\n${isTargeted ? `(The player is talking directly to ${character.name})` : ''}\n${accumulatedHistoryForCompanions}`;
 
                 const companionResult = await companionExpertTool({
-                    characterSummary: {
-                        id: character.id,
-                        name: character.name,
-                        race: character.race,
-                        class: character.class,
-                        sex: character.sex,
-                        personality: character.personality,
-                        controlledBy: "AI",
-                    },
+                    characterName: character.name,
                     context: companionContext,
                     inCombat: inCombat,
-                    partySummary: partySummary,
                 });
                 
                 if (companionResult.action) {

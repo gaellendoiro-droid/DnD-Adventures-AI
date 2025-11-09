@@ -4,13 +4,12 @@
  */
 
 import { z } from 'zod';
-import { CharacterSchema, CharacterSummarySchema } from '@/lib/schemas';
+import { CharacterSchema } from '@/lib/schemas';
 import type { GameMessage, Combatant } from '@/lib/types';
 
 // Schema for the action interpreter
 export const ActionInterpreterInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
-  partySummary: z.array(CharacterSummarySchema).describe("A lightweight summary of the player's party. This is for prompt context."),
   locationContext: z.string().describe('A JSON string with the full data of the current location, including its exits, interactable objects and entities present.'),
 });
 export type ActionInterpreterInput = z.infer<typeof ActionInterpreterInputSchema>;
@@ -25,7 +24,6 @@ export type ActionInterpreterOutput = z.infer<typeof ActionInterpreterOutputSche
 // Schema for the narrative expert
 export const NarrativeExpertInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
-  partySummary: z.array(CharacterSummarySchema).describe("A lightweight summary of the player's party. This is for prompt context."),
   locationId: z.string().describe('The ID of the current location (e.g., "phandalin-plaza-del-pueblo").'),
   locationContext: z.string().describe('A JSON string with the full data of the current location, including its description, exits, and interactable objects.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
@@ -53,6 +51,7 @@ export type GameCoordinatorInput = z.infer<typeof GameCoordinatorInputSchema>;
 
 export const GameCoordinatorOutputSchema = z.object({
   messages: z.array(z.any()).optional(), // Omit<GameMessage, 'id' | 'timestamp'>[] - Zod can't handle this
+  diceRolls: z.array(z.any()).optional(),
   debugLogs: z.array(z.string()).optional(),
   updatedParty: z.array(CharacterSchema).optional(),
   nextLocationId: z.string().optional().nullable(),
@@ -62,5 +61,3 @@ export const GameCoordinatorOutputSchema = z.object({
   error: z.string().optional(),
 });
 export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
-
-    

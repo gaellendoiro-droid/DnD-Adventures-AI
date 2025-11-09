@@ -3,7 +3,6 @@
 
 import { gameCoordinator, type GameCoordinatorInput, type GameCoordinatorOutput } from "@/ai/flows/game-coordinator";
 import { lookupAdventureEntityInDb } from "./game-state-actions";
-import { updatePartyDataForTools } from "@/ai/tools/character-lookup";
 
 
 /**
@@ -13,15 +12,19 @@ import { updatePartyDataForTools } from "@/ai/tools/character-lookup";
 export async function processPlayerAction(
   input: GameCoordinatorInput
 ): Promise<GameCoordinatorOutput> {
-  const { party } = input;
-
-  // HACK: Update the in-memory data for the character lookup tool.
-  // In a real app, this would be a database or a proper state management system.
-  updatePartyDataForTools(party);
   
   try {
     const result = await gameCoordinator(input);
-    console.log(`[actions.ts] Returning result to client: ${JSON.stringify(result, null, 2)}`);
+
+    const logSummary = {
+        messages: result.messages?.length,
+        diceRolls: result.diceRolls?.length,
+        updatedParty: result.updatedParty?.length,
+        inCombat: result.inCombat,
+        nextLocationId: result.nextLocationId,
+    }
+    console.log(`[actions.ts] Returning result to client: ${JSON.stringify(logSummary)}`);
+
     return result;
 
   } catch (error: any) {

@@ -13,13 +13,14 @@ import {z} from 'zod';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
 import { NarrativeExpertInputSchema, NarrativeExpertOutputSchema, type NarrativeExpertInput, type NarrativeExpertOutput } from './schemas';
+import { characterLookupTool } from '../tools/character-lookup';
 
 
 const narrativeExpertPrompt = ai.definePrompt({
   name: 'narrativeExpertPrompt',
   input: {schema: NarrativeExpertInputSchema},
   output: {schema: NarrativeExpertOutputSchema},
-  tools: [dndApiLookupTool, adventureLookupTool],
+  tools: [dndApiLookupTool, adventureLookupTool, characterLookupTool],
   config: {
     safetySettings: [
         { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
@@ -40,7 +41,7 @@ Your job is to be a descriptive storyteller based on a PRE-INTERPRETED action. Y
     *   **Contextual Interpretation Rule:** The corresponding \`result\` string is an **INSTRUCTION** for you.
         *   **General Rule:** You must narrate the outcome naturally. For example, if the result is "Toblen comparte una historia...", your job is to invent and narrate that story as Toblen would.
         *   **Exception for Reading:** If the player's action involves **'leer'** (reading) a sign, book, or note, and the \`result\` text appears to be the literal content of that item (like a quest description), you MUST present that text clearly and verbatim. You can frame it with a brief narrative intro (e.g., "Os acercáis al tablón y leéis:"), but the main part of your response MUST BE the exact text from the \`result\`.
-3.  **Use Tools for External Knowledge:** Only if the player's original text (\`playerAction\`) contains a question about something NOT in the local context (like asking a barman about a dragon), should you use \`adventureLookupTool\` to find that information and weave it into your narration.
+3.  **Use Tools for External Knowledge:** Only if you need information NOT in the local context (e.g., to describe the party members, to get details on a monster, or to look up a spell) should you use your tools. Use \`characterLookupTool\` for party info, \`adventureLookupTool\` for lore, and \`dndApiLookupTool\` for rules.
 4.  **Be a Referee:** If an action requires a skill check, state it in the narration (e.g., "Para convencer al guardia, necesitarás hacer una tirada de Persuasión.").
 
 **CRITICAL RULES:**
@@ -54,17 +55,13 @@ Your job is to be a descriptive storyteller based on a PRE-INTERPRETED action. Y
 - **Primary Information Source (Local Context):** \`\`\`json
 {{{locationContext}}}
 \`\`\`
-- The player's party: 
-  {{#each partySummary}}
-  - {{this.name}} ({{this.class}} {{this.race}})
-  {{/each}}
 - Recent conversation: \`\`\`{{{conversationHistory}}}\`\`\`
 - **Player's raw action:** "{{{playerAction}}}"
 - **YOUR SPECIFIC INSTRUCTION (Interpreted Action):** \`\`\`json
 {{{interpretedAction}}}
 \`\`\`
 
-Based on your specific instruction and the context, narrate what happens next. If it is an interaction, interpret the 'result' field as an instruction and narrate the scene naturally.
+Based on your specific instruction and the context, narrate what happens next. If it is an interaction, interpret the 'result' field as an instruction and narrate the scene naturally. To know who is in the party, use the characterLookupTool.
 `,
 });
 

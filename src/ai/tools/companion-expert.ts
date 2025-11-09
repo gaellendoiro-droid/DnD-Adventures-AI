@@ -11,11 +11,10 @@ import { characterLookupTool } from './character-lookup';
 
 
 const CompanionExpertInputSchema = z.object({
-  characterSummary: CharacterSummarySchema.describe("The summary of the AI-controlled character whose action is being decided."),
+  characterName: z.string().describe("The name of the AI-controlled character whose action is being decided."),
   context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
   inCombat: z.boolean().describe("Whether the party is currently in combat."),
   enemies: z.array(z.string()).optional().describe("A list of enemy names, if in combat."),
-  partySummary: z.array(CharacterSummarySchema).describe("A summary of the entire party's current status (names, hp, etc)."),
 });
 
 const CompanionExpertOutputSchema = z.object({
@@ -31,16 +30,9 @@ const companionExpertPrompt = ai.definePrompt({
 
     **Guiding Principle: Realism over Reactivity. The character should only act if it makes sense for them.**
 
-    Your character is:
-    - **Name:** {{{characterSummary.name}}} (ID: {{{characterSummary.id}}})
-      - **Class:** {{{characterSummary.class}}}
-      - **Race:** {{{characterSummary.race}}}
-      - **Personality:** {{{characterSummary.personality}}}
+    Your character's name is **{{{characterName}}}**.
 
-    The rest of the party's status is:
-    {{#each partySummary}}
-    - **{{this.name}}** (Class: {{this.class}})
-    {{/each}}
+    To get your character's full details (class, race, personality, abilities, spells) and the status of your allies, you MUST use the \`characterLookupTool\`.
     
     This is what's happening:
     "{{{context}}}"
@@ -49,7 +41,7 @@ const companionExpertPrompt = ai.definePrompt({
     **You are IN COMBAT.** The enemies are: {{#each enemies}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}.
     Decide the combat action for your character. The action should be based on their personality and class abilities.
     - To know your character's specific abilities, spells, or inventory, you MUST use the 'characterLookupTool' with your character's name.
-    - To know an ally's specific data (like if they have a certain spell), you MUST use the 'characterLookupTool'.
+    - To know an ally's specific data (like if they have a certain spell or how wounded they are), you MUST use the 'characterLookupTool'.
     - A pragmatic cleric might heal the most wounded ally.
     - A reckless mage might use a powerful area-of-effect spell, even if it's risky.
     - A cowardly rogue might try to hide.
@@ -58,7 +50,7 @@ const companionExpertPrompt = ai.definePrompt({
     State the action clearly (e.g., "Elara casts Healing Word on Galador", "Merryl attacks the goblin with a Fire Bolt").
     {{else}}
     **You are in narrative/exploration mode.** The player character just said or did the above.
-    - **Is the player talking to them directly?** A response is likely.
+    - **Is the player talking to you directly?** A response is likely.
     - **Does the situation warrant a reaction?** A character might react to a tense moment or something that aligns with their personality.
     - **It's okay to be silent.** If the character has no strong opinion, they should remain silent. Return an empty string for the action.
     {{/if}}
