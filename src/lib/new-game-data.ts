@@ -119,7 +119,7 @@ export const initialParty: Character[] = [
         { id: "spell-11", name: "Dardo mágico", level: 1, description: "Creas tres dardos de fuerza mágica que impactan infaliblemente a sus objetivos." },
         { id: "spell-12", name: "Dormir", level: 1, description: "Pones a las criaturas en un sueño mágico." },
         { id: "spell-13", name: "Hechizar persona", level: 1, description: "Encantas a un humanoide para que te considere un amigo." },
-        { id_ts: "spell-14", name: "Armadura de mago", level: 1, description: "Una fuerza mágica protectora te rodea, estableciendo tu CA base en 13 + tu modificador de Destreza." },
+        { id: "spell-14", name: "Armadura de mago", level: 1, description: "Una fuerza mágica protectora te rodea, estableciendo tu CA base en 13 + tu modificador de Destreza." },
     ]
   },
 ];
