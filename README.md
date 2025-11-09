@@ -42,6 +42,32 @@ Para poner en marcha el proyecto en un entorno de desarrollo, sigue estos pasos:
     ```
     La Developer UI estará disponible en `http://localhost:4000`. Esta interfaz te permite probar y depurar los flujos de IA (`flows`) de forma aislada, ver los `traces` de ejecución y entender cómo la IA está procesando la información.
 
+## Arquitectura de la Aplicación (Frontend)
+
+La aplicación se construye sobre Next.js y sigue un patrón de componentes de cliente que gestionan el estado del juego.
+
+1.  **Punto de Entrada (`app/page.tsx`):**
+    *   Este es el componente principal que renderiza el menú o la vista del juego.
+    *   Utiliza el hook `useState` para gestionar el estado de alto nivel, como si una partida está en curso (`gameInProgress`), los datos de la aventura (`adventureData`) y los datos iniciales para una nueva sesión (`initialGameData`).
+    *   **Flujo de Inicio:** Cuando se inicia una nueva partida o se carga una existente, este componente se encarga de obtener los datos de la aventura (desde `/api/load-adventure`), procesarlos si es necesario (con el flujo `parseAdventureFromJson`) y establecer el estado inicial que se pasará a la vista del juego.
+
+2.  **Vista del Juego (`app/game-view.tsx`):**
+    *   Una vez iniciada la partida, este es el componente "orquestador" que gestiona toda la sesión de juego activa.
+    *   Recibe los datos iniciales de `page.tsx` y los almacena en su propio estado local (`party`, `messages`, `locationId`, etc.), que se va actualizando con cada turno.
+    *   La lógica principal reside en la función `handleSendMessage`. Esta función recopila todo el estado actual del juego, la acción del jugador y el historial de conversación, y lo envía al servidor para ser procesado.
+
+3.  **Comunicación con la IA (Server Actions):**
+    *   La comunicación entre el cliente (`game-view.tsx`) y el backend de IA se realiza a través de una **Server Action** llamada `processPlayerAction` definida en `app/actions.ts`.
+    *   `game-view.tsx` llama a `processPlayerAction` con todo el contexto del juego.
+    *   `processPlayerAction` actúa como un puente seguro, llamando al flujo principal `gameCoordinator` en el backend de Genkit.
+    *   Una vez que el `gameCoordinator` termina, `processPlayerAction` devuelve el resultado (nuevos mensajes, cambios de estado, etc.) a `game-view.tsx`.
+
+4.  **Actualización del Estado:**
+    *   Al recibir la respuesta de la Server Action, `game-view.tsx` utiliza sus funciones `setMessages`, `setParty`, `setLocationId`, etc., para actualizar la interfaz de usuario con la nueva información, completando así el ciclo del turno.
+
+5.  **Fuente de Datos de la Aventura:**
+    *   La información base de la aventura (ubicaciones, PNJ, entidades) se carga desde un archivo JSON estático ubicado en la carpeta `JSON_adventures/`. Una API route (`app/api/load-adventure/route.ts`) se encarga de leer este archivo y servirlo al cliente cuando es necesario.
+
 ## Arquitectura de la IA
 
 El cerebro de la aplicación es un sistema modular construido con Genkit, orquestado por un flujo lógico principal llamado `gameCoordinator`. La clave de su funcionamiento es la especialización de tareas.
