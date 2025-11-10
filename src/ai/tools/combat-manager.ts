@@ -110,7 +110,7 @@ export const combatManagerTool = ai.defineTool(
         messages.push({ sender: 'System', content: `¡Comienza el Combate!` });
         const combatantsForInit: { id: string; name: string; type: 'player' | 'npc'; controlledBy: 'Player' | 'AI'; }[] = [];
         
-        const partyMembers: any = await characterLookupTool({ fields: ['name', 'id', 'controlledBy']});
+        const partyMembers: any = await characterLookupTool({ });
         if (Array.isArray(partyMembers)) {
             partyMembers.forEach(p => {
                 combatantsForInit.push({ id: p.id, name: p.name, type: 'player', controlledBy: p.controlledBy });
@@ -128,15 +128,23 @@ export const combatManagerTool = ai.defineTool(
         
         const initiativeRolls: { id: string; name: string; total: number; type: 'player' | 'npc'; controlledBy: 'Player' | 'AI'; }[] = [];
         for (const combatant of combatantsForInit) {
-            let dex = 10;
+            let dexModifier = 0;
             if (combatant.type === 'player') {
-                const charData: any = await characterLookupTool({ characterName: combatant.name, fields: ['abilityScores'] });
-                if (charData) dex = charData.abilityScores.destreza;
+                const charData: any = await characterLookupTool({ characterName: combatant.name });
+                if (charData && charData.abilityModifiers) {
+                    dexModifier = charData.abilityModifiers.destreza;
+                } else if (charData) {
+                    // Fallback for safety, though it shouldn't be needed
+                    dexModifier = Math.floor((charData.abilityScores.destreza - 10) / 2);
+                } else {
+                    dexModifier = 0;
+                }
             } else {
-                dex = 12; 
+                // Monsters have a default DEX of 12 (+1 modifier) for now.
+                // This could be expanded to read from monster data.
+                dexModifier = 1; 
             }
             
-            const dexModifier = Math.floor((dex - 10) / 2);
             const rollNotation = `1d20${dexModifier >= 0 ? `+${dexModifier}` : `${dexModifier}`}`;
             const roll = await diceRollerTool({ roller: combatant.name, rollNotation, description: 'Iniciativa' });
             diceRolls.push(roll);
