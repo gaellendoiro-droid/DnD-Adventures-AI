@@ -4,7 +4,7 @@
 import type { Combatant } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldAlert, User, Bot } from "lucide-react";
+import { ShieldAlert, User, Users } from "lucide-react";
 import { Badge } from "../ui/badge";
 
 interface InitiativeTrackerProps {
@@ -39,10 +39,12 @@ export function InitiativeTracker({ combatants }: InitiativeTrackerProps) {
                   <div className="flex-1 flex justify-between items-center">
                     <p className="font-semibold">{combatant.characterName}</p>
                     <div className="flex items-center gap-2">
-                      {combatant.type === 'player' ? (
-                         <User className="h-4 w-4 text-blue-500" title="Jugador o Aliado" />
+                      {combatant.type === 'npc' ? (
+                        <ShieldAlert className="h-4 w-4 text-red-500" title="Enemigo" />
+                      ) : combatant.controlledBy === 'Player' ? (
+                        <User className="h-4 w-4 text-blue-500" title="Jugador" />
                       ) : (
-                         <Bot className="h-4 w-4 text-red-500" title="Enemigo" />
+                        <Users className="h-4 w-4 text-green-500" title="Aliado (IA)" />
                       )}
                       <Badge variant="outline" className="font-mono">
                         {combatant.total}

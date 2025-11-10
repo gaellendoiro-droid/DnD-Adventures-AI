@@ -14,7 +14,6 @@ import { PartyPanel } from "@/components/game/party-panel";
 import { Separator } from "../ui/separator";
 import { useToast } from "@/hooks/use-toast";
 
-
 interface GameViewProps {
   initialData: {
     party: Character[];
@@ -34,10 +33,9 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const [locationId, setLocationId] = useState(initialData.locationId);
   const [inCombat, setInCombat] = useState(initialData.inCombat || false);
   const [initiativeOrder, setInitiativeOrder] = useState<Combatant[]>(initialData.initiativeOrder || []);
-  const [enemies, setEnemies] = useState<any[]>([]); // State to hold enemy data
-  
+  const [enemies, setEnemies] = useState<any[]>([]);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
-    party.find(c => c.controlledBy === 'Player') || null
+    initialData.party.find(c => c.controlledBy === 'Player') || null
   );
   const [isDMThinking, setIsDMThinking] = useState(false);
   const [debugMessages, setDebugMessages] = useState<string[]>([]);
@@ -68,46 +66,40 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   const addMessage = useCallback((message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
     const messageToAdd: GameMessage = {
-        ...message,
-        id: Date.now().toString() + Math.random(),
-        timestamp: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-        }),
+      ...message,
+      id: Date.now().toString() + Math.random(),
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
-    
     setMessages((prevMessages) => {
-        const filteredMessages = isRetryMessage ? prevMessages.filter(m => m.sender !== 'Error') : prevMessages;
-        return [...filteredMessages, messageToAdd];
+      const filteredMessages = isRetryMessage ? prevMessages.filter(m => m.sender !== 'Error') : prevMessages;
+      return [...filteredMessages, messageToAdd];
     });
   }, []);
 
   const addMessages = useCallback((newMessages: Omit<GameMessage, 'id' | 'timestamp'>[], isRetry: boolean = false) => {
-     if (!newMessages || newMessages.length === 0) return;
-
-     const messagesToAdd = newMessages.map(m => ({
-        ...m,
-        id: Date.now().toString() + Math.random(),
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-     }));
-
-     setMessages((prev) => {
-        const filteredMessages = isRetry ? prev.filter(m => m.sender !== 'Error') : prev;
-        return [...filteredMessages, ...messagesToAdd];
+    if (!newMessages || newMessages.length === 0) return;
+    const messagesToAdd = newMessages.map(m => ({
+      ...m,
+      id: Date.now().toString() + Math.random(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    }));
+    setMessages((prev) => {
+      const filteredMessages = isRetry ? prev.filter(m => m.sender !== 'Error') : prev;
+      return [...filteredMessages, ...messagesToAdd];
     });
   }, []);
-  
-  const addDiceRolls = (rolls: Omit<DiceRoll, 'id' | 'timestamp'>[]) => {
+
+  const addDiceRolls = useCallback((rolls: Omit<DiceRoll, 'id' | 'timestamp'>[]) => {
     if (!rolls || rolls.length === 0) return;
     const newRolls = rolls.map(roll => ({
-        ...roll,
-        id: Date.now().toString() + Math.random(),
-        timestamp: new Date(),
+      ...roll,
+      id: Date.now().toString() + Math.random(),
+      timestamp: new Date(),
     }));
     setDiceRolls(prevRolls => [...prevRolls, ...newRolls]);
-  }
+  }, []);
 
-  const buildConversationHistory = () => {
+  const buildConversationHistory = useCallback(() => {
     return messages
       .slice(-5)
       .map(m => {
@@ -118,93 +110,66 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       })
       .filter(Boolean)
       .join('\n');
-  };
+  }, [messages]);
 
   const handleSendMessage = useCallback(async (content: string, options: { isRetry?: boolean, isContinuation?: boolean } = {}) => {
     const { isRetry = false, isContinuation = false } = options;
 
     if (!isRetry && !isContinuation) {
-        addMessage({
-          sender: "Player",
-          senderName: selectedCharacter?.name,
-          content,
-        }, isRetry);
+      addMessage({ sender: "Player", senderName: selectedCharacter?.name, content }, isRetry);
     } else if (isRetry) {
-       setMessages(prev => [...prev.filter(m => m.sender !== 'Error')]);
+      setMessages(prev => [...prev.filter(m => m.sender !== 'Error')]);
     }
-    
+
     setIsDMThinking(true);
 
     try {
       const history = buildConversationHistory();
-      
-      const actionInput = {
-        playerAction: content,
-        party,
-        locationId,
-        inCombat,
-        conversationHistory: history,
-      };
-      
+      const actionInput = { playerAction: content, party, locationId, inCombat, conversationHistory: history };
       const result = await processPlayerAction(actionInput);
-      
+
       addDebugMessages(result.debugLogs);
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      if (result.messages) {
-          addMessages(result.messages.map(m => ({ ...m, content: m.content || ''})), isRetry);
-      }
-      // This property is not used in the GameCoordinatorOutputSchema
-      // if(result.diceRolls) addDiceRolls(result.diceRolls);
-      if(result.nextLocationId) setLocationId(result.nextLocationId);
-      
+
+      if (result.error) throw new Error(result.error);
+      if (result.messages) addMessages(result.messages.map(m => ({ ...m, content: m.content || '' })), isRetry);
+      if (result.diceRolls) addDiceRolls(result.diceRolls);
+      if (result.nextLocationId) setLocationId(result.nextLocationId);
       if (result.updatedParty) {
         setParty(result.updatedParty);
         const player = result.updatedParty.find(p => p.id === selectedCharacter?.id);
-        if(player) setSelectedCharacter(player);
+        if (player) setSelectedCharacter(player);
       }
+      if (typeof result.inCombat === 'boolean') setInCombat(result.inCombat);
+      if (result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
 
     } catch (error: any) {
       console.error("Error during turn:", error);
       addDebugMessages([`CRITICAL ERROR: ${error.message}`]);
       addMessage({
         sender: 'Error',
-        content: `El Dungeon Master está confundido y no puede procesar tu última acción. Error: ${error.message}`,
+        content: `El Dungeon Master está confundido. Error: ${error.message}`,
         onRetry: () => handleSendMessage(content, { isRetry: true }),
       });
     } finally {
       setIsDMThinking(false);
     }
-  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, inCombat, locationId, party, selectedCharacter]);
-  
-  const handleDiceRoll = (roll: { result: number, sides: number }) => {
-     addDiceRolls([{
-        roller: selectedCharacter?.name ?? 'Player',
-        rollNotation: `1d${roll.sides}`,
-        individualRolls: [roll.result],
-        totalResult: roll.result,
-        outcome: 'neutral',
-        description: `Tirada de d${roll.sides} del jugador`
-    }]);
-  };
+  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, inCombat, locationId, party, selectedCharacter, addDiceRolls]);
 
-  const handleInternalSaveGame = () => {
-    const saveData = {
-      savedAt: new Date().toISOString(),
-      party,
-      messages,
-      diceRolls,
-      locationId,
-      inCombat,
-      initiativeOrder,
-      enemies,
-      turnIndex,
-    };
+  const handleDiceRoll = useCallback((roll: { result: number, sides: number }) => {
+    addDiceRolls([{
+      roller: selectedCharacter?.name ?? 'Player',
+      rollNotation: `1d${roll.sides}`,
+      individualRolls: [roll.result],
+      totalResult: roll.result,
+      outcome: 'neutral',
+      description: `Tirada de d${roll.sides} del jugador`
+    }]);
+  }, [addDiceRolls, selectedCharacter]);
+
+  const handleInternalSaveGame = useCallback(() => {
+    const saveData = { savedAt: new Date().toISOString(), party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex };
     onSaveGame(saveData);
-  }
+  }, [party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex, onSaveGame]);
 
   return (
     <GameLayout
@@ -214,23 +179,23 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           debugMessages={debugMessages}
           initiativeOrder={initiativeOrder}
         >
-            <div className="p-2">
-                <Button size="sm" variant="outline" onClick={handleInternalSaveGame} className="w-full">
-                    <Save className="mr-2 h-4 w-4" />
-                    Guardar Partida
-                </Button>
-            </div>
+          <div className="p-2">
+            <Button size="sm" variant="outline" onClick={handleInternalSaveGame} className="w-full">
+              <Save className="mr-2 h-4 w-4" />
+              Guardar Partida
+            </Button>
+          </div>
         </LeftPanel>
       }
       characterSheet={
         <div className="flex flex-col h-full">
-            <PartyPanel
-                party={party}
-                selectedCharacterId={selectedCharacter?.id}
-                onSelectCharacter={setSelectedCharacter}
-            />
-            <Separator />
-            <CharacterSheet character={selectedCharacter} />
+          <PartyPanel
+            party={party}
+            selectedCharacterId={selectedCharacter?.id}
+            onSelectCharacter={setSelectedCharacter}
+          />
+          <Separator />
+          <CharacterSheet character={selectedCharacter} />
         </div>
       }
     >

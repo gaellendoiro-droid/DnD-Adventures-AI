@@ -108,12 +108,12 @@ export const combatManagerTool = ai.defineTool(
         localLog(`Found ${hostileEntitiesInLocation.length} hostile targets: ${hostileEntitiesInLocation.map((e:any) => e.name).join(', ')}.`);
 
         messages.push({ sender: 'System', content: `¡Comienza el Combate!` });
-        const combatantsForInit: { id: string, name: string, type: 'player' | 'npc' }[] = [];
+        const combatantsForInit: { id: string; name: string; type: 'player' | 'npc'; controlledBy: 'Player' | 'AI'; }[] = [];
         
-        const partyMembers: any = await characterLookupTool({ fields: ['name', 'id']});
+        const partyMembers: any = await characterLookupTool({ fields: ['name', 'id', 'controlledBy']});
         if (Array.isArray(partyMembers)) {
             partyMembers.forEach(p => {
-                combatantsForInit.push({ id: p.id, name: p.name, type: 'player' });
+                combatantsForInit.push({ id: p.id, name: p.name, type: 'player', controlledBy: p.controlledBy });
             });
         }
         
@@ -123,10 +123,10 @@ export const combatManagerTool = ai.defineTool(
         }));
 
         updatedEnemies.forEach(e => {
-            combatantsForInit.push({ id: e.uniqueId, name: e.name, type: 'npc' });
+            combatantsForInit.push({ id: e.uniqueId, name: e.name, type: 'npc', controlledBy: 'AI' });
         });
         
-        const initiativeRolls: { id: string, name: string, total: number, type: 'player' | 'npc' }[] = [];
+        const initiativeRolls: { id: string; name: string; total: number; type: 'player' | 'npc'; controlledBy: 'Player' | 'AI'; }[] = [];
         for (const combatant of combatantsForInit) {
             let dex = 10;
             if (combatant.type === 'player') {
@@ -137,13 +137,14 @@ export const combatManagerTool = ai.defineTool(
             }
             
             const dexModifier = Math.floor((dex - 10) / 2);
-            const roll = await diceRollerTool({ roller: combatant.name, rollNotation: `1d20+${dexModifier}`, description: 'Iniciativa' });
+            const rollNotation = `1d20${dexModifier >= 0 ? `+${dexModifier}` : `${dexModifier}`}`;
+            const roll = await diceRollerTool({ roller: combatant.name, rollNotation, description: 'Iniciativa' });
             diceRolls.push(roll);
-            initiativeRolls.push({ id: combatant.id, name: combatant.name, total: roll.totalResult, type: combatant.type });
+            initiativeRolls.push({ id: combatant.id, name: combatant.name, total: roll.totalResult, type: combatant.type, controlledBy: combatant.controlledBy });
         }
         
         initiativeRolls.sort((a, b) => b.total - a.total);
-        const initiativeOrder: Combatant[] = initiativeRolls.map(r => ({ id: r.id, characterName: r.name, total: r.total, type: r.type }));
+        const initiativeOrder: Combatant[] = initiativeRolls.map(r => ({ id: r.id, characterName: r.name, total: r.total, type: r.type, controlledBy: r.controlledBy }));
         
         localLog(`Initiative order: ${JSON.stringify(initiativeOrder.map(c => c.characterName))}`);
         

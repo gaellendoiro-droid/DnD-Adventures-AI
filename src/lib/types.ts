@@ -89,4 +89,5 @@ export interface Combatant {
   characterName: string;
   total: number;
   type: 'player' | 'npc';
+  controlledBy: "Player" | "AI";
 }
