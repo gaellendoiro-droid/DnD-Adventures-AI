@@ -2,6 +2,18 @@
 
 Este documento describe posibles mejoras y nuevas funcionalidades que podrían llevar la experiencia de D&D Adventures AI al siguiente nivel. La arquitectura actual es modular y robusta, sentando una base excelente para las siguientes evoluciones.
 
+---
+
+### Mejoras Arquitectónicas Implementadas Recientemente
+
+#### Refactorización del Flujo de Datos de la IA
+
+*   **Estado Anterior:** El sistema dependía en parte de un estado global y herramientas de búsqueda (como `characterLookupTool`) para obtener información sobre los personajes. Esta arquitectura era frágil y propensa a errores, como se demostró cuando el `actionInterpreter` falló debido a una corrupción de datos no detectada.
+*   **Mejora Implementada:** Se ha refactorizado la arquitectura para que los datos clave (especialmente los de la `party`) fluyan de manera explícita desde el `gameCoordinator` a todas las herramientas y flujos de la IA. Se eliminaron las herramientas de búsqueda de personajes en favor de este flujo de datos directo.
+*   **Impacto:** El sistema es ahora significativamente más robusto, predecible y fácil de depurar. La eliminación de dependencias ocultas previene clases enteras de bugs y sienta una base sólida para futuras funcionalidades. Este cambio fue fundamental para corregir el error que impedía a los compañeros reaccionar.
+
+---
+
 ### 1. Sistema de Progresión y Gestión (Prioridad Alta)
 *   **Problema Actual:** El juego es una experiencia "de una sola sesión". No hay subida de nivel, el inventario no se puede gestionar de forma dinámica y la persistencia de datos depende de archivos de guardado manuales.
 *   **Mejora Propuesta:**

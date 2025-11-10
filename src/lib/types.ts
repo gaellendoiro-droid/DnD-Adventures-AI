@@ -32,7 +32,7 @@ export interface Character {
   id: string;
   name: string;
   race: string;
-  class: string;
+  characterClass: string; // Standardized to avoid using reserved keyword 'class'.
   level: number;
   sex: string;
   background: string;

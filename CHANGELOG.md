@@ -14,8 +14,15 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ### Added
 
 ### Changed
+- **Unificación de Iconos:** Se ha unificado la iconografía del chat con la del panel de combate para una mayor consistencia visual. Ahora, los mensajes del jugador usan el icono de usuario azul (`User`) y los de los compañeros el icono de grupo verde (`Users`), coincidiendo con su representación en el orden de iniciativa.
+- **Arquitectura de Combatientes:** Se ha refactorizado la lógica de identificación de combatientes para que sea más robusta y explícita. El sistema ahora usa `type: 'ally'` para los miembros del grupo y `type: 'enemy'` para los monstruos, en lugar del ambiguo `type: 'npc'`. Esto previene futuros bugs donde PNJ aliados podrían ser incorrectamente mostrados como enemigos.
+- Se ha actualizado el icono de enemigo en el panel "Orden de Combate" por uno de espadas cruzadas (`Swords`) para una mejor representación visual.
+- Refactorizada la arquitectura del flujo de datos de la IA para eliminar el estado global y las dependencias ocultas. Ahora, los datos de la party se pasan explícitamente desde el GameCoordinator a las herramientas ActionInterpreter y CombatInitiationExpert, resultando en un sistema más robusto y predecible.
 
 ### Fixed
+- Corregido un bug crítico en el `actionInterpreter` que causaba que los compañeros de IA no reaccionaran. El problema se debía a que los datos de la `party` se pasaban como un string JSON en lugar de un objeto, provocando un fallo en la interpretación de la acción del jugador.
+- Corregido un error visual en el panel "Orden de Combate" donde los enemigos (ej. la Mantícora) aparecían incorrectamente con el icono de aliado. La solución implicó una refactorización de la lógica de identificación de combatientes para usar tipos explícitos (`ally`/`enemy`).
+- Corregido un error crítico que impedía iniciar combates. La causa raíz era una corrupción de los datos de la party debido a un sistema frágil de estado global para las herramientas de IA. Este arreglo también resolvió una regresión que rompía la interpretación de acciones.
 - Corregido un problema de recorte de texto en el panel de depuración forzando el salto de línea para palabras largas y así evitar el desbordamiento visual.
 
 ### Docs

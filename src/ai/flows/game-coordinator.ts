@@ -1,4 +1,5 @@
 
+// Forcing a reload to pick up the latest schema changes.
 'use server';
 /**
  * @fileOverview The central AI coordinator for the D&D game.
@@ -16,8 +17,9 @@ import { companionExpertTool } from '../tools/companion-expert';
 import { actionInterpreter } from './action-interpreter';
 import { GameCoordinatorInputSchema, GameCoordinatorOutputSchema, type GameCoordinatorInput, type GameCoordinatorOutput } from './schemas';
 import { combatManagerTool } from '../tools/combat-manager';
-import { updatePartyDataForTools } from '../tools/character-lookup';
+import { combatInitiationExpertTool } from '../tools/combat-initiation-expert';
 
+// NOTE: updatePartyDataForTools is no longer needed as party data flows explicitly.
 
 export const gameCoordinatorFlow = ai.defineFlow(
   {
@@ -28,10 +30,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
   async (input) => {
     const { playerAction, inCombat, conversationHistory, party } = input;
     let { locationId } = input;
-    
-    // HACK: Update the in-memory data for the character lookup tool.
-    // In a real app, this would be a database or a proper state management system.
-    updatePartyDataForTools(party);
     
     const debugLogs: string[] = [];
     const localLog = (message: string) => {
@@ -50,6 +48,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
     
     if (inCombat) {
         localLog("GameCoordinator: Combat turn received. Delegating to Combat Manager...");
+        // CORRECTED: Pass the entire input object, which now includes the party.
         const combatResult = await combatManagerTool(input);
         const logSummary = {
             messages: combatResult.messages?.length,
@@ -75,6 +74,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
     const { interpretation, debugLogs: interpreterLogs } = await actionInterpreter({
         playerAction,
         locationContext: JSON.stringify(locationContextForInterpreter),
+        party: party, // Pass party data explicitly.
     });
     interpreterLogs.forEach(localLog);
     
@@ -90,8 +90,21 @@ export const gameCoordinatorFlow = ai.defineFlow(
     }
     
     if (interpretation.actionType === 'attack') {
-        localLog(`GameCoordinator: Attack action interpreted. Delegating to Combat Manager to initiate combat.`);
+        localLog(`GameCoordinator: Attack action interpreted. Determining combatants...`);
         
+        const initiationResult = await combatInitiationExpertTool({
+            playerAction: input.playerAction,
+            locationId: input.locationId,
+            targetId: interpretation.targetId || '',
+            locationContext: currentLocationData,
+            party: party, // Explicitly passing party data
+        });
+
+        (initiationResult.debugLogs || []).forEach(localLog);
+
+        localLog(`GameCoordinator: Combat initiation expert determined ${initiationResult.combatantIds.length} combatants: ${initiationResult.combatantIds.join(', ')}.`);
+
+        // CORRECTED: Pass the 'party' object to the combat manager.
         const combatResult = await combatManagerTool({
             playerAction: input.playerAction,
             locationId: input.locationId,
@@ -99,6 +112,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
             conversationHistory: input.conversationHistory,
             interpretedAction: interpretation,
             locationContext: currentLocationData,
+            combatantIds: initiationResult.combatantIds,
+            party: party,
         });
 
         const logSummary = {
@@ -127,6 +142,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         const tempInterpreterResult = await actionInterpreter({
             playerAction: playerAction,
             locationContext: JSON.stringify(locationContextForInterpreter),
+            party: party, // Also pass party here.
         });
         interpreterLogs.forEach(localLog);
         

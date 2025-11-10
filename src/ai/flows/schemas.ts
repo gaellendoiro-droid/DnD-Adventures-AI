@@ -11,6 +11,7 @@ import type { GameMessage, Combatant } from '@/lib/types';
 export const ActionInterpreterInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
   locationContext: z.string().describe('A JSON string with the full data of the current location, including its exits, interactable objects and entities present.'),
+  party: z.array(z.any()).describe("The array of party member objects. Used to identify companions."),
 });
 export type ActionInterpreterInput = z.infer<typeof ActionInterpreterInputSchema>;
 

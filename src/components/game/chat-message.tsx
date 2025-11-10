@@ -4,7 +4,7 @@
 import React, { useState } from "react";
 import type { GameMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Bot, User, Cog, Swords, Play, Loader2, Square, AlertTriangle, RefreshCw } from "lucide-react";
+import { Bot, User, Users, Cog, Swords, Play, Loader2, Square, AlertTriangle, RefreshCw } from "lucide-react";
 import { generateDmNarrationAudio } from "@/ai/flows/generate-dm-narration-audio";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "../ui/button";
@@ -24,7 +24,7 @@ const senderInfo = {
     icon: User,
     name: "Jugador",
     bubbleClassName: "bg-primary text-primary-foreground rounded-bl-none",
-    iconClassName: "",
+    iconClassName: "text-blue-500",
   },
   System: {
     icon: Cog,
@@ -33,10 +33,10 @@ const senderInfo = {
     iconClassName: "hidden",
   },
   Character: {
-    icon: Swords,
+    icon: Users,
     name: "Personaje",
     bubbleClassName: "bg-secondary rounded-b-none",
-    iconClassName: "text-accent-foreground",
+    iconClassName: "text-green-500",
   },
   Error: {
     icon: AlertTriangle,

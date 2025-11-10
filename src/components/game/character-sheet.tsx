@@ -74,7 +74,7 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
               {character.name}
             </h2>
             <p className="text-muted-foreground">
-              {character.race} {character.class}, Nivel {character.level}
+              {character.race} {character.characterClass}, Nivel {character.level}
             </p>
           </div>
         </div>
