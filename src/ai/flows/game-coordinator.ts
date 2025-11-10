@@ -92,7 +92,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
     if (interpretation.actionType === 'attack') {
         localLog(`GameCoordinator: Attack action interpreted. Delegating to Combat Manager to initiate combat.`);
         
-        // Pass the minimal context to the combat manager, which will handle initiation.
         const combatResult = await combatManagerTool({
             playerAction: input.playerAction,
             locationId: input.locationId,
@@ -105,13 +104,15 @@ export const gameCoordinatorFlow = ai.defineFlow(
         const logSummary = {
             messages: combatResult.messages?.length,
             diceRolls: combatResult.diceRolls?.length,
-            updatedParty: combatResult.updatedParty?.length,
+            initiativeOrder: combatResult.initiativeOrder?.map(c => c.characterName),
             inCombat: combatResult.inCombat,
-            nextLocationId: combatResult.nextLocationId,
         }
         localLog(`GameCoordinator: Received result from combatManager: ${JSON.stringify(logSummary)}`);
-        // Return the FULL combat result, including diceRolls and initiativeOrder
-        return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
+
+        return {
+            ...combatResult,
+            debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])],
+        };
     }
 
     let skipCompanions = false;
@@ -119,7 +120,6 @@ export const gameCoordinatorFlow = ai.defineFlow(
     let finalLocationData = currentLocationData;
     let narrativeAction = interpretation;
 
-    // Smart logic for companion interaction vs. information request
     const isInfoRequestToCompanion = interpretation.actionType === 'interact' && party.some(p => p.name === interpretation.targetId);
 
     if (isInfoRequestToCompanion) {

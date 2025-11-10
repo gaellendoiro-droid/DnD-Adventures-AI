@@ -176,7 +176,7 @@ export const combatManagerTool = ai.defineTool(
         const logSummary = {
             messages: finalResult.messages?.length,
             diceRolls: finalResult.diceRolls?.length,
-            initiativeOrder: finalResult.initiativeOrder?.length,
+            initiativeOrder: finalResult.initiativeOrder?.map(c => c.characterName),
             inCombat: finalResult.inCombat,
         };
         localLog(`Data being returned from CombatManager: ${JSON.stringify(logSummary)}`);
