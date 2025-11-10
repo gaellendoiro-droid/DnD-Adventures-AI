@@ -16,6 +16,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ### Changed
 
 ### Fixed
+- Corregido un problema de recorte de texto en el panel de depuración forzando el salto de línea para palabras largas y así evitar el desbordamiento visual.
 
 ### Docs
 

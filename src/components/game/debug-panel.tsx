@@ -34,7 +34,7 @@ export function DebugPanel({ messages }: DebugPanelProps) {
             <p className="text-center">El log de depuración está vacío.</p>
           ) : (
             messages.map((msg, index) => (
-              <p key={index} className="whitespace-pre-wrap break-words">{`> ${msg}`}</p>
+              <p key={index} className="whitespace-pre-wrap break-all">{`> ${msg}`}</p>
             ))
           )}
         </div>

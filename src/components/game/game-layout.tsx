@@ -14,7 +14,7 @@ export function GameLayout({
 }: GameLayoutProps) {
   return (
     <main className="flex-1 grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[280px_1fr_380px] gap-4 p-4 overflow-hidden">
-      <aside className="hidden md:flex flex-col bg-card rounded-lg shadow-sm border min-h-0">
+      <aside className="hidden md:flex flex-col bg-card rounded-lg shadow-sm border min-h-0 min-w-0">
         {leftPanel}
       </aside>
       
