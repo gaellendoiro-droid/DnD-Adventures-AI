@@ -2,58 +2,48 @@
 'use server';
 /**
  * @fileOverview A Genkit tool for generating actions for AI-controlled companions.
+ * This version uses a more robust, two-step process to generate reactions.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { CharacterSummarySchema } from '@/lib/schemas';
 import { characterLookupTool } from './character-lookup';
-
+import { PartySchema, CharacterSchema } from '@/lib/schemas';
 
 const CompanionExpertInputSchema = z.object({
+  party: PartySchema.describe("The array of character objects for the entire party."),
   characterName: z.string().describe("The name of the AI-controlled character whose action is being decided."),
   context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
   inCombat: z.boolean().describe("Whether the party is currently in combat."),
-  enemies: z.array(z.string()).optional().describe("A list of enemy names, if in combat."),
 });
 
 const CompanionExpertOutputSchema = z.object({
     action: z.string().optional().describe("The character's action or dialogue. Can be an empty string for no action."),
 });
 
-const companionExpertPrompt = ai.definePrompt({
-    name: 'companionExpertPrompt',
-    input: {schema: CompanionExpertInputSchema},
+// New prompt that receives the character's data directly. No tools needed.
+const reactionGenerationPrompt = ai.definePrompt({
+    name: 'reactionGenerationPrompt',
+    input: {schema: z.object({
+        character: CharacterSchema,
+        context: z.string(),
+    })},
     output: {schema: CompanionExpertOutputSchema},
-    tools: [characterLookupTool],
-    prompt: `You are orchestrating the AI-controlled character in a D&D party. Your goal is to make their interactions feel natural and true to their unique personality. You MUST ALWAYS reply in Spanish from Spain.
+    prompt: `You are orchestrating an AI-controlled character in a D&D party. Your goal is to make their interactions feel natural and true to their unique personality. You MUST ALWAYS reply in Spanish from Spain.
 
     **Guiding Principle: Realism over Reactivity. The character should only act if it makes sense for them.**
 
-    Your character's name is **{{{characterName}}}**.
-
-    To get your character's full details (class, race, personality, abilities, spells) and the status of your allies, you MUST use the \`characterLookupTool\`.
+    **Your Character's Details:**
+    \`\`\`json
+    {{{json character}}}
+    \`\`\`
     
-    This is what's happening:
+    **Current Situation:**
     "{{{context}}}"
 
-    {{#if inCombat}}
-    **You are IN COMBAT.** The enemies are: {{#each enemies}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}.
-    Decide the combat action for your character. The action should be based on their personality and class abilities.
-    - To know your character's specific abilities, spells, or inventory, you MUST use the 'characterLookupTool' with your character's name.
-    - To know an ally's specific data (like if they have a certain spell or how wounded they are), you MUST use the 'characterLookupTool'.
-    - A pragmatic cleric might heal the most wounded ally.
-    - A reckless mage might use a powerful area-of-effect spell, even if it's risky.
-    - A cowardly rogue might try to hide.
-    - A brave warrior will attack the biggest threat.
-
-    State the action clearly (e.g., "Elara casts Healing Word on Galador", "Merryl attacks the goblin with a Fire Bolt").
-    {{else}}
-    **You are in narrative/exploration mode.** The player character just said or did the above.
-    - **Is the player talking to you directly?** A response is likely.
-    - **Does the situation warrant a reaction?** A character might react to a tense moment or something that aligns with their personality.
-    - **It's okay to be silent.** If the character has no strong opinion, they should remain silent. Return an empty string for the action.
-    {{/if}}
+    **You are in narrative/exploration mode.**
+    - Based on your character's personality and the situation, decide if they would say or do something.
+    - **It's okay to be silent.** If the character has no strong opinion or reason to act, they should remain silent.
 
     **RULES:**
     - **CRITICAL: Do not use Markdown.** The output must be plain text.
@@ -63,39 +53,39 @@ const companionExpertPrompt = ai.definePrompt({
     `,
 });
 
-
 export const companionExpertTool = ai.defineTool(
     {
         name: 'companionExpertTool',
-        description: 'Decides the action or dialogue for an AI-controlled companion based on their personality and the current game context (combat or exploration).',
+        description: 'Decides the action or dialogue for an AI-controlled companion based on their personality and the current game context (exploration).',
         inputSchema: CompanionExpertInputSchema,
         outputSchema: CompanionExpertOutputSchema,
     },
     async (input) => {
         try {
-            const validatedInput = CompanionExpertInputSchema.parse(input);
-            const { output } = await companionExpertPrompt(validatedInput);
+            const { party, characterName, context } = CompanionExpertInputSchema.parse(input);
+
+            // STEP 1: Look up the character data directly in code.
+            const characterData = await characterLookupTool({ party, characterName });
+
+            if (!characterData) {
+                console.warn(`[CompanionExpertTool] Character "${characterName}" not found in party. Skipping reaction.`);
+                return { action: "" };
+            }
+
+            // STEP 2: Call the LLM with all context provided. No tools needed.
+            const { output } = await reactionGenerationPrompt({
+                character: characterData,
+                context: context,
+            });
             
             if (!output) {
                 return { action: "" };
             }
-
-            // This is our robustness check. If the model returned a raw string, we catch it.
-            if (typeof output === 'string') {
-                 // Attempt to parse it, in case it's a stringified JSON
-                try {
-                    return JSON.parse(output);
-                } catch (e) {
-                    // If it's just a plain string, wrap it in the expected object structure.
-                    return { action: output };
-                }
-            }
             
-            return output;
+            return CompanionExpertOutputSchema.parse(output);
 
         } catch (error) {
             console.error('[CompanionExpertTool Error]', error);
-            // In case of any failure, return a safe, empty action.
             return { action: "" };
         }
     }

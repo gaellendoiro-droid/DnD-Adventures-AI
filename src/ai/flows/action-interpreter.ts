@@ -2,22 +2,24 @@
 'use server';
 /**
  * @fileOverview A specialized AI flow to interpret player actions.
- * It determines the player's intent (move, interact, attack, etc.)
- * and returns a structured object for the game coordinator to process.
+ * This version uses a more robust, two-step process to generate interpretations.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { ActionInterpreterInputSchema, ActionInterpreterOutputSchema, type ActionInterpreterInput, type ActionInterpreterOutput } from './schemas';
-import { locationLookupTool } from '../tools/location-lookup';
+import { getAdventureData } from '@/app/game-state-actions';
 
-// NOTE: characterLookupTool has been removed to favor explicit data flow.
-
+// This prompt no longer needs tools. All context is provided directly.
 const actionInterpreterPrompt = ai.definePrompt({
     name: 'actionInterpreterPrompt',
-    input: { schema: z.object({ playerAction: z.string(), locationContext: z.string(), party: ActionInterpreterInputSchema.shape.party }) },
+    input: { schema: z.object({ 
+        playerAction: z.string(), 
+        locationContext: z.string(), 
+        party: ActionInterpreterInputSchema.shape.party,
+        allLocationNames: z.array(z.string()), // Provide all possible location names
+    }) },
     output: { schema: ActionInterpreterOutputSchema },
-    tools: [locationLookupTool], // characterLookupTool is no longer needed.
     prompt: `You are an expert action interpreter for a D&D game. Your ONLY job is to determine the player's intent and return a structured JSON object. You must follow a strict priority flow.
 
 **Directives & Priority Flow:**
@@ -26,47 +28,42 @@ const actionInterpreterPrompt = ai.definePrompt({
     *   If the player's action starts with \`//\`, you MUST classify the action as 'ooc'. The 'targetId' is irrelevant. Stop here.
 
 2.  **PRIORITY 2: Attack:**
-    *   Analyze if the action is a clear intent to attack a creature. This includes phrases like "ataco a", "lanzo un hechizo contra", "le disparo a", "golpeo al", "saco mi espada y ataco", "me lanzo al combate".
-    *   If you detect an attack, you MUST classify it as 'attack'.
-    *   Then, you MUST identify the target. Look for the target's name (e.g., "orco", "mantícora") in the \`playerAction\` or the \`locationContext\`. If there is only one logical enemy present in \`entitiesPresent\`, you should assume that is the target.
-    *   The 'targetId' MUST be the name or ID of the creature being attacked. Stop here.
+    *   Analyze for a clear intent to attack.
+    *   If detected, classify as 'attack' and identify the target from the context. Stop here.
 
 3.  **PRIORITY 3: Interaction with a Companion:**
-    *   Analyze if the action is a question or statement directed at a specific companion from the 'Player\'s Party' list provided in the context.
-    *   Check if the action starts with or contains a companion's name.
-    *   If it is, you MUST classify the action as 'interact' and use the companion's name (e.g., "Elara") as the 'targetId'. Stop here.
+    *   Analyze if the action is directed at a companion from the 'Player's Party' list.
+    *   If so, classify as 'interact' and use the companion's name as 'targetId'. Stop here.
 
 4.  **PRIORITY 4: Movement - Local Exits:**
-    *   Analyze the player's action for clear movement intent to a new location (e.g., "vamos a", "entramos en", "ir a").
-    *   Check if the destination in the player's action (e.g., "vamos a la posada", "entramos en Suministros Barthen") matches the \`description\` of any \`exits\` in the \`locationContext\`.
-    *   If you find a match, you MUST classify the action as 'move' and use the exact \`toLocationId\` from that exit as the 'targetId'. Stop here.
+    *   Analyze for movement intent (e.g., "vamos a").
+    *   If the destination matches a local \`exits\` description, classify as 'move' and use the \`toLocationId\`. Stop here.
 
 5.  **PRIORITY 5: Interaction with a Local Object:**
-    *   Analyze if the action targets an object or entity present in the current location. Check if the target (e.g., "tablón de anuncios", "altar") matches the \`name\` of any \`interactables\` or \`entitiesPresent\` in the \`locationContext\`.
-    *   Even if movement verbs are used ("vamos al tablón"), if the target is a local interactable, it's an interaction, not a move.
-    *   If you find a match, you MUST classify it as 'interact'. The 'targetId' must be the most specific 'interactionResults.action' string that matches the player's intent (e.g., 'Leer anuncios (General)'). Stop here.
+    *   Analyze if the action targets a local object/entity from \`interactables\` or \`entitiesPresent\`.
+    *   If so, classify as 'interact' and find the most specific 'interactionResults.action' string for 'targetId'. Stop here.
 
-6.  **PRIORITY 6: Movement - Global Search:**
-    *   If, and ONLY IF, you detected movement intent but did not find a match in local exits OR local interactables, you MAY use the \`locationLookupTool\`.
-    *   Use the player's destination as the query for the tool (e.g., "Colina del Resentimiento", "Adabra Gwynn").
-    *   If the tool returns a location object, you MUST classify the action as 'move' and use the \`id\` from the returned location object as the 'targetId'. Stop here.
+6.  **PRIORITY 6: Movement - Global Search (Fuzzy Match):**
+    *   If movement intent was detected but didn't match a local exit, compare the player's destination to the provided 'allLocationNames' list.
+    *   Find the best fuzzy match from the list. For example, if the player says "vamos a la colina", and the list has "Colina del Resentimiento", you should match it.
+    *   If you find a strong match, classify as 'move' and use the matched name from the list as the 'targetId'. Stop here.
 
 7.  **PRIORITY 7: Default to Narration:**
-    *   If none of the above apply, and only as a last resort, classify it as 'narrate' and leave 'targetId' null.
+    *   If none of the above apply, classify as 'narrate' and leave 'targetId' null.
 
 **CONTEXT:**
 - Player's Party: \`\`\`json
 {{{json party}}}
 \`\`\`
-- Location Context: \`\`\`json
+- Current Location: \`\`\`json
 {{{locationContext}}}
 \`\`\`
+- All Possible Locations: {{{json allLocationNames}}}
 - Player Action: "{{{playerAction}}}"
 
 Determine the player's intent based on the strict priority flow above.
 `,
 });
-
 
 export const actionInterpreterFlow = ai.defineFlow(
     {
@@ -80,35 +77,39 @@ export const actionInterpreterFlow = ai.defineFlow(
     async (input) => {
         const debugLogs: string[] = [];
         try {
-            // Pass the party data as a JSON string to the prompt.
+            // STEP 1: Fetch all possible location names from the adventure data.
+            const adventureData = await getAdventureData();
+            if (!adventureData) {
+                throw new Error("Failed to load adventure data for interpreter.");
+            }
+            const allLocationNames = adventureData.locations.map((l: any) => l.title);
+
+            // STEP 2: Call the LLM with all context provided. No tools needed.
             const llmResponse = await actionInterpreterPrompt({
                 playerAction: input.playerAction,
                 locationContext: input.locationContext,
                 party: input.party,
+                allLocationNames: allLocationNames,
             });
             
-            // Log tool output for debugging
-            if (llmResponse.history?.length) {
-                llmResponse.history.forEach(turn => {
-                    if (turn.role === 'tool_response' && turn.content[0].toolResponse?.name === 'locationLookupTool') {
-                         const toolOutput = turn.content[0].toolResponse.output;
-                         debugLogs.push(`ActionInterpreter: locationLookupTool was called and returned: ${JSON.stringify(toolOutput)}`);
-                    }
-                });
-            }
-
             let output = llmResponse.output;
 
             if (!output) {
-                const msg = "ActionInterpreter: CRITICAL - AI returned null output. This can happen if a tool fails or returns an unexpected type. Defaulting to 'narrate'.";
+                const msg = "ActionInterpreter: CRITICAL - AI returned null output. Defaulting to 'narrate'.";
                 console.error(msg);
                 debugLogs.push(msg);
-                
                 output = { actionType: 'narrate' };
             }
 
-            debugLogs.push(`ActionInterpreter Raw Output: ${JSON.stringify(output)}`);
+            // Post-processing to map title back to ID if a global move was detected
+            if (output.actionType === 'move' && output.targetId) {
+                const matchedLocation = adventureData.locations.find((l: any) => l.title === output.targetId);
+                if (matchedLocation) {
+                    output.targetId = matchedLocation.id;
+                }
+            }
 
+            debugLogs.push(`ActionInterpreter Raw Output: ${JSON.stringify(output)}`);
             return { interpretation: output, debugLogs };
 
         } catch (e: any) {

@@ -14,20 +14,30 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ### Added
 
 ### Changed
-- **Unificación de Iconos:** Se ha unificado la iconografía del chat con la del panel de combate para una mayor consistencia visual. Ahora, los mensajes del jugador usan el icono de usuario azul (`User`) y los de los compañeros el icono de grupo verde (`Users`), coincidiendo con su representación en el orden de iniciativa.
-- **Arquitectura de Combatientes:** Se ha refactorizado la lógica de identificación de combatientes para que sea más robusta y explícita. El sistema ahora usa `type: 'ally'` para los miembros del grupo y `type: 'enemy'` para los monstruos, en lugar del ambiguo `type: 'npc'`. Esto previene futuros bugs donde PNJ aliados podrían ser incorrectamente mostrados como enemigos.
-- Se ha actualizado el icono de enemigo en el panel "Orden de Combate" por uno de espadas cruzadas (`Swords`) para una mejor representación visual.
-- Refactorizada la arquitectura del flujo de datos de la IA para eliminar el estado global y las dependencias ocultas. Ahora, los datos de la party se pasan explícitamente desde el GameCoordinator a las herramientas ActionInterpreter y CombatInitiationExpert, resultando en un sistema más robusto y predecible.
 
 ### Fixed
-- Corregido un bug crítico en el `actionInterpreter` que causaba que los compañeros de IA no reaccionaran. El problema se debía a que los datos de la `party` se pasaban como un string JSON en lugar de un objeto, provocando un fallo en la interpretación de la acción del jugador.
-- Corregido un error visual en el panel "Orden de Combate" donde los enemigos (ej. la Mantícora) aparecían incorrectamente con el icono de aliado. La solución implicó una refactorización de la lógica de identificación de combatientes para usar tipos explícitos (`ally`/`enemy`).
-- Corregido un error crítico que impedía iniciar combates. La causa raíz era una corrupción de los datos de la party debido a un sistema frágil de estado global para las herramientas de IA. Este arreglo también resolvió una regresión que rompía la interpretación de acciones.
-- Corregido un problema de recorte de texto en el panel de depuración forzando el salto de línea para palabras largas y así evitar el desbordamiento visual.
 
 ### Docs
 
 ### Removed
+
+---
+
+## [0.4.66] - 2024-07-28
+
+### Changed
+- **Restaurado el Log de Estado Final:** Se ha vuelto a añadir la información de la ubicación final y el estado de combate al mensaje de log `Turn finished` en el `gameCoordinator` para mejorar la trazabilidad y la depuración.
+- **Flujo de Conversación Lógico:** Se ha refactorizado el `gameCoordinator` para asegurar que el orden de generación y ensamblaje de los mensajes sea lógicamente coherente. Ahora, las reacciones de los compañeros se generan y se añaden al historial primero, y la narración del DM se genera después, siendo consciente de dichas reacciones. El array de mensajes final respeta este orden (`[Reacciones..., Narración]`), garantizando la coherencia del historial para los turnos futuros.
+
+### Fixed
+- **Corregido Error Crítico en Herramientas de IA:** Se ha solucionado un fallo fundamental que provocaba el silencio de los compañeros de IA y errores en el `actionInterpreter`. La causa raíz era una refactorización incompleta de la herramienta `characterLookupTool`, que seguía dependiendo de un estado global obsoleto. La solución ha implicado:
+    1.  Refactorizar `characterLookupTool` para que acepte los datos de la `party` como un argumento explícito.
+    2.  Modificar `companionExpertTool` y `actionInterpreter` para adoptar un patrón más robusto donde los datos necesarios son inyectados directamente en los prompts, eliminando las frágiles llamadas a herramientas anidadas.
+- **Corregido Error de Esquema:** Se ha definido y exportado el `PartySchema` en `src/lib/schemas.ts` para solucionar un error de compilación que impedía a las herramientas validar correctamente el array de la `party`.
+
+### Docs
+- Actualizada la documentación de `docs/ia-architecture.md` para reflejar el paso de un estado global a un flujo de datos explícito en las herramientas de IA, detallando la nueva arquitectura más robusta y predecible.
+- **Restauración del Historial:** Se ha recuperado y fusionado el historial completo de versiones (0.1.0 a 0.4.5) en el `CHANGELOG.md` para asegurar una documentación completa del proyecto.
 
 ---
 

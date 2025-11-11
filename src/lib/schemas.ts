@@ -52,3 +52,9 @@ export const CharacterSchema = z.object({
     inventory: z.array(z.object({ id: z.string(), name: z.string(), quantity: z.number(), description: z.string().optional().nullable() })),
     spells: z.array(z.object({ id: z.string(), name: z.string(), level: z.number(), description: z.string().nullable() })),
 });
+
+/**
+ * Defines the schema for a party, which is an array of characters.
+ * This is used for validation in flows and tools that operate on the entire party.
+ */
+export const PartySchema = z.array(CharacterSchema);

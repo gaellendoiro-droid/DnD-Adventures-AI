@@ -12,9 +12,9 @@ La arquitectura se basa en cuatro principios fundamentales:
 
 1.  **Especialización:** Cada flujo de IA es un "experto" con una única responsabilidad (interpretar, narrar, decidir tácticas). Esto evita la creación de una IA monolítica y difícil de depurar.
 
-2.  **Orquestación Lógica:** Un director de orquesta no-IA (`gameCoordinator`) toma las decisiones lógicas. No genera texto, sino que dirige el flujo de datos y decide qué experto llamar en cada momento, garantizando un proceso predecible.
+2.  **Orquestación Lógica:** Un director de orquesta (`gameCoordinator`) toma las decisiones lógicas. No genera texto creativo, sino que dirige el flujo de datos y decide qué experto llamar en cada momento, garantizando un proceso predecible.
 
-3.  **Flujo de Datos Explícito:** No hay estado global ni dependencias ocultas. Todos los datos que una herramienta o flujo necesita (como el contexto de la ubicación o los datos de los personajes) se le pasan explícitamente como parámetros. Esto hace que el sistema sea robusto y fácil de razonar.
+3.  **Flujo de Datos Explícito (Arquitectura "Stateless"):** Este es el principio más importante. **No existe un estado global en el backend.** Todos los datos que una herramienta o flujo necesita (como el contexto de la ubicación o los datos de los personajes) se le pasan explícitamente como parámetros en cada llamada. Esto elimina las dependencias ocultas y hace que el sistema sea robusto, predecible y fácil de depurar.
 
 4.  **Abstracción con Herramientas:** Las IAs no interactúan directamente con el mundo del juego. Usan "herramientas" (funciones de TypeScript) para obtener información (ej: `locationLookupTool`) o realizar acciones (ej: `diceRollerTool`).
 
@@ -24,17 +24,16 @@ La arquitectura se basa en cuatro principios fundamentales:
 
 ```mermaid
 graph TD
-    A[Usuario envía Acción] --> B(gameCoordinator);
-    B --> C{actionInterpreter};
+    A[Usuario envía Acción y Estado Completo] --> B(gameCoordinator);
+    B -- Pasa datos explícitos --> C{actionInterpreter};
     C --> D{Devuelve Acción Estructurada};
     D --> B;
     B --> E{¿Es Combate?};
     E -- Sí --> F[Subsistema de Combate];
     E -- No --> G[Subsistema Narrativo];
-    F --> H(Agrega Mensajes de Combate);
-    G --> I(Agrega Narración y Diálogos);
-    H --> J(gameCoordinator);
-    I --> J;
+    G -- 1. Reacciones de Compañeros --> H(companionExpertTool);
+    H -- 2. Narración del DM --> I(narrativeExpert);
+    I --> J(Ensambla Mensajes);
     J --> K[Devuelve Respuesta al Usuario];
 ```
 
@@ -49,102 +48,81 @@ graph TD
 -   **Rol**: El cerebro lógico y director de orquesta del juego.
 -   **Responsabilidades**:
     1.  Recibir el estado completo del juego desde el cliente.
-    2.  Invocar al `actionInterpreter` para entender la intención del jugador.
-    3.  Enrutar la lógica a los subsistemas correspondientes (Combate, Narrativa, OOC).
-    4.  Gestionar cambios de estado de alto nivel (cambio de ubicación, inicio/fin de combate).
-    5.  Agregar todas las respuestas generadas en el turno.
-    6.  Devolver el estado final y los mensajes al cliente.
+    2.  Invocar a los expertos y herramientas en un orden lógico y predecible.
+    3.  Gestionar el flujo de datos explícito, pasando la información necesaria a cada componente.
+    4.  Ensamblar todas las respuestas generadas en el turno en un único array de mensajes.
+    5.  Devolver el estado final y los mensajes al cliente, respetando el orden de generación.
 
 ### 2. Expertos de IA Primarios
 
 #### `actionInterpreter`
 -   **Archivo**: `src/ai/flows/action-interpreter.ts`
--   **Rol**: El "oído" del DM. Traduce el lenguaje natural del jugador a un objeto de acción estructurado.
--   **Ejemplo**: `"Ataco al goblin"` -> `{ actionType: 'attack', targetId: 'goblin' }`.
+-   **Rol**: Traduce el lenguaje natural del jugador a un objeto de acción estructurado.
 
 #### `narrativeExpert`
 -   **Archivo**: `src/ai/flows/narrative-expert.ts`
--   **Rol**: El "cuentacuentos". Genera la descripción de escenas, el resultado de acciones no combativas y el diálogo de PNJs.
+-   **Rol**: Genera la descripción de escenas y el resultado de acciones no combativas.
 
 ### 3. El Subsistema de Combate
 
-Este conjunto de herramientas y flujos se activa cuando `inCombat` es `true`.
-
 #### `combatInitiationExpertTool`
 -   **Archivo**: `src/ai/tools/combat-initiation-expert.ts`
--   **Rol**: El "guardián". Determina si una acción de ataque debe iniciar un combate y quiénes son los combatientes.
+-   **Rol**: Determina si una acción debe iniciar un combate.
 
 #### `combatManagerTool`
 -   **Archivo**: `src/ai/tools/combat-manager.ts`
--   **Rol**: El "árbitro". Gestiona el orden de iniciativa y orquesta los turnos de los PNJ (enemigos y compañeros) hasta que le toca de nuevo al jugador.
-
-#### `enemyTacticianTool`
--   **Archivo**: `src/ai/tools/enemy-tactician.ts`
--   **Rol**: El "cerebro táctico" de los enemigos. Decide la acción más lógica para un PNJ hostil durante su turno.
+-   **Rol**: Gestiona el orden de iniciativa y orquesta los turnos.
 
 ### 4. Herramientas de Apoyo
 
 #### `companionExpertTool`
 -   **Archivo**: `src/ai/tools/companion-expert.ts`
--   **Rol**: La "personalidad" de los compañeros de IA. Genera sus diálogos y acciones en función del contexto.
+-   **Rol**: Genera los diálogos de los compañeros de IA. Sigue un patrón robusto de dos pasos: primero consulta los datos del personaje con `characterLookupTool` y luego inyecta esa información en un prompt para generar la reacción.
 
-#### `locationLookupTool`
--   **Archivo**: `src/ai/tools/location-lookup.ts`
--   **Rol**: El "GPS". Permite al `actionInterpreter` encontrar ubicaciones en el mundo del juego basándose en el texto del jugador.
-
-#### Otras Herramientas
--   **`diceRollerTool`**: Lanza dados virtuales (`1d20+5`).
--   **`characterLookupTool`**: Consulta la ficha de un personaje del grupo.
--   **`adventureLookupTool`**: Consulta datos generales de la aventura (PNJs, objetos).
+#### `characterLookupTool`
+-   **Archivo**: `src/ai/tools/character-lookup.ts`
+-   **Rol**: Una simple función de consulta. Recibe un array de la `party` y el nombre de un personaje, y devuelve los datos completos de ese personaje. **No es una herramienta de IA por sí misma**, sino una utilidad de TypeScript que otras herramientas pueden usar.
 
 ---
 
-## Apéndice: Flujo de Datos de un Turno de Ataque
+## Apéndice: Flujo de Datos (Ejemplo de Reacción de Compañero)
 
-Este ejemplo detalla cómo fluyen los datos a través del sistema tras el refactor, de forma explícita y predecible.
+Este ejemplo ilustra el principio de **flujo de datos explícito**:
 
 **1. Origen (Cliente - `game-view.tsx`)**
--   El jugador escribe: `"¡A la carga! Ataco a la mantícora con mi espada."`
--   `handleSendMessage` recopila el estado:
-    ```json
-    {
-      "playerAction": "¡A la carga! Ataco a la mantícora con mi espada.",
-      "party": [ { "id": "elara", ... }, { "id": "merryl", ... } ],
-      "locationId": "colina-del-resentimiento",
-      "inCombat": false
-    }
-    ```
+-   El jugador escribe: `"Vamos a la posada."`
+-   `handleSendMessage` envía el estado completo al `gameCoordinator`, incluyendo el array `party`.
 
-**2. `gameCoordinator` recibe los datos**
--   El `gameCoordinator` recibe el JSON anterior como su `input`.
--   **Acción**: Invoca al `actionInterpreter`, pasándole `playerAction`, `locationContext` y `party`.
-
-**3. `actionInterpreter` interpreta la intención**
--   Recibe los datos, incluyendo la `party`, que ahora usa para descartar que sea una interacción con un compañero.
--   El prompt prioriza "Ataco a la mantícora" como una acción de combate.
--   **Salida**: Devuelve `{ actionType: 'attack', targetId: 'Mantícora' }`.
-
-**4. `gameCoordinator` enruta al subsistema de combate**
--   El `gameCoordinator` ve `actionType: 'attack'`. Entra en el bloque de lógica de combate.
--   **Acción**: Invoca al `combatInitiationExpertTool`.
+**2. `gameCoordinator` orquesta la reacción**
+-   El `gameCoordinator` decide que es el turno de Elara para reaccionar.
+-   **Acción**: Invoca al `companionExpertTool`.
 -   **Entrada para la herramienta**:
-    ```json
-    {
-        "playerAction": "...",
-        "targetId": "Mantícora",
-        "locationContext": { ... },
-        "party": [ { "id": "elara", ... }, { "id": "merryl", ... } ] // <-- Flujo de datos explícito
-    }
+    ```typescript
+    await companionExpertTool({
+        party: party, // <--- El array completo de la party
+        characterName: "Elara",
+        context: "The player's action is: \"Vamos a la posada\"",
+        inCombat: false,
+    });
     ```
 
-**5. El `combatInitiationExpert` determina los combatientes**
--   La herramienta usa el `locationContext` para encontrar a la "Mantícora" y la `party` para encontrar a los héroes.
--   **Salida**: Devuelve `{ combatantIds: ["elara", "merryl", "mantícora-1"] }`.
+**3. `companionExpertTool` obtiene los detalles**
+-   La herramienta recibe la `party` y el nombre "Elara".
+-   **Acción**: Llama a la función `characterLookupTool` internamente.
+-   **Entrada para la sub-herramienta**:
+    ```typescript
+    await characterLookupTool({
+        party: party, // <--- Pasa la party que recibió
+        characterName: "Elara",
+    });
+    ```
+-   **Salida**: `characterLookupTool` devuelve el objeto completo de Elara.
 
-**6. `gameCoordinator` delega al `combatManager`**
--   El `gameCoordinator` recibe la lista de combatientes.
--   **Acción**: Llama al `combatManagerTool` por primera vez, pasándole la lista de `combatantIds` para que calcule la iniciativa y ejecute la primera acción del jugador.
+**4. `companionExpertTool` genera la reacción**
+-   La herramienta ahora tiene todos los datos de Elara.
+-   **Acción**: Llama a su prompt de IA, inyectando la personalidad y el contexto de Elara.
+-   **Salida**: La IA genera el diálogo: `"Me parece una buena idea."`
 
-**7. El ciclo se completa**
--   El `combatManagerTool` devuelve todos los mensajes del primer turno (la tirada de ataque, el daño, etc.).
--   El `gameCoordinator` agrega estos mensajes y devuelve el nuevo estado (`inCombat: true`, el orden de iniciativa, etc.) al cliente.
+**5. El ciclo se completa**
+-   La reacción se devuelve al `gameCoordinator`, que la añade al array de mensajes del turno.
+-   El proceso es predecible, depurable y no depende de ningún estado oculto.
