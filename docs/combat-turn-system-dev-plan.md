@@ -6,7 +6,7 @@ Este documento detalla los pasos necesarios para implementar un sistema de turno
 
 ### ✅ **Paso 1: Integración del `turnIndex` en el Flujo de Datos**
 
-**Objetivo:** Asegurar que el `turnIndex` fluye correctamente entre el frontend y el backend durante una sesión de juego activa.
+**Objetivo:** Asegurar que el `turnIndex` y todo el estado de combate fluye correctamente entre el frontend y el backend durante una sesión de juego activa.
 
 - [x] **En `src/app/page.tsx`:**
     - [x] **Partidas Nuevas:** Añadir `turnIndex: 0` a `initialGameData` en `handleNewGame` y `handleLoadAdventure`.
@@ -15,6 +15,7 @@ Este documento detalla los pasos necesarios para implementar un sistema de turno
     - [x] **Crear Estado:** Añadir el estado para gestionar el `turnIndex`: `const [turnIndex, setTurnIndex] = useState(initialData.turnIndex || 0);`.
     - [x] **Enviar Estado:** En `handleSendMessage`, incluir el `turnIndex` actual en la llamada a `processPlayerAction`.
     - [x] **Recibir Estado:** En `handleSendMessage`, añadir la lógica para actualizar el estado desde la respuesta del backend: `if (result.turnIndex !== undefined) setTurnIndex(result.turnIndex);`.
+    - [x] **Corregir Bug de Estado:** Asegurar que el `initiativeOrder` se incluye en la llamada a `processPlayerAction` durante el combate para evitar errores de estado ausente.
 
 - [x] **En `src/ai/flows/game-coordinator.ts`:**
     - [x] **Añadir Log:** Al inicio del flujo, añadir un `debugLog` que muestre el `turnIndex` recibido: `GameCoordinator: Received action. ... turnIndex: ${input.turnIndex}.`
@@ -24,19 +25,27 @@ Este documento detalla los pasos necesarios para implementar un sistema de turno
 
 ---
 
-### 🏃 **Paso 2: Implementación del Esqueleto del Bucle de Turnos en `combatManagerTool`**
+### ✅ **Paso 2: Implementación del Bucle de Turnos y Sincronización de la UI**
 
-**Objetivo:** Crear la estructura lógica del bucle que procesará los turnos de la IA, sin implementar todavía la lógica de ataque.
+**Objetivo:** Crear la estructura lógica del bucle de turnos y asegurar que la UI refleje el estado actual del combate.
 
-- [ ] **En `src/ai/tools/combat-manager.ts`:**
-    - [ ] Modificar la función principal para que, cuando `inCombat` sea `true`, inicie un bucle `while`.
-    - [ ] La condición del bucle debe continuar mientras el combatiente activo (`initiativeOrder[turnIndex]`) sea controlado por la IA.
-    - [ ] **Añadir Log de Iteración:** Dentro del bucle, añadir un `debugLog`: `CombatManager Loop: Processing turn for AI combatant [Nombre del PNJ] at index ${turnIndex}...`.
-    - [ ] Incrementar el `turnIndex` al final de cada iteración.
-    - [ ] **Añadir Log de Salida:** Después de que el bucle termine, añadir un `debugLog`: `CombatManager Loop: Stopped. Control ceded to player [Nombre del Jugador] at index ${turnIndex}.`.
+- [x] **En `src/ai/tools/combat-manager.ts` (Backend):**
+    - [x] Modificar la función principal para que, cuando `inCombat` sea `true`, inicie un bucle `while`.
+    - [x] La condición del bucle debe continuar mientras el combatiente activo (`initiativeOrder[turnIndex]`) sea controlado por la IA.
+    - [x] **Añadir Log de Iteración:** Dentro del bucle, añadir un `debugLog`: `CombatManager Loop: Processing turn for AI combatant [Nombre del PNJ] at index ${turnIndex}...`.
+    - [x] Incrementar el `turnIndex` al final de cada iteración.
+    - [x] **Añadir Log de Salida:** Después de que el bucle termine, añadir un `debugLog`: `CombatManager Loop: Stopped. Control ceded to player [Nombre del Jugador] at index ${turnIndex}.`.
+
+- [x] **En `src/components/game/initiative-tracker.tsx` (Frontend):**
+    - [x] Modificar el componente para que acepte una nueva prop, `currentTurnIndex`.
+    - [x] Aplicar un estilo visual (ej. un borde resaltado, un cambio de color de fondo) al elemento de la lista que corresponda al `currentTurnIndex` para que el jugador sepa de quién es el turno.
+
+- [x] **En `src/components/layout/left-panel.tsx` (Frontend):**
+    - [x] Pasar el `turnIndex` del estado de `GameView` como la prop `currentTurnIndex` al componente `InitiativeTracker`.
 
 **Verificación:**
-- [ ] Iniciar un combate donde los primeros turnos sean de la IA (ej: `[IA, IA, Jugador]`). Al enviar la primera acción del jugador, el `debugLog` deberá mostrar los logs de "Processing turn..." para cada PNJ, seguidos del log "Loop: Stopped.", y el juego deberá detenerse esperando la acción del jugador.
+- [x] **Verificación del Backend:** Iniciar un combate donde los primeros turnos sean de la IA (ej: `[IA, IA, Jugador]`). Al enviar la primera acción del jugador, el `debugLog` deberá mostrar los logs de "Processing turn..." para cada PNJ, seguidos del log "Loop: Stopped.".
+- [x] **Verificación del Frontend:** Al iniciarse un combate, el primer combatiente en el `InitiativeTracker` debe estar resaltado. Después de que el bucle de la IA se ejecute y ceda el control al jugador, el resaltado en el `InitiativeTracker` debe moverse al personaje del jugador.
 
 ---
 

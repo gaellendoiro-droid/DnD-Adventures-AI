@@ -9,10 +9,10 @@ import { DiceRollResult } from "./dice-roll-result";
 import { useEffect, useRef } from "react";
 
 interface DiceLogPanelProps {
-  diceRolls: DiceRoll[];
+  rolls: DiceRoll[];
 }
 
-export function DiceLogPanel({ diceRolls }: DiceLogPanelProps) {
+export function DiceLogPanel({ rolls: diceRolls = [] }: DiceLogPanelProps) {
     const scrollViewportRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {

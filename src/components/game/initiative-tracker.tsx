@@ -9,9 +9,10 @@ import { Badge } from "../ui/badge";
 
 interface InitiativeTrackerProps {
   combatants: Combatant[];
+  currentTurnIndex?: number;
 }
 
-export function InitiativeTracker({ combatants }: InitiativeTrackerProps) {
+export function InitiativeTracker({ combatants, currentTurnIndex = 0 }: InitiativeTrackerProps) {
   return (
     <div className="flex flex-col h-full">
       <CardHeader className="flex-row items-center gap-2 pt-4 pb-2">
@@ -30,7 +31,7 @@ export function InitiativeTracker({ combatants }: InitiativeTrackerProps) {
                 <li
                   key={combatant.id}
                   className={`flex items-center space-x-3 p-2 rounded-lg transition-colors border-l-4 ${
-                    index === 0 ? "bg-secondary border-primary/80" : "border-transparent"
+                    index === currentTurnIndex ? "bg-secondary border-primary/80" : "border-transparent"
                   }`}
                 >
                   <div className="flex-shrink-0 font-mono text-xs h-6 w-6 flex items-center justify-center rounded-full bg-muted-foreground/20 text-muted-foreground font-bold">
@@ -39,7 +40,6 @@ export function InitiativeTracker({ combatants }: InitiativeTrackerProps) {
                   <div className="flex-1 flex justify-between items-center">
                     <p className="font-semibold">{combatant.characterName}</p>
                     <div className="flex items-center gap-2">
-                      {/* CORRECTED: Use explicit 'enemy' type for robust identification */}
                       {combatant.type === 'enemy' ? (
                         <Swords className="h-4 w-4 text-red-500" title="Enemigo" />
                       ) : combatant.controlledBy === 'Player' ? (

@@ -22,10 +22,14 @@ export async function processPlayerAction(
         updatedParty: result.updatedParty?.length,
         inCombat: result.inCombat,
         nextLocationId: result.nextLocationId,
+        turnIndex: result.turnIndex, // Added for logging
     }
     console.log(`[actions.ts] Returning result to client: ${JSON.stringify(logSummary)}`);
 
-    return result;
+    return {
+      ...result,
+      turnIndex: result.turnIndex, // Ensure turnIndex is explicitly returned
+    };
 
   } catch (error: any) {
     console.error("[Action Error] Failed to process player action:", error);

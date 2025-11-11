@@ -126,7 +126,15 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
     try {
       const history = buildConversationHistory();
-      const actionInput = { playerAction: content, party, locationId, inCombat, conversationHistory: history, turnIndex };
+      const actionInput = { 
+        playerAction: content, 
+        party, 
+        locationId, 
+        inCombat, 
+        conversationHistory: history, 
+        turnIndex,
+        initiativeOrder,
+      };
       const result = await processPlayerAction(actionInput);
 
       addDebugMessages(result.debugLogs);
@@ -155,7 +163,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     } finally {
       setIsDMThinking(false);
     }
-  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, inCombat, locationId, party, selectedCharacter, addDiceRolls, turnIndex]);
+  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, inCombat, locationId, party, selectedCharacter, addDiceRolls, turnIndex, initiativeOrder]);
 
   const handleDiceRoll = useCallback((roll: { result: number, sides: number }) => {
     addDiceRolls([{
@@ -180,6 +188,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           diceRolls={diceRolls}
           debugMessages={debugMessages}
           initiativeOrder={initiativeOrder}
+          turnIndex={turnIndex}
         >
           <div className="p-2">
             <Button size="sm" variant="outline" onClick={handleInternalSaveGame} className="w-full">

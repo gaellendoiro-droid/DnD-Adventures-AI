@@ -18,13 +18,16 @@ import { CharacterSchema } from '@/lib/schemas'; // Import the single source of 
 
 export const CombatManagerInputSchema = z.object({
   playerAction: z.string(),
+  party: z.array(CharacterSchema),
   locationId: z.string(),
   inCombat: z.boolean(),
   conversationHistory: z.string(),
+  turnIndex: z.number().optional(),
+  initiativeOrder: z.array(z.any()).optional(), // Combatant[]
+  // Fields for combat initiation
   interpretedAction: ActionInterpreterOutputSchema.optional(),
   locationContext: z.any().optional(),
   combatantIds: z.array(z.string()).optional(),
-  party: z.array(CharacterSchema).optional(), // Accept the party data directly
 });
 
 export const CombatManagerOutputSchema = z.object({
@@ -37,6 +40,7 @@ export const CombatManagerOutputSchema = z.object({
     initiativeOrder: z.array(z.any()).optional(),
     enemies: z.array(z.any()).optional(),
     debugLogs: z.array(z.string()).optional(),
+    turnIndex: z.number().optional(),
 });
 
 
@@ -48,7 +52,8 @@ export const combatManagerTool = ai.defineTool(
       outputSchema: CombatManagerOutputSchema,
     },
     async (input) => {
-        const { playerAction, inCombat, locationId, interpretedAction, locationContext, conversationHistory, combatantIds, party } = input;
+        const { playerAction, inCombat, locationId, interpretedAction, locationContext, conversationHistory, combatantIds, party, initiativeOrder } = input;
+        let { turnIndex } = input;
         
         const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
         const diceRolls: Omit<DiceRoll, 'id' | 'timestamp'>[] = [];
@@ -60,10 +65,39 @@ export const combatManagerTool = ai.defineTool(
         };
 
         if (inCombat) {
-            localLog("Continuing existing combat. (Logic to be implemented)");
-            return { messages, inCombat: true, debugLogs };
+            localLog("Continuing existing combat...");
+            if (!initiativeOrder || turnIndex === undefined) {
+                throw new Error("Combat in progress, but initiativeOrder or turnIndex is missing.");
+            }
+
+            let currentTurnIndex = turnIndex;
+            let activeCombatant = initiativeOrder[currentTurnIndex];
+            
+            // Loop through AI turns until it's a player's turn
+            while(activeCombatant && activeCombatant.controlledBy === 'AI') {
+                localLog(`CombatManager Loop: Processing turn for AI combatant ${activeCombatant.characterName} at index ${currentTurnIndex}...`);
+
+                // Placeholder for Step 3: Call to enemyTacticianTool and execute action
+                
+                currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
+                activeCombatant = initiativeOrder[currentTurnIndex];
+            }
+            
+            const playerCombatant = initiativeOrder.find(c => c.controlledBy === 'Player');
+            localLog(`CombatManager Loop: Stopped. Control ceded to player ${playerCombatant?.characterName} at index ${currentTurnIndex}.`);
+
+            // Placeholder for player action processing
+            
+            return { 
+                messages, 
+                inCombat: true, 
+                debugLogs, 
+                turnIndex: currentTurnIndex,
+                initiativeOrder: initiativeOrder,
+            };
         }
         
+        // ========= COMBAT INITIATION LOGIC (UNCHANGED) =========
         localLog("Initiating new combat sequence.");
 
         if (!combatantIds || !interpretedAction || !locationContext || !party) {
@@ -112,7 +146,7 @@ export const combatManagerTool = ai.defineTool(
 
         const combatantsForInit = [
             ...combatantData.filter(c => c.entityType === 'player'),
-            ...updatedEnemies.map(e => ({...e, id: e.uniqueId })) // Removed flawed 'type' assignment
+            ...updatedEnemies.map(e => ({...e, id: e.uniqueId }))
         ];
         
         const initiativeRolls: { id: string; name: string; total: number; type: string; controlledBy: string; }[] = [];
@@ -131,15 +165,14 @@ export const combatManagerTool = ai.defineTool(
             const rollNotation = `1d20${dexModifier >= 0 ? `+${dexModifier}` : `${dexModifier}`}`;
             const roll = await diceRollerTool({ roller: combatant.name, rollNotation, description: 'Iniciativa' });
             diceRolls.push(roll);
-            // CORRECTED: Use explicit 'ally' and 'enemy' types based on 'entityType'
             const combatantType = combatant.entityType === 'player' ? 'ally' : 'enemy';
             initiativeRolls.push({ id: combatant.id, name: combatant.name, total: roll.totalResult, type: combatantType, controlledBy: combatant.controlledBy });
         }
         
         initiativeRolls.sort((a, b) => b.total - a.total);
-        const initiativeOrder: Combatant[] = initiativeRolls.map(r => ({ id: r.id, characterName: r.name, total: r.total, type: r.type as any, controlledBy: r.controlledBy as any }));
+        const newInitiativeOrder: Combatant[] = initiativeRolls.map(r => ({ id: r.id, characterName: r.name, total: r.total, type: r.type as any, controlledBy: r.controlledBy as any }));
         
-        localLog(`Initiative order: ${JSON.stringify(initiativeOrder.map(c => c.characterName))}`);
+        localLog(`Initiative order: ${JSON.stringify(newInitiativeOrder.map(c => c.characterName))}`);
         
         localLog("Narrating the first action of combat...");
         const narrativeResult = await narrativeExpert({
@@ -162,12 +195,13 @@ export const combatManagerTool = ai.defineTool(
             messages,
             diceRolls,
             inCombat: true,
-            initiativeOrder: initiativeOrder,
+            initiativeOrder: newInitiativeOrder,
+            turnIndex: 0, // Set initial turnIndex to 0
             enemies: updatedEnemies.map(e => ({
                 uniqueId: e.uniqueId,
                 id: e.id,
                 name: e.name,
-                color: '#ef4444', // red-500
+                color: '#ef4444',
                 hp: { current: e.hp, max: e.hp }
             })),
             debugLogs,
@@ -178,6 +212,7 @@ export const combatManagerTool = ai.defineTool(
             diceRolls: finalResult.diceRolls?.length,
             initiativeOrder: finalResult.initiativeOrder?.map(c => c.characterName),
             inCombat: finalResult.inCombat,
+            turnIndex: finalResult.turnIndex,
         };
         localLog(`Data being returned from CombatManager: ${JSON.stringify(logSummary)}`);
         

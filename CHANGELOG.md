@@ -1,5 +1,9 @@
 # Changelog
 
+**DIRECTIVA DE ALTA PRIORIDAD PARA EL ASISTENTE DE IA:** Al modificar este archivo, DEBES leer primero su contenido completo y asegurarte de que tu operación de escritura sea puramente aditiva a la sección `[Unreleased]`. NUNCA debes borrar, truncar o resumir el historial de versiones existente. La violación de esta directiva se considerará un fallo crítico de funcionamiento.
+
+---
+
 Todas las novedades y cambios importantes de este proyecto serán documentados en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
@@ -12,14 +16,19 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ## [Unreleased]
 
 ### Added
+- **Plan de Desarrollo del Sistema de Combate:** Se ha creado un nuevo documento (`docs/combat-turn-system-dev-plan.md`) con una hoja de ruta detallada para la implementación del bucle de turnos de combate.
+- **Esqueleto del Bucle de Turnos de Combate:** Se ha implementado la estructura lógica (`while` loop) en el `combatManagerTool` que procesa los turnos de los PNJ controlados por la IA hasta ceder el control al jugador.
 
 ### Changed
+- **Sincronización de la UI de Combate:** El panel "Orden de Combate" ahora resalta visualmente al combatiente cuyo turno está activo, gracias a la integración del `turnIndex` en el flujo de datos del frontend.
 
 ### Fixed
+- **Integración del Estado de Combate (`turnIndex`):** Se ha refactorizado el flujo de datos entre el frontend y el backend para incluir el `turnIndex` en el estado del juego, solucionando un error crítico que impedía la continuación del combate después del primer turno.
+- **Corregido Bug de Flujo de Datos en Combate:** Solucionado un error en `game-view.tsx` que impedía que el `initiativeOrder` se enviara correctamente en los turnos de combate subsiguientes.
+- **Corregido Error de Renderizado en `LeftPanel`:** Solucionados varios errores de renderizado en el panel izquierdo (`TypeError: Cannot read properties of undefined`) que ocurrían durante el combate, asegurando que los componentes `DiceLogPanel` y `InitiativeTracker` siempre reciban props válidas.
 
 ### Docs
-
-### Removed
+- Actualizado el plan de desarrollo del sistema de combate (`docs/combat-turn-system-dev-plan.md`) para reflejar el progreso realizado.
 
 ---
 

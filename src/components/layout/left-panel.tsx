@@ -13,16 +13,18 @@ import {
 } from "@/components/ui/resizable";
 
 interface LeftPanelProps {
-  diceRolls: DiceRoll[];
+  diceRolls?: DiceRoll[];
   debugMessages?: string[];
-  initiativeOrder: Combatant[];
+  initiativeOrder?: Combatant[];
+  turnIndex?: number;
   children?: React.ReactNode;
 }
 
 export function LeftPanel({
-  diceRolls,
-  debugMessages,
-  initiativeOrder,
+  diceRolls = [],
+  debugMessages = [],
+  initiativeOrder = [],
+  turnIndex = 0,
   children,
 }: LeftPanelProps) {
   return (
@@ -31,11 +33,11 @@ export function LeftPanel({
         <ResizablePanel defaultSize={60}>
           <ResizablePanelGroup direction="vertical">
             <ResizablePanel defaultSize={50}>
-              <DiceLogPanel diceRolls={diceRolls} />
+              <DiceLogPanel rolls={diceRolls} />
             </ResizablePanel>
             <ResizableHandle />
             <ResizablePanel defaultSize={50}>
-              <InitiativeTracker combatants={initiativeOrder} />
+              <InitiativeTracker combatants={initiativeOrder} currentTurnIndex={turnIndex} />
             </ResizablePanel>
           </ResizablePanelGroup>
         </ResizablePanel>
