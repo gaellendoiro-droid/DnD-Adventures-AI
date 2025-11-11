@@ -15,7 +15,12 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+---
+
+## [0.4.70] - 2024-07-29
+
 ### Added
+- **Sistema de Logging Táctico:** Se ha añadido un campo `debugLog` a los outputs de las herramientas `companionTacticianTool` y `enemyTacticianTool` para capturar el `input` exacto que reciben y facilitar la depuración de su lógica de decisión.
 - **Plan de Desarrollo del Sistema de Combate:** Se ha creado un nuevo documento (`docs/combat-turn-system-dev-plan.md`) con una hoja de ruta detallada para la implementación del bucle de turnos de combate.
 - **Esqueleto del Bucle de Turnos de Combate:** Se ha implementado la estructura lógica (`while` loop) en el `combatManagerTool` que procesa los turnos de los PNJ controlados por la IA hasta ceder el control al jugador.
 
@@ -27,14 +32,17 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - **Validación en el Frontend:** Se ha centralizado la definición del estado del juego en un nuevo `GameStateSchema`. La validación de este estado se ha movido al frontend (`src/components/game/game-view.tsx`), permitiendo la detección inmediata de errores de estado antes de que los datos se envíen al backend. Cualquier discrepancia ahora genera un error claro en la consola del navegador.
 
 ### Fixed
+- **Pasividad de la IA en Combate:** Solucionado un error crítico que provocaba que los compañeros de IA (especialmente aquellos sin habilidades de curación, como el Mago) quedaran pasivos y no realizaran ninguna acción durante su turno.
+    - **Diagnóstico:** Gracias a la implementación de un nuevo sistema de logging, se descubrió que el prompt del `companionTacticianTool` era ambiguo. No instruía claramente a la IA sobre qué hacer si la condición principal (curar a un aliado) no se cumplía.
+    - **Solución:** Se ha refactorizado el prompt para usar una lógica condicional explícita ("SI puedes curar Y un aliado está herido, ENTONCES cura. EN CUALQUIER OTRO CASO, ataca."). Esto asegura que la IA siempre tenga una acción ofensiva como opción por defecto, eliminando la pasividad y los errores de validación (`null` output) asociados.
 - **Integración del Estado de Combate (`turnIndex`):** Se ha refactorizado el flujo de datos entre el frontend y el backend para incluir el `turnIndex` en el estado del juego, solucionando un error crítico que impedía la continuación del combate después del primer turno.
 - **Corregido Bug de Flujo de Datos en Combate:** Solucionado un error en `game-view.tsx` que impedía que el `initiativeOrder` se enviara correctamente en los turnos de combate subsiguientes.
 - **Corregido Error de Renderizado en `LeftPanel`:** Solucionados varios errores de renderizado en el panel izquierdo (`TypeError: Cannot read properties of undefined`) que ocurrían durante el combate, asegurando que los componentes `DiceLogPanel` y `InitiativeTracker` siempre reciban props válidas.
 - **Solucionado Bug Crítico de Validación en Combate:** Resuelto un error que causaba fallos silenciosos e impedía el correcto funcionamiento del sistema de combate. El error se debía a inconsistencias en la validación de esquemas entre diferentes módulos de la IA. La nueva arquitectura de esquemas previene que este problema vuelva a ocurrir.
 
 ### Docs
-- Actualizado el plan de desarrollo del sistema de combate (`docs/combat-turn-system-dev-plan.md`) para reflejar el progreso realizado.
-- Creado el documento `docs/schema-refactor-plan.md` para guiar la refactorización de la arquitectura de esquemas y asegurar que todos los objetivos se cumplieran de forma estructurada.
+- **Actualización del Plan de Combate:** Actualizado el plan de desarrollo (`docs/combat-turn-system-dev-plan.md`) para marcar el Paso 3 como completado, reflejando la exitosa implementación y depuración de la lógica táctica de la IA.
+- **Plan de Refactorización de Esquemas:** Creado el documento `docs/schema-refactor-plan.md` para guiar la refactorización de la arquitectura de esquemas y asegurar que todos los objetivos se cumplieran de forma estructurada.
 
 ---
 
@@ -139,9 +147,6 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ### Added
 - Implementado el flujo principal de juego, conectando la entrada del usuario con el backend de IA a través de Server Actions.
 - Creada la vista `game-view.tsx` para gestionar el estado de la partida activa.
-
-### Changed
-- Refactorizado `page.tsx` para actuar como un router entre el menú principal y la vista del juego.
 
 ---
 

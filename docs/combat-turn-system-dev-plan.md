@@ -9,19 +9,19 @@ Este documento detalla los pasos necesarios para implementar un sistema de turno
 **Objetivo:** Asegurar que el `turnIndex` y todo el estado de combate fluye correctamente entre el frontend y el backend durante una sesión de juego activa.
 
 - [x] **En `src/app/page.tsx`:**
-    - [x] **Partidas Nuevas:** Añadir `turnIndex: 0` a `initialGameData` en `handleNewGame` y `handleLoadAdventure`.
+    - [x] **Partidas Nuevas:** Añadir `turnIndex: 0` a `initialGameData`.
 
 - [x] **En `src/components/game/game-view.tsx`:**
-    - [x] **Crear Estado:** Añadir el estado para gestionar el `turnIndex`: `const [turnIndex, setTurnIndex] = useState(initialData.turnIndex || 0);`.
-    - [x] **Enviar Estado:** En `handleSendMessage`, incluir el `turnIndex` actual en la llamada a `processPlayerAction`.
-    - [x] **Recibir Estado:** En `handleSendMessage`, añadir la lógica para actualizar el estado desde la respuesta del backend: `if (result.turnIndex !== undefined) setTurnIndex(result.turnIndex);`.
-    - [x] **Corregir Bug de Estado:** Asegurar que el `initiativeOrder` se incluye en la llamada a `processPlayerAction` durante el combate para evitar errores de estado ausente.
+    - [x] **Crear Estado:** Añadir el estado para gestionar el `turnIndex`.
+    - [x] **Enviar Estado:** Incluir el `turnIndex` actual en la llamada a `processPlayerAction`.
+    - [x] **Recibir Estado:** Añadir la lógica para actualizar el estado desde la respuesta del backend.
+    - [x] **Corregir Bug de Estado:** Asegurar que el `initiativeOrder` se incluye en la llamada a `processPlayerAction` durante el combate.
 
 - [x] **En `src/ai/flows/game-coordinator.ts`:**
-    - [x] **Añadir Log:** Al inicio del flujo, añadir un `debugLog` que muestre el `turnIndex` recibido: `GameCoordinator: Received action. ... turnIndex: ${input.turnIndex}.`
+    - [x] **Añadir Log:** Al inicio del flujo, añadir un `debugLog` que muestre el `turnIndex` recibido.
 
 **Verificación:**
-- [x] **Prueba de Flujo:** Iniciar un combate y verificar en el `debugLog` que la llamada al `gameCoordinator` muestra el `turnIndex` correcto enviado desde el frontend.
+- [x] **Prueba de Flujo:** Se ha verificado en el `debugLog` que el `turnIndex` se envía y recibe correctamente.
 
 ---
 
@@ -30,51 +30,37 @@ Este documento detalla los pasos necesarios para implementar un sistema de turno
 **Objetivo:** Crear la estructura lógica del bucle de turnos y asegurar que la UI refleje el estado actual del combate.
 
 - [x] **En `src/ai/tools/combat-manager.ts` (Backend):**
-    - [x] Modificar la función principal para que, cuando `inCombat` sea `true`, inicie un bucle `while`.
-    - [x] La condición del bucle debe continuar mientras el combatiente activo (`initiativeOrder[turnIndex]`) sea controlado por la IA.
-    - [x] **Añadir Log de Iteración:** Dentro del bucle, añadir un `debugLog`: `CombatManager Loop: Processing turn for AI combatant [Nombre del PNJ] at index ${turnIndex}...`.
-    - [x] Incrementar el `turnIndex` al final de cada iteración.
-    - [x] **Añadir Log de Salida:** Después de que el bucle termine, añadir un `debugLog`: `CombatManager Loop: Stopped. Control ceded to player [Nombre del Jugador] at index ${turnIndex}.`.
-
-- [x] **En `src/components/game/initiative-tracker.tsx` (Frontend):**
-    - [x] Modificar el componente para que acepte una nueva prop, `currentTurnIndex`.
-    - [x] Aplicar un estilo visual (ej. un borde resaltado, un cambio de color de fondo) al elemento de la lista que corresponda al `currentTurnIndex` para que el jugador sepa de quién es el turno.
-
-- [x] **En `src/components/layout/left-panel.tsx` (Frontend):**
-    - [x] Pasar el `turnIndex` del estado de `GameView` como la prop `currentTurnIndex` al componente `InitiativeTracker`.
+    - [x] Implementar el bucle `while` que se ejecuta mientras el turno sea de una IA.
+    - [x] Añadir logs de iteración y de salida del bucle.
+- [x] **En `src/components/game/initiative-tracker.tsx` y `src/components/layout/left-panel.tsx` (Frontend):**
+    - [x] Pasar y utilizar la prop `currentTurnIndex` para resaltar el combatiente activo.
 
 **Verificación:**
-- [x] **Verificación del Backend:** Iniciar un combate donde los primeros turnos sean de la IA (ej: `[IA, IA, Jugador]`). Al enviar la primera acción del jugador, el `debugLog` deberá mostrar los logs de "Processing turn..." para cada PNJ, seguidos del log "Loop: Stopped.".
-- [x] **Verificación del Frontend:** Al iniciarse un combate, el primer combatiente en el `InitiativeTracker` debe estar resaltado. Después de que el bucle de la IA se ejecute y ceda el control al jugador, el resaltado en el `InitiativeTracker` debe moverse al personaje del jugador.
+- [x] **Verificación del Backend:** El `debugLog` muestra correctamente el procesamiento de los turnos de la IA en secuencia.
+- [x] **Verificación del Frontend:** El `InitiativeTracker` resalta correctamente el combatiente activo, moviéndose al jugador cuando la IA cede el control.
 
 ---
 
-### 🟡 **Paso 3: Implementación de la Lógica de Decisión Táctica Diferenciada (Pendiente de Verificación)**
+### ✅ **Paso 3: Implementación y Depuración de la Lógica Táctica de IA**
 
-**Objetivo:** Dar vida al bucle de combate, asegurando que tanto los compañeros como los enemigos actúen de forma inteligente y diferenciada, utilizando herramientas específicas para cada rol.
+**Objetivo:** Dar vida al bucle de combate, asegurando que tanto los compañeros como los enemigos actúen de forma inteligente, diferenciada y sin errores.
 
-- [ ] **En `src/ai/tools/` (Aplicable a `enemy-tactician.ts` y `companion-tactician.ts`):**
-    - [ ] **Revisar Esquema de Salida:** Modificar el `outputSchema` de ambas herramientas. Reemplazar el campo `action: string` por `targetId: z.string().nullable()` para recibir un ID de objetivo estructurado en lugar de texto libre.
-    - [ ] **Actualizar Prompt:** Modificar las instrucciones del prompt para que la IA devuelva el `targetId` del personaje objetivo. Asegurarse de que el contexto del prompt incluye los IDs de todos los posibles objetivos (tanto aliados como enemigos).
-
-- [ ] **En `src/ai/tools/combat-manager.ts`:**
-    - [x] Dentro del bucle `while`, implementar una lógica de dirección de IA.
-    - [x] Para cada combatiente controlado por IA, determinar si es un `ally` (compañero) o un `enemy` (enemigo).
-    - [x] **Invocación Condicional:**
-        - [x] Si es un **compañero**, invocar al `companionTacticianTool`.
-        - [x] Si es un **enemigo**, invocar al `enemyTacticianTool`.
-    - [ ] **Ejecutar Acción (Lógica Simplificada):**
-        - [ ] Eliminar por completo el código de parsing con expresiones regulares.
-        - [ ] Leer el campo `targetId` de la respuesta estructurada de la herramienta táctica.
-        - [ ] Usar el `targetId` para encontrar al objetivo en las listas `party` o `enemies`.
-        - [ ] Realizar las tiradas de dados solicitadas (`diceRollerTool`).
-        - [ ] Actualizar el HP del objetivo (aliado o enemigo).
-        - [ ] Generar los `messages` y `diceRolls` apropiados para el frontend.
+- [x] **En `src/ai/tools/` (Aplicable a `enemy-tactician.ts` y `companion-tactician.ts`):**
+    - [x] **Revisar Esquema de Salida:** Modificar el `outputSchema` para que devuelva un `targetId` estructurado.
+    - [x] **Actualizar Prompt:** Modificar los prompts para que la IA devuelva el `targetId`.
+- [x] **En `src/ai/tools/combat-manager.ts`:**
+    - [x] Dentro del bucle `while`, implementar la lógica de dirección de IA.
+    - [x] Invocar al `companionTacticianTool` para compañeros y al `enemyTacticianTool` para enemigos.
+    - [x] Leer el `targetId` de la respuesta y procesar la acción sin expresiones regulares.
+- [x] **Depuración del Comportamiento Pasivo de la IA:**
+    - [x] **Añadir Logging:** Se introdujo un campo `debugLog` en el output de las herramientas tácticas para capturar su `input` exacto.
+    - [x] **Diagnóstico del Problema:** El análisis de los logs reveló que el prompt del `companionTacticianTool` era ambiguo, causando que las IAs no actuaran si no había necesidad de curar.
+    - [x] **Solución Iterativa del Prompt:** Se refactorizó el prompt del `companionTacticianTool` con una lógica condicional explícita: **SI** se puede curar **Y** un aliado está herido, **ENTONCES** curar. **EN CASO CONTRARIO**, atacar. Esta solución resolvió tanto la pasividad como los errores de validación de esquema (`null` output).
 
 **Verificación:**
-- [ ] Al iniciar un combate, la secuencia de turnos de la IA se ejecutará automáticamente.
-- [ ] Los PNJ compañeros (ej. Elara) y enemigos (ej. Mantícora) tomarán acciones lógicas y sus acciones se procesarán correctamente.
-- [ ] Se deben ver en la UI los mensajes, las tiradas de dados y las actualizaciones de HP para todas las acciones de la IA sin errores de "target not found".
+- [x] La secuencia de turnos de la IA se ejecuta automáticamente sin errores.
+- [x] Se ha confirmado mediante logs que todos los compañeros (magos, clérigos, etc.) y enemigos toman acciones decisivas y lógicas en cada turno.
+- [x] El bug de la pasividad de la IA y los errores de `INVALID_ARGUMENT` han sido solucionados por completo. Las acciones se procesan correctamente actualizando el estado del juego.
 
 ---
 

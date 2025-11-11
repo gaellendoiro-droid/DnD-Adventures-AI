@@ -6,7 +6,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { enemyTacticianTool } from './enemy-tactician';
-import { companionTacticianTool } from './companion-tactician'; // Import the new tool
+import { companionTacticianTool } from './companion-tactician';
 import type { GameMessage, DiceRoll, Combatant } from '@/lib/types';
 import { diceRollerTool } from './dice-roller';
 import { getAdventureData } from '@/app/game-state-actions';
@@ -69,7 +69,6 @@ export const combatManagerTool = ai.defineTool(
         let updatedParty = [...(input.party || [])];
 
         const localLog = (message: string) => {
-            console.log(message);
             debugLogs.push(`CombatManager: ${message}`);
         };
 
@@ -83,7 +82,7 @@ export const combatManagerTool = ai.defineTool(
             let activeCombatant = initiativeOrder[currentTurnIndex];
             
             while(activeCombatant && activeCombatant.controlledBy === 'AI') {
-                localLog(`CombatManager Loop: Processing turn for AI combatant ${activeCombatant.characterName} at index ${currentTurnIndex}...`);
+                localLog(`Processing turn for AI combatant ${activeCombatant.characterName} at index ${currentTurnIndex}...`);
                 
                 const isCompanion = updatedParty.some(p => p.id === activeCombatant.id);
                 let tacticianResponse;
@@ -91,7 +90,7 @@ export const combatManagerTool = ai.defineTool(
                 const baseTacticianInput = {
                     activeCombatant: activeCombatant.characterName,
                     party: updatedParty,
-                    enemies: updatedEnemies.map(e => ({ name: e.name, hp: getHpStatus(e.hp.current, e.hp.max) })),
+                    enemies: updatedEnemies.map(e => ({ name: e.name, id: e.uniqueId, hp: getHpStatus(e.hp.current, e.hp.max) })),
                     locationDescription: locationContext?.description || "An unknown battlefield",
                     conversationHistory: conversationHistory.map(formatMessageForTranscript).join('\n')
                 };
@@ -104,65 +103,63 @@ export const combatManagerTool = ai.defineTool(
                     tacticianResponse = await enemyTacticianTool(baseTacticianInput);
                 }
 
-                const { action, narration, diceRolls: requestedRolls } = tacticianResponse;
-                localLog(`Tactician for ${activeCombatant.characterName} decided: ${action}`);
+                const { narration, targetId, diceRolls: requestedRolls, debugLog: tacticianDebugLog } = tacticianResponse;
+                if (tacticianDebugLog) {
+                    debugLogs.push(tacticianDebugLog);
+                }
+
+                localLog(`Tactician for ${activeCombatant.characterName} decided action targeting ${targetId || 'no one'}.`);
 
                 if (narration) {
                     messages.push({ sender: 'DM', content: narration });
                 }
 
-                if (action.toLowerCase() !== 'do nothing.' && requestedRolls && requestedRolls.length > 0) {
-                    // Regex to find the target of an action. It looks for prepositions like "contra", "a", "sobre" 
-                    // and captures the word that follows, ignoring articles like "el" or "la".
-                    const targetNameMatch = action.match(/(?:contra|a|sobre)\s+(?:el\s+|la\s+)?(\w+)/i);
-                    const targetName = targetNameMatch ? targetNameMatch[1] : null;
+                if (targetId && requestedRolls && requestedRolls.length > 0) {
+                    const target = [...updatedParty, ...updatedEnemies].find(c => c.id === targetId || (c as any).uniqueId === targetId);
 
-                    if (targetName) {
-                        const target = updatedParty.find(p => p.name.toLowerCase() === targetName.toLowerCase()) || updatedEnemies.find(e => e.name.toLowerCase() === targetName.toLowerCase());
-                        if (target) {
-                            localLog(`Found target: ${target.name}`);
-                            for (const rollData of requestedRolls) {
-                                const roll = await diceRollerTool({ ...rollData, roller: activeCombatant.characterName });
-                                diceRolls.push(roll);
+                    if (target) {
+                        localLog(`Found target: ${target.name}`);
+                        for (const rollData of requestedRolls) {
+                            const roll = await diceRollerTool({ ...rollData, roller: activeCombatant.characterName });
+                            diceRolls.push(roll);
 
-                                if (roll.description.toLowerCase().includes('attack')) {
-                                    if (roll.totalResult >= target.ac) {
-                                        messages.push({ sender: 'DM', content: `${activeCombatant.characterName}'s attack on ${target.name} hits!` });
-                                    } else {
-                                        messages.push({ sender: 'DM', content: `${activeCombatant.characterName} attacks ${target.name}, but misses.` });
-                                        break; // No damage if attack misses
-                                    }
-                                } else if (roll.description.toLowerCase().includes('damage')) {
-                                    const targetIsPlayer = updatedParty.some(p => p.id === target.id);
+                            if (roll.description.toLowerCase().includes('attack')) {
+                                if (roll.totalResult >= target.ac) {
+                                    messages.push({ sender: 'DM', content: `${activeCombatant.characterName}'s attack on ${target.name} hits!` });
+                                } else {
+                                    messages.push({ sender: 'DM', content: `${activeCombatant.characterName} attacks ${target.name}, but misses.` });
+                                    break; // No damage if attack misses
+                                }
+                            } else if (roll.description.toLowerCase().includes('damage')) {
+                                const targetIsPlayer = updatedParty.some(p => p.id === target.id);
+                                if (targetIsPlayer) {
+                                    updatedParty = updatedParty.map(p => p.id === target.id ? { ...p, hp: { ...p.hp, current: Math.max(0, p.hp.current - roll.totalResult) } } : p);
+                                } else {
+                                    updatedEnemies = updatedEnemies.map(e => (e as any).uniqueId === (target as any).uniqueId ? { ...e, hp: { ...e.hp, current: Math.max(0, e.hp.current - roll.totalResult) } } : e);
+                                }
+                                messages.push({ sender: 'DM', content: `It deals ${roll.totalResult} damage.` });
+                            } else if (roll.description.toLowerCase().includes('healing')) {
+                                const targetIsPlayer = updatedParty.some(p => p.id === target.id);
                                     if (targetIsPlayer) {
-                                        updatedParty = updatedParty.map(p => p.id === target.id ? { ...p, hp: { ...p.hp, current: Math.max(0, p.hp.current - roll.totalResult) } } : p);
-                                    } else {
-                                        updatedEnemies = updatedEnemies.map(e => (e as any).uniqueId === (target as any).uniqueId ? { ...e, hp: { ...e.hp, current: Math.max(0, e.hp.current - roll.totalResult) } } : e);
-                                    }
-                                    messages.push({ sender: 'DM', content: `It deals ${roll.totalResult} damage.` });
-                                } else if (roll.description.toLowerCase().includes('healing')) {
-                                    const targetIsPlayer = updatedParty.some(p => p.id === target.id);
-                                     if (targetIsPlayer) {
-                                        updatedParty = updatedParty.map(p => p.id === target.id ? { ...p, hp: { ...p.hp, current: Math.min(p.hp.max, p.hp.current + roll.totalResult) } } : p);
-                                        messages.push({ sender: 'DM', content: `${target.name} is healed for ${roll.totalResult} points.` });
-                                    }
+                                    updatedParty = updatedParty.map(p => p.id === target.id ? { ...p, hp: { ...p.hp, current: Math.min(p.hp.max, p.hp.current + roll.totalResult) } } : p);
+                                    messages.push({ sender: 'DM', content: `${target.name} is healed for ${roll.totalResult} points.` });
                                 }
                             }
-                        } else { localLog(`Could not find target object for name: "${targetName}"`); }
-                    } else { localLog(`Could not parse target name from action: "${action}"`); }
-                }
+                        }
+                    } else { localLog(`Could not find target combatant with id: "${targetId}"`); }
+                } else if (!targetId) { localLog('Action had no targetId.'); }
                 
                 currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
                 activeCombatant = initiativeOrder[currentTurnIndex];
             }
             
             const playerCombatant = initiativeOrder.find(c => c.controlledBy === 'Player');
-            localLog(`CombatManager Loop: Stopped. Control ceded to player ${playerCombatant?.characterName} at index ${currentTurnIndex}.`);
+            localLog(`Loop Stopped. Control ceded to player ${playerCombatant?.characterName} at index ${currentTurnIndex}.`);
             
             return { messages, diceRolls, inCombat: true, debugLogs, turnIndex: currentTurnIndex, initiativeOrder, updatedParty, updatedEnemies };
         }
         
-        // --- Combat Initiation Logic (remains the same and is correct) ---
+        // --- Combat Initiation Logic (remains the same) ---
         localLog("Initiating new combat sequence.");
         if (!combatantIds || !interpretedAction || !locationContext || !party) throw new Error("Combat initiation requires combatantIds, interpretedAction, locationContext, and party data.");
         const adventureData = await getAdventureData();
@@ -210,7 +207,7 @@ export const combatManagerTool = ai.defineTool(
             debugLogs,
             updatedParty: party,
         };
-        localLog(`Data being returned from CombatManager: ${JSON.stringify({ messages: finalResult.messages?.length, diceRolls: finalResult.diceRolls?.length, initiativeOrder: finalResult.initiativeOrder?.map(c => c.characterName), inCombat: finalResult.inCombat, turnIndex: finalResult.turnIndex,})}`);
+        localLog(`Data being returned: ${JSON.stringify({ messages: finalResult.messages?.length, diceRolls: finalResult.diceRolls?.length, initiativeOrder: finalResult.initiativeOrder?.map(c => c.characterName), inCombat: finalResult.inCombat, turnIndex: finalResult.turnIndex,})}`);
         return finalResult;
     }
 );
