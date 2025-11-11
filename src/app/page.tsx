@@ -18,6 +18,7 @@ interface InitialGameData {
   locationId: string;
   inCombat?: boolean;
   initiativeOrder?: Combatant[];
+  turnIndex?: number;
 }
 
 export default function Home() {
@@ -51,6 +52,7 @@ export default function Home() {
         locationId: firstLocation.id,
         inCombat: false,
         initiativeOrder: [],
+        turnIndex: 0,
       });
       
       setGameInProgress(true);
@@ -102,6 +104,7 @@ export default function Home() {
             locationId: firstLocation.id,
             inCombat: false,
             conversationHistory: "",
+            turnIndex: 0,
         });
 
         const messages: GameMessage[] = result.messages || [];
@@ -113,6 +116,7 @@ export default function Home() {
           locationId: firstLocation.id,
           inCombat: false,
           initiativeOrder: [],
+          turnIndex: 0,
         });
         
         setGameInProgress(true);
@@ -155,6 +159,7 @@ export default function Home() {
           locationId: saveData.locationId,
           inCombat: saveData.inCombat || false,
           initiativeOrder: saveData.initiativeOrder || [],
+          turnIndex: saveData.turnIndex || 0,
         });
 
         setGameInProgress(true);
@@ -218,5 +223,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

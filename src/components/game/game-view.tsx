@@ -22,6 +22,7 @@ interface GameViewProps {
     locationId: string;
     inCombat?: boolean;
     initiativeOrder?: Combatant[];
+    turnIndex?: number;
   };
   onSaveGame: (saveData: any) => void;
 }
@@ -39,7 +40,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   );
   const [isDMThinking, setIsDMThinking] = useState(false);
   const [debugMessages, setDebugMessages] = useState<string[]>([]);
-  const [turnIndex, setTurnIndex] = useState(0);
+  const [turnIndex, setTurnIndex] = useState(initialData.turnIndex || 0);
 
   const { toast } = useToast();
 
@@ -58,8 +59,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setSelectedCharacter(initialData.party.find(c => c.controlledBy === 'Player') || null);
     setInCombat(initialData.inCombat || false);
     setInitiativeOrder(initialData.initiativeOrder || []);
+    setTurnIndex(initialData.turnIndex || 0);
     setDebugMessages([]);
-    setTurnIndex(0);
     setEnemies([]);
     addDebugMessages(["Game state initialized from initialData."]);
   }, [initialData, addDebugMessages]);
@@ -125,7 +126,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
     try {
       const history = buildConversationHistory();
-      const actionInput = { playerAction: content, party, locationId, inCombat, conversationHistory: history };
+      const actionInput = { playerAction: content, party, locationId, inCombat, conversationHistory: history, turnIndex };
       const result = await processPlayerAction(actionInput);
 
       addDebugMessages(result.debugLogs);
@@ -141,6 +142,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       }
       if (typeof result.inCombat === 'boolean') setInCombat(result.inCombat);
       if (result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
+      if (result.turnIndex !== undefined) setTurnIndex(result.turnIndex);
 
     } catch (error: any) {
       console.error("Error during turn:", error);
@@ -153,7 +155,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     } finally {
       setIsDMThinking(false);
     }
-  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, inCombat, locationId, party, selectedCharacter, addDiceRolls]);
+  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, inCombat, locationId, party, selectedCharacter, addDiceRolls, turnIndex]);
 
   const handleDiceRoll = useCallback((roll: { result: number, sides: number }) => {
     addDiceRolls([{

@@ -34,7 +34,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
     outputSchema: GameCoordinatorOutputSchema,
   },
   async (input) => {
-    const { playerAction, inCombat, conversationHistory, party } = input;
+    const { playerAction, inCombat, conversationHistory, party, turnIndex } = input;
     let { locationId } = input;
     
     const debugLogs: string[] = [];
@@ -43,7 +43,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         debugLogs.push(message);
     };
     
-    localLog(`GameCoordinator: Received action: "${playerAction}".`);
+    localLog(`GameCoordinator: Received action: "${playerAction}". InCombat: ${inCombat}. TurnIndex: ${turnIndex}.`);
     
     const adventureData = await getAdventureData();
     if (!adventureData) throw new Error("Failed to load adventure data.");
@@ -70,7 +70,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
     
     if (interpretation.actionType === 'attack') {
         const initiationResult = await combatInitiationExpertTool({ playerAction, locationId, targetId: interpretation.targetId || '', locationContext: currentLocationData, party });
-        const combatResult = await combatManagerTool({ playerAction, locationId, inCombat: false, conversationHistory, interpretedAction: interpretation, locationContext: currentLocationData, combatantIds: initiationResult.combatantIds, party });
+        const combatResult = await combatManagerTool({ playerAction, locationId, inCombat: false, conversationHistory, interpretedAction: interpretation, locationContext: currentLocationData, combatantIds: initiationResult.combatantIds, party, turnIndex: 0 });
         return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
     }
 
@@ -135,7 +135,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         });
     }
     
-    const finalInCombat = false; // Narrative flow always ends with inCombat: false
+    const finalInCombat = false;
     localLog(`GameCoordinator: Turn finished. Final location: ${locationId}. InCombat: ${finalInCombat}. Returning ${messages.length} messages.`);
     
     return {
@@ -144,6 +144,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         updatedParty: party,
         nextLocationId: newLocationId,
         inCombat: finalInCombat,
+        turnIndex: 0, // Always reset to 0 in narrative mode
     };
   }
 );

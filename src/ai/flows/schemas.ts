@@ -47,6 +47,7 @@ export const GameCoordinatorInputSchema = z.object({
   locationId: z.string(),
   inCombat: z.boolean(),
   conversationHistory: z.string(),
+  turnIndex: z.number().optional().describe('The index of the current combatant in the initiative order.'),
 });
 export type GameCoordinatorInput = z.infer<typeof GameCoordinatorInputSchema>;
 
@@ -60,5 +61,6 @@ export const GameCoordinatorOutputSchema = z.object({
   initiativeOrder: z.array(z.any()).optional(), // Combatant[]
   enemies: z.array(z.any()).optional(),
   error: z.string().optional(),
+  turnIndex: z.number().optional(), // Added turnIndex to the output
 });
 export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
