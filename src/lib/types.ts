@@ -1,55 +1,11 @@
+import { z } from 'zod';
+import { CharacterSchema, PartySchema } from './schemas';
 
+// Infer the TypeScript types from the Zod schemas
+export type Character = z.infer<typeof CharacterSchema>;
+export type Party = z.infer<typeof PartySchema>;
 
-export interface AbilityScores {
-  fuerza: number;
-  destreza: number;
-  constitución: number;
-  inteligencia: number;
-  sabiduría: number;
-  carisma: number;
-}
-
-export interface Skill {
-  name: string;
-  proficient: boolean;
-}
-
-export interface InventoryItem {
-  id: string;
-  name: string;
-  quantity: number;
-  description?: string | null;
-}
-
-export interface Spell {
-  id: string;
-  name: string;
-  level: number;
-  description: string | null;
-}
-
-export interface Character {
-  id: string;
-  name: string;
-  race: string;
-  characterClass: string; // Standardized to avoid using reserved keyword 'class'.
-  level: number;
-  sex: string;
-  background: string;
-  color: string;
-  personality: string;
-  abilityScores: AbilityScores;
-  skills: Skill[];
-  hp: {
-    current: number;
-    max: number;
-  };
-  ac: number;
-  controlledBy: "Player" | "AI";
-  inventory: InventoryItem[];
-  spells: Spell[];
-}
-
+// We can still define types that don't have a direct schema equivalent if needed
 export interface GameMessage {
   id: string;
   sender: "DM" | "Player" | "System" | "Character" | "Error";
@@ -91,3 +47,9 @@ export interface Combatant {
   type: 'player' | 'npc';
   controlledBy: "Player" | "AI";
 }
+
+// We can also infer nested types if we need them separately
+export type AbilityScores = Character['abilityScores'];
+export type Skill = Character['skills'][number];
+export type InventoryItem = Character['inventory'][number];
+export type Spell = Character['spells'][number];

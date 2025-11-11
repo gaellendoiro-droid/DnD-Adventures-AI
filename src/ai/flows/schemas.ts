@@ -64,3 +64,16 @@ export const GameCoordinatorOutputSchema = z.object({
   turnIndex: z.number().optional(), // Added turnIndex to the output
 });
 export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
+
+// To-Do: This will replace GameCoordinatorInputSchema
+export const GameStateSchema = z.object({
+    playerAction: z.string(),
+    party: z.array(CharacterSchema),
+    locationId: z.string(),
+    inCombat: z.boolean(),
+    conversationHistory: z.array(z.any()), // This is an array of GameMessage objects
+    turnIndex: z.number().optional(),
+    initiativeOrder: z.array(z.any()).optional(), // This represents Combatant[]
+    enemies: z.array(z.any()).optional(),
+  });
+export type GameState = z.infer<typeof GameStateSchema>;

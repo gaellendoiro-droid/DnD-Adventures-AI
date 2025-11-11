@@ -21,14 +21,20 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ### Changed
 - **Sincronización de la UI de Combate:** El panel "Orden de Combate" ahora resalta visualmente al combatiente cuyo turno está activo, gracias a la integración del `turnIndex` en el flujo de datos del frontend.
+- **Refactorización de la Arquitectura de Esquemas:** Se ha llevado a cabo una refactorización integral de la gestión de tipos y esquemas de datos para mejorar la robustez y facilitar la depuración.
+    - **Fuente Única de Verdad:** Se han eliminado las definiciones de tipos duplicadas en `src/lib/types.ts`. Ahora, todos los tipos se infieren directamente de los esquemas de Zod (`src/lib/schemas.ts`), asegurando una consistencia total entre la validación y la tipificación.
+    - **Estandarización de Rutas de Importación:** Se han auditado y corregido todas las rutas de importación de esquemas en el módulo de IA (`src/ai/`) para usar alias de ruta (`@/`). Esto soluciona un bug de bajo nivel en Node.js que causaba fallos de validación silenciosos al tratar instancias idénticas de esquemas como si fueran diferentes.
+    - **Validación en el Frontend:** Se ha centralizado la definición del estado del juego en un nuevo `GameStateSchema`. La validación de este estado se ha movido al frontend (`src/components/game/game-view.tsx`), permitiendo la detección inmediata de errores de estado antes de que los datos se envíen al backend. Cualquier discrepancia ahora genera un error claro en la consola del navegador.
 
 ### Fixed
 - **Integración del Estado de Combate (`turnIndex`):** Se ha refactorizado el flujo de datos entre el frontend y el backend para incluir el `turnIndex` en el estado del juego, solucionando un error crítico que impedía la continuación del combate después del primer turno.
 - **Corregido Bug de Flujo de Datos en Combate:** Solucionado un error en `game-view.tsx` que impedía que el `initiativeOrder` se enviara correctamente en los turnos de combate subsiguientes.
 - **Corregido Error de Renderizado en `LeftPanel`:** Solucionados varios errores de renderizado en el panel izquierdo (`TypeError: Cannot read properties of undefined`) que ocurrían durante el combate, asegurando que los componentes `DiceLogPanel` y `InitiativeTracker` siempre reciban props válidas.
+- **Solucionado Bug Crítico de Validación en Combate:** Resuelto un error que causaba fallos silenciosos e impedía el correcto funcionamiento del sistema de combate. El error se debía a inconsistencias en la validación de esquemas entre diferentes módulos de la IA. La nueva arquitectura de esquemas previene que este problema vuelva a ocurrir.
 
 ### Docs
 - Actualizado el plan de desarrollo del sistema de combate (`docs/combat-turn-system-dev-plan.md`) para reflejar el progreso realizado.
+- Creado el documento `docs/schema-refactor-plan.md` para guiar la refactorización de la arquitectura de esquemas y asegurar que todos los objetivos se cumplieran de forma estructurada.
 
 ---
 

@@ -49,21 +49,32 @@ Este documento detalla los pasos necesarios para implementar un sistema de turno
 
 ---
 
-### 🎯 **Paso 3: Integración del `enemyTacticianTool` y Ejecución de Acciones de IA**
+### 🟡 **Paso 3: Implementación de la Lógica de Decisión Táctica Diferenciada (Pendiente de Verificación)**
 
-**Objetivo:** Dar vida al bucle. Hacer que los PNJ tomen decisiones y sus acciones tengan consecuencias.
+**Objetivo:** Dar vida al bucle de combate, asegurando que tanto los compañeros como los enemigos actúen de forma inteligente y diferenciada, utilizando herramientas específicas para cada rol.
+
+- [ ] **En `src/ai/tools/` (Aplicable a `enemy-tactician.ts` y `companion-tactician.ts`):**
+    - [ ] **Revisar Esquema de Salida:** Modificar el `outputSchema` de ambas herramientas. Reemplazar el campo `action: string` por `targetId: z.string().nullable()` para recibir un ID de objetivo estructurado en lugar de texto libre.
+    - [ ] **Actualizar Prompt:** Modificar las instrucciones del prompt para que la IA devuelva el `targetId` del personaje objetivo. Asegurarse de que el contexto del prompt incluye los IDs de todos los posibles objetivos (tanto aliados como enemigos).
 
 - [ ] **En `src/ai/tools/combat-manager.ts`:**
-    - [ ] Dentro del bucle `while`, reemplazar el `debugLog` con una llamada al `enemyTacticianTool`.
-    - [ ] Crear una función auxiliar, `executeCombatAction`, que reciba la acción decidida por el `enemyTactician`.
-    - [ ] `executeCombatAction` debe:
-        - [ ] Realizar las tiradas de dados (`diceRollerTool`).
-        - [ ] Calcular el daño.
-        - [ ] Actualizar el HP del objetivo en el `updatedParty`.
-        - [ ] Generar los `messages` y `diceRolls` para el frontend.
+    - [x] Dentro del bucle `while`, implementar una lógica de dirección de IA.
+    - [x] Para cada combatiente controlado por IA, determinar si es un `ally` (compañero) o un `enemy` (enemigo).
+    - [x] **Invocación Condicional:**
+        - [x] Si es un **compañero**, invocar al `companionTacticianTool`.
+        - [x] Si es un **enemigo**, invocar al `enemyTacticianTool`.
+    - [ ] **Ejecutar Acción (Lógica Simplificada):**
+        - [ ] Eliminar por completo el código de parsing con expresiones regulares.
+        - [ ] Leer el campo `targetId` de la respuesta estructurada de la herramienta táctica.
+        - [ ] Usar el `targetId` para encontrar al objetivo en las listas `party` o `enemies`.
+        - [ ] Realizar las tiradas de dados solicitadas (`diceRollerTool`).
+        - [ ] Actualizar el HP del objetivo (aliado o enemigo).
+        - [ ] Generar los `messages` y `diceRolls` apropiados para el frontend.
 
 **Verificación:**
-- [ ] Al iniciar un combate, la secuencia de turnos de la IA se ejecutará automáticamente. Se deben ver en la UI los mensajes de ataque, las tiradas de dados y la actualización del HP de los objetivos.
+- [ ] Al iniciar un combate, la secuencia de turnos de la IA se ejecutará automáticamente.
+- [ ] Los PNJ compañeros (ej. Elara) y enemigos (ej. Mantícora) tomarán acciones lógicas y sus acciones se procesarán correctamente.
+- [ ] Se deben ver en la UI los mensajes, las tiradas de dados y las actualizaciones de HP para todas las acciones de la IA sin errores de "target not found".
 
 ---
 

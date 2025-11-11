@@ -13,6 +13,7 @@ import { processPlayerAction } from "@/app/actions";
 import { PartyPanel } from "@/components/game/party-panel";
 import { Separator } from "../ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { GameStateSchema } from "@/ai/flows/schemas";
 
 interface GameViewProps {
   initialData: {
@@ -101,16 +102,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   }, []);
 
   const buildConversationHistory = useCallback(() => {
-    return messages
-      .slice(-5)
-      .map(m => {
-        if (m.sender === 'Player') return `${m.senderName || 'Jugador'}: ${m.content}`;
-        if (m.sender === 'DM') return `Dungeon Master: ${m.originalContent || m.content}`;
-        if (m.sender === 'Character') return `${m.senderName}: ${m.content}`;
-        return null;
-      })
-      .filter(Boolean)
-      .join('\n');
+    // Returning the raw message objects now
+    return messages.slice(-10);
   }, [messages]);
 
   const handleSendMessage = useCallback(async (content: string, options: { isRetry?: boolean, isContinuation?: boolean } = {}) => {
@@ -125,16 +118,22 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setIsDMThinking(true);
 
     try {
-      const history = buildConversationHistory();
+      const conversationHistory = buildConversationHistory();
       const actionInput = { 
         playerAction: content, 
         party, 
         locationId, 
         inCombat, 
-        conversationHistory: history, 
+        conversationHistory, 
         turnIndex,
         initiativeOrder,
+        enemies,
       };
+
+      // Validate the entire game state before sending
+      GameStateSchema.parse(actionInput);
+      addDebugMessages(["Frontend state validation successful."]);
+
       const result = await processPlayerAction(actionInput);
 
       addDebugMessages(result.debugLogs);
@@ -151,19 +150,20 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       if (typeof result.inCombat === 'boolean') setInCombat(result.inCombat);
       if (result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
       if (result.turnIndex !== undefined) setTurnIndex(result.turnIndex);
+      if (result.enemies) setEnemies(result.enemies);
 
     } catch (error: any) {
-      console.error("Error during turn:", error);
-      addDebugMessages([`CRITICAL ERROR: ${error.message}`]);
+      console.error("[GameView] Error processing action:", error);
+      addDebugMessages([`CRITICAL ERROR: ${error.message}`, `DETAILS: ${JSON.stringify(error)}`]);
       addMessage({
         sender: 'Error',
-        content: `El Dungeon Master está confundido. Error: ${error.message}`,
+        content: `El Dungeon Master está confundido. Error: ${error.message}. Revisa la consola para más detalles.`,
         onRetry: () => handleSendMessage(content, { isRetry: true }),
       });
     } finally {
       setIsDMThinking(false);
     }
-  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, inCombat, locationId, party, selectedCharacter, addDiceRolls, turnIndex, initiativeOrder]);
+  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, inCombat, locationId, party, selectedCharacter, addDiceRolls, turnIndex, initiativeOrder, enemies]);
 
   const handleDiceRoll = useCallback((roll: { result: number, sides: number }) => {
     addDiceRolls([{

@@ -1,5 +1,4 @@
 
-// Forcing a reload to pick up the latest schema changes.
 'use server';
 /**
  * @fileOverview The central AI coordinator for the D&D game.
@@ -16,12 +15,12 @@ import { narrativeExpert } from './narrative-expert';
 import { getAdventureData } from '@/app/game-state-actions';
 import { companionExpertTool } from '../tools/companion-expert';
 import { actionInterpreter } from './action-interpreter';
-import { GameCoordinatorInputSchema, GameCoordinatorOutputSchema, type GameCoordinatorInput, type GameCoordinatorOutput } from './schemas';
+import { GameStateSchema, GameCoordinatorOutputSchema, type GameState, type GameCoordinatorOutput } from '@/ai/flows/schemas';
 import { combatManagerTool } from '../tools/combat-manager';
 import { combatInitiationExpertTool } from '../tools/combat-initiation-expert';
 
 const formatMessageForTranscript = (msg: Partial<GameMessage>): string => {
-    if (msg.sender === 'USER') return `Player: ${msg.content}`;
+    if (msg.sender === 'Player') return `${msg.senderName || 'Player'}: ${msg.content}`;
     if (msg.sender === 'DM') return `Dungeon Master: ${msg.originalContent || msg.content}`;
     if (msg.sender === 'Character' && msg.senderName) return `${msg.senderName}: ${msg.originalContent || msg.content}`;
     return '';
@@ -30,7 +29,7 @@ const formatMessageForTranscript = (msg: Partial<GameMessage>): string => {
 export const gameCoordinatorFlow = ai.defineFlow(
   {
     name: 'gameCoordinatorFlow',
-    inputSchema: GameCoordinatorInputSchema,
+    inputSchema: GameStateSchema,
     outputSchema: GameCoordinatorOutputSchema,
   },
   async (input) => {
@@ -63,14 +62,26 @@ export const gameCoordinatorFlow = ai.defineFlow(
     });
     interpreterLogs.forEach(localLog);
     
+    const historyTranscript = conversationHistory.map(formatMessageForTranscript).join('\n');
+
     if (interpretation.actionType === 'ooc') {
-        const oocResult = await oocAssistant({ playerQuery: playerAction.substring(2).trim(), conversationHistory: conversationHistory.map(formatMessageForTranscript).join('\n') });
+        const oocResult = await oocAssistant({ playerQuery: playerAction.substring(2).trim(), conversationHistory: historyTranscript });
         return { messages: [{ sender: 'DM', content: `(OOC) ${oocResult.dmReply}`}], debugLogs, inCombat: false };
     }
     
     if (interpretation.actionType === 'attack') {
+        localLog("GameCoordinator: Action is 'attack'. Initiating combat...");
         const initiationResult = await combatInitiationExpertTool({ playerAction, locationId, targetId: interpretation.targetId || '', locationContext: currentLocationData, party });
-        const combatResult = await combatManagerTool({ playerAction, locationId, inCombat: false, conversationHistory, interpretedAction: interpretation, locationContext: currentLocationData, combatantIds: initiationResult.combatantIds, party, turnIndex: 0 });
+        
+        // FIXED: Pass all required properties to the combatManagerTool for initiation.
+        const combatResult = await combatManagerTool({
+            ...input,
+            inCombat: false, // Explicitly set inCombat to false for initiation.
+            turnIndex: 0,
+            combatantIds: initiationResult.combatantIds,
+            interpretedAction: interpretation, // This was missing.
+            locationContext: currentLocationData, // This was missing.
+        });
         return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
     }
 
@@ -113,13 +124,13 @@ export const gameCoordinatorFlow = ai.defineFlow(
     
     localLog("GameCoordinator: Generating DM narration...");
     const historyForNarrator = [...conversationHistory, ...messages]; 
-    const historyTranscript = historyForNarrator.map(formatMessageForTranscript).join('\n');
+    const narrativeHistoryTranscript = historyForNarrator.map(formatMessageForTranscript).join('\n');
 
     const narrativeInput = {
         playerAction,
         locationId,
         locationContext: JSON.stringify(finalLocationData),
-        conversationHistory: historyTranscript,
+        conversationHistory: narrativeHistoryTranscript,
         interpretedAction: JSON.stringify(interpretation),
     };
     
@@ -144,11 +155,11 @@ export const gameCoordinatorFlow = ai.defineFlow(
         updatedParty: party,
         nextLocationId: newLocationId,
         inCombat: finalInCombat,
-        turnIndex: 0, // Always reset to 0 in narrative mode
+        turnIndex: 0,
     };
   }
 );
 
-export async function gameCoordinator(input: GameCoordinatorInput): Promise<GameCoordinatorOutput> {
+export async function gameCoordinator(input: GameState): Promise<GameCoordinatorOutput> {
     return gameCoordinatorFlow(input);
 }
