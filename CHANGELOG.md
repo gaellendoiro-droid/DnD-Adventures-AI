@@ -17,11 +17,48 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ---
 
+## [0.4.8] - 2025-11-12
+
+### Added
+- **Sistema de Logging Centralizado:** Implementado un sistema de logging estructurado que centraliza todos los logs importantes (INFO, WARN, ERROR) del cliente en la terminal del servidor, proporcionando un único punto de información para depuración y seguimiento.
+  - Creado endpoint `/api/log` para recibir logs del cliente
+  - Modificado `logger-client.ts` para enviar automáticamente logs al servidor
+  - Los logs del cliente ahora aparecen en la terminal del servidor con formato estructurado
+  - Documentación completa del sistema en `docs/arquitectura/sistema-logging.md`
+- **Plan de Saneamiento General:** Completada revisión sistemática de la aplicación identificando y corrigiendo 12 issues (10 corregidos, 3 mejoras opcionales documentadas).
+  - Documentación completa de todos los issues encontrados en `docs/planes-desarrollo/completados/issues-encontrados.md`
+  - Plan de saneamiento documentado en `docs/planes-desarrollo/completados/saneamiento-general.md`
+
+### Changed
+- **Mejora del Sistema de Logging:** El logger del cliente ahora envía automáticamente logs INFO, WARN y ERROR al servidor para centralización. Los logs DEBUG solo aparecen en la consola del navegador para evitar spam.
+- **Organización de Planes de Desarrollo:** Reorganizada la estructura de documentación de planes de desarrollo con carpetas separadas para planes en curso, completados y sin comenzar.
+  - Actualizado `plan-maestro.md` con mejor separación visual entre tipos de planes
+  - Plan de saneamiento movido a carpeta `completados/`
+
+### Fixed
+- **Campos de formulario sin atributos:** Añadidos atributos `id` y `name` a todos los campos de formulario (`input` y `textarea`) para cumplir con estándares de accesibilidad y eliminar warnings del navegador.
+- **Dependencia incorrecta en useEffect:** Corregida dependencia incorrecta `[audioRef]` en `chat-message.tsx`, cambiada a `[]` ya que los refs no deben estar en las dependencias de `useEffect`.
+- **Archivo duplicado:** Eliminado archivo duplicado `src/app/game-view.tsx` que no se estaba usando y causaba confusión.
+- **Validación de datos:** Añadida validación con esquemas Zod en `handleNewGame`, `handleLoadAdventure` y `handleLoadGame` para prevenir errores con datos mal formados.
+- **Inconsistencia de tipos:** Corregida inconsistencia de tipos en `actions.ts` donde `processPlayerAction` esperaba `GameCoordinatorInput` pero `gameCoordinator` espera `GameState`.
+- **ConversationHistory incorrecto:** Corregido `conversationHistory` de string vacío a array vacío en `handleLoadAdventure` para mantener consistencia con el esquema.
+- **Estados de combate no sincronizados:** Implementada lógica para limpiar `initiativeOrder`, `turnIndex` y `enemies` cuando `inCombat` se establece en `false`.
+- **Enemigos no inicializados:** Corregida inicialización de `enemies` desde `initialData` en `game-view.tsx` y `page.tsx`.
+
+### Security
+- **Sanitización de HTML:** Implementada sanitización de HTML con DOMPurify antes de renderizar contenido generado por la IA usando `dangerouslySetInnerHTML`. Esto previene posibles ataques XSS si la IA genera HTML malicioso. Solo se permiten tags y atributos seguros para contenido de markdown.
+
+### Docs
+- **Documentación de Saneamiento:** Creada documentación completa del proceso de saneamiento general con 7 secciones revisadas (Frontend, Backend, Integración, Logs, Flujos Críticos, Rendimiento, Validación y Seguridad).
+- **Plan Maestro de Desarrollo:** Mejorada la estructura visual del plan maestro con mejor separación entre tipos de planes y contadores de estado.
+
+---
+
 ## [0.4.70] - 2024-07-29
 
 ### Added
 - **Sistema de Logging Táctico:** Se ha añadido un campo `debugLog` a los outputs de las herramientas `companionTacticianTool` y `enemyTacticianTool` para capturar el `input` exacto que reciben y facilitar la depuración de su lógica de decisión.
-- **Plan de Desarrollo del Sistema de Combate:** Se ha creado un nuevo documento (`docs/combat-turn-system-dev-plan.md`) con una hoja de ruta detallada para la implementación del bucle de turnos de combate.
+- **Plan de Desarrollo del Sistema de Combate:** Se ha creado un nuevo documento (`docs/planes-desarrollo/combate-turnos.md`) con una hoja de ruta detallada para la implementación del bucle de turnos de combate.
 - **Esqueleto del Bucle de Turnos de Combate:** Se ha implementado la estructura lógica (`while` loop) en el `combatManagerTool` que procesa los turnos de los PNJ controlados por la IA hasta ceder el control al jugador.
 
 ### Changed
@@ -41,8 +78,8 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 - **Solucionado Bug Crítico de Validación en Combate:** Resuelto un error que causaba fallos silenciosos e impedía el correcto funcionamiento del sistema de combate. El error se debía a inconsistencias en la validación de esquemas entre diferentes módulos de la IA. La nueva arquitectura de esquemas previene que este problema vuelva a ocurrir.
 
 ### Docs
-- **Actualización del Plan de Combate:** Actualizado el plan de desarrollo (`docs/combat-turn-system-dev-plan.md`) para marcar el Paso 3 como completado, reflejando la exitosa implementación y depuración de la lógica táctica de la IA.
-- **Plan de Refactorización de Esquemas:** Creado el documento `docs/schema-refactor-plan.md` para guiar la refactorización de la arquitectura de esquemas y asegurar que todos los objetivos se cumplieran de forma estructurada.
+- **Actualización del Plan de Combate:** Actualizado el plan de desarrollo (`docs/planes-desarrollo/combate-turnos.md`) para marcar el Paso 3 como completado, reflejando la exitosa implementación y depuración de la lógica táctica de la IA.
+- **Plan de Refactorización de Esquemas:** Creado el documento `docs/planes-desarrollo/refactor-esquemas.md` para guiar la refactorización de la arquitectura de esquemas y asegurar que todos los objetivos se cumplieran de forma estructurada.
 
 ---
 
@@ -59,7 +96,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 - **Corregido Error de Esquema:** Se ha definido y exportado el `PartySchema` en `src/lib/schemas.ts` para solucionar un error de compilación que impedía a las herramientas validar correctamente el array de la `party`.
 
 ### Docs
-- Actualizada la documentación de `docs/ia-architecture.md` para reflejar el paso de un estado global a un flujo de datos explícito en las herramientas de IA, detallando la nueva arquitectura más robusta y predecible.
+- Actualizada la documentación de `docs/arquitectura/arquitectura-backend.md` para reflejar el paso de un estado global a un flujo de datos explícito en las herramientas de IA, detallando la nueva arquitectura más robusta y predecible.
 - **Restauración del Historial:** Se ha recuperado y fusionado el historial completo de versiones (0.1.0 a 0.4.5) en el `CHANGELOG.md` para asegurar una documentación completa del proyecto.
 
 ---
@@ -89,7 +126,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 - Eliminado el registro de los diálogos de los compañeros de la consola de depuración para mantenerla limpia y centrada en la lógica de la IA.
 
 ### Docs
-- Se ha actualizado y enriquecido significativamente el archivo de hoja de ruta (`docs/future-improvements.md`) con un análisis detallado sobre la estrategia, el impacto y la implementación de las mejoras futuras propuestas.
+- Se ha actualizado y enriquecido significativamente el archivo de hoja de ruta (`docs/roadmap.md`) con un análisis detallado sobre la estrategia, el impacto y la implementación de las mejoras futuras propuestas.
 
 ### Removed
 - Eliminado el archivo obsoleto `src/lib/data.ts`.
@@ -111,7 +148,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ### Added
 - Archivo `CHANGELOG.md` creado para documentar el historial de cambios del proyecto.
-- Archivo `docs/future-improvements.md` creado para separar las posibles mejoras de la documentación principal.
+- Archivo `docs/roadmap.md` creado para separar las posibles mejoras de la documentación principal.
 - Se ha reactivado la lógica de los compañeros de IA en el flujo `gameCoordinator`.
 - Reconstruido el historial de versiones (0.1.0 a 0.4.5) para reflejar la evolución del proyecto.
 

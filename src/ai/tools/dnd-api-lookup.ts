@@ -4,6 +4,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { log } from '@/lib/logger';
 
 // Helper function to format the JSON data for better readability for the AI
 function formatRelevantInfo(data: any): string {
@@ -26,10 +27,23 @@ async function searchApi(resourceType: string, query: string): Promise<string | 
     const formattedQuery = query.toLowerCase().replace(/\s+/g, '-');
 
     try {
+        log.debug('Searching D&D API', { 
+            module: 'AITool',
+            tool: 'dndApiLookupTool',
+            resourceType,
+            query,
+        });
+        
         const response = await fetch(`${baseUrl}/${resourceType}/${formattedQuery}`);
         
         if (response.ok) {
             const data = await response.json();
+            log.debug('D&D API lookup successful (direct)', { 
+                module: 'AITool',
+                tool: 'dndApiLookupTool',
+                resourceType,
+                query,
+            });
             return formatRelevantInfo(data);
         }
 
@@ -41,13 +55,24 @@ async function searchApi(resourceType: string, query: string): Promise<string | 
                 const detailResponse = await fetch(`https://www.dnd5eapi.co${searchData.results[0].url}`);
                 if (detailResponse.ok) {
                     const detailData = await detailResponse.json();
+                    log.debug('D&D API lookup successful (search)', { 
+                        module: 'AITool',
+                        tool: 'dndApiLookupTool',
+                        resourceType,
+                        query,
+                    });
                     return formatRelevantInfo(detailData);
                 }
             }
         }
         return null;
-    } catch (error) {
-        console.warn(`D&D API Lookup: Error fetching from ${resourceType} for query "${query}"`, error);
+    } catch (error: any) {
+        log.warn('D&D API lookup error', { 
+            module: 'AITool',
+            tool: 'dndApiLookupTool',
+            resourceType,
+            query,
+        });
         return null;
     }
 }
@@ -62,16 +87,26 @@ export const dndApiLookupTool = ai.defineTool(
     outputSchema: z.string().describe('A JSON string containing the requested information, or an error message if not found.'),
   },
   async (input) => {
+    log.aiTool('dndApiLookupTool', 'Looking up D&D 5e information', { query: input.query });
+    
     const resourceTypes = ['monsters', 'spells', 'equipment'];
     
     for (const resourceType of resourceTypes) {
         const result = await searchApi(resourceType, input.query);
         if (result) {
+            log.aiTool('dndApiLookupTool', 'Information found', { 
+                query: input.query,
+                resourceType,
+            });
             return result;
         }
     }
 
-    console.log(`D&D API Lookup: No information found for "${input.query}" in any category.`);
+    log.warn('D&D API lookup: No information found', { 
+        module: 'AITool',
+        tool: 'dndApiLookupTool',
+        query: input.query,
+    });
     return `No information found for "${input.query}".`;
   }
 );

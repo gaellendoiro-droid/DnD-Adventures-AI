@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { dndApiLookupTool } from './dnd-api-lookup';
 import { adventureLookupTool } from './adventure-lookup';
 import { CharacterSchema } from '@/lib/schemas';
+import { log } from '@/lib/logger';
 
 const EnemyTacticianInputSchema = z.object({
   activeCombatant: z.string().describe("The name of the hostile NPC/monster whose turn it is."),
@@ -78,15 +79,37 @@ export const enemyTacticianTool = ai.defineTool(
     },
     async (input) => {
       try {
+        log.aiTool('enemyTacticianTool', 'Processing enemy turn', { 
+          activeCombatant: input.activeCombatant,
+          enemiesCount: input.enemies?.length || 0,
+          partySize: input.party?.length || 0,
+        });
+        
         const { output } = await enemyTacticianPrompt(input);
   
         if (!output) {
+          log.error('AI failed to return action for enemy', { 
+            module: 'AITool',
+            tool: 'enemyTacticianTool',
+            activeCombatant: input.activeCombatant,
+          });
           throw new Error("The AI failed to return an action for the combatant.");
         }
+        
+        log.aiTool('enemyTacticianTool', 'Enemy action determined', { 
+          activeCombatant: input.activeCombatant,
+          targetId: output.targetId,
+          hasDiceRolls: (output.diceRolls?.length || 0) > 0,
+        });
+        
         return output;
   
       } catch (e: any) {
-        console.error("Critical error in enemyTacticianTool.", e);
+        log.error('Critical error in enemyTacticianTool', { 
+          module: 'AITool',
+          tool: 'enemyTacticianTool',
+          activeCombatant: input.activeCombatant,
+        }, e);
         return {
           narration: `${input.activeCombatant} ruge con frustración, pero no hace nada.`,
           targetId: null,

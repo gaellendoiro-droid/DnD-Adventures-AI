@@ -7,6 +7,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getAdventureData } from '@/app/game-state-actions';
+import { log } from '@/lib/logger';
 
 export const locationLookupTool = ai.defineTool(
   {
@@ -19,8 +20,13 @@ export const locationLookupTool = ai.defineTool(
   },
   async ({ query }) => {
     try {
+        log.aiTool('locationLookupTool', 'Looking up location', { query });
         const adventureData = await getAdventureData();
         if (!adventureData) {
+          log.error('Adventure data not available for location lookup', { 
+            module: 'AITool',
+            tool: 'locationLookupTool',
+          });
           // Returning a string message instead of null to prevent ToolResponsePart errors
           return "Error: Adventure data is not available.";
         }
@@ -34,14 +40,28 @@ export const locationLookupTool = ai.defineTool(
             (loc.id && loc.id.toLowerCase() === normalizedQuery) || 
             (loc.title && loc.title.toLowerCase() === normalizedQuery)
         );
-        if (match) return JSON.stringify(match);
+        if (match) {
+            log.aiTool('locationLookupTool', 'Location found (exact match)', { 
+                query,
+                locationId: match.id,
+                locationTitle: match.title,
+            });
+            return JSON.stringify(match);
+        }
 
         // Layer 2: Location title *includes* the query.
         // This is great for "Escudo de Leon" matching "Bazar Escudo de Leon".
         match = locations.find((loc: any) => 
           loc.title && loc.title.toLowerCase().includes(normalizedQuery)
         );
-        if (match) return JSON.stringify(match);
+        if (match) {
+            log.aiTool('locationLookupTool', 'Location found (partial match)', { 
+                query,
+                locationId: match.id,
+                locationTitle: match.title,
+            });
+            return JSON.stringify(match);
+        }
 
         // Layer 3: Query matches a unique entity name. Return the location of that entity.
         const entityMatch = entities.find((ent: any) => ent.name && ent.name.toLowerCase() === normalizedQuery);
@@ -50,6 +70,11 @@ export const locationLookupTool = ai.defineTool(
                 loc.entitiesPresent && loc.entitiesPresent.includes(entityMatch.id)
             );
             if (locationOfEntity) {
+                log.aiTool('locationLookupTool', 'Location found (via entity)', { 
+                    query,
+                    entityName: entityMatch.name,
+                    locationId: locationOfEntity.id,
+                });
                 return JSON.stringify(locationOfEntity);
             }
         }
@@ -61,14 +86,30 @@ export const locationLookupTool = ai.defineTool(
             match = locations.find((loc: any) => 
               loc.title && queryWords.some(word => loc.title.toLowerCase().includes(word))
             );
-            if (match) return JSON.stringify(match);
+            if (match) {
+                log.aiTool('locationLookupTool', 'Location found (fuzzy match)', { 
+                    query,
+                    locationId: match.id,
+                    locationTitle: match.title,
+                });
+                return JSON.stringify(match);
+            }
         }
         
+        log.warn('Location not found', { 
+            module: 'AITool',
+            tool: 'locationLookupTool',
+            query,
+        });
         // If no match is found after all checks, return null.
         // The flow calling this tool is responsible for handling a null response.
         return null;
     } catch (e: any) {
-        console.error(`[locationLookupTool Error] Failed with query "${query}":`, e);
+        log.error('Location lookup failed', { 
+            module: 'AITool',
+            tool: 'locationLookupTool',
+            query,
+        }, e);
         return `Error: An exception occurred while searching for location: ${e.message}`;
     }
   }

@@ -14,6 +14,7 @@ import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
 import { NarrativeExpertInputSchema, NarrativeExpertOutputSchema, type NarrativeExpertInput, type NarrativeExpertOutput } from './schemas';
 import { characterLookupTool } from '../tools/character-lookup';
+import { log } from '@/lib/logger';
 
 
 const narrativeExpertPrompt = ai.definePrompt({
@@ -119,7 +120,7 @@ export const narrativeExpertFlow = ai.defineFlow(
 
     } catch(e: any) {
         localLog(`NarrativeExpert: CRITICAL - Flow failed. Error: ${e.message}`);
-        console.error("Critical error in narrativeExpertFlow.", e);
+        log.error("Critical error in narrativeExpertFlow", { module: 'AIFlow', flow: 'narrativeExpert' }, e);
         // This specific error message will be caught by the action and shown in the UI.
         throw new Error(`narrativeExpertFlow failed: ${e.message || 'Unknown error'}`);
     }

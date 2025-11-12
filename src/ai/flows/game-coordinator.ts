@@ -18,6 +18,7 @@ import { actionInterpreter } from './action-interpreter';
 import { GameStateSchema, GameCoordinatorOutputSchema, type GameState, type GameCoordinatorOutput } from '@/ai/flows/schemas';
 import { combatManagerTool } from '../tools/combat-manager';
 import { combatInitiationExpertTool } from '../tools/combat-initiation-expert';
+import { log } from '@/lib/logger';
 
 const formatMessageForTranscript = (msg: Partial<GameMessage>): string => {
     if (msg.sender === 'Player') return `${msg.senderName || 'Player'}: ${msg.content}`;
@@ -38,22 +39,34 @@ export const gameCoordinatorFlow = ai.defineFlow(
     
     const debugLogs: string[] = [];
     const localLog = (message: string) => {
-        console.log(message);
+        log.gameCoordinator(message, { action: playerAction, inCombat, turnIndex });
         debugLogs.push(message);
     };
     
+    log.gameCoordinator('Received action', { 
+      action: playerAction, 
+      inCombat, 
+      turnIndex,
+      locationId,
+      partySize: party.length,
+    });
     localLog(`GameCoordinator: Received action: "${playerAction}". InCombat: ${inCombat}. TurnIndex: ${turnIndex}.`);
     
     const adventureData = await getAdventureData();
-    if (!adventureData) throw new Error("Failed to load adventure data.");
+    if (!adventureData) {
+      log.error('Failed to load adventure data', { module: 'GameCoordinator' });
+      throw new Error("Failed to load adventure data.");
+    }
     
     if (inCombat) {
+        log.gameCoordinator('Processing combat turn', { turnIndex });
         const combatResult = await combatManagerTool(input);
         return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
     }
 
     const currentLocationData = adventureData.locations.find((l: any) => l.id === locationId);
     
+    log.gameCoordinator('Interpreting player action', { action: playerAction });
     localLog("GameCoordinator: Interpreting player action...");
     const { interpretation, debugLogs: interpreterLogs } = await actionInterpreter({
         playerAction,
@@ -61,6 +74,11 @@ export const gameCoordinatorFlow = ai.defineFlow(
         party: party,
     });
     interpreterLogs.forEach(localLog);
+    
+    log.gameCoordinator('Action interpreted', { 
+      actionType: interpretation.actionType,
+      targetId: interpretation.targetId,
+    });
     
     const historyTranscript = conversationHistory.map(formatMessageForTranscript).join('\n');
 
@@ -70,8 +88,13 @@ export const gameCoordinatorFlow = ai.defineFlow(
     }
     
     if (interpretation.actionType === 'attack') {
+        log.gameCoordinator('Initiating combat', { targetId: interpretation.targetId });
         localLog("GameCoordinator: Action is 'attack'. Initiating combat...");
         const initiationResult = await combatInitiationExpertTool({ playerAction, locationId, targetId: interpretation.targetId || '', locationContext: currentLocationData, party });
+        
+        log.gameCoordinator('Combat initiated', { 
+          combatantIds: initiationResult.combatantIds?.length || 0,
+        });
         
         // FIXED: Pass all required properties to the combatManagerTool for initiation.
         const combatResult = await combatManagerTool({
@@ -87,6 +110,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
 
     let messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
 
+    log.gameCoordinator('Generating companion reactions', { partySize: party.length });
     localLog("GameCoordinator: Generating companion reactions...");
     for (const character of party) {
         if (character.controlledBy === 'AI') {
@@ -101,6 +125,10 @@ export const gameCoordinatorFlow = ai.defineFlow(
             });
             
             if (companionResult.action) {
+                log.gameCoordinator('Companion reacted', { 
+                  character: character.name,
+                  action: companionResult.action.substring(0, 50) + '...',
+                });
                 localLog(`${character.name} reacted: "${companionResult.action}"`);
                 messages.push({
                     sender: 'Character',
@@ -118,10 +146,23 @@ export const gameCoordinatorFlow = ai.defineFlow(
     if (interpretation.actionType === 'move' && interpretation.targetId) {
         newLocationId = interpretation.targetId;
         locationId = newLocationId;
+        log.gameCoordinator('Player moving to new location', { 
+          from: input.locationId,
+          to: newLocationId,
+        });
         finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
-        if (!finalLocationData) throw new Error(`Could not find data for location: ${locationId}.`);
+        if (!finalLocationData) {
+          log.error('Location not found', { 
+            module: 'GameCoordinator',
+            locationId,
+          });
+          throw new Error(`Could not find data for location: ${locationId}.`);
+        }
     }
     
+    log.gameCoordinator('Generating DM narration', { 
+      actionType: interpretation.actionType,
+    });
     localLog("GameCoordinator: Generating DM narration...");
     const historyForNarrator = [...conversationHistory, ...messages]; 
     const narrativeHistoryTranscript = historyForNarrator.map(formatMessageForTranscript).join('\n');
@@ -147,6 +188,11 @@ export const gameCoordinatorFlow = ai.defineFlow(
     }
     
     const finalInCombat = false;
+    log.gameCoordinator('Turn finished', {
+      messagesCount: messages.length,
+      locationId,
+      inCombat: finalInCombat,
+    });
     localLog(`GameCoordinator: Turn finished. Final location: ${locationId}. InCombat: ${finalInCombat}. Returning ${messages.length} messages.`);
     
     return {

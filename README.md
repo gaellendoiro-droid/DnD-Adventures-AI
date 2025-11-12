@@ -1,4 +1,4 @@
-# D&D Adventures AI (v0.4.5)
+# D&D Adventures AI (v0.4.70)
 
 Este proyecto es una aplicación web interactiva que simula una partida de Dungeons & Dragons 5ª Edición. Utiliza un Dungeon Master (DM) impulsado por Inteligencia Artificial para crear una experiencia de juego de rol conversacional y dinámica, todo en español. Los jugadores pueden explorar un mundo, interactuar con personajes, tomar decisiones y participar en combates, todo ello narrado y gestionado por la IA.
 
@@ -13,34 +13,53 @@ Este proyecto es una aplicación web interactiva que simula una partida de Dunge
 
 ## Cómo Empezar
 
-Para poner en marcha el proyecto en un entorno de desarrollo, sigue estos pasos:
+Para una guía detallada de instalación y configuración, consulta:
 
-### Prerrequisitos
+> **[📖 Guía de Inicio Rápido](./docs/inicio-rapido.md)**
 
--   Node.js (versión 20 o superior)
--   npm (o tu gestor de paquetes preferido)
+### Resumen Rápido
 
-### Instalación
+**Prerrequisitos:**
+- Node.js (versión 20 o superior)
+- npm (o tu gestor de paquetes preferido)
+- API Key de Google Gemini
 
-1.  Clona el repositorio.
-2.  Instala las dependencias del proyecto:
-    ```bash
-    npm install
-    ```
+**Instalación:**
+```bash
+npm install
+```
 
-### Ejecución de la Aplicación
+**Configuración:**
+Crea un archivo `.env` en la raíz del proyecto:
+```env
+GOOGLE_GENAI_API_KEY=tu_api_key_aqui
+```
 
-1.  Para iniciar la aplicación web en modo de desarrollo:
-    ```bash
-    npm run dev
-    ```
-    La aplicación estará disponible en `http://localhost:3000`.
+**Ejecución:**
 
-2.  Para iniciar la interfaz de depuración de Genkit (Developer UI):
-    ```bash
-    genkit start
-    ```
-    La Developer UI estará disponible en `http://localhost:4000`. Esta interfaz te permite probar y depurar los flujos de IA (`flows`) de forma aislada, ver los `traces` de ejecución y entender cómo la IA está procesando la información.
+Para **usar la aplicación**, solo necesitas:
+
+```bash
+npm run dev
+```
+
+Esto iniciará el servidor de desarrollo en `http://localhost:3000`. La aplicación funcionará completamente, ya que Genkit se integra con Next.js a través de Server Actions.
+
+**Para desarrollo y depuración (opcional):**
+
+El Developer UI de Genkit es útil para depurar y probar flujos de IA de forma aislada. Primero instala `genkit-cli` globalmente:
+
+```bash
+npm install -g genkit-cli
+```
+
+Luego inicia el Developer UI:
+
+```bash
+npm run genkit:ui
+```
+
+**Nota:** El Developer UI es **opcional** - la aplicación funciona completamente sin él. Las funciones de IA funcionan correctamente a través de Next.js Server Actions. Para más detalles, consulta la [Guía de Inicio Rápido](./docs/inicio-rapido.md).
 
 ## Arquitectura General
 
@@ -57,7 +76,7 @@ El frontend está orquestado por el componente `app/game-view.tsx`, que actúa c
 
 Para un desglose detallado de los componentes, el flujo de datos y la gestión de estado, consulta el documento:
 
-> **[📄 Documentación de Arquitectura del Frontend](./docs/frontend-architecture.md)**
+> **[📄 Documentación de Arquitectura del Frontend](./docs/arquitectura/arquitectura-frontend.md)**
 
 ### Arquitectura de la IA
 
@@ -65,4 +84,34 @@ El cerebro de la aplicación es un sistema modular de flujos y herramientas de G
 
 Para una descripción completa de los flujos, las herramientas y la lógica de toma de decisiones de la IA, consulta el documento:
 
-> **[📄 Documentación de Arquitectura de la IA](./docs/ia-architecture.md)**
+> **[📄 Documentación de Arquitectura de la IA](./docs/arquitectura/arquitectura-backend.md)**
+
+## Documentación
+
+El proyecto incluye documentación completa:
+
+- **[Inicio Rápido](./docs/inicio-rapido.md)** - Guía de instalación y configuración
+- **[Visión General de Arquitectura](./docs/arquitectura/vision-general.md)** - Visión de alto nivel del sistema
+- **[Arquitectura del Frontend](./docs/arquitectura/arquitectura-frontend.md)** - Detalles del cliente
+- **[Arquitectura del Backend IA](./docs/arquitectura/arquitectura-backend.md)** - Detalles del servidor
+- **[Flujo de Datos](./docs/arquitectura/flujo-datos.md)** - Diagramas detallados de flujos
+- **[Sistema de Logging](./docs/arquitectura/sistema-logging.md)** - Sistema de logging estructurado y centralizado
+- **[Referencia de API](./docs/referencia-api.md)** - Esquemas y contratos de datos
+- **[Roadmap](./docs/roadmap.md)** - Mejoras futuras planificadas
+
+## Solución de Problemas
+
+### Error: "eslint-plugin-genkit not found"
+Este paquete no existe en npm. Puede ser eliminado del `package.json` sin afectar la funcionalidad.
+
+### Error: "GOOGLE_GENAI_API_KEY is not defined"
+- Verifica que el archivo `.env` existe en la raíz del proyecto
+- Verifica que la variable se llama exactamente `GOOGLE_GENAI_API_KEY`
+- Reinicia ambos servidores después de crear/modificar el `.env`
+
+### El DM no responde
+- Verifica que ambos servidores (Next.js y Genkit) están corriendo
+- Revisa la consola del navegador y las terminales para errores
+- Verifica que tu API key es válida
+
+Para más información, consulta la [Guía de Inicio Rápido](./docs/inicio-rapido.md) que incluye una sección completa de solución de problemas.

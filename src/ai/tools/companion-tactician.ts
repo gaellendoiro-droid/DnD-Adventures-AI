@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { dndApiLookupTool } from './dnd-api-lookup';
 import { adventureLookupTool } from './adventure-lookup';
 import { CharacterSchema } from '@/lib/schemas';
+import { log } from '@/lib/logger';
 
 const CompanionTacticianInputSchema = z.object({
   activeCombatant: z.string().describe("The name of the friendly NPC/companion whose turn it is."),
@@ -93,7 +94,11 @@ export const companionTacticianTool = ai.defineTool(
         return output;
   
       } catch (e: any) {
-        console.error(`CRITICAL ERROR in companionTacticianTool: ${e.message}`, e);
+        log.error('Critical error in companionTacticianTool', { 
+          module: 'AITool',
+          tool: 'companionTacticianTool',
+          activeCombatant: input.activeCombatant,
+        }, e);
         return {
           narration: `${input.activeCombatant} parece confundido/a y no hace nada en su turno.`,
           targetId: null,

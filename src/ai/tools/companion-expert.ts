@@ -9,6 +9,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { characterLookupTool } from './character-lookup';
 import { PartySchema, CharacterSchema } from '@/lib/schemas';
+import { log } from '@/lib/logger';
 
 const CompanionExpertInputSchema = z.object({
   party: PartySchema.describe("The array of character objects for the entire party."),
@@ -68,9 +69,18 @@ export const companionExpertTool = ai.defineTool(
             const characterData = await characterLookupTool({ party, characterName });
 
             if (!characterData) {
-                console.warn(`[CompanionExpertTool] Character "${characterName}" not found in party. Skipping reaction.`);
+                log.warn('Character not found in party', { 
+                    module: 'AITool',
+                    tool: 'companionExpertTool',
+                    characterName,
+                });
                 return { action: "" };
             }
+
+            log.aiTool('companionExpertTool', 'Generating companion reaction', { 
+                characterName,
+                inCombat: input.inCombat,
+            });
 
             // STEP 2: Call the LLM with all context provided. No tools needed.
             const { output } = await reactionGenerationPrompt({
@@ -79,13 +89,28 @@ export const companionExpertTool = ai.defineTool(
             });
             
             if (!output) {
+                log.warn('No output from companion reaction prompt', { 
+                    module: 'AITool',
+                    tool: 'companionExpertTool',
+                    characterName,
+                });
                 return { action: "" };
             }
             
-            return CompanionExpertOutputSchema.parse(output);
+            const result = CompanionExpertOutputSchema.parse(output);
+            log.aiTool('companionExpertTool', 'Companion reaction generated', { 
+                characterName,
+                hasAction: !!result.action,
+            });
+            
+            return result;
 
-        } catch (error) {
-            console.error('[CompanionExpertTool Error]', error);
+        } catch (error: any) {
+            log.error('CompanionExpertTool error', { 
+                module: 'AITool',
+                tool: 'companionExpertTool',
+                characterName: input.characterName,
+            }, error);
             return { action: "" };
         }
     }

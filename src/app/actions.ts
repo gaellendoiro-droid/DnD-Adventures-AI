@@ -1,8 +1,10 @@
 
 'use server';
 
-import { gameCoordinator, type GameCoordinatorInput, type GameCoordinatorOutput } from "@/ai/flows/game-coordinator";
+import { gameCoordinator } from "@/ai/flows/game-coordinator";
+import { type GameState, type GameCoordinatorOutput } from "@/ai/flows/schemas";
 import { lookupAdventureEntityInDb } from "./game-state-actions";
+import { log } from "@/lib/logger";
 
 
 /**
@@ -10,9 +12,16 @@ import { lookupAdventureEntityInDb } from "./game-state-actions";
  * It acts as a bridge between the UI and the central AI coordinator.
  */
 export async function processPlayerAction(
-  input: GameCoordinatorInput
+  input: GameState
 ): Promise<GameCoordinatorOutput> {
   
+  log.serverAction('Processing player action', {
+    action: input.playerAction,
+    inCombat: input.inCombat,
+    turnIndex: input.turnIndex,
+    locationId: input.locationId,
+  });
+
   try {
     const result = await gameCoordinator(input);
 
@@ -22,9 +31,14 @@ export async function processPlayerAction(
         updatedParty: result.updatedParty?.length,
         inCombat: result.inCombat,
         nextLocationId: result.nextLocationId,
-        turnIndex: result.turnIndex, // Added for logging
-    }
-    console.log(`[actions.ts] Returning result to client: ${JSON.stringify(logSummary)}`);
+        turnIndex: result.turnIndex,
+    };
+    
+    log.serverAction('Returning result to client', {
+      summary: logSummary,
+      messagesCount: result.messages?.length || 0,
+      diceRollsCount: result.diceRolls?.length || 0,
+    });
 
     return {
       ...result,
@@ -32,7 +46,11 @@ export async function processPlayerAction(
     };
 
   } catch (error: any) {
-    console.error("[Action Error] Failed to process player action:", error);
+    log.error('Failed to process player action', {
+      action: 'processPlayerAction',
+      playerAction: input.playerAction,
+    }, error);
+    
     // Return a structured error that the client can display
     return {
       error: `La IA coordinadora ha fallado: ${error.message || 'Error desconocido'}`,

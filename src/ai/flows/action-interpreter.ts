@@ -9,6 +9,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { ActionInterpreterInputSchema, ActionInterpreterOutputSchema, type ActionInterpreterInput, type ActionInterpreterOutput } from '@/ai/flows/schemas';
 import { getAdventureData } from '@/app/game-state-actions';
+import { log } from '@/lib/logger';
 
 // This prompt no longer needs tools. All context is provided directly.
 const actionInterpreterPrompt = ai.definePrompt({
@@ -96,7 +97,7 @@ export const actionInterpreterFlow = ai.defineFlow(
 
             if (!output) {
                 const msg = "ActionInterpreter: CRITICAL - AI returned null output. Defaulting to 'narrate'.";
-                console.error(msg);
+                log.error(msg, { module: 'AIFlow', flow: 'actionInterpreter' });
                 debugLogs.push(msg);
                 output = { actionType: 'narrate' };
             }
@@ -105,16 +106,24 @@ export const actionInterpreterFlow = ai.defineFlow(
             if (output.actionType === 'move' && output.targetId) {
                 const matchedLocation = adventureData.locations.find((l: any) => l.title === output.targetId);
                 if (matchedLocation) {
+                    log.aiFlow('actionInterpreter', 'Mapped location title to ID', {
+                        title: output.targetId,
+                        id: matchedLocation.id,
+                    });
                     output.targetId = matchedLocation.id;
                 }
             }
 
+            log.aiFlow('actionInterpreter', 'Action interpreted', {
+                actionType: output.actionType,
+                targetId: output.targetId,
+            });
             debugLogs.push(`ActionInterpreter Raw Output: ${JSON.stringify(output)}`);
             return { interpretation: output, debugLogs };
 
         } catch (e: any) {
             const msg = `ActionInterpreter: CRITICAL - Flow failed. Error: ${e.message}. Defaulting to 'narrate'.`;
-            console.error(msg);
+            log.error(msg, { module: 'AIFlow', flow: 'actionInterpreter' }, e);
             debugLogs.push(msg);
             return { interpretation: { actionType: 'narrate' }, debugLogs };
         }

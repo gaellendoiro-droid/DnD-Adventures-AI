@@ -80,20 +80,104 @@ graph TD
 #### `combatInitiationExpertTool`
 -   **Archivo**: `src/ai/tools/combat-initiation-expert.ts`
 -   **Rol**: Determina si una acción debe iniciar un combate.
+-   **Entrada**: Acción del jugador, ubicación actual, contexto de la ubicación, party
+-   **Salida**: Decisión sobre si iniciar combate y qué enemigos incluir
 
 #### `combatManagerTool`
 -   **Archivo**: `src/ai/tools/combat-manager.ts`
 -   **Rol**: Gestiona el orden de iniciativa y orquesta los turnos.
+-   **Responsabilidades**:
+    - Calcula el orden de iniciativa al iniciar el combate
+    - Gestiona el bucle de turnos de combate
+    - Procesa turnos de IA (compañeros y enemigos) automáticamente
+    - Cede el control al jugador cuando es su turno
+    - Gestiona el estado del combate (turnIndex, initiativeOrder)
+
+#### `companionTacticianTool`
+-   **Archivo**: `src/ai/tools/companion-tactician.ts`
+-   **Rol**: Decide las acciones tácticas de los compañeros controlados por IA durante el combate.
+-   **Lógica**: 
+    - Prioriza curar aliados heridos si tiene habilidades de curación
+    - Si no puede curar o no hay aliados heridos, ataca a enemigos
+    - Considera el contexto del combate y el estado de aliados/enemigos
+-   **Salida**: Narración de la acción, targetId, tiradas de dados necesarias
+
+#### `enemyTacticianTool`
+-   **Archivo**: `src/ai/tools/enemy-tactician.ts`
+-   **Rol**: Decide las acciones tácticas de los enemigos durante el combate.
+-   **Lógica**:
+    - Ataca a los miembros más débiles de la party
+    - Considera el contexto del combate y el estado de aliados
+    - Puede usar habilidades especiales según el tipo de enemigo
+-   **Salida**: Narración de la acción, targetId, tiradas de dados necesarias
 
 ### 4. Herramientas de Apoyo
 
 #### `companionExpertTool`
 -   **Archivo**: `src/ai/tools/companion-expert.ts`
--   **Rol**: Genera los diálogos de los compañeros de IA. Sigue un patrón robusto de dos pasos: primero consulta los datos del personaje con `characterLookupTool` y luego inyecta esa información en un prompt para generar la reacción.
+-   **Rol**: Genera los diálogos de los compañeros de IA durante la exploración (fuera de combate).
+-   **Patrón**: Sigue un patrón robusto de dos pasos: primero consulta los datos del personaje con `characterLookupTool` y luego inyecta esa información en un prompt para generar la reacción.
+-   **Uso**: Se invoca cuando el jugador realiza una acción y el `gameCoordinator` decide que un compañero debe reaccionar.
 
 #### `characterLookupTool`
 -   **Archivo**: `src/ai/tools/character-lookup.ts`
--   **Rol**: Una simple función de consulta. Recibe un array de la `party` y el nombre de un personaje, y devuelve los datos completos de ese personaje. **No es una herramienta de IA por sí misma**, sino una utilidad de TypeScript que otras herramientas pueden usar.
+-   **Rol**: Una simple función de consulta. Recibe un array de la `party` y el nombre de un personaje, y devuelve los datos completos de ese personaje.
+-   **Nota**: **No es una herramienta de IA por sí misma**, sino una utilidad de TypeScript que otras herramientas pueden usar.
+
+#### `locationLookupTool`
+-   **Archivo**: `src/ai/tools/location-lookup.ts`
+-   **Rol**: Consulta información sobre una ubicación específica del mundo del juego.
+-   **Uso**: Permite a los flujos de IA obtener detalles sobre la ubicación actual, puntos de interés, y posibles amenazas.
+
+#### `adventureLookupTool`
+-   **Archivo**: `src/ai/tools/adventure-lookup.ts`
+-   **Rol**: Consulta información general sobre la aventura (lore, personajes, misiones).
+-   **Uso**: Permite a los flujos de IA acceder al conocimiento del mundo del juego almacenado en los archivos JSON de aventuras.
+
+#### `diceRollerTool`
+-   **Archivo**: `src/ai/tools/dice-roller.ts`
+-   **Rol**: Realiza tiradas de dados según la notación de D&D (ej: "1d20+5", "2d6+3").
+-   **Funcionalidad**: 
+    - Parsea la notación de dados
+    - Calcula el resultado
+    - Devuelve información detallada sobre la tirada
+-   **Uso**: Utilizado por el sistema de combate y otras herramientas que necesitan realizar tiradas.
+
+#### `dndApiLookupTool`
+-   **Archivo**: `src/ai/tools/dnd-api-lookup.ts`
+-   **Rol**: Consulta información sobre reglas, monstruos, conjuros y objetos de D&D 5e desde una API externa.
+-   **API**: Utiliza `https://www.dnd5eapi.co/api`
+-   **Uso**: Permite a la IA obtener información precisa sobre reglas de D&D cuando es necesario.
+
+### 5. Flujos de Utilidad
+
+#### `oocAssistant`
+-   **Archivo**: `src/ai/flows/ooc-assistant.ts`
+-   **Rol**: Asistente fuera de personaje (Out of Character). Responde preguntas del jugador sobre reglas, mecánicas o el estado del juego.
+-   **Activación**: Se activa cuando el jugador envía un mensaje que comienza con "//" o "OOC:"
+-   **Uso**: Permite al jugador hacer preguntas sin romper la inmersión del juego.
+
+#### `generateDmNarrationAudio`
+-   **Archivo**: `src/ai/flows/generate-dm-narration-audio.ts`
+-   **Rol**: Convierte la narración del DM a audio usando Text-to-Speech.
+-   **Tecnología**: Utiliza Google Gemini 2.5 Flash Preview TTS
+-   **Salida**: Audio en formato WAV como data URI
+-   **Uso**: Opcional, puede ser usado para añadir narración por voz al juego.
+
+#### `markdownToHtml`
+-   **Archivo**: `src/ai/flows/markdown-to-html.ts`
+-   **Rol**: Convierte texto en formato Markdown a HTML para renderizado en el frontend.
+-   **Uso**: Procesa la narración del DM que puede contener formato Markdown.
+
+#### `parseAdventureFromJson`
+-   **Archivo**: `src/ai/flows/parse-adventure-from-json.ts`
+-   **Rol**: Parsea y carga aventuras desde archivos JSON.
+-   **Uso**: Carga la estructura de la aventura al iniciar el juego.
+
+#### `generateMonsterEncounters`
+-   **Archivo**: `src/ai/flows/generate-monster-encounters.ts`
+-   **Rol**: Genera encuentros con monstruos basados en el nivel del grupo y el entorno.
+-   **Uso**: Puede ser usado para generar encuentros dinámicos (actualmente no está activo en el flujo principal).
 
 ---
 

@@ -10,6 +10,9 @@ import { GameView } from "@/components/game/game-view";
 import { useToast } from "@/hooks/use-toast";
 import { parseAdventureFromJson } from "@/ai/flows/parse-adventure-from-json";
 import { processPlayerAction } from "./actions";
+import { logClient } from "@/lib/logger-client";
+import { CharacterSchema } from "@/lib/schemas";
+import { z } from "zod";
 
 interface InitialGameData {
   party: Character[];
@@ -19,6 +22,7 @@ interface InitialGameData {
   inCombat?: boolean;
   initiativeOrder?: Combatant[];
   turnIndex?: number;
+  enemies?: any[];
 }
 
 export default function Home() {
@@ -30,6 +34,26 @@ export default function Home() {
 
 
   const { toast } = useToast();
+
+  // Schema for validating save game data
+  const SaveGameDataSchema = z.object({
+    savedAt: z.string().optional(),
+    party: z.array(CharacterSchema),
+    messages: z.array(z.any()),
+    diceRolls: z.array(z.any()).optional(),
+    locationId: z.string(),
+    inCombat: z.boolean().optional(),
+    initiativeOrder: z.array(z.any()).optional(),
+    enemies: z.array(z.any()).optional(),
+    turnIndex: z.number().optional(),
+  });
+
+  // Schema for validating adventure data structure
+  const AdventureDataSchema = z.object({
+    locations: z.array(z.object({
+      id: z.string(),
+    })).min(1, "La aventura debe tener al menos una ubicación"),
+  });
   
   const handleNewGame = async () => {
     try {
@@ -41,9 +65,17 @@ export default function Home() {
         throw new Error(`Failed to load adventure: ${response.statusText}`);
       }
       const defaultAdventure = await response.json();
+      
+      // Validate adventure data structure
+      AdventureDataSchema.parse(defaultAdventure);
+      
       setAdventureData(defaultAdventure);
       
       const firstLocation = defaultAdventure.locations[0];
+      
+      if (!firstLocation || !firstLocation.id) {
+        throw new Error("La aventura no tiene una ubicación inicial válida.");
+      }
       
       setInitialGameData({
         party: initialParty,
@@ -60,8 +92,8 @@ export default function Home() {
 
       toast({ title: "¡Aventura lista!", description: "Tu nueva aventura está lista para empezar." });
 
-    } catch (error) {
-      console.error("Error starting new game:", error);
+    } catch (error: any) {
+      logClient.uiError('Page', 'Error starting new game', error);
       toast({
         variant: 'destructive',
         title: "Error al crear la partida",
@@ -91,19 +123,31 @@ export default function Home() {
         toast({ title: "Procesando aventura...", description: "La IA está analizando el archivo JSON." });
         
         const parsedAdventure = await parseAdventureFromJson({ adventureJson: jsonContent });
-        const newGameState = JSON.stringify(parsedAdventure.adventureData);
+        
+        // Validate adventure data structure
+        if (!parsedAdventure.adventureData) {
+          throw new Error("El archivo JSON no contiene datos de aventura válidos.");
+        }
+        
+        AdventureDataSchema.parse(parsedAdventure.adventureData);
+        
         setAdventureData(parsedAdventure.adventureData);
         
         toast({ title: "Generando introducción...", description: "El Dungeon Master está preparando la escena." });
         
         const firstLocation = parsedAdventure.adventureData.locations[0];
+        
+        if (!firstLocation || !firstLocation.id) {
+          throw new Error("La aventura no tiene una ubicación inicial válida.");
+        }
 
+        // conversationHistory should be an empty array, not an empty string
         const result = await processPlayerAction({
             playerAction: "Comenzar la aventura.",
             party: initialParty,
             locationId: firstLocation.id,
             inCombat: false,
-            conversationHistory: "",
+            conversationHistory: [],
             turnIndex: 0,
         });
 
@@ -124,8 +168,8 @@ export default function Home() {
 
         toast({ title: "¡Aventura cargada y lista!", description: "La nueva aventura está lista para jugar." });
 
-      } catch (error) {
-        console.error("Error parsing or starting adventure:", error);
+      } catch (error: any) {
+        logClient.uiError('Page', 'Error parsing or starting adventure', error);
         toast({
           variant: 'destructive',
           title: "Error al cargar la aventura",
@@ -145,21 +189,22 @@ export default function Home() {
         setLoading('loadGame');
         const jsonContent = e.target?.result as string;
         const saveData = JSON.parse(jsonContent);
+        
+        // Validate save data structure
+        const validatedSaveData = SaveGameDataSchema.parse(saveData);
+        
         // Adventure data is not saved in the save file anymore, it's loaded from source
         fetch('/api/load-adventure').then(res => res.json()).then(setAdventureData);
 
-        if (!saveData.party || !saveData.messages || !saveData.locationId) {
-          throw new Error("El archivo de guardado no es válido.");
-        }
-
         setInitialGameData({
-          party: saveData.party,
-          messages: saveData.messages,
-          diceRolls: saveData.diceRolls || [],
-          locationId: saveData.locationId,
-          inCombat: saveData.inCombat || false,
-          initiativeOrder: saveData.initiativeOrder || [],
-          turnIndex: saveData.turnIndex || 0,
+          party: validatedSaveData.party,
+          messages: validatedSaveData.messages,
+          diceRolls: validatedSaveData.diceRolls || [],
+          locationId: validatedSaveData.locationId,
+          inCombat: validatedSaveData.inCombat || false,
+          initiativeOrder: validatedSaveData.initiativeOrder || [],
+          turnIndex: validatedSaveData.turnIndex || 0,
+          enemies: validatedSaveData.enemies || [],
         });
 
         setGameInProgress(true);
@@ -170,8 +215,8 @@ export default function Home() {
           description: "¡Tu aventura continúa!",
         });
 
-      } catch (error) {
-        console.error("Error loading save file:", error);
+      } catch (error: any) {
+        logClient.uiError('Page', 'Error loading save file', error);
         toast({
           variant: 'destructive',
           title: "Error al cargar la partida",
@@ -193,6 +238,18 @@ export default function Home() {
           onSaveGame={(saveData) => {
               // We don't save the gameState anymore as it's static
               const { gameState, ...rest } = saveData;
+              
+              logClient.info('Preparing save file download', {
+                component: 'Page',
+                action: 'saveGameDownload',
+                partySize: saveData.party?.length || 0,
+                messagesCount: saveData.messages?.length || 0,
+                diceRollsCount: saveData.diceRolls?.length || 0,
+                locationId: saveData.locationId,
+                inCombat: saveData.inCombat,
+                turnIndex: saveData.turnIndex,
+              });
+              
               const jsonString = JSON.stringify(rest, null, 2);
               const blob = new Blob([jsonString], { type: 'application/json' });
               const url = URL.createObjectURL(blob);
@@ -204,6 +261,13 @@ export default function Home() {
               link.click();
               document.body.removeChild(link);
               URL.revokeObjectURL(url);
+              
+              logClient.info('Save file downloaded successfully', {
+                component: 'Page',
+                action: 'saveGameDownload',
+                filename: link.download,
+              });
+              
               toast({
                   title: "Partida guardada",
                   description: "El archivo de guardado se ha descargado en tu dispositivo."

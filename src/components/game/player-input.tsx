@@ -50,6 +50,8 @@ export function PlayerInput({ onSendMessage, onDiceRoll, disabled = false }: Pla
       <form onSubmit={handleSubmit} className="flex items-start gap-2">
         <DiceRoller onRoll={onDiceRoll} onPopoverOpenChange={setIsDicePopoverOpen}/>
         <Textarea
+          id="player-action-input"
+          name="player-action"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}

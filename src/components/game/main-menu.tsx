@@ -74,6 +74,8 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGam
             </Button>
             <input
               type="file"
+              id="adventure-file-input"
+              name="adventure-file"
               ref={adventureInputRef}
               onChange={(e) => handleFileChange(e, onLoadAdventure)}
               accept="application/json"
@@ -82,6 +84,8 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGam
             />
             <input
               type="file"
+              id="save-game-file-input"
+              name="save-game-file"
               ref={saveGameInputRef}
               onChange={(e) => handleFileChange(e, onLoadGame)}
               accept="application/json"

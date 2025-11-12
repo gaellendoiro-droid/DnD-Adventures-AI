@@ -1,0 +1,27 @@
+FRASES DE DESARROLLO
+
+Registra los últimos cambios en el changelog. No cambies de versión la aplicación aún.
+
+Documenta o actualiza los últimos cambios hechos en los archivos de documentación pertinentes.
+
+Crea un nuevo guardado .git con toda la aplicación.
+
+
+
+FRASES DE TEST
+
+Miramos el tablón de anuncios.
+Vamos al tablón de anuncios.
+Nos acercamos al tablón de anuncios.
+	¿Qué pone en la misión de la Colina del Resentimiento?
+	Merryl ¿Que pone en la misión de la excavación?
+
+Vamos a la colina del Resentimiento.
+	De que monstruo se trata?
+	Saco el mandoble y me lanzo al ataque contra el monstruo.
+
+Vamos al bazar escudo de leon
+	Quiero comprar una espada larga
+	Cuanto cuesta?
+	de acuerdo, la compro.
+

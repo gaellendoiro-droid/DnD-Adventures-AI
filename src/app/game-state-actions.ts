@@ -3,6 +3,7 @@
 
 import path from 'path';
 import { promises as fs } from 'fs';
+import { log } from '@/lib/logger';
 
 // Cache for the adventure data to avoid reading the file on every request
 let adventureDataCache: any = null;
@@ -13,15 +14,23 @@ let adventureDataCache: any = null;
  */
 export async function getAdventureData(): Promise<any> {
   if (adventureDataCache) {
+    log.debug('Returning cached adventure data', { module: 'GameState' });
     return adventureDataCache;
   }
   try {
     const jsonDirectory = path.join(process.cwd(), 'JSON_adventures');
-    const fileContents = await fs.readFile(jsonDirectory + '/el-dragon-del-pico-agujahelada.json', 'utf8');
+    const filePath = jsonDirectory + '/el-dragon-del-pico-agujahelada.json';
+    log.info('Loading adventure data from file', { module: 'GameState', filePath });
+    const fileContents = await fs.readFile(filePath, 'utf8');
     adventureDataCache = JSON.parse(fileContents);
+    log.info('Adventure data loaded successfully', { 
+      module: 'GameState',
+      locationsCount: adventureDataCache?.locations?.length || 0,
+      entitiesCount: adventureDataCache?.entities?.length || 0,
+    });
     return adventureDataCache;
-  } catch (error) {
-    console.error('Failed to load or parse adventure data:', error);
+  } catch (error: any) {
+    log.error('Failed to load or parse adventure data', { module: 'GameState' }, error);
     // In case of error, clear cache and return null
     adventureDataCache = null;
     return null;
@@ -34,10 +43,15 @@ export async function getAdventureData(): Promise<any> {
  * This is a server-side utility function that can be used by other server actions or tools.
  */
 export async function lookupAdventureEntityInDb(entityName: string): Promise<any | null> {
+    log.debug('Looking up entity in adventure data', { 
+      module: 'GameState',
+      entityName,
+    });
+    
     const adventureData = await getAdventureData();
 
     if (!adventureData) {
-      console.error("Adventure data not available for lookup.");
+      log.error('Adventure data not available for lookup', { module: 'GameState' });
       return null;
     }
 

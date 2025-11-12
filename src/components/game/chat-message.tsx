@@ -8,6 +8,8 @@ import { Bot, User, Users, Cog, Swords, Play, Loader2, Square, AlertTriangle, Re
 import { generateDmNarrationAudio } from "@/ai/flows/generate-dm-narration-audio";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "../ui/button";
+import { logClient } from "@/lib/logger-client";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 
 interface ChatMessageProps {
   message: GameMessage;
@@ -79,8 +81,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
     try {
       const response = await generateDmNarrationAudio({ narrationText: textToSpeak });
       setAudioDataUri(response.audioDataUri);
-    } catch (error) {
-      console.error("Error generating narration audio:", error);
+    } catch (error: any) {
+      logClient.uiError('ChatMessage', 'Error generating narration audio', error);
       toast({
         variant: "destructive",
         title: "Error de audio",
@@ -110,7 +112,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         audio.removeEventListener('ended', handlePause);
       }
     };
-  }, [audioRef]);
+  }, []); // Empty dependency array - effect should only run once on mount
 
 
   React.useEffect(() => {
@@ -171,7 +173,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
             style={bubbleStyle}
           >
             {sender === 'DM' ? (
-              <div className="leading-relaxed" dangerouslySetInnerHTML={{ __html: content as string }} />
+              <div className="leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeHtml(content as string) }} />
             ) : React.isValidElement(renderedContent) ? (
                 renderedContent
             ) : (

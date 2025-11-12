@@ -14,6 +14,8 @@ import { PartyPanel } from "@/components/game/party-panel";
 import { Separator } from "../ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { GameStateSchema } from "@/ai/flows/schemas";
+import { logClient } from "@/lib/logger-client";
+import { ZodError } from "zod";
 
 interface GameViewProps {
   initialData: {
@@ -24,6 +26,7 @@ interface GameViewProps {
     inCombat?: boolean;
     initiativeOrder?: Combatant[];
     turnIndex?: number;
+    enemies?: any[];
   };
   onSaveGame: (saveData: any) => void;
 }
@@ -35,7 +38,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const [locationId, setLocationId] = useState(initialData.locationId);
   const [inCombat, setInCombat] = useState(initialData.inCombat || false);
   const [initiativeOrder, setInitiativeOrder] = useState<Combatant[]>(initialData.initiativeOrder || []);
-  const [enemies, setEnemies] = useState<any[]>([]);
+  const [enemies, setEnemies] = useState<any[]>(initialData.enemies || []);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
     initialData.party.find(c => c.controlledBy === 'Player') || null
   );
@@ -61,10 +64,83 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     setInCombat(initialData.inCombat || false);
     setInitiativeOrder(initialData.initiativeOrder || []);
     setTurnIndex(initialData.turnIndex || 0);
+    setEnemies(initialData.enemies || []);
     setDebugMessages([]);
-    setEnemies([]);
     addDebugMessages(["Game state initialized from initialData."]);
   }, [initialData, addDebugMessages]);
+
+  // TEMPORAL: Log de estados para pruebas (Issue #11 y #12)
+  const prevStateRef = useRef<string>('');
+  useEffect(() => {
+    // Crear una representación serializada del estado para comparar
+    const currentState = JSON.stringify({
+      inCombat,
+      initiativeOrderLength: initiativeOrder.length,
+      turnIndex,
+      enemiesLength: enemies.length,
+      locationId,
+      partySize: party.length,
+    });
+    
+    // Solo loguear si el estado realmente cambió
+    if (currentState !== prevStateRef.current) {
+      prevStateRef.current = currentState;
+      
+      // Log estructurado y expandible
+      console.group('🎮 [GameView] Estado actual');
+      
+      // Información básica
+      console.log('📍 Ubicación:', locationId);
+      console.log('⚔️ En combate:', inCombat);
+      console.log('👥 Tamaño del grupo:', party.length);
+      console.log('📊 Turno actual (índice):', turnIndex);
+      
+      // Orden de iniciativa - expandido
+      if (initiativeOrder.length > 0) {
+        console.log('🗡️ Orden de iniciativa:', initiativeOrder.length, 'combatientes');
+        initiativeOrder.forEach((combatant, index) => {
+          console.log(`  ${index + 1}. ${combatant.characterName} (ID: ${combatant.id})`, {
+            id: combatant.id,
+            name: combatant.characterName,
+            initiative: combatant.initiative,
+            isPlayer: combatant.isPlayer,
+            isEnemy: combatant.isEnemy,
+          });
+        });
+      } else {
+        console.log('🗡️ Orden de iniciativa:', 'Vacío (no hay combate activo)');
+      }
+      
+      // Enemigos - expandido
+      if (enemies.length > 0) {
+        console.log('👹 Enemigos:', enemies.length, 'enemigos');
+        enemies.forEach((enemy: any, index) => {
+          const enemyName = enemy.name || enemy.characterName || enemy.id || 'Unknown';
+          console.log(`  ${index + 1}. ${enemyName}`, {
+            id: enemy.id,
+            name: enemyName,
+            ...(enemy.hp && { hp: enemy.hp }),
+            ...(enemy.ac && { ac: enemy.ac }),
+            fullData: enemy,
+          });
+        });
+      } else {
+        console.log('👹 Enemigos:', 'Vacío (no hay enemigos)');
+      }
+      
+      // Resumen compacto para referencia rápida
+      console.log('📦 Resumen:', {
+        inCombat,
+        initiativeOrderCount: initiativeOrder.length,
+        turnIndex,
+        enemiesCount: enemies.length,
+        locationId,
+        partySize: party.length,
+      });
+      
+      console.groupEnd();
+    }
+  }, [inCombat, initiativeOrder, turnIndex, enemies, locationId, party.length]);
 
   const addMessage = useCallback((message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
     const messageToAdd: GameMessage = {
@@ -131,8 +207,39 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       };
 
       // Validate the entire game state before sending
-      GameStateSchema.parse(actionInput);
-      addDebugMessages(["Frontend state validation successful."]);
+      try {
+        GameStateSchema.parse(actionInput);
+        addDebugMessages(["Frontend state validation successful."]);
+      } catch (validationError: any) {
+        // Handle validation errors specifically
+        if (validationError instanceof ZodError) {
+          const errorMessages = validationError.errors.map(err => {
+            const path = err.path.join('.');
+            return `${path}: ${err.message}`;
+          }).join('; ');
+          
+          logClient.uiError('GameView', 'Validation error', validationError, {
+            action: content,
+            errors: validationError.errors,
+          });
+          
+          addDebugMessages([
+            `VALIDATION ERROR: ${errorMessages}`,
+            `DETAILS: ${JSON.stringify(validationError.errors)}`
+          ]);
+          
+          addMessage({
+            sender: 'Error',
+            content: `Error de validación: Los datos del juego no son válidos. ${errorMessages}. Por favor, recarga la página.`,
+            onRetry: () => handleSendMessage(content, { isRetry: true }),
+          });
+          
+          setIsDMThinking(false);
+          return; // Don't proceed with the action
+        }
+        // If it's not a ZodError, re-throw to be caught by outer catch
+        throw validationError;
+      }
 
       const result = await processPlayerAction(actionInput);
 
@@ -147,13 +254,33 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         const player = result.updatedParty.find(p => p.id === selectedCharacter?.id);
         if (player) setSelectedCharacter(player);
       }
-      if (typeof result.inCombat === 'boolean') setInCombat(result.inCombat);
-      if (result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
-      if (result.turnIndex !== undefined) setTurnIndex(result.turnIndex);
-      if (result.enemies) setEnemies(result.enemies);
+      
+      // Update combat-related states with synchronization
+      if (typeof result.inCombat === 'boolean') {
+        setInCombat(result.inCombat);
+        // If combat ends, clear combat-related states
+        if (!result.inCombat) {
+          setInitiativeOrder([]);
+          setTurnIndex(0);
+          setEnemies([]);
+        } else {
+          // If combat starts or continues, update combat states
+          if (result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
+          if (result.turnIndex !== undefined) setTurnIndex(result.turnIndex);
+          if (result.enemies) setEnemies(result.enemies);
+        }
+      } else {
+        // If inCombat is not explicitly set, only update if provided
+        if (result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
+        if (result.turnIndex !== undefined) setTurnIndex(result.turnIndex);
+        if (result.enemies) setEnemies(result.enemies);
+      }
 
     } catch (error: any) {
-      console.error("[GameView] Error processing action:", error);
+      logClient.uiError('GameView', 'Error processing action', error, {
+        action: content,
+        inCombat,
+      });
       addDebugMessages([`CRITICAL ERROR: ${error.message}`, `DETAILS: ${JSON.stringify(error)}`]);
       addMessage({
         sender: 'Error',
@@ -178,6 +305,19 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   const handleInternalSaveGame = useCallback(() => {
     const saveData = { savedAt: new Date().toISOString(), party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex };
+    
+    logClient.info('Saving game', {
+      component: 'GameView',
+      action: 'saveGame',
+      partySize: party.length,
+      messagesCount: messages.length,
+      diceRollsCount: diceRolls.length,
+      locationId,
+      inCombat,
+      turnIndex,
+      enemiesCount: enemies.length,
+    });
+    
     onSaveGame(saveData);
   }, [party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex, onSaveGame]);
 

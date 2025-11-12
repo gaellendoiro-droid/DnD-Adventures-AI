@@ -6,6 +6,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { CharacterSchema } from '@/lib/schemas'; // CORRECT: Import the single source of truth.
+import { log } from '@/lib/logger';
 
 
 export const CombatInitiationExpertInputSchema = z.object({
@@ -32,10 +33,18 @@ export const combatInitiationExpertTool = ai.defineTool(
     const { locationId, targetId, playerAction, locationContext, party } = input;
     const debugLogs: string[] = [];
     const localLog = (message: string) => {
-        console.log(message);
+        log.aiTool('combatInitiationExpertTool', message, { 
+            locationId,
+            targetId,
+        });
         debugLogs.push(`CombatInitiationExpert: ${message}`);
     };
 
+    log.aiTool('combatInitiationExpertTool', 'Evaluating combat participants', { 
+        locationId,
+        targetId,
+        partySize: party.length,
+    });
     localLog('Tool started. Evaluating combat participants.');
 
     const partyIds = Array.isArray(party) ? party.map(p => p.id) : [];
