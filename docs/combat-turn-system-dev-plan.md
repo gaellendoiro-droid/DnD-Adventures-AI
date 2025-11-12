@@ -53,8 +53,7 @@ Este documento detalla los pasos necesarios para implementar un sistema de turno
     - [x] Invocar al `companionTacticianTool` para compañeros y al `enemyTacticianTool` para enemigos.
     - [x] Leer el `targetId` de la respuesta y procesar la acción sin expresiones regulares.
 - [x] **Depuración del Comportamiento Pasivo de la IA:**
-    - [x] **Añadir Logging:** Se introdujo un campo `debugLog` en el output de las herramientas tácticas para capturar su `input` exacto.
-    - [x] **Diagnóstico del Problema:** El análisis de los logs reveló que el prompt del `companionTacticianTool` era ambiguo, causando que las IAs no actuaran si no había necesidad de curar.
+    - [x] **Diagnóstico del Problema:** El análisis del comportamiento de la IA reveló que el prompt del `companionTacticianTool` era ambiguo, causando que las IAs no actuaran si no había necesidad de curar.
     - [x] **Solución Iterativa del Prompt:** Se refactorizó el prompt del `companionTacticianTool` con una lógica condicional explícita: **SI** se puede curar **Y** un aliado está herido, **ENTONCES** curar. **EN CASO CONTRARIO**, atacar. Esta solución resolvió tanto la pasividad como los errores de validación de esquema (`null` output).
 
 **Verificación:**

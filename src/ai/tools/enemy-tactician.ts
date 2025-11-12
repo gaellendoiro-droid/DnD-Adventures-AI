@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A Genkit flow that acts as the "enemy brain" in combat.
@@ -8,7 +7,6 @@ import { z } from 'zod';
 import { dndApiLookupTool } from './dnd-api-lookup';
 import { adventureLookupTool } from './adventure-lookup';
 import { CharacterSchema } from '@/lib/schemas';
-
 
 const EnemyTacticianInputSchema = z.object({
   activeCombatant: z.string().describe("The name of the hostile NPC/monster whose turn it is."),
@@ -27,14 +25,13 @@ const EnemyTacticianOutputSchema = z.object({
         rollNotation: z.string().describe("The dice notation for the roll (e.g., '1d20+5', '2d6+3')."),
         description: z.string().describe("A brief description of the roll's purpose (e.g., 'Attack Roll', 'Damage Roll')."),
     })).optional().describe("An array of dice rolls required to resolve the action."),
-    debugLog: z.string().optional(),
 });
 export type EnemyTacticianOutput = z.infer<typeof EnemyTacticianOutputSchema>;
 
 const enemyTacticianPrompt = ai.definePrompt({
   name: 'enemyTacticianPrompt',
   input: {schema: EnemyTacticianInputSchema},
-  output: {schema: EnemyTacticianOutputSchema.omit({ debugLog: true })},
+  output: {schema: EnemyTacticianOutputSchema},
   tools: [dndApiLookupTool, adventureLookupTool],
   prompt: `You are the AI brain for hostile NPCs and monsters in a D&D 5e combat. You MUST ALWAYS reply in Spanish from Spain.
 
@@ -80,14 +77,13 @@ export const enemyTacticianTool = ai.defineTool(
       outputSchema: EnemyTacticianOutputSchema,
     },
     async (input) => {
-      const debugLog = `EnemyTacticianTool Input: ${JSON.stringify(input, null, 2)}`;
       try {
         const { output } = await enemyTacticianPrompt(input);
   
         if (!output) {
           throw new Error("The AI failed to return an action for the combatant.");
         }
-        return { ...output, debugLog };
+        return output;
   
       } catch (e: any) {
         console.error("Critical error in enemyTacticianTool.", e);
@@ -95,7 +91,6 @@ export const enemyTacticianTool = ai.defineTool(
           narration: `${input.activeCombatant} ruge con frustración, pero no hace nada.`,
           targetId: null,
           diceRolls: [],
-          debugLog: `CRITICAL ERROR in enemyTacticianTool: ${e.message}`
         };
       }
     }

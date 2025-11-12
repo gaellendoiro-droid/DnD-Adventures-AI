@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A Genkit tool that acts as the "companion brain" in combat.
@@ -8,7 +7,6 @@ import { z } from 'zod';
 import { dndApiLookupTool } from './dnd-api-lookup';
 import { adventureLookupTool } from './adventure-lookup';
 import { CharacterSchema } from '@/lib/schemas';
-
 
 const CompanionTacticianInputSchema = z.object({
   activeCombatant: z.string().describe("The name of the friendly NPC/companion whose turn it is."),
@@ -27,14 +25,13 @@ const CompanionTacticianOutputSchema = z.object({
         rollNotation: z.string().describe("The dice notation for the roll (e.g., '1d20+5', '1d4')."),
         description: z.string().describe("A brief description of the roll's purpose (e.g., 'Attack Roll', 'Healing Roll')."),
     })).optional().describe("An array of dice rolls required to resolve the action."),
-    debugLog: z.string().optional(),
 });
 export type CompanionTacticianOutput = z.infer<typeof CompanionTacticianOutputSchema>;
 
 const companionTacticianPrompt = ai.definePrompt({
   name: 'companionTacticianPrompt',
   input: {schema: CompanionTacticianInputSchema},
-  output: {schema: CompanionTacticianOutputSchema.omit({ debugLog: true })},
+  output: {schema: CompanionTacticianOutputSchema},
   tools: [dndApiLookupTool, adventureLookupTool],
   prompt: `You are the AI brain for a friendly companion in a D&D 5e combat. You MUST ALWAYS reply in Spanish from Spain.
 
@@ -86,7 +83,6 @@ export const companionTacticianTool = ai.defineTool(
       outputSchema: CompanionTacticianOutputSchema,
     },
     async (input) => {
-      const debugLog = `CompanionTacticianTool Input: ${JSON.stringify(input, null, 2)}`;
       try {
         const { output } = await companionTacticianPrompt(input);
   
@@ -94,7 +90,7 @@ export const companionTacticianTool = ai.defineTool(
           throw new Error("The AI failed to return an action for the combatant.");
         }
         
-        return { ...output, debugLog };
+        return output;
   
       } catch (e: any) {
         console.error(`CRITICAL ERROR in companionTacticianTool: ${e.message}`, e);
@@ -102,7 +98,6 @@ export const companionTacticianTool = ai.defineTool(
           narration: `${input.activeCombatant} parece confundido/a y no hace nada en su turno.`,
           targetId: null,
           diceRolls: [],
-          debugLog: `CRITICAL ERROR in companionTacticianTool: ${e.message}`
         };
       }
     }

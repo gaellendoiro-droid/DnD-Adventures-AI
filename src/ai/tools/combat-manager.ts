@@ -103,10 +103,7 @@ export const combatManagerTool = ai.defineTool(
                     tacticianResponse = await enemyTacticianTool(baseTacticianInput);
                 }
 
-                const { narration, targetId, diceRolls: requestedRolls, debugLog: tacticianDebugLog } = tacticianResponse;
-                if (tacticianDebugLog) {
-                    debugLogs.push(tacticianDebugLog);
-                }
+                const { narration, targetId, diceRolls: requestedRolls } = tacticianResponse;
 
                 localLog(`Tactician for ${activeCombatant.characterName} decided action targeting ${targetId || 'no one'}.`);
 
