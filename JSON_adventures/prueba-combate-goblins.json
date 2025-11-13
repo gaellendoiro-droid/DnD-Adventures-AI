@@ -1,0 +1,66 @@
+{
+  "adventureId": "prueba-combate-goblins",
+  "title": "Prueba de Combate - Goblins",
+  "summary": "Una aventura de prueba para testear el sistema de combate por turnos. Los aventureros aparecen directamente en una ubicación con dos goblins y un orcohostiles.",
+  "table_of_contents": {
+    "locations": [
+      {
+        "name": "Claro del Bosque",
+        "id": "claro-del-bosque"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Goblin",
+        "id": "goblin-1"
+      },
+      {
+        "name": "Goblin",
+        "id": "goblin-2"
+      }
+      {
+        "name": "Orco",
+        "id": "orco-1"
+      }
+    ]
+  },
+  "locations": [
+    {
+      "id": "claro-del-bosque",
+      "title": "Claro del Bosque",
+      "description": "Un claro abierto en medio de un bosque denso. La luz del sol se filtra entre las hojas de los árboles altos que rodean el área. Dos pequeñas figuras verdes con ojos brillantes y sonrisas maliciosas emergen de entre los arbustos, blandiendo cimitarras oxidadas. ¡Goblins! Un humanoide brutal de piel verdosa, con facciones porcinas y colmillos inferiores prominentes. Viste armadura de pieles y empuña un hacha a dos manos.",
+      "entitiesPresent": [
+        "goblin-1",
+        "goblin-2",
+        "orco-1"
+      ],
+      "interactables": [],
+      "exits": [],
+      "dmNotes": "Esta es una ubicación de prueba para testear el sistema de combate. Los dos goblins y el orco son enemigos hostiles y atacarán inmediatamente si se les provoca."
+    }
+  ],
+  "entities": [
+    {
+      "id": "goblin-1",
+      "name": "Goblin",
+      "type": "monster",
+      "description": "Un pequeño humanoide de piel verdosa con orejas puntiagudas y ojos amarillos brillantes. Viste harapos sucios y empuña una cimitarra oxidada. Su sonrisa revela dientes afilados y su actitud es claramente hostil.",
+      "dmNotes": "Un goblin común de D&D 5e. El sistema obtendrá automáticamente sus estadísticas (HP: 7, AC: 15) de la API de D&D 5e si no están especificadas aquí."
+    },
+    {
+      "id": "goblin-2",
+      "name": "Goblin",
+      "type": "monster",
+      "description": "Otro pequeño humanoide verde con características similares al primero. Lleva una armadura de cuero gastada y blande su cimitarra con intención agresiva. Sus ojos brillan con malicia mientras se prepara para el combate.",
+      "dmNotes": "Un goblin común de D&D 5e. El sistema obtendrá automáticamente sus estadísticas (HP: 7, AC: 15) de la API de D&D 5e si no están especificadas aquí."
+    },
+    {
+      "id": "orco-2",
+      "name": "Orco",
+      "type": "monster",
+      "description": "Un humanoide brutal de piel verdosa, con facciones porcinas y colmillos inferiores prominentes. Viste armadura de pieles y empuña un hacha a dos manos.",
+      "dmNotes": "Un orco común de D&D 5e. El sistema obtendrá automáticamente sus estadísticas (HP: 7, AC: 15) de la API de D&D 5e si no están especificadas aquí."
+    }
+  ]
+}
+

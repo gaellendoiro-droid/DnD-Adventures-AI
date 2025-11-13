@@ -9,7 +9,7 @@ import { MainMenu } from "@/components/game/main-menu";
 import { GameView } from "@/components/game/game-view";
 import { useToast } from "@/hooks/use-toast";
 import { parseAdventureFromJson } from "@/ai/flows/parse-adventure-from-json";
-import { processPlayerAction } from "./actions";
+import { processPlayerAction, setAdventureDataCache } from "./actions";
 import { logClient } from "@/lib/logger-client";
 import { CharacterSchema } from "@/lib/schemas";
 import { z } from "zod";
@@ -71,6 +71,9 @@ export default function Home() {
       
       setAdventureData(defaultAdventure);
       
+      // Update server-side cache with the default adventure
+      await setAdventureDataCache(defaultAdventure);
+      
       const firstLocation = defaultAdventure.locations[0];
       
       if (!firstLocation || !firstLocation.id) {
@@ -122,7 +125,30 @@ export default function Home() {
         const jsonContent = e.target?.result as string;
         toast({ title: "Procesando aventura...", description: "La IA está analizando el archivo JSON." });
         
+        logClient.info('Starting adventure JSON load', {
+          component: 'Page',
+          fileName: file.name,
+          fileSize: file.size,
+          jsonLength: jsonContent.length,
+        });
+        
+        // Add a small delay to ensure server is ready after hot reload
+        // This helps avoid connection timeouts that can occur immediately after code changes
+        logClient.debug('Waiting 100ms for server to stabilize after hot reload', {
+          component: 'Page',
+        });
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const startTime = Date.now();
         const parsedAdventure = await parseAdventureFromJson({ adventureJson: jsonContent });
+        const duration = Date.now() - startTime;
+        
+        logClient.info('Adventure JSON parsed successfully', {
+          component: 'Page',
+          durationMs: duration,
+          title: parsedAdventure.adventureTitle,
+          adventureId: parsedAdventure.adventureData?.adventureId,
+        });
         
         // Validate adventure data structure
         if (!parsedAdventure.adventureData) {
@@ -131,12 +157,25 @@ export default function Home() {
         
         AdventureDataSchema.parse(parsedAdventure.adventureData);
         
+        // Update local state
         setAdventureData(parsedAdventure.adventureData);
+        
+        // Update server-side cache with the loaded adventure (MUST complete before processPlayerAction)
+        logClient.info('Updating server-side adventure cache', {
+          component: 'Page',
+          adventureId: parsedAdventure.adventureData.adventureId,
+          locationsCount: parsedAdventure.adventureData.locations?.length || 0,
+        });
+        await setAdventureDataCache(parsedAdventure.adventureData);
+        logClient.info('Server-side adventure cache updated', {
+          component: 'Page',
+          adventureId: parsedAdventure.adventureData.adventureId,
+        });
         
         toast({ title: "Generando introducción...", description: "El Dungeon Master está preparando la escena." });
         
         const firstLocation = parsedAdventure.adventureData.locations[0];
-        
+
         if (!firstLocation || !firstLocation.id) {
           throw new Error("La aventura no tiene una ubicación inicial válida.");
         }
@@ -151,7 +190,24 @@ export default function Home() {
             turnIndex: 0,
         });
 
-        const messages: GameMessage[] = result.messages || [];
+        let messages: GameMessage[] = result.messages || [];
+        
+        // If no messages were generated, create an initial message from the location description
+        if (messages.length === 0 && firstLocation.description) {
+          messages = [{
+            id: `initial-${firstLocation.id}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+            sender: 'DM',
+            content: `<p>${firstLocation.description}</p>`,
+            originalContent: firstLocation.description,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          }];
+        }
+        
+        // Ensure all messages have unique IDs
+        messages = messages.map((msg, index) => ({
+          ...msg,
+          id: msg.id || `msg-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 11)}`,
+        }));
         
         setInitialGameData({
           party: initialParty,

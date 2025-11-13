@@ -42,7 +42,40 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
     *   **Solución:** Implementar un sistema para que la IA resuma y almacene los eventos y decisiones más importantes en una base de datos persistente. Este resumen se añadiría al contexto de la IA en futuras sesiones.
     *   **Impacto:** Aumentaría la coherencia y la continuidad de la narrativa a lo largo de una campaña.
 
-### 5. Música y Sonido Dinámicos (Prioridad Media-Baja)
+### 5. Compendio de D&D Local - Base de Datos Local (Prioridad Media-Alta)
+
+*   **Problema Actual:** El sistema depende completamente de la API externa de D&D 5e para obtener información sobre monstruos, hechizos, reglas, etc. Esto causa latencia, dependencia de conectividad, y múltiples llamadas redundantes a la API.
+*   **Mejora Propuesta:**
+    *   **Base de Datos Local:** Crear un sistema de base de datos local (SQLite recomendado) que almacene un compendio completo de conocimiento de D&D (fichas de monstruos, reglas, razas, clases, hechizos, equipamiento, etc.).
+    *   **Sistema de Múltiples Fuentes:** Arquitectura modular de "proveedores" que permite usar múltiples fuentes de datos (D&D 5e API, Open5e API, archivos estáticos, datos personalizados). El sistema intentará cada fuente según prioridad hasta encontrar los datos.
+    *   **Búsqueda Inteligente:** El sistema buscará primero en la base de datos local. Si no encuentra la información, la obtendrá de las fuentes configuradas y la añadirá automáticamente a la base de datos para futuras consultas.
+    *   **Búsqueda Fuzzy:** Implementar búsqueda tolerante a errores de escritura y por alias/nombres alternativos.
+    *   **Sistema de Fallback:** Si una fuente falla, el sistema intentará con la siguiente fuente configurada. Si todas fallan, funcionará completamente con la base de datos local (modo offline).
+    *   **Sincronización Automática:** Sistema de sincronización periódica para mantener los datos actualizados desde las fuentes configuradas.
+    *   **Extensibilidad:** Fácil añadir nuevas fuentes de datos mediante la arquitectura de proveedores.
+*   **Impacto Estratégico:** 
+    *   **Rendimiento:** Consultas locales mucho más rápidas (< 50ms vs 200-500ms de API)
+    *   **Disponibilidad:** Funciona incluso si la API está caída o hay problemas de conectividad
+    *   **Eficiencia:** Reduce significativamente las llamadas a la API externa (80%+ de reducción esperada)
+    *   **Base para RAG:** Esta infraestructura sentará las bases para futuras implementaciones de RAG y búsqueda semántica
+*   **Documentación:** Ver [Plan de Desarrollo: Compendio de D&D Local](../planes-desarrollo/sin-comenzar/compendio-dnd-local.md)
+
+### 6. Convertidor de PDF a JSON - Aplicación Auxiliar (Prioridad Media)
+
+*   **Problema Actual:** Añadir nuevas aventuras al juego requiere crear manualmente archivos JSON con una estructura específica, lo cual es tedioso y propenso a errores. Los usuarios que tienen aventuras en formato PDF no pueden usarlas directamente.
+*   **Mejora Propuesta:**
+    *   **Aplicación Auxiliar Independiente:** Crear una aplicación CLI (y futuramente web) que analice PDFs de aventuras de D&D y los convierta automáticamente en JSON compatible con el juego.
+    *   **Extracción Inteligente con IA:** Utilizar IA (Gemini) para extraer información estructurada del PDF, identificando ubicaciones, entidades, descripciones y relaciones.
+    *   **Validación Automática:** Validar el JSON generado contra el esquema del juego antes de guardarlo.
+    *   **Soporte para Diferentes Formatos:** Manejar PDFs con texto, PDFs escaneados (con OCR), y diferentes estilos de aventuras.
+*   **Impacto Estratégico:**
+    *   **Facilita Expansión:** Reduce significativamente la barrera de entrada para añadir nuevas aventuras
+    *   **Ahorro de Tiempo:** Convierte horas de trabajo manual en minutos de procesamiento automático
+    *   **Precisión:** Reduce errores humanos en la creación de JSON
+    *   **Accesibilidad:** Permite a usuarios usar aventuras oficiales o homebrew en formato PDF
+*   **Documentación:** Ver [Plan de Desarrollo: Convertidor de PDF a JSON](../planes-desarrollo/sin-comenzar/pdf-to-json-converter.md)
+
+### 7. Música y Sonido Dinámicos (Prioridad Media-Baja)
 
 *   **Problema Actual:** La experiencia de juego es silenciosa, careciendo de un fondo sonoro que ayude a la inmersión.
 *   **Mejora Propuesta:**
@@ -50,12 +83,12 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
     *   El `gameCoordinator` sería el responsable de emitir eventos de cambio de estado (ej: `combateIniciado`, `ubicacionCambiada`) que el sistema de audio interpretaría para seleccionar la pista adecuada.
 *   **Impacto Estratégico:** Muy alto en relación al esfuerzo. Aunque es una mejora de "calidad de vida", el audio es una herramienta narrativa potentísima que aumenta la atmósfera y la carga emocional de cada situación de forma exponencial.
 
-### 6. Comandos de Voz (Prioridad Baja)
+### 8. Comandos de Voz (Prioridad Baja)
 
 *   **Mejora Propuesta:** Integrar la API de Reconocimiento de Voz del navegador (`SpeechRecognition`) para añadir un botón de "dictar" en la interfaz.
 *   **Impacto:** Aumentaría la accesibilidad y ofrecería una forma más rápida e inmersiva de interactuar, acercándose a la experiencia de una partida de rol de mesa.
 
-### 7. Automatización del Versionado y Changelog (Prioridad Baja)
+### 9. Automatización del Versionado y Changelog (Prioridad Baja)
 
 *   **Estado Actual:** Se ha implementado un sistema manual para mantener un archivo `CHANGELOG.md`.
 *   **Objetivo Futuro:** Automatizar la actualización del `CHANGELOG.md` al cambiar la versión en `package.json`.

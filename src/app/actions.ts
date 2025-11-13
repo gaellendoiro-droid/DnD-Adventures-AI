@@ -61,6 +61,19 @@ export async function processPlayerAction(
 
 
 /**
+ * Server action to set the adventure data cache.
+ * Used when loading adventures from JSON files.
+ */
+export async function setAdventureDataCache(adventureData: any): Promise<void> {
+  const { setAdventureDataCache: setCache } = await import('./game-state-actions');
+  await setCache(adventureData);
+  log.serverAction('Adventure data cache updated', {
+    locationsCount: adventureData?.locations?.length || 0,
+    entitiesCount: adventureData?.entities?.length || 0,
+  });
+}
+
+/**
  * Server action to look up an entity from the adventure data.
  * This is needed because the client-side components cannot run the tool directly.
  */

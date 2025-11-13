@@ -57,7 +57,18 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   useEffect(() => {
     setParty(initialData.party);
-    setMessages(initialData.messages);
+    // Ensure all initial messages have unique IDs
+    const baseTimestamp = Date.now();
+    const messagesWithUniqueIds = initialData.messages.map((msg, index) => {
+      // If message already has an ID, append unique suffix to ensure uniqueness
+      // If no ID, generate a new one
+      const uniqueSuffix = `${baseTimestamp}-${index}-${Math.random().toString(36).substring(2, 11)}`;
+      return {
+        ...msg,
+        id: msg.id ? `${msg.id}-${uniqueSuffix}` : `initial-msg-${uniqueSuffix}`,
+      };
+    });
+    setMessages(messagesWithUniqueIds);
     setDiceRolls(initialData.diceRolls);
     setLocationId(initialData.locationId);
     setSelectedCharacter(initialData.party.find(c => c.controlledBy === 'Player') || null);
@@ -142,10 +153,14 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     }
   }, [inCombat, initiativeOrder, turnIndex, enemies, locationId, party.length]);
 
+  // Counter to ensure unique IDs even when messages are created in the same millisecond
+  const messageIdCounterRef = useRef(0);
+
   const addMessage = useCallback((message: Omit<GameMessage, 'id' | 'timestamp'>, isRetryMessage: boolean = false) => {
+    messageIdCounterRef.current += 1;
     const messageToAdd: GameMessage = {
       ...message,
-      id: Date.now().toString() + Math.random(),
+      id: `msg-${Date.now()}-${messageIdCounterRef.current}-${Math.random().toString(36).substring(2, 11)}`,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
     setMessages((prevMessages) => {
@@ -156,11 +171,15 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   const addMessages = useCallback((newMessages: Omit<GameMessage, 'id' | 'timestamp'>[], isRetry: boolean = false) => {
     if (!newMessages || newMessages.length === 0) return;
-    const messagesToAdd = newMessages.map(m => ({
-      ...m,
-      id: Date.now().toString() + Math.random(),
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    }));
+    const baseTimestamp = Date.now();
+    const messagesToAdd = newMessages.map((m, index) => {
+      messageIdCounterRef.current += 1;
+      return {
+        ...m,
+        id: `msg-${baseTimestamp}-${messageIdCounterRef.current}-${index}-${Math.random().toString(36).substring(2, 11)}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+    });
     setMessages((prev) => {
       const filteredMessages = isRetry ? prev.filter(m => m.sender !== 'Error') : prev;
       return [...filteredMessages, ...messagesToAdd];
@@ -208,8 +227,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
       // Validate the entire game state before sending
       try {
-        GameStateSchema.parse(actionInput);
-        addDebugMessages(["Frontend state validation successful."]);
+      GameStateSchema.parse(actionInput);
+      addDebugMessages(["Frontend state validation successful."]);
       } catch (validationError: any) {
         // Handle validation errors specifically
         if (validationError instanceof ZodError) {
@@ -246,7 +265,15 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       addDebugMessages(result.debugLogs);
 
       if (result.error) throw new Error(result.error);
-      if (result.messages) addMessages(result.messages.map(m => ({ ...m, content: m.content || '' })), isRetry);
+      if (result.messages) {
+        // Ensure all messages from backend have unique IDs
+        const messagesWithUniqueIds = result.messages.map((m, index) => ({
+          ...m,
+          content: m.content || '',
+          id: m.id || `backend-msg-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 11)}`,
+        }));
+        addMessages(messagesWithUniqueIds, isRetry);
+      }
       if (result.diceRolls) addDiceRolls(result.diceRolls);
       if (result.nextLocationId) setLocationId(result.nextLocationId);
       if (result.updatedParty) {
@@ -271,9 +298,9 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         }
       } else {
         // If inCombat is not explicitly set, only update if provided
-        if (result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
-        if (result.turnIndex !== undefined) setTurnIndex(result.turnIndex);
-        if (result.enemies) setEnemies(result.enemies);
+      if (result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
+      if (result.turnIndex !== undefined) setTurnIndex(result.turnIndex);
+      if (result.enemies) setEnemies(result.enemies);
       }
 
     } catch (error: any) {

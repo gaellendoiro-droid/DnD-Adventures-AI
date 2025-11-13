@@ -58,13 +58,31 @@ export const gameCoordinatorFlow = ai.defineFlow(
       throw new Error("Failed to load adventure data.");
     }
     
-    if (inCombat) {
-        log.gameCoordinator('Processing combat turn', { turnIndex });
-        const combatResult = await combatManagerTool(input);
-        return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
-    }
-
+    log.debug('Looking up location in adventure data', {
+      module: 'GameCoordinator',
+      locationId,
+      adventureId: adventureData.adventureId || 'unknown',
+      totalLocations: adventureData.locations?.length || 0,
+    });
+    
     const currentLocationData = adventureData.locations.find((l: any) => l.id === locationId);
+    
+    if (!currentLocationData) {
+      const availableLocations = adventureData.locations?.map((l: any) => l.id) || [];
+      log.error('Location not found in adventure data', { 
+        module: 'GameCoordinator',
+        locationId,
+        adventureId: adventureData.adventureId || 'unknown',
+        availableLocations,
+      });
+      throw new Error(`Location "${locationId}" not found in adventure data. Available locations: ${availableLocations.join(', ') || 'none'}`);
+    }
+    
+    log.debug('Location found in adventure data', {
+      module: 'GameCoordinator',
+      locationId,
+      locationTitle: currentLocationData.title || 'unknown',
+    });
     
     log.gameCoordinator('Interpreting player action', { action: playerAction });
     localLog("GameCoordinator: Interpreting player action...");
@@ -73,6 +91,16 @@ export const gameCoordinatorFlow = ai.defineFlow(
         locationContext: JSON.stringify(currentLocationData),
         party: party,
     });
+    
+    if (inCombat) {
+        log.gameCoordinator('Processing combat turn', { turnIndex, actionType: interpretation.actionType });
+        const combatResult = await combatManagerTool({
+            ...input,
+            interpretedAction: interpretation,
+            locationContext: currentLocationData,
+        });
+        return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
+    }
     interpreterLogs.forEach(localLog);
     
     log.gameCoordinator('Action interpreted', { 
@@ -110,36 +138,11 @@ export const gameCoordinatorFlow = ai.defineFlow(
 
     let messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
 
-    log.gameCoordinator('Generating companion reactions', { partySize: party.length });
-    localLog("GameCoordinator: Generating companion reactions...");
-    for (const character of party) {
-        if (character.controlledBy === 'AI') {
-            const isTargeted = interpretation.actionType === 'interact' && interpretation.targetId === character.name;
-            const companionContext = `The player's action is: "${playerAction}"\n${isTargeted ? `(You are being directly addressed.)` : ''}`;
-            
-            const companionResult = await companionExpertTool({
-                party: party,
-                characterName: character.name,
-                context: companionContext,
-                inCombat: inCombat,
-            });
-            
-            if (companionResult.action) {
-                log.gameCoordinator('Companion reacted', { 
-                  character: character.name,
-                  action: companionResult.action.substring(0, 50) + '...',
-                });
-                localLog(`${character.name} reacted: "${companionResult.action}"`);
-                messages.push({
-                    sender: 'Character',
-                    senderName: character.name,
-                    characterColor: character.color,
-                    content: companionResult.action,
-                    originalContent: companionResult.action,
-                });
-            }
-        }
-    }
+    // Check if this is the start of an adventure (empty conversation history and action is about starting)
+    const isAdventureStart = conversationHistory.length === 0 && 
+        (playerAction.toLowerCase().includes('comenzar') || 
+         playerAction.toLowerCase().includes('empezar') || 
+         playerAction.toLowerCase().includes('iniciar'));
 
     let newLocationId: string | null = null;
     let finalLocationData = currentLocationData;
@@ -160,8 +163,10 @@ export const gameCoordinatorFlow = ai.defineFlow(
         }
     }
     
+    // Generate DM narration FIRST (especially important for adventure start)
     log.gameCoordinator('Generating DM narration', { 
       actionType: interpretation.actionType,
+      isAdventureStart,
     });
     localLog("GameCoordinator: Generating DM narration...");
     const historyForNarrator = [...conversationHistory, ...messages]; 
@@ -185,6 +190,43 @@ export const gameCoordinatorFlow = ai.defineFlow(
             content: html,
             originalContent: narrativeResult.dmNarration,
         });
+    }
+
+    // Generate companion reactions AFTER DM narration (and skip on adventure start)
+    if (!isAdventureStart) {
+        log.gameCoordinator('Generating companion reactions', { partySize: party.length });
+        localLog("GameCoordinator: Generating companion reactions...");
+        for (const character of party) {
+            if (character.controlledBy === 'AI') {
+                const isTargeted = interpretation.actionType === 'interact' && interpretation.targetId === character.name;
+                const companionContext = `The player's action is: "${playerAction}"\n${isTargeted ? `(You are being directly addressed.)` : ''}`;
+                
+                const companionResult = await companionExpertTool({
+                    party: party,
+                    characterName: character.name,
+                    context: companionContext,
+                    inCombat: inCombat,
+                });
+                
+                if (companionResult.action) {
+                    log.gameCoordinator('Companion reacted', { 
+                      character: character.name,
+                      action: companionResult.action.substring(0, 50) + '...',
+                    });
+                    localLog(`${character.name} reacted: "${companionResult.action}"`);
+                    messages.push({
+                        sender: 'Character',
+                        senderName: character.name,
+                        characterColor: character.color,
+                        content: companionResult.action,
+                        originalContent: companionResult.action,
+                    });
+                }
+            }
+        }
+    } else {
+        log.gameCoordinator('Skipping companion reactions (adventure start)', { partySize: party.length });
+        localLog("GameCoordinator: Skipping companion reactions because this is the start of the adventure.");
     }
     
     const finalInCombat = false;

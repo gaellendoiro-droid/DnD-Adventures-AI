@@ -15,6 +15,25 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+### Added
+- **Issue #16 - Gestión de nombres de múltiples monstruos:** Documentado nuevo issue sobre la necesidad de crear un módulo separado para gestionar y unificar nombres de múltiples monstruos del mismo tipo, reutilizable en narraciones del DM, combat manager y narraciones de compañeros.
+- **Análisis del Sistema de HP:** Creado análisis completo del sistema de gestión de HP y fichas de personajes/enemigos identificando problemas críticos que bloquean el funcionamiento del sistema de combate.
+  - Documento: `docs/planes-desarrollo/planes-en-curso/combate-turnos-analisis-hp.md`
+  - Identifica 5 problemas principales: sincronización frontend-backend, inicialización de HP, validación, estandarización de estructura, y sistema centralizado
+
+### Changed
+- **Reorganización de documentación de issues:** Movido `issues-encontrados.md` de `completados/` a la raíz de `planes-desarrollo/` para mejor organización y acceso.
+  - Actualizadas todas las referencias en `combate-turnos.md`, `plan-maestro.md` y `CHANGELOG.md`
+- **Actualización del Plan de Combate por Turnos:** Revisado y actualizado el estado real del plan de combate por turnos.
+  - Paso 4 marcado como **NO COMPLETADO** (anteriormente marcado como bloqueado)
+  - Añadida sección detallada "Lo que falta por hacer para completar el Paso 4" con 9 tareas organizadas en 4 fases
+  - Identificado bloqueador crítico: sistema de gestión de HP no funcional
+  - Estado actualizado: 3 de 5 pasos completamente funcionales (60%), 1 no completado, 1 completado
+- **Issue #16 refinado:** Actualizado el Issue #16 para reflejar mejor la propuesta específica de gestión de nombres de múltiples monstruos (no post-procesamiento general de narraciones).
+
+### Fixed
+- **Referencias rotas:** Corregidas todas las referencias a `issues-encontrados.md` después de moverlo a la raíz de `planes-desarrollo/`.
+
 ---
 
 ## [0.4.8] - 2025-11-12
@@ -26,7 +45,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
   - Los logs del cliente ahora aparecen en la terminal del servidor con formato estructurado
   - Documentación completa del sistema en `docs/arquitectura/sistema-logging.md`
 - **Plan de Saneamiento General:** Completada revisión sistemática de la aplicación identificando y corrigiendo 12 issues (10 corregidos, 3 mejoras opcionales documentadas).
-  - Documentación completa de todos los issues encontrados en `docs/planes-desarrollo/completados/issues-encontrados.md`
+  - Documentación completa de todos los issues encontrados en `docs/planes-desarrollo/issues-encontrados.md`
   - Plan de saneamiento documentado en `docs/planes-desarrollo/completados/saneamiento-general.md`
 
 ### Changed

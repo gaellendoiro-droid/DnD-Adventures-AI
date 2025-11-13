@@ -3,7 +3,7 @@
 Este documento registra todos los problemas, bugs y mejoras identificados durante la revisión sistemática de la aplicación.
 
 **Fecha de inicio:** Durante el saneamiento general de la aplicación  
-**Última actualización:** Completado - 15 issues identificados, 10 corregidos (67%), 6 mejoras opcionales documentadas
+**Última actualización:** 16 issues identificados, 10 corregidos (63%), 7 mejoras opcionales documentadas
 
 ---
 
@@ -156,38 +156,67 @@ Este documento registra todos los problemas, bugs y mejoras identificados durant
     - Documentar cómo añadir nuevos mapeos cuando se encuentren traducciones exitosas
 - **Estado:** 📝 Pendiente (mejora futura, se abordará después de completar el plan de combate por turnos)
 
-### Issue #16: Post-procesamiento de narraciones debería estar en un módulo separado
-- **Ubicación:** `src/ai/tools/combat-manager.ts` (líneas 289-471)
+### Issue #16: Gestión de nombres de múltiples monstruos debería estar en un módulo separado
+- **Ubicación:** `src/ai/tools/combat-manager.ts` (líneas 250-571)
 - **Severidad:** Media (mejora de arquitectura)
-- **Descripción:** El post-procesamiento de narraciones (normalización de nombres, reemplazo de referencias ordinales, etc.) está actualmente mezclado con la lógica de combate en `combat-manager.ts`. Esto incluye funciones como `normalizeNameForMatching()`, `escapeRegex()`, `replaceOrdinalReferences()`, y la lógica de post-procesamiento de narrativas del DM y compañeros.
+- **Descripción:** La gestión y unificación de nombres de múltiples monstruos del mismo tipo está actualmente mezclada con la lógica de combate en `combat-manager.ts`. Esto incluye funciones para generar nombres diferenciados ("Goblin 1", "Goblin 2"), normalizar nombres para matching, reemplazar referencias ordinales en narraciones ("primer goblin", "goblin más cercano"), y resolver identificadores ambiguos. Esta funcionalidad debería estar centralizada en un módulo dedicado que pueda ser reutilizado en narraciones del DM, combat manager, y narraciones de compañeros.
 - **Problema:** 
-  - **Separación de responsabilidades:** `combat-manager.ts` debería enfocarse en la lógica de combate, no en procesamiento de texto
-  - **Reutilización:** El post-procesamiento de narraciones podría ser útil en otros contextos (exploración, diálogos, etc.)
+  - **Separación de responsabilidades:** `combat-manager.ts` debería enfocarse en la lógica de combate, no en la gestión de nombres de monstruos
+  - **Reutilización:** La gestión de nombres diferenciados se necesita en múltiples contextos:
+    - Narraciones del DM (post-procesamiento de texto)
+    - Combat manager (generación de nombres visuales, resolución de targets)
+    - Narraciones de compañeros (post-procesamiento de texto)
+    - Potencialmente en otros flows (narrative-expert, companion-expert, etc.)
   - **Mantenibilidad:** Un módulo separado sería más fácil de testear y depurar
-  - **Escalabilidad:** Añadir nuevas reglas de post-procesamiento no debería requerir modificar el combat manager
-- **Impacto:** Medio (mejora la arquitectura y mantenibilidad del código)
+  - **Escalabilidad:** Añadir nuevas reglas de procesamiento de nombres no debería requerir modificar el combat manager
+  - **Consistencia:** Centralizar la lógica asegura que todos los lugares usen el mismo sistema de nombres diferenciados
+- **Impacto:** Medio (mejora la arquitectura, mantenibilidad y consistencia del código)
 - **Solución propuesta:** 
-  - Crear un nuevo módulo: `src/lib/narration-processor.ts` o `src/ai/utils/narration-processor.ts`
+  - Crear un nuevo módulo: `src/lib/enemy-name-manager.ts` o `src/ai/utils/enemy-name-manager.ts`
   - Mover las siguientes funciones al nuevo módulo:
-    - `normalizeNameForMatching()` - Normaliza nombres para matching (quita acentos, convierte a minúsculas)
-    - `escapeRegex()` - Escapa caracteres especiales de regex
-    - `replaceOrdinalReferences()` - Reemplaza referencias ordinales ("primer goblin", "goblin más cercano") con nombres visuales
-    - `postProcessNarration()` - Función principal que orquesta todo el post-procesamiento
-  - `combat-manager.ts` solo llamaría:
+    - `generateDifferentiatedNames()` (líneas 250-287) - Genera mapa de nombres diferenciados ("Goblin 1", "Goblin 2") para múltiples monstruos del mismo tipo
+    - `getVisualName()` (líneas 482-497) - Obtiene el nombre visual de un combatiente desde el initiative order o enemies
+    - `normalizeNameForMatching()` (líneas 293-299) - Normaliza nombres para matching (quita acentos, convierte a minúsculas)
+    - `escapeRegex()` (líneas 304-306) - Escapa caracteres especiales de regex
+    - `replaceOrdinalReferences()` (líneas 317-471) - Reemplaza referencias ordinales ("primer goblin", "segundo orco", "goblin más cercano") con nombres visuales diferenciados
+    - `resolveEnemyId()` (líneas 509-571) - Resuelve un targetId (puede ser nombre visual como "Goblin 1" o uniqueId como "goblin-0") al uniqueId real, detectando ambigüedades
+  - El nuevo módulo exportaría funciones principales:
     ```typescript
-    import { postProcessNarration } from '@/lib/narration-processor';
+    // Generar nombres diferenciados
+    export function generateDifferentiatedNames(enemies: any[]): Map<string, string>
     
-    // En lugar de todo el código inline
-    processedNarration = postProcessNarration(narration, updatedEnemies, visualNamesMap);
+    // Obtener nombre visual de un combatiente
+    export function getVisualName(combatantId: string, initiativeOrder: Combatant[], enemies: any[]): string
+    
+    // Procesar narraciones para unificar nombres
+    export function processNarrationForEnemyNames(
+      narration: string, 
+      enemies: any[], 
+      visualNamesMap: Map<string, string>
+    ): string
+    
+    // Resolver targetId ambiguo
+    export function resolveEnemyId(
+      targetId: string | null | undefined,
+      enemies: any[],
+      initiativeOrder: Combatant[],
+      party: any[]
+    ): { uniqueId: string | null; ambiguous: boolean; matches: string[] }
     ```
-  - El nuevo módulo podría recibir:
-    - `narration: string` - La narración a procesar
-    - `enemies: any[]` - Array de enemigos para contexto
-    - `visualNamesMap: Map<string, string>` - Mapa de uniqueId a nombre visual
+  - `combat-manager.ts` importaría y usaría:
+    ```typescript
+    import { 
+      generateDifferentiatedNames, 
+      getVisualName, 
+      processNarrationForEnemyNames,
+      resolveEnemyId 
+    } from '@/lib/enemy-name-manager';
+    ```
   - Beneficios adicionales:
-    - Fácil de testear unitariamente
-    - Puede reutilizarse en otros flows (narrative-expert, companion-expert, etc.)
-    - Más fácil de extender con nuevas reglas de procesamiento
+    - Fácil de testear unitariamente (todas las funciones son puras o casi puras)
+    - Reutilizable en narraciones del DM, combat manager, y narraciones de compañeros
+    - Más fácil de extender con nuevas reglas de procesamiento de nombres
+    - Garantiza consistencia en el uso de nombres diferenciados en toda la aplicación
 - **Estado:** 📝 Pendiente (mejora de arquitectura, se abordará después de completar el plan de combate por turnos)
 
 ### Issue #9: Dependencia incorrecta en useEffect de chat-message.tsx ✅ CORREGIDO

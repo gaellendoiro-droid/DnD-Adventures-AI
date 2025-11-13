@@ -85,7 +85,29 @@ export const enemyTacticianTool = ai.defineTool(
           partySize: input.party?.length || 0,
         });
         
-        const { output } = await enemyTacticianPrompt(input);
+        let output;
+        try {
+          const response = await enemyTacticianPrompt(input);
+          output = response.output;
+        } catch (promptError: any) {
+          // Catch Genkit schema validation errors (when AI returns null)
+          if (promptError?.message?.includes('Schema validation failed') || 
+              promptError?.message?.includes('INVALID_ARGUMENT') ||
+              promptError?.code === 'INVALID_ARGUMENT') {
+            log.warn('AI returned null/invalid output for enemy, using default action', { 
+              module: 'AITool',
+              tool: 'enemyTacticianTool',
+              activeCombatant: input.activeCombatant,
+            });
+            return {
+              narration: `${input.activeCombatant} ruge con frustración, pero no hace nada.`,
+              targetId: null,
+              diceRolls: [],
+            };
+          }
+          // Re-throw if it's a different error
+          throw promptError;
+        }
   
         if (!output) {
           log.error('AI failed to return action for enemy', { 
@@ -93,7 +115,11 @@ export const enemyTacticianTool = ai.defineTool(
             tool: 'enemyTacticianTool',
             activeCombatant: input.activeCombatant,
           });
-          throw new Error("The AI failed to return an action for the combatant.");
+          return {
+            narration: `${input.activeCombatant} ruge con frustración, pero no hace nada.`,
+            targetId: null,
+            diceRolls: [],
+          };
         }
         
         log.aiTool('enemyTacticianTool', 'Enemy action determined', { 

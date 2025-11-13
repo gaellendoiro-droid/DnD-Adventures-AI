@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {log} from '@/lib/logger';
 
 const ParseAdventureFromJsonInputSchema = z.object({
   adventureJson: z
@@ -69,10 +70,131 @@ const parseAdventureFromJsonFlow = ai.defineFlow(
       throw new Error("Invalid JSON provided for the adventure.");
     }
 
-    // Then, extract title and summary using the AI prompt
-    const {output} = await prompt(input);
+    // Try to extract title and summary using the AI prompt with retry logic
+    // This helps with intermittent connection timeouts after hot reloads
+    let output;
+    const maxRetries = 3;
+    let lastError: any = null;
+    
+    log.info('Starting adventure JSON parsing', {
+      module: 'ParseAdventure',
+      flow: 'parseAdventureFromJsonFlow',
+      jsonLength: input.adventureJson.length,
+      hasAdventureData: !!adventureData,
+    });
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        log.debug(`Attempting to parse adventure (attempt ${attempt}/${maxRetries})`, {
+          module: 'ParseAdventure',
+          flow: 'parseAdventureFromJsonFlow',
+          attempt,
+          maxRetries,
+        });
+        
+        const result = await prompt(input);
+        output = result.output;
+        if (output) {
+          log.info('Successfully parsed adventure JSON', {
+            module: 'ParseAdventure',
+            flow: 'parseAdventureFromJsonFlow',
+            attempt,
+            title: output.adventureTitle,
+            summaryLength: output.adventureSummary?.length || 0,
+          });
+          break; // Success, exit retry loop
+        }
+      } catch (error: any) {
+        lastError = error;
+        
+        // Extract error information more robustly
+        const errorCode = error?.code || error?.cause?.code || 'UNKNOWN';
+        let errorMessage = error?.message || error?.toString() || 'Unknown error';
+        const causeCode = error?.cause?.code || null;
+        let causeMessage = error?.cause?.message || null;
+        
+        // Clean error messages: remove newlines and excessive whitespace, then truncate
+        const cleanMessage = (msg: string, maxLength: number): string => {
+          return msg
+            .replace(/\s+/g, ' ') // Replace all whitespace (including newlines) with single space
+            .trim()
+            .substring(0, maxLength);
+        };
+        
+        errorMessage = cleanMessage(errorMessage, 200);
+        if (causeMessage) {
+          causeMessage = cleanMessage(causeMessage, 100);
+        }
+        
+        // Check if it's a connection timeout error
+        const isTimeoutError = errorCode === 'UND_ERR_CONNECT_TIMEOUT' || 
+                              errorMessage.includes('Connect Timeout') ||
+                              errorMessage.includes('fetch failed') ||
+                              causeCode === 'UND_ERR_CONNECT_TIMEOUT' ||
+                              (causeMessage && causeMessage.includes('Connect Timeout'));
+        
+        log.warn(`Adventure parsing attempt ${attempt} failed`, {
+          module: 'ParseAdventure',
+          flow: 'parseAdventureFromJsonFlow',
+          attempt,
+          maxRetries,
+          isTimeoutError,
+          errorCode,
+          errorMessage,
+          causeCode,
+          causeMessage,
+          errorType: error?.constructor?.name || typeof error,
+        });
+        
+        if (isTimeoutError && attempt < maxRetries) {
+          // Wait a bit before retrying (exponential backoff)
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          log.info(`Retrying after ${delay}ms (exponential backoff)`, {
+            module: 'ParseAdventure',
+            flow: 'parseAdventureFromJsonFlow',
+            attempt,
+            nextAttempt: attempt + 1,
+            delayMs: delay,
+          });
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue; // Retry
+        }
+        // If it's not a timeout or we've exhausted retries, throw
+        const finalErrorCode = lastError?.code || lastError?.cause?.code || 'UNKNOWN';
+        let finalErrorMessage = lastError?.message || lastError?.toString() || 'Unknown error';
+        const finalCauseCode = lastError?.cause?.code || null;
+        
+        // Clean error message: remove newlines and excessive whitespace, then truncate
+        finalErrorMessage = finalErrorMessage
+          .replace(/\s+/g, ' ') // Replace all whitespace (including newlines) with single space
+          .trim()
+          .substring(0, 300);
+        
+        log.error('Adventure parsing failed permanently', {
+          module: 'ParseAdventure',
+          flow: 'parseAdventureFromJsonFlow',
+          attempt,
+          maxRetries,
+          isTimeoutError,
+          errorCode: finalErrorCode,
+          errorMessage: finalErrorMessage,
+          causeCode: finalCauseCode,
+          errorType: lastError?.constructor?.name || typeof lastError,
+        }, lastError);
+        throw error;
+      }
+    }
+    
     if (!output) {
-      throw new Error("Could not extract adventure title and summary.");
+      const errorMessage = `Could not extract adventure title and summary after ${maxRetries} attempts. ${lastError ? `Last error: ${lastError.message}` : ''}`;
+      log.error('Adventure parsing failed: no output after all retries', {
+        module: 'ParseAdventure',
+        flow: 'parseAdventureFromJsonFlow',
+        maxRetries,
+        lastErrorCode: lastError?.code,
+        lastErrorMessage: lastError?.message,
+      });
+      throw new Error(errorMessage);
     }
     
     // Return the extracted info plus the full, original JSON data.

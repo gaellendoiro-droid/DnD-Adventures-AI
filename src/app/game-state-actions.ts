@@ -9,22 +9,46 @@ import { log } from '@/lib/logger';
 let adventureDataCache: any = null;
 
 /**
+ * Sets the adventure data cache to a specific adventure.
+ * Used when loading adventures from JSON files.
+ */
+export async function setAdventureDataCache(adventureData: any): Promise<void> {
+  adventureDataCache = adventureData;
+  log.info('Adventure data cache updated', { 
+    module: 'GameState',
+    adventureId: adventureDataCache?.adventureId || 'unknown',
+    locationsCount: adventureDataCache?.locations?.length || 0,
+    entitiesCount: adventureDataCache?.entities?.length || 0,
+    locationIds: adventureDataCache?.locations?.map((l: any) => l.id) || [],
+  });
+}
+
+/**
  * Loads the adventure data from the JSON file.
  * Uses a cache to avoid repeated file reads.
  */
 export async function getAdventureData(): Promise<any> {
   if (adventureDataCache) {
-    log.debug('Returning cached adventure data', { module: 'GameState' });
+    log.debug('Returning cached adventure data', { 
+      module: 'GameState',
+      adventureId: adventureDataCache?.adventureId || 'unknown',
+      locationsCount: adventureDataCache?.locations?.length || 0,
+    });
     return adventureDataCache;
   }
   try {
     const jsonDirectory = path.join(process.cwd(), 'JSON_adventures');
     const filePath = jsonDirectory + '/el-dragon-del-pico-agujahelada.json';
-    log.info('Loading adventure data from file', { module: 'GameState', filePath });
+    log.info('Loading adventure data from file (cache was empty)', { 
+      module: 'GameState', 
+      filePath,
+      cacheWasNull: adventureDataCache === null,
+    });
     const fileContents = await fs.readFile(filePath, 'utf8');
     adventureDataCache = JSON.parse(fileContents);
     log.info('Adventure data loaded successfully', { 
       module: 'GameState',
+      adventureId: adventureDataCache?.adventureId || 'unknown',
       locationsCount: adventureDataCache?.locations?.length || 0,
       entitiesCount: adventureDataCache?.entities?.length || 0,
     });

@@ -13,10 +13,12 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 Planes que están siendo trabajados activamente:
 
 ### [Sistema de Turnos de Combate](planes-en-curso/combate-turnos.md)
-- **Estado:** 75% completado (3 de 4 pasos)
+- **Estado:** 60% funcional (3 de 5 pasos completamente funcionales, 1 no completado, 1 completado)
 - **Objetivo:** Implementar un sistema de turnos de combate proactivo y funcional
 - **Prioridad:** Alta
-- **Última actualización:** En progreso - Paso 4 pendiente
+- **Última actualización:** Paso 4 NO COMPLETADO - Bloqueado por sistema de HP no funcional
+- **Bloqueador crítico:** Sistema de gestión de HP requiere implementación completa antes de poder finalizar el combate
+- **Análisis:** [Análisis: Sistema de Gestión de HP y Fichas](planes-en-curso/combate-turnos-analisis-hp.md)
 
 ---
 
@@ -31,7 +33,7 @@ Planes que han sido implementados exitosamente:
 - **Objetivo:** Revisión sistemática de la aplicación para identificar y corregir bugs, problemas y errores
 - **Fecha de finalización:** Completado - 7 secciones revisadas, 12 issues identificados, 10 corregidos, sanitización HTML implementada
 - **Resultados:** 10 issues corregidos, sistema de logging centralizado, sanitización HTML con DOMPurify
-- **Documentación:** [Issues Encontrados](completados/issues-encontrados.md)
+- **Documentación:** [Issues Encontrados](issues-encontrados.md)
 
 ### [Refactorización de Esquemas](completados/refactor-esquemas.md)
 - **Estado:** 100% completado
@@ -42,11 +44,21 @@ Planes que han sido implementados exitosamente:
 
 ## 📝 Planes Sin Comenzar
 
-**Estado:** Pendientes | **Cantidad:** 0 planes
+**Estado:** Pendientes | **Cantidad:** 2 planes
 
 Planes identificados pero aún no iniciados:
 
-- *Por definir - Consulta el [Roadmap](../roadmap.md) para ideas futuras*
+### [Compendio de D&D Local - Base de Datos Local](sin-comenzar/compendio-dnd-local.md)
+- **Estado:** Sin comenzar
+- **Objetivo:** Crear un sistema de base de datos local que almacene un compendio completo de conocimiento de D&D, buscando primero en la BD local y usando la API como fallback
+- **Prioridad:** Media-Alta
+- **Beneficios:** Mejora de rendimiento, disponibilidad offline, reducción de llamadas a API externa
+
+### [Convertidor de PDF a JSON - Aplicación Auxiliar](sin-comenzar/pdf-to-json-converter.md)
+- **Estado:** Sin comenzar
+- **Objetivo:** Crear una aplicación auxiliar independiente que analice PDFs de aventuras de D&D y los convierta automáticamente en JSON compatible con el juego
+- **Prioridad:** Media
+- **Beneficios:** Automatización de conversión de aventuras, ahorro de tiempo, facilita añadir nuevas aventuras al juego
 
 ---
 
@@ -55,15 +67,18 @@ Planes identificados pero aún no iniciados:
 
 ### Prioridad Alta
 
-1. **Finalizar Sistema de Turnos de Combate** - Completar la detección de fin de combate
-2. **Sistema de Inicio de Combate Dinámico** - Evaluación automática de hostilidad
-3. **Sistema de Progresión y Gestión** - XP, niveles, inventario, persistencia
+1. **Sistema de Gestión de HP y Fichas** - ⚠️ **BLOQUEADOR CRÍTICO** - Implementar sistema completo de gestión de HP para personajes y enemigos (sincronización frontend-backend, inicialización, validación, estandarización)
+2. **Finalizar Sistema de Turnos de Combate** - Completar Paso 4 (detección de fin de combate) después de resolver sistema de HP
+3. **Sistema de Inicio de Combate Dinámico** - Evaluación automática de hostilidad
+4. **Sistema de Progresión y Gestión** - XP, niveles, inventario, persistencia
 
 ### Prioridad Media
 
-1. **IA Conversacional Avanzada** - Streaming y turnos por pasos
-2. **Calidad y Profundidad de la IA** - RAG y memoria a largo plazo
-3. **Música y Sonido Dinámicos** - Sistema de audio adaptativo
+1. **Compendio de D&D Local** - Base de datos local para consultas rápidas y modo offline
+2. **Convertidor de PDF a JSON** - Aplicación auxiliar para convertir aventuras de PDF a JSON
+3. **IA Conversacional Avanzada** - Streaming y turnos por pasos
+4. **Calidad y Profundidad de la IA** - RAG y memoria a largo plazo
+5. **Música y Sonido Dinámicos** - Sistema de audio adaptativo
 
 ### Prioridad Baja
 
@@ -76,7 +91,7 @@ Planes identificados pero aún no iniciados:
 
 - **Planes Completados:** 2
 - **Planes en Curso:** 1
-- **Planes Sin Comenzar:** 0
+- **Planes Sin Comenzar:** 2
 
 ---
 

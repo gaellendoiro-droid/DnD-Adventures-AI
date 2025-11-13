@@ -85,10 +85,41 @@ export const companionTacticianTool = ai.defineTool(
     },
     async (input) => {
       try {
-        const { output } = await companionTacticianPrompt(input);
+        let output;
+        try {
+          const response = await companionTacticianPrompt(input);
+          output = response.output;
+        } catch (promptError: any) {
+          // Catch Genkit schema validation errors (when AI returns null)
+          if (promptError?.message?.includes('Schema validation failed') || 
+              promptError?.message?.includes('INVALID_ARGUMENT') ||
+              promptError?.code === 'INVALID_ARGUMENT') {
+            log.warn('AI returned null/invalid output for companion, using default action', { 
+              module: 'AITool',
+              tool: 'companionTacticianTool',
+              activeCombatant: input.activeCombatant,
+            });
+            return {
+              narration: `${input.activeCombatant} parece confundido/a y no hace nada en su turno.`,
+              targetId: null,
+              diceRolls: [],
+            };
+          }
+          // Re-throw if it's a different error
+          throw promptError;
+        }
   
         if (!output) {
-          throw new Error("The AI failed to return an action for the combatant.");
+          log.error('AI failed to return action for companion', { 
+            module: 'AITool',
+            tool: 'companionTacticianTool',
+            activeCombatant: input.activeCombatant,
+          });
+          return {
+            narration: `${input.activeCombatant} parece confundido/a y no hace nada en su turno.`,
+            targetId: null,
+            diceRolls: [],
+          };
         }
         
         return output;
