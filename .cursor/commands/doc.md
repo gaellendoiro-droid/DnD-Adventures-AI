@@ -1,0 +1,1 @@
+Actualiza documentación y changelog con los últimos cambios

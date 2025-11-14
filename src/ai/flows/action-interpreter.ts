@@ -11,6 +11,58 @@ import { ActionInterpreterInputSchema, ActionInterpreterOutputSchema, type Actio
 import { getAdventureData } from '@/app/game-state-actions';
 import { log } from '@/lib/logger';
 
+/**
+ * Retry a function with exponential backoff
+ * @param fn Function to retry
+ * @param maxRetries Maximum number of retry attempts (default: 3)
+ * @param initialDelayMs Initial delay in milliseconds (default: 1000)
+ * @returns Result of the function
+ */
+async function retryWithExponentialBackoff<T>(
+    fn: () => Promise<T>,
+    maxRetries: number = 3,
+    initialDelayMs: number = 1000
+): Promise<T> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            log.debug(`Attempting API call (attempt ${attempt + 1}/${maxRetries + 1})`, {
+                module: 'AIFlow',
+                flow: 'actionInterpreter',
+            });
+            return await fn();
+        } catch (error: any) {
+            lastError = error;
+            
+            // Check if it's a timeout/network error that we should retry
+            const isRetryableError = 
+                error.message?.includes('timeout') ||
+                error.message?.includes('fetch failed') ||
+                error.message?.includes('ECONNRESET') ||
+                error.code === 'UND_ERR_CONNECT_TIMEOUT';
+            
+            if (!isRetryableError || attempt === maxRetries) {
+                // Don't retry non-network errors or if we've exhausted retries
+                throw error;
+            }
+            
+            const delay = initialDelayMs * Math.pow(2, attempt);
+            log.warn(`API call failed, retrying in ${delay}ms...`, {
+                module: 'AIFlow',
+                flow: 'actionInterpreter',
+                attempt: attempt + 1,
+                maxRetries: maxRetries + 1,
+                error: error.message,
+            });
+            
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+    
+    throw lastError || new Error('Retry failed with unknown error');
+}
+
 // This prompt no longer needs tools. All context is provided directly.
 const actionInterpreterPrompt = ai.definePrompt({
     name: 'actionInterpreterPrompt',
@@ -30,7 +82,12 @@ const actionInterpreterPrompt = ai.definePrompt({
 
 2.  **PRIORITY 2: Attack:**
     *   Analyze for a clear intent to attack.
-    *   If detected, classify as 'attack' and identify the target from the context. Stop here.
+    *   If detected, classify as 'attack'.
+    *   **IMPORTANT - Target Identification:**
+    *     - If the player explicitly mentions a specific target (e.g., "ataco al goblin", "ataco a la mantícora"), use that target's ID from the context.
+    *     - If the player's action is generic (e.g., "atacamos", "ataco", "luchamos") without specifying a target, you MAY leave 'targetId' as null or use the first hostile entity ID from 'entitiesPresent' as a fallback.
+    *     - The 'targetId' is just the INITIAL target - other hostile entities in the location will join combat automatically.
+    *   Stop here.
 
 3.  **PRIORITY 3: Interaction with a Companion:**
     *   Analyze if the action is directed at a companion from the 'Player's Party' list.
@@ -85,13 +142,101 @@ export const actionInterpreterFlow = ai.defineFlow(
             }
             const allLocationNames = adventureData.locations.map((l: any) => l.title);
 
-            // STEP 2: Call the LLM with all context provided. No tools needed.
-            const llmResponse = await actionInterpreterPrompt({
-                playerAction: input.playerAction,
-                locationContext: input.locationContext,
-                party: input.party,
-                allLocationNames: allLocationNames,
-            });
+            // STEP 2: Call the LLM with retry logic (Issue #13)
+            let llmResponse;
+            try {
+                llmResponse = await retryWithExponentialBackoff(
+                    () => actionInterpreterPrompt({
+                        playerAction: input.playerAction,
+                        locationContext: input.locationContext,
+                        party: input.party,
+                        allLocationNames: allLocationNames,
+                    }),
+                    3, // max 3 retries (4 total attempts)
+                    1000 // start with 1 second delay
+                );
+            } catch (retryError: any) {
+                // All retries exhausted - implement intelligent fallback
+                log.error('All retry attempts failed, using intelligent fallback', {
+                    module: 'AIFlow',
+                    flow: 'actionInterpreter',
+                    error: retryError.message,
+                    playerAction: input.playerAction,
+                });
+                
+                // Intelligent fallback: simple pattern matching for common actions
+                const actionLower = input.playerAction.toLowerCase().trim();
+                const attackPatterns = ['ataco', 'atacar', 'atacamos', 'ataque', 'lucho', 'luchamos', 'golpeo', 'golpeamos'];
+                const isAttack = attackPatterns.some(pattern => actionLower.includes(pattern));
+                
+                if (isAttack) {
+                    // Check if player mentioned a specific target
+                    let targetId: string | null = null;
+                    const locationContextObj = typeof input.locationContext === 'string' 
+                        ? JSON.parse(input.locationContext) 
+                        : input.locationContext;
+                    
+                    if (locationContextObj?.entitiesPresent) {
+                        // Issue #27: Filtrar enemigos muertos SOLO para interpretación de ataques
+                        // locationContextObj.entitiesPresent permanece intacto (incluye cadáveres)
+                        const aliveEntities = locationContextObj.entitiesPresent.filter((entity: any) => {
+                            if (!input.updatedEnemies) return true; // Primer combate, asumir vivos
+                            const enemy = input.updatedEnemies.find((e: any) => e.id === entity.id || (e as any).uniqueId === entity.id);
+                            // Si existe en updatedEnemies y está muerto, excluir de ataques
+                            // Si NO existe, asumir vivo (nuevo enemigo o primer combate)
+                            return !enemy || (enemy.hp && enemy.hp.current > 0);
+                        });
+                        
+                        if (aliveEntities.length === 0) {
+                            // Todos los enemigos están muertos, no puede atacar
+                            log.info('Fallback: No living enemies to attack', {
+                                module: 'AIFlow',
+                                flow: 'actionInterpreter',
+                            });
+                            return {
+                                interpretation: { actionType: 'narrate', targetId: null },
+                                debugLogs: ['Fallback: No hay enemigos vivos para atacar'],
+                            };
+                        }
+                        
+                        // Try to find target mention in player action (usar aliveEntities)
+                        for (const entity of aliveEntities) {
+                            const entityName = entity.name?.toLowerCase() || '';
+                            if (entityName && actionLower.includes(entityName)) {
+                                targetId = entity.id;
+                                break;
+                            }
+                        }
+                        
+                        // If no specific target, use first alive hostile entity
+                        if (!targetId && aliveEntities.length > 0) {
+                            targetId = aliveEntities[0].id;
+                        }
+                    }
+                    
+                    log.info('Fallback detected attack action', {
+                        module: 'AIFlow',
+                        flow: 'actionInterpreter',
+                        targetId,
+                    });
+                    
+                    return {
+                        interpretation: { actionType: 'attack', targetId },
+                        debugLogs: [`Fallback: Detected attack action with target: ${targetId}`],
+                    };
+                }
+                
+                // Default fallback: narrate
+                log.warn('Fallback defaulting to narrate', {
+                    module: 'AIFlow',
+                    flow: 'actionInterpreter',
+                });
+                
+                return {
+                    interpretation: { actionType: 'narrate' },
+                    debugLogs: ['Fallback: Defaulting to narrate'],
+                };
+            }
             
             let output = llmResponse.output;
 

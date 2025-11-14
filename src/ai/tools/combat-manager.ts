@@ -177,52 +177,91 @@ async function getMonsterStatsFromDndApi(monsterName: string): Promise<{ hp: num
                 formattedName,
             });
             
-            // Try direct lookup first (only in monsters, not in spells or equipment)
-            let response = await fetch(`${baseUrl}/monsters/${formattedName}`);
+            // Create AbortController for timeout (10 seconds)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
             
-            if (!response.ok) {
-                // Try search endpoint (only in monsters)
-                const searchResponse = await fetch(`${baseUrl}/monsters/?name=${normalizedName}`);
-                if (searchResponse.ok) {
-                    const searchData = await searchResponse.json();
-                    if (searchData.count > 0 && searchData.results[0].url) {
-                        response = await fetch(`https://www.dnd5eapi.co${searchData.results[0].url}`);
-                    }
-                }
-            }
-            
-            if (response.ok) {
-                const data = await response.json();
-                const hp = parseHitPoints(data.hit_points);
-                const ac = parseArmorClass(data.armor_class);
-                
-                const stats = { hp, ac };
-                
-                // Cache the result
-                monsterStatsCache.set(cacheKey, stats);
-                
-                log.info('Monster stats fetched from D&D API', {
-                    module: 'CombatManager',
-                    monsterName,
-                    hp,
-                    ac,
+            try {
+                // Try direct lookup first (only in monsters, not in spells or equipment)
+                let response = await fetch(`${baseUrl}/monsters/${formattedName}`, {
+                    signal: controller.signal,
                 });
                 
-                return stats;
+                if (!response.ok) {
+                    // Try search endpoint (only in monsters)
+                    const searchResponse = await fetch(`${baseUrl}/monsters/?name=${normalizedName}`, {
+                        signal: controller.signal,
+                    });
+                    if (searchResponse.ok) {
+                        const searchData = await searchResponse.json();
+                        if (searchData.count > 0 && searchData.results[0].url) {
+                            response = await fetch(`https://www.dnd5eapi.co${searchData.results[0].url}`, {
+                                signal: controller.signal,
+                            });
+                        }
+                    }
+                }
+                
+                clearTimeout(timeoutId);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const hp = parseHitPoints(data.hit_points);
+                    const ac = parseArmorClass(data.armor_class);
+                    
+                    const stats = { hp, ac };
+                    
+                    // Cache the result
+                    monsterStatsCache.set(cacheKey, stats);
+                    
+                    log.info('Monster stats fetched from D&D API', {
+                        module: 'CombatManager',
+                        monsterName,
+                        hp,
+                        ac,
+                    });
+                    
+                    return stats;
+                }
+                
+                log.warn('Monster not found in D&D API', {
+                    module: 'CombatManager',
+                    monsterName,
+                    normalizedName,
+                    status: response.status,
+                });
+                
+                return null;
+            } catch (fetchError: any) {
+                clearTimeout(timeoutId);
+                if (fetchError.name === 'AbortError') {
+                    log.warn('D&D API request timed out', {
+                        module: 'CombatManager',
+                        monsterName,
+                        timeout: '10s',
+                    });
+                } else {
+                    throw fetchError; // Re-throw to be caught by outer catch
+                }
+                return null;
             }
+        } catch (error: any) {
+            // Extract more detailed error information
+            const errorMessage = error?.message || 'Unknown error';
+            const errorName = error?.name || 'Unknown';
+            const isNetworkError = errorMessage.includes('fetch failed') || 
+                                  errorMessage.includes('ECONNREFUSED') ||
+                                  errorMessage.includes('ETIMEDOUT') ||
+                                  errorName === 'TypeError';
             
-            log.warn('Monster not found in D&D API', {
+            log.warn('Error fetching monster stats from D&D API (will use defaults)', {
                 module: 'CombatManager',
                 monsterName,
-                normalizedName,
+                errorType: errorName,
+                isNetworkError,
+                errorMessage: errorMessage.substring(0, 100), // Truncate long messages
             });
             
-            return null;
-        } catch (error: any) {
-            log.error('Error fetching monster stats from D&D API', {
-                module: 'CombatManager',
-                monsterName,
-            }, error);
             return null;
         } finally {
             // Remove from pending requests when done
@@ -527,10 +566,38 @@ function resolveEnemyId(
         if (found) {
             return { uniqueId: found.id || (found as any).uniqueId, ambiguous: false, matches: [] };
         }
+        
+        // If not found, try to interpret as visual name (e.g., "goblin-2" -> "Goblin 2")
+        // Extract base name and number from ID format (e.g., "goblin-2" -> "goblin", "2")
+        const parts = targetId.split('-');
+        if (parts.length === 2) {
+            const baseName = parts[0];
+            const visualNumber = parseInt(parts[1], 10);
+            
+            // Construct visual name (capitalize first letter, add space and number)
+            const capitalizedBaseName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+            const visualName = `${capitalizedBaseName} ${visualNumber}`;
+            
+            // Search in initiativeOrder by visual name
+            const visualMatch = initiativeOrder.find(c => c.characterName === visualName);
+            if (visualMatch) {
+                log.debug('Resolved ID-format targetId to visual name', {
+                    module: 'CombatManager',
+                    originalTargetId: targetId,
+                    visualName: visualName,
+                    resolvedUniqueId: visualMatch.id,
+                });
+                return { uniqueId: visualMatch.id, ambiguous: false, matches: [] };
+            }
+        }
     }
     
     // Step 2: Search in initiativeOrder by characterName (visual name) exact match
-    const exactMatch = initiativeOrder.find(c => c.characterName === targetId);
+    // Use normalized comparison to handle accents (e.g., "manticora" matches "Mantícora 1")
+    const normalizedTargetId = normalizeNameForMatching(targetId);
+    const exactMatch = initiativeOrder.find(c => 
+        normalizeNameForMatching(c.characterName) === normalizedTargetId
+    );
     if (exactMatch) {
         return { uniqueId: exactMatch.id, ambiguous: false, matches: [] };
     }
@@ -539,11 +606,13 @@ function resolveEnemyId(
     // Extract base name from targetId (remove trailing number if present)
     const baseNameMatch = targetId.match(/^(.+?)(?:\s+\d+)?$/);
     const baseName = baseNameMatch ? baseNameMatch[1].trim() : targetId.trim();
+    const normalizedBaseName = normalizeNameForMatching(baseName);
     
-    // Find all enemies with matching base name
+    // Find all enemies with matching base name (use normalization to handle accents)
     const matchingEnemies = enemies.filter(e => {
         const enemyBaseName = e.name || e.id?.split('-')[0] || '';
-        return enemyBaseName.toLowerCase() === baseName.toLowerCase();
+        const normalizedEnemyBaseName = normalizeNameForMatching(enemyBaseName);
+        return normalizedEnemyBaseName === normalizedBaseName;
     });
     
     if (matchingEnemies.length === 0) {
@@ -593,20 +662,105 @@ const getHpStatus = (current: number, max: number): string => {
 };
 
 /**
+ * Validates and clamps HP values to ensure they are within valid ranges.
+ * Ensures hp.current >= 0, hp.current <= hp.max, and hp.max > 0.
+ * 
+ * @param character Character or enemy object with hp property
+ * @returns Character/enemy with validated and clamped HP values
+ */
+function validateAndClampHP(character: any): any {
+    if (!character || !character.hp) {
+        log.warn('validateAndClampHP: Character has no HP property', {
+            module: 'CombatManager',
+            characterId: character?.id || character?.uniqueId || 'unknown',
+        });
+        return character;
+    }
+    
+    const { current, max } = character.hp;
+    
+    // Validate hp.max > 0
+    if (max <= 0) {
+        log.warn('validateAndClampHP: hp.max is invalid, setting to default 10', {
+            module: 'CombatManager',
+            characterId: character.id || character.uniqueId || 'unknown',
+            originalMax: max,
+        });
+        character.hp.max = 10;
+    }
+    
+    // Si isDead es true, mantener hp.current = 0 (no puede ser curado hasta revivir)
+    if (character.isDead === true) {
+        return {
+            ...character,
+            hp: {
+                current: 0,
+                max: character.hp.max,
+            },
+            isDead: true,
+        };
+    }
+    
+    // Clamp hp.current to valid range [0, hp.max]
+    const validMax = character.hp.max;
+    const clampedCurrent = Math.max(0, Math.min(validMax, current));
+    
+    if (clampedCurrent !== current) {
+        log.debug('validateAndClampHP: HP clamped to valid range', {
+            module: 'CombatManager',
+            characterId: character.id || character.uniqueId || 'unknown',
+            originalCurrent: current,
+            clampedCurrent,
+            max: validMax,
+        });
+    }
+    
+    return {
+        ...character,
+        hp: {
+            current: clampedCurrent,
+            max: validMax,
+        },
+        isDead: character.isDead || false, // Mantener estado existente o false
+    };
+}
+
+/**
+ * Verifica si un personaje está inconsciente o muerto.
+ * Para jugador/compañeros: verifica isDead o hp.current <= 0.
+ * Para enemigos: solo verifica hp.current <= 0 (comportamiento actual).
+ * @param character Character or enemy object with hp and controlledBy properties
+ * @returns true if character is unconscious or dead, false otherwise
+ */
+function isUnconsciousOrDead(character: any): boolean {
+    if (!character || !character.hp) {
+        return false; // Si no tiene HP, asumir que está vivo
+    }
+    
+    // Para jugador/compañeros: verificar isDead o hp.current <= 0
+    if (character.controlledBy === 'Player' || character.controlledBy === 'AI') {
+        return character.isDead === true || character.hp.current <= 0;
+    }
+    
+    // Para enemigos, mantener lógica actual
+    return character.hp.current <= 0;
+}
+
+/**
  * Checks if combat has ended by verifying if all enemies or all allies are defeated.
  * @param updatedParty Array of party members with current HP
  * @param updatedEnemies Array of enemies with current HP
  * @returns Object with combatEnded boolean and reason string
  */
 function checkEndOfCombat(updatedParty: any[], updatedEnemies: any[]): { combatEnded: boolean; reason: string | null } {
-    // Check if all enemies are defeated
+    // Check if all enemies are defeated (usar isUnconsciousOrDead para consistencia)
     const allEnemiesDefeated = updatedEnemies.every(e => e.hp.current <= 0);
     if (allEnemiesDefeated) {
         return { combatEnded: true, reason: 'Todos los enemigos derrotados' };
     }
     
-    // Check if all allies are defeated
-    const allAlliesDefeated = updatedParty.every(p => p.hp.current <= 0);
+    // Check if all allies are defeated or dead
+    const allAlliesDefeated = updatedParty.every(p => isUnconsciousOrDead(p));
     if (allAlliesDefeated) {
         return { combatEnded: true, reason: 'Todos los aliados derrotados' };
     }
@@ -649,13 +803,92 @@ export const combatManagerTool = ai.defineTool(
                 localLog(`Processing player turn for ${activeCombatant.characterName} at index ${currentTurnIndex}...`);
                 
                 // Process player action (attack, spell, etc.)
-                if (interpretedAction.actionType === 'attack' && interpretedAction.targetId) {
-                    // Resolve targetId (can be visual name or uniqueId)
-                    const resolved = resolveEnemyId(interpretedAction.targetId, updatedEnemies, initiativeOrder, updatedParty);
+                if (interpretedAction.actionType === 'attack') {
+                    // If no targetId specified, try to infer it (Issue #23)
+                    let targetIdToUse = interpretedAction.targetId;
+                    
+                    if (!targetIdToUse) {
+                        // Filter only alive enemies
+                        const aliveEnemies = updatedEnemies.filter(e => e.hp.current > 0);
+                        
+                        log.debug('Player attack without explicit target - inferring target', {
+                            module: 'CombatManager',
+                            player: activeCombatant.characterName,
+                            aliveEnemiesCount: aliveEnemies.length,
+                        });
+                        
+                        if (aliveEnemies.length === 1) {
+                            // Only one enemy alive: auto-select it
+                            targetIdToUse = aliveEnemies[0].uniqueId;
+                            const autoSelectedName = getVisualName(targetIdToUse || '', initiativeOrder, updatedEnemies);
+                            
+                            localLog(`Auto-selected single enemy target: ${autoSelectedName} (${targetIdToUse})`);
+                            log.info('Auto-selected single enemy as target', {
+                                module: 'CombatManager',
+                                player: activeCombatant.characterName,
+                                target: autoSelectedName,
+                                targetId: targetIdToUse,
+                            });
+                            
+                            // Add a brief DM message to clarify the auto-selection
+                            messages.push({
+                                sender: 'DM',
+                                content: `${activeCombatant.characterName} ataca a ${autoSelectedName}.`
+                            });
+                        } else if (aliveEnemies.length > 1) {
+                            // Multiple enemies: ask for clarification
+                            // Don't list specific enemies to avoid restricting player choices
+                            // (they might want to attack a companion, NPC, or object)
+                            const clarificationMessage = `No has especificado un objetivo. ¿A quién o qué quieres atacar?`;
+                            
+                            localLog(`Multiple enemies present, asking player for clarification`);
+                            log.info('Player attack without target - multiple enemies, asking for clarification', {
+                                module: 'CombatManager',
+                                player: activeCombatant.characterName,
+                                enemiesCount: aliveEnemies.length,
+                            });
+                            
+                            messages.push({
+                                sender: 'DM',
+                                content: clarificationMessage
+                            });
+                            
+                            // Do NOT advance turn - wait for player's next action
+                            return {
+                                messages,
+                                diceRolls,
+                                inCombat: true,
+                                debugLogs,
+                                turnIndex: currentTurnIndex, // Keep same turn index
+                                initiativeOrder,
+                                updatedParty,
+                                updatedEnemies,
+                            };
+                        } else {
+                            // No enemies alive
+                            localLog('Player tried to attack but no enemies are alive');
+                            messages.push({
+                                sender: 'DM',
+                                content: `No hay enemigos vivos para atacar.`
+                            });
+                            
+                            // Advance turn normally
+                            currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
+                            activeCombatant = initiativeOrder[currentTurnIndex];
+                            
+                            // Continue to AI turns processing
+                            // (don't return early, let the code flow to the AI turns loop)
+                        }
+                    }
+                    
+                    // Only proceed with attack if we have a valid target
+                    if (targetIdToUse) {
+                        // Resolve targetId (can be visual name or uniqueId)
+                        const resolved = resolveEnemyId(targetIdToUse, updatedEnemies, initiativeOrder, updatedParty);
                     
                     // Handle ambiguity: if multiple enemies match, ask the player
                     if (resolved.ambiguous) {
-                        const baseName = interpretedAction.targetId.split(/\s+\d+$/)[0] || interpretedAction.targetId;
+                        const baseName = targetIdToUse.split(/\s+\d+$/)[0] || targetIdToUse;
                         const clarificationMessage = `Hay múltiples ${baseName}. ¿A cuál te refieres? ${resolved.matches.join(' o ')}`;
                         const { html } = await markdownToHtml({ markdown: clarificationMessage });
                         messages.push({ sender: 'DM', content: html, originalContent: clarificationMessage });
@@ -683,18 +916,276 @@ export const combatManagerTool = ai.defineTool(
                     );
                     
                     if (target) {
-                        localLog(`Player ${activeCombatant.characterName} attacks ${target.name}`);
-                        // Add player action message (the player's input is already in the chat)
-                        // We'll need to process dice rolls if the action interpreter provided them
-                        // For now, we'll just advance the turn
+                        // Get visual name for target
+                        const targetVisualName = getVisualName(
+                            (target as any).uniqueId || target.id,
+                            initiativeOrder,
+                            updatedEnemies
+                        );
+                        
+                        localLog(`Player ${activeCombatant.characterName} attacks ${targetVisualName}`);
+                        
+                        // Get player character data to determine attack and damage modifiers
+                        const playerChar = updatedParty.find(p => p.id === activeCombatant.id);
+                        if (!playerChar) {
+                            localLog(`ERROR: Player character not found in party: ${activeCombatant.id}`);
+                        } else {
+                            try {
+                                // Determine attack modifier (use Strength or Dexterity, whichever is higher)
+                                const strMod = playerChar.abilityModifiers?.fuerza || 0;
+                                const dexMod = playerChar.abilityModifiers?.destreza || 0;
+                                const attackMod = Math.max(strMod, dexMod);
+                                
+                                // Determine damage modifier (same as attack, typically)
+                                const damageMod = attackMod;
+                                
+                                // Determine damage die (default to 1d8 for a standard weapon like a longsword)
+                                // TODO: In the future, read this from the player's equipped weapon
+                                const damageDie = '1d8';
+                                
+                                log.debug('Player attack modifiers', {
+                                    module: 'CombatManager',
+                                    player: activeCombatant.characterName,
+                                    strMod,
+                                    dexMod,
+                                    attackMod,
+                                    damageMod,
+                                    damageDie,
+                                });
+                                
+                                // Generate attack roll
+                                const attackRollResult = await diceRollerTool({
+                                    rollNotation: `1d20+${attackMod}`,
+                                    description: `Tirada de ataque de ${activeCombatant.characterName}`,
+                                    roller: activeCombatant.characterName,
+                                });
+                                
+                                // Validate target AC
+                                let finalTargetAC: number;
+                                if (target.ac === undefined || target.ac === null) {
+                                    log.warn('Attack roll processed but target AC is missing', {
+                                        module: 'CombatManager',
+                                        targetId: target.id,
+                                        targetName: targetVisualName,
+                                        roller: activeCombatant.characterName,
+                                    });
+                                    finalTargetAC = 10;
+                                } else {
+                                    const targetAC = typeof target.ac === 'number' ? target.ac : parseInt(String(target.ac), 10);
+                                    if (isNaN(targetAC)) {
+                                        log.warn('Target AC is not a valid number, using default', {
+                                            module: 'CombatManager',
+                                            targetId: target.id,
+                                            targetAC: target.ac,
+                                        });
+                                        finalTargetAC = 10;
+                                    } else {
+                                        finalTargetAC = targetAC;
+                                    }
+                                }
+                                
+                                const attackHit = attackRollResult.totalResult >= finalTargetAC;
+                                
+                                // Update attack roll with combat information
+                                const updatedAttackRoll = {
+                                    ...attackRollResult,
+                                    targetName: targetVisualName,
+                                    targetAC: finalTargetAC,
+                                    attackHit: attackHit,
+                                    outcome: attackHit ? (attackRollResult.outcome === 'crit' ? 'crit' : 'success') : (attackRollResult.outcome === 'pifia' ? 'pifia' : 'fail'),
+                                };
+                                diceRolls.push(updatedAttackRoll);
+                                
+                                log.debug('Player attack roll processed', {
+                                    module: 'CombatManager',
+                                    roller: activeCombatant.characterName,
+                                    targetName: targetVisualName,
+                                    targetAC: finalTargetAC,
+                                    attackHit: attackHit,
+                                    outcome: updatedAttackRoll.outcome,
+                                    rollTotal: attackRollResult.totalResult,
+                                });
+                                
+                                // Generate DM narration for attack
+                                if (attackHit) {
+                                    if (attackRollResult.outcome === 'crit') {
+                                        messages.push({
+                                            sender: 'DM',
+                                            content: `¡${activeCombatant.characterName} ataca a ${targetVisualName} con un golpe crítico!`
+                                        });
+                                    } else {
+                                        messages.push({
+                                            sender: 'DM',
+                                            content: `${activeCombatant.characterName} ataca a ${targetVisualName} y acierta (${attackRollResult.totalResult} vs AC ${finalTargetAC}).`
+                                        });
+                                    }
+                                    
+                                    // Generate damage roll (only if attack hit)
+                                    const damageRollResult = await diceRollerTool({
+                                        rollNotation: `${damageDie}+${damageMod}`,
+                                        description: `Tirada de daño de ${activeCombatant.characterName}`,
+                                        roller: activeCombatant.characterName,
+                                    });
+                                    
+                                    // Validate damage is positive
+                                    if (damageRollResult.totalResult <= 0) {
+                                        log.warn('Damage roll resulted in non-positive damage', {
+                                            module: 'CombatManager',
+                                            damage: damageRollResult.totalResult,
+                                            roller: activeCombatant.characterName,
+                                        });
+                                        messages.push({
+                                            sender: 'DM',
+                                            content: `${activeCombatant.characterName} intenta hacer daño a ${targetVisualName}, pero no causa ningún daño.`
+                                        });
+                                    } else {
+                                        // Apply damage to target
+                                        const targetIsEnemy = updatedEnemies.some(e => (e as any).uniqueId === (target as any).uniqueId);
+                                        const previousHP = targetIsEnemy
+                                            ? updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId)?.hp.current
+                                            : updatedParty.find(p => p.id === target.id)?.hp.current;
+                                        
+                                        const damage = damageRollResult.totalResult;
+                                        
+                                        if (targetIsEnemy) {
+                                            // Para enemigos, mantener comportamiento actual
+                                            updatedEnemies = updatedEnemies.map(e => {
+                                                if ((e as any).uniqueId === (target as any).uniqueId) {
+                                                    const updated = { ...e, hp: { ...e.hp, current: Math.max(0, e.hp.current - damage) } };
+                                                    return validateAndClampHP(updated);
+                                                }
+                                                return e;
+                                            });
+                                        } else {
+                                            // Para jugador/compañeros: aplicar regla de muerte masiva D&D 5e
+                                            updatedParty = updatedParty.map(p => {
+                                                if (p.id === target.id) {
+                                                    const targetHP = p.hp.current;
+                                                    const targetHPMax = p.hp.max;
+                                                    
+                                                    // Regla de muerte masiva: daño restante (después de llegar a 0) >= hpMax
+                                                    // Fórmula: daño restante = damage - hp.current
+                                                    const remainingDamage = damage - targetHP;
+                                                    
+                                                    if (remainingDamage >= targetHPMax) {
+                                                        // Muerte instantánea
+                                                        messages.push({
+                                                            sender: 'DM',
+                                                            content: `${p.name} ha recibido un golpe devastador y muere instantáneamente.`,
+                                                        });
+                                                        const updated = { 
+                                                            ...p, 
+                                                            hp: { current: 0, max: targetHPMax },
+                                                            isDead: true 
+                                                        };
+                                                        return validateAndClampHP(updated);
+                                                    } else {
+                                                        // Daño normal: puede llegar a 0 (inconsciente) pero no muere
+                                                        const newHP = Math.max(0, targetHP - damage);
+                                                        
+                                                        if (newHP === 0 && targetHP > 0) {
+                                                            // Acaba de caer inconsciente
+                                                            messages.push({
+                                                                sender: 'DM',
+                                                                content: `${p.name} cae inconsciente.`,
+                                                            });
+                                                        }
+                                                        
+                                                        const updated = { 
+                                                            ...p, 
+                                                            hp: { current: newHP, max: targetHPMax },
+                                                            isDead: false
+                                                        };
+                                                        return validateAndClampHP(updated);
+                                                    }
+                                                }
+                                                return p;
+                                            });
+                                        }
+                                        
+                                        const newHP = targetIsEnemy
+                                            ? updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId)?.hp.current
+                                            : updatedParty.find(p => p.id === target.id)?.hp.current;
+                                        
+                                        // Update damage roll with combat information
+                                        const updatedDamageRoll = {
+                                            ...damageRollResult,
+                                            targetName: targetVisualName,
+                                            damageDealt: damageRollResult.totalResult,
+                                        };
+                                        diceRolls.push(updatedDamageRoll);
+                                        
+                                        // Generate damage message
+                                        const damageMessage = `${activeCombatant.characterName} ha hecho ${damageRollResult.totalResult} puntos de daño a ${targetVisualName}${previousHP !== undefined && newHP !== undefined ? ` (${previousHP} → ${newHP} HP)` : ''}.`;
+                                        messages.push({
+                                            sender: 'DM',
+                                            content: damageMessage
+                                        });
+                                        
+                                        log.debug('Player damage applied', {
+                                            module: 'CombatManager',
+                                            target: targetVisualName,
+                                            damage: damageRollResult.totalResult,
+                                            previousHP,
+                                            newHP,
+                                        });
+                                        
+                                        // Check if target was defeated
+                                        if (newHP !== undefined && newHP <= 0) {
+                                            messages.push({
+                                                sender: 'DM',
+                                                content: `¡${activeCombatant.characterName} ha matado a ${targetVisualName}!`
+                                            });
+                                            localLog(`${activeCombatant.characterName} killed ${targetVisualName}!`);
+                                        }
+                                    }
+                                } else {
+                                    // Attack missed
+                                    if (attackRollResult.outcome === 'pifia') {
+                                        messages.push({
+                                            sender: 'DM',
+                                            content: `¡${activeCombatant.characterName} falla estrepitosamente al atacar a ${targetVisualName}! (Pifia: ${attackRollResult.totalResult} vs AC ${finalTargetAC})`
+                                        });
+                                    } else {
+                                        messages.push({
+                                            sender: 'DM',
+                                            content: `${activeCombatant.characterName} ataca a ${targetVisualName}, pero falla (${attackRollResult.totalResult} vs AC ${finalTargetAC}).`
+                                        });
+                                    }
+                                    log.debug('Player attack missed', {
+                                        module: 'CombatManager',
+                                        rollTotal: attackRollResult.totalResult,
+                                        targetAC: finalTargetAC,
+                                        isPifia: attackRollResult.outcome === 'pifia',
+                                    });
+                                }
+                                
+                            } catch (error) {
+                                log.error('Error processing player attack', {
+                                    module: 'CombatManager',
+                                    error: error instanceof Error ? error.message : String(error),
+                                    player: activeCombatant.characterName,
+                                    target: targetVisualName,
+                                });
+                                messages.push({
+                                    sender: 'DM',
+                                    content: `Hubo un error al procesar el ataque de ${activeCombatant.characterName}.`
+                                });
+                            }
+                        }
                     } else {
-                        localLog(`Target not found for player action: ${interpretedAction.targetId} (resolved: ${resolvedTargetId})`);
+                        localLog(`Target not found for player action: ${targetIdToUse} (resolved: ${resolvedTargetId})`);
+                        messages.push({
+                            sender: 'DM',
+                            content: `No puedes encontrar ese objetivo.`
+                        });
+                    }
+                    
+                    // Advance to next turn after successful attack processing
+                    currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
+                    activeCombatant = initiativeOrder[currentTurnIndex];
                     }
                 }
-                
-                // Advance to next turn
-                currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
-                activeCombatant = initiativeOrder[currentTurnIndex];
             }
             
             // Continue processing AI turns until it's the player's turn again
@@ -702,7 +1193,28 @@ export const combatManagerTool = ai.defineTool(
             while(activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded) {
                 localLog(`Processing turn for AI combatant ${activeCombatant.characterName} at index ${currentTurnIndex}...`);
                 
+                // Check if active combatant is dead - skip their turn if so
                 const isCompanion = updatedParty.some(p => p.id === activeCombatant.id);
+                const activeCombatantData = isCompanion 
+                    ? updatedParty.find(p => p.id === activeCombatant.id)
+                    : updatedEnemies.find(e => (e as any).uniqueId === activeCombatant.id);
+                
+                if (activeCombatantData && activeCombatantData.hp.current <= 0) {
+                    log.debug('Skipping turn for dead combatant', {
+                        module: 'CombatManager',
+                        combatant: activeCombatant.characterName,
+                        hp: activeCombatantData.hp.current,
+                    });
+                    messages.push({
+                        sender: 'DM',
+                        content: `${activeCombatant.characterName} está muerto y no puede actuar.`
+                    });
+                    
+                    // Advance to next turn
+                    currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
+                    activeCombatant = initiativeOrder[currentTurnIndex];
+                    continue;
+                }
                 let tacticianResponse;
 
                 // Get visual names for enemies to pass to tacticians
@@ -715,11 +1227,24 @@ export const combatManagerTool = ai.defineTool(
                         action: 'getVisualNames',
                     });
                 }
+
+                // Filter out dead combatants before passing to tactician (Issue #18)
+                const aliveParty = updatedParty.filter(p => p.hp.current > 0);
+                const aliveEnemies = updatedEnemies.filter(e => e.hp.current > 0);
                 
+                log.debug('Filtering dead combatants for tactician', {
+                    module: 'CombatManager',
+                    activeCombatant: activeCombatant.characterName,
+                    totalParty: updatedParty.length,
+                    aliveParty: aliveParty.length,
+                    totalEnemies: updatedEnemies.length,
+                    aliveEnemies: aliveEnemies.length,
+                });
+
                 const baseTacticianInput = {
                     activeCombatant: activeCombatant.characterName,
-                    party: updatedParty,
-                    enemies: updatedEnemies.map(e => ({ 
+                    party: aliveParty,
+                    enemies: aliveEnemies.map(e => ({ 
                         name: enemyVisualNames.get(e.uniqueId) || e.name, // Use visual name
                         id: e.uniqueId, 
                         hp: getHpStatus(e.hp.current, e.hp.max) 
@@ -860,47 +1385,393 @@ export const combatManagerTool = ai.defineTool(
                         );
                         
                         localLog(`Found target: ${targetVisualName}`);
+                        
+                        // Track attack result to ensure damage only applies if attack hits
+                        let attackHit = false;
+                        let attackRoll: any = null;
+                        
+                        // Log what rolls the tactician requested
+                        log.debug('Processing rolls for AI combatant', {
+                            module: 'CombatManager',
+                            combatant: activeCombatant.characterName,
+                            rollsCount: requestedRolls.length,
+                            rollDescriptions: requestedRolls.map((r: any) => r.description),
+                        });
+                        
+                        // Process rolls in order: attack first, then damage/healing
                         for (const rollData of requestedRolls) {
+                            try {
                             const roll = await diceRollerTool({ ...rollData, roller: activeCombatant.characterName });
                             diceRolls.push(roll);
 
-                            if (roll.description.toLowerCase().includes('attack')) {
-                                if (roll.totalResult >= target.ac) {
-                                    messages.push({ sender: 'DM', content: `${activeCombatant.characterName} ataca a ${targetVisualName} y acierta.` });
+                                const rollDescription = (roll.description || '').toLowerCase();
+                                // Extract attackType from rollData (provided by AI tactician)
+                                const attackType = (rollData as any).attackType;
+                                
+                                // Fallback to keyword detection if attackType is not provided (for backward compatibility)
+                                const isSavingThrowFromKeywords = rollDescription.includes('saving') || rollDescription.includes('salvación') || 
+                                                     rollDescription.includes('save') || rollDescription.includes('salvacion');
+                                
+                                // Determine if this is a saving throw spell (prefer explicit attackType, fallback to keywords)
+                                const isSavingThrow = attackType === 'saving_throw' || (!attackType && isSavingThrowFromKeywords);
+                                
+                                log.debug('Processing individual roll', {
+                                    module: 'CombatManager',
+                                    combatant: activeCombatant.characterName,
+                                    description: roll.description,
+                                    attackType: attackType || 'not specified',
+                                    isAttack: rollDescription.includes('attack') || rollDescription.includes('ataque'),
+                                    isDamage: rollDescription.includes('damage') || rollDescription.includes('daño'),
+                                    isHealing: rollDescription.includes('healing') || rollDescription.includes('curación') || rollDescription.includes('cura'),
+                                    isSavingThrow: isSavingThrow,
+                                });
+                                
+                                // Process attack roll (check both English and Spanish)
+                                if (rollDescription.includes('attack') || rollDescription.includes('ataque')) {
+                                    attackRoll = roll;
+                                    
+                                    // Validate target AC exists
+                                    let finalTargetAC: number;
+                                    if (target.ac === undefined || target.ac === null) {
+                                        log.warn('Attack roll processed but target AC is missing', {
+                                            module: 'CombatManager',
+                                            targetId: target.id,
+                                            targetName: targetVisualName,
+                                            roller: activeCombatant.characterName,
+                                        });
+                                        // Use default AC if missing
+                                        finalTargetAC = 10;
                                 } else {
-                                    messages.push({ sender: 'DM', content: `${activeCombatant.characterName} ataca a ${targetVisualName}, pero falla.` });
+                                        // Validate AC is a number
+                                        const targetAC = typeof target.ac === 'number' ? target.ac : parseInt(String(target.ac), 10);
+                                        if (isNaN(targetAC)) {
+                                            log.warn('Target AC is not a valid number, using default', {
+                                                module: 'CombatManager',
+                                                targetId: target.id,
+                                                targetAC: target.ac,
+                                            });
+                                            finalTargetAC = 10;
+                                        } else {
+                                            finalTargetAC = targetAC;
+                                        }
+                                    }
+                                    
+                                    attackHit = roll.totalResult >= finalTargetAC;
+                                    
+                                    // Update roll with combat information
+                                    const rollIndex = diceRolls.length - 1;
+                                    const updatedRoll = {
+                                        ...roll,
+                                        targetName: targetVisualName,
+                                        targetAC: finalTargetAC,
+                                        attackHit: attackHit,
+                                        outcome: attackHit ? (roll.outcome === 'crit' ? 'crit' : 'success') : (roll.outcome === 'pifia' ? 'pifia' : 'fail'),
+                                    };
+                                    diceRolls[rollIndex] = updatedRoll;
+                                    
+                                    log.debug('Updated attack roll with combat information', {
+                                        module: 'CombatManager',
+                                        roller: activeCombatant.characterName,
+                                        targetName: targetVisualName,
+                                        targetAC: finalTargetAC,
+                                        attackHit: attackHit,
+                                        outcome: updatedRoll.outcome,
+                                        rollTotal: roll.totalResult,
+                                    });
+                                    
+                                    if (attackHit) {
+                                        // Check for crit
+                                        if (roll.outcome === 'crit') {
+                                            messages.push({ 
+                                                sender: 'DM', 
+                                                content: `¡${activeCombatant.characterName} ataca a ${targetVisualName} con un golpe crítico!` 
+                                            });
+                                        } else {
+                                            messages.push({ 
+                                                sender: 'DM', 
+                                                content: `${activeCombatant.characterName} ataca a ${targetVisualName} y acierta (${roll.totalResult} vs AC ${finalTargetAC}).` 
+                                            });
+                                        }
+                                        log.debug('Attack hit', {
+                                            module: 'CombatManager',
+                                            rollTotal: roll.totalResult,
+                                            targetAC: finalTargetAC,
+                                            isCrit: roll.outcome === 'crit',
+                                        });
+                                    } else {
+                                        // Check for pifia
+                                        if (roll.outcome === 'pifia') {
+                                            messages.push({ 
+                                                sender: 'DM', 
+                                                content: `¡${activeCombatant.characterName} falla estrepitosamente al atacar a ${targetVisualName}! (Pifia: ${roll.totalResult} vs AC ${finalTargetAC})` 
+                                            });
+                                        } else {
+                                            messages.push({ 
+                                                sender: 'DM', 
+                                                content: `${activeCombatant.characterName} ataca a ${targetVisualName}, pero falla (${roll.totalResult} vs AC ${finalTargetAC}).` 
+                                            });
+                                        }
+                                        log.debug('Attack missed', {
+                                            module: 'CombatManager',
+                                            rollTotal: roll.totalResult,
+                                            targetAC: finalTargetAC,
+                                            isPifia: roll.outcome === 'pifia',
+                                        });
+                                    }
+                                    
+                                    // If attack missed, skip damage rolls
+                                    if (!attackHit) {
+                                        log.debug('Attack missed, skipping damage rolls', {
+                                            module: 'CombatManager',
+                                        });
                                     break; // No damage if attack misses
                                 }
-                            } else if (roll.description.toLowerCase().includes('damage')) {
-                                const targetIsPlayer = updatedParty.some(p => p.id === target.id);
-                                if (targetIsPlayer) {
-                                    updatedParty = updatedParty.map(p => p.id === target.id ? { ...p, hp: { ...p.hp, current: Math.max(0, p.hp.current - roll.totalResult) } } : p);
-                                } else {
-                                    updatedEnemies = updatedEnemies.map(e => (e as any).uniqueId === (target as any).uniqueId ? { ...e, hp: { ...e.hp, current: Math.max(0, e.hp.current - roll.totalResult) } } : e);
                                 }
-                                messages.push({ sender: 'DM', content: `It deals ${roll.totalResult} damage.` });
-                                
-                                // Check if combat has ended after applying damage
-                                localLog('checkEndOfCombat: Checking for end of combat...');
-                                const combatCheck = checkEndOfCombat(updatedParty, updatedEnemies);
-                                if (combatCheck.combatEnded) {
-                                    localLog(`checkEndOfCombat: End of combat detected! [Razón: ${combatCheck.reason}]`);
-                                    if (combatCheck.reason === 'Todos los enemigos derrotados') {
-                                        messages.push({ sender: 'DM', content: '¡Victoria! Todos los enemigos han sido derrotados.' });
-                                    } else if (combatCheck.reason === 'Todos los aliados derrotados') {
-                                        messages.push({ sender: 'DM', content: '¡Derrota! Todos los aliados han caído en combate.' });
+                                // Process damage roll (only if attack hit or it's a saving throw spell)
+                                else if (rollDescription.includes('damage') || rollDescription.includes('daño')) {
+                                    // Determine if this is a saving throw spell using attackType (preferred) or keywords (fallback)
+                                    const isSavingThrowSpell = isSavingThrow;
+                                    
+                                    // Validate that attack hit first (unless it's a saving throw spell)
+                                    if (attackRoll === null && !isSavingThrowSpell) {
+                                        log.warn('Damage roll without prior attack roll - SKIPPING', {
+                                            module: 'CombatManager',
+                                            roller: activeCombatant.characterName,
+                                            rollDescription: roll.description,
+                                            attackType: attackType || 'not specified',
+                                        });
+                                        // Remove the invalid roll from the array
+                                        diceRolls.pop();
+                                        continue; // Skip damage if there was no attack roll
                                     }
-                                    // Mark combat as ended and break out of the roll loop
-                                    combatHasEnded = true;
-                                    break;
+                                    
+                                    if (!attackHit && !isSavingThrowSpell) {
+                                        log.debug('Skipping damage roll because attack missed', {
+                                            module: 'CombatManager',
+                                            roller: activeCombatant.characterName,
+                                            attackTotal: attackRoll?.totalResult,
+                                            targetAC: target.ac,
+                                        });
+                                        // Remove the invalid roll from the array
+                                        diceRolls.pop();
+                                        continue; // Skip damage if attack didn't hit
+                                    }
+                                    
+                                    // Log if this is a saving throw spell
+                                    if (isSavingThrowSpell) {
+                                        log.debug('Processing saving throw spell damage', {
+                                            module: 'CombatManager',
+                                            roller: activeCombatant.characterName,
+                                            targetName: targetVisualName,
+                                            damage: roll.totalResult,
+                                            attackType: attackType,
+                                        });
+                                    }
+                                    
+                                    // Validate damage is positive
+                                    if (roll.totalResult <= 0) {
+                                        log.warn('Damage roll resulted in non-positive damage', {
+                                            module: 'CombatManager',
+                                            damage: roll.totalResult,
+                                            roller: activeCombatant.characterName,
+                                        });
+                                        messages.push({ 
+                                            sender: 'DM', 
+                                            content: `${activeCombatant.characterName} intenta hacer daño a ${targetVisualName}, pero no causa ningún daño.` 
+                                        });
+                                        continue;
+                                    }
+                                    
+                                const targetIsPlayer = updatedParty.some(p => p.id === target.id);
+                                    const previousHP = targetIsPlayer 
+                                        ? updatedParty.find(p => p.id === target.id)?.hp.current 
+                                        : updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId)?.hp.current;
+                                    
+                                if (targetIsPlayer) {
+                                        updatedParty = updatedParty.map(p => {
+                                            if (p.id === target.id) {
+                                                const updated = { ...p, hp: { ...p.hp, current: Math.max(0, p.hp.current - roll.totalResult) } };
+                                                return validateAndClampHP(updated);
+                                            }
+                                            return p;
+                                        });
+                                } else {
+                                        updatedEnemies = updatedEnemies.map(e => {
+                                            if ((e as any).uniqueId === (target as any).uniqueId) {
+                                                const updated = { ...e, hp: { ...e.hp, current: Math.max(0, e.hp.current - roll.totalResult) } };
+                                                return validateAndClampHP(updated);
+                                            }
+                                            return e;
+                                        });
+                                    }
+                                    
+                                    const newHP = targetIsPlayer 
+                                        ? updatedParty.find(p => p.id === target.id)?.hp.current 
+                                        : updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId)?.hp.current;
+                                    
+                                    // Check if target was killed by this damage
+                                    const targetKilled = newHP !== undefined && newHP <= 0;
+                                    
+                                    // Update roll with damage information
+                                    const rollIndex = diceRolls.length - 1;
+                                    diceRolls[rollIndex] = {
+                                        ...roll,
+                                        targetName: targetVisualName,
+                                        damageDealt: roll.totalResult,
+                                        targetKilled: targetKilled,
+                                    };
+                                    
+                                    messages.push({ 
+                                        sender: 'DM', 
+                                        content: `${activeCombatant.characterName} ha hecho ${roll.totalResult} puntos de daño a ${targetVisualName}${previousHP !== undefined && newHP !== undefined ? ` (${previousHP} → ${newHP} HP)` : ''}.` 
+                                    });
+                                    
+                                    log.debug('Damage applied', {
+                                        module: 'CombatManager',
+                                        target: targetVisualName,
+                                        damage: roll.totalResult,
+                                        previousHP,
+                                        newHP,
+                                        targetKilled,
+                                    });
+                                    
+                                    // Check if target was defeated
+                                    if (targetKilled) {
+                                        messages.push({
+                                            sender: 'DM',
+                                            content: `¡${activeCombatant.characterName} ha matado a ${targetVisualName}!`
+                                        });
+                                        localLog(`${activeCombatant.characterName} killed ${targetVisualName}!`);
+                                    }
+                                    
+                                    // Check if combat has ended after applying damage
+                                    localLog('checkEndOfCombat: Checking for end of combat...');
+                                    const combatCheck = checkEndOfCombat(updatedParty, updatedEnemies);
+                                    if (combatCheck.combatEnded) {
+                                        localLog(`checkEndOfCombat: End of combat detected! [Razón: ${combatCheck.reason}]`);
+                                        if (combatCheck.reason === 'Todos los enemigos derrotados') {
+                                            messages.push({ sender: 'DM', content: '¡Victoria! Todos los enemigos han sido derrotados.' });
+                                        } else if (combatCheck.reason === 'Todos los aliados derrotados') {
+                                            messages.push({ sender: 'DM', content: '¡Derrota! Todos los aliados han caído en combate.' });
+                                        }
+                                        // Mark combat as ended and break out of the roll loop
+                                        combatHasEnded = true;
+                                        break;
+                                    }
                                 }
-                            } else if (roll.description.toLowerCase().includes('healing')) {
+                                // Process healing roll
+                                else if (rollDescription.includes('healing') || rollDescription.includes('curación') || rollDescription.includes('cura')) {
+                                    // Validate healing is positive
+                                    if (roll.totalResult <= 0) {
+                                        log.warn('Healing roll resulted in non-positive healing', {
+                                            module: 'CombatManager',
+                                            healing: roll.totalResult,
+                                            roller: activeCombatant.characterName,
+                                        });
+                                        messages.push({ 
+                                            sender: 'DM', 
+                                            content: `${activeCombatant.characterName} intenta curar a ${targetVisualName}, pero no tiene efecto.` 
+                                        });
+                                        continue;
+                                    }
+                                    
                                 const targetIsPlayer = updatedParty.some(p => p.id === target.id);
                                     if (targetIsPlayer) {
-                                    updatedParty = updatedParty.map(p => p.id === target.id ? { ...p, hp: { ...p.hp, current: Math.min(p.hp.max, p.hp.current + roll.totalResult) } } : p);
-                                    messages.push({ sender: 'DM', content: `${target.name} is healed for ${roll.totalResult} points.` });
+                                        const previousHP = updatedParty.find(p => p.id === target.id)?.hp.current;
+                                        const wasUnconscious = previousHP !== undefined && previousHP <= 0;
+                                        
+                                        updatedParty = updatedParty.map(p => {
+                                            if (p.id === target.id) {
+                                                const updated = { 
+                                                    ...p, 
+                                                    hp: { ...p.hp, current: Math.min(p.hp.max, p.hp.current + roll.totalResult) },
+                                                    isDead: false // Curación revive personajes inconscientes
+                                                };
+                                                return validateAndClampHP(updated);
+                                            }
+                                            return p;
+                                        });
+                                        const newHP = updatedParty.find(p => p.id === target.id)?.hp.current;
+                                        
+                                        // Update roll with healing information
+                                        const rollIndex = diceRolls.length - 1;
+                                        diceRolls[rollIndex] = {
+                                            ...roll,
+                                            targetName: targetVisualName,
+                                            healingAmount: roll.totalResult,
+                                        };
+                                        
+                                        // Narrativa de revivencia si el personaje estaba inconsciente
+                                        if (wasUnconscious && newHP !== undefined && newHP > 0) {
+                                            messages.push({ 
+                                                sender: 'DM', 
+                                                content: `${targetVisualName} recupera la consciencia gracias a la curación recibida.` 
+                                            });
+                                        }
+                                        
+                                        messages.push({ 
+                                            sender: 'DM', 
+                                            content: `${targetVisualName} es curado por ${roll.totalResult} puntos${previousHP !== undefined && newHP !== undefined ? ` (${previousHP} → ${newHP} HP)` : ''}.` 
+                                        });
+                                        
+                                        log.debug('Healing applied', {
+                                            module: 'CombatManager',
+                                            target: targetVisualName,
+                                            healing: roll.totalResult,
+                                            previousHP,
+                                            newHP,
+                                        });
+                                    } else {
+                                        // Healing enemies is possible but less common
+                                        const previousHP = updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId)?.hp.current;
+                                        updatedEnemies = updatedEnemies.map(e => {
+                                            if ((e as any).uniqueId === (target as any).uniqueId) {
+                                                const updated = { ...e, hp: { ...e.hp, current: Math.min(e.hp.max, e.hp.current + roll.totalResult) } };
+                                                return validateAndClampHP(updated);
+                                            }
+                                            return e;
+                                        });
+                                        const newHP = updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId)?.hp.current;
+                                        
+                                        // Update roll with healing information
+                                        const rollIndex = diceRolls.length - 1;
+                                        diceRolls[rollIndex] = {
+                                            ...roll,
+                                            targetName: targetVisualName,
+                                            healingAmount: roll.totalResult,
+                                        };
+                                        
+                                        messages.push({ 
+                                            sender: 'DM', 
+                                            content: `${targetVisualName} es curado por ${roll.totalResult} puntos${previousHP !== undefined && newHP !== undefined ? ` (${previousHP} → ${newHP} HP)` : ''}.` 
+                                        });
+                                        
+                                        log.debug('Healing applied to enemy', {
+                                            module: 'CombatManager',
+                                            target: targetVisualName,
+                                            healing: roll.totalResult,
+                                            previousHP,
+                                            newHP,
+                                        });
+                                    }
+                                    // Note: We don't check for end of combat after healing, as healing shouldn't end combat
                                 }
-                                // Note: We don't check for end of combat after healing, as healing shouldn't end combat
+                            } catch (error: any) {
+                                // Handle errors gracefully
+                                log.error('Error processing dice roll', {
+                                    module: 'CombatManager',
+                                    roller: activeCombatant.characterName,
+                                    rollData,
+                                    error: error.message,
+                                }, error);
+                                
+                                messages.push({ 
+                                    sender: 'DM', 
+                                    content: `${activeCombatant.characterName} intenta realizar una acción, pero algo sale mal.` 
+                                });
+                                
+                                // Continue with next roll instead of breaking
+                                continue;
                             }
                         }
                     } else { localLog(`Could not find target combatant with id: "${targetId}"`); }
@@ -908,8 +1779,8 @@ export const combatManagerTool = ai.defineTool(
                 
                 // Only advance turn if combat hasn't ended
                 if (!combatHasEnded) {
-                    currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
-                    activeCombatant = initiativeOrder[currentTurnIndex];
+                currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
+                activeCombatant = initiativeOrder[currentTurnIndex];
                 }
             }
             
@@ -942,9 +1813,40 @@ export const combatManagerTool = ai.defineTool(
         const combatantData: any[] = [];
         for (const id of combatantIds) {
             let found = party.find(p => p.id === id);
-            if (found) { combatantData.push({ ...found, entityType: 'player', name: found.name, controlledBy: found.controlledBy }); continue; }
+            if (found) {
+                // Issue #27: Verificar HP antes de incluir en combate
+                if (found.hp && found.hp.current > 0) {
+                    combatantData.push({ ...found, entityType: 'player', name: found.name, controlledBy: found.controlledBy });
+                } else {
+                    log.debug('Skipping dead party member in combat initiation', {
+                        module: 'CombatManager',
+                        characterName: found.name,
+                        hp: found.hp?.current || 0,
+                    });
+                }
+                continue;
+            }
             found = allEntities.find((e: any) => e.id === id);
-            if (found) combatantData.push({ ...found, entityType: 'monster', name: found.name, controlledBy: 'AI' });
+            if (found) {
+                // Issue #27: Verificar si el enemigo ya existe en updatedEnemies y está muerto
+                // Si no existe en updatedEnemies, asumir vivo (nuevo enemigo)
+                const existingEnemy = updatedEnemies.find((e: any) => e.id === id || (e as any).uniqueId === id);
+                if (!existingEnemy || (existingEnemy.hp && existingEnemy.hp.current > 0)) {
+                    combatantData.push({ ...found, entityType: 'monster', name: found.name, controlledBy: 'AI' });
+                } else {
+                    log.debug('Skipping dead enemy in combat initiation', {
+                        module: 'CombatManager',
+                        enemyId: id,
+                        hp: existingEnemy.hp?.current || 0,
+                    });
+                }
+            } else {
+                log.warn('Combatant ID not found in entities', {
+                    module: 'CombatManager',
+                    combatantId: id,
+                    availableEntityIds: allEntities.map((e: any) => e.id),
+                });
+            }
         }
         const hostileEntities = combatantData.filter(c => c.entityType === 'monster');
         if (hostileEntities.length === 0) {
@@ -953,12 +1855,19 @@ export const combatManagerTool = ai.defineTool(
         }
         messages.push({ sender: 'System', content: `¡Comienza el Combate!` });
         // Generate uniqueIds for enemies based on their base name (extract from id if it has dashes)
-        // This ensures consistent uniqueIds like "goblin-0", "goblin-1" instead of "goblin-2-0", "goblin-2-1"
-        const initialEnemies = hostileEntities.map((e: any, index: number) => {
+        // This ensures consistent uniqueIds like "goblin-0", "goblin-1", "orco-0" instead of using array index
+        // Group enemies by base name and number them within each group
+        const enemyGroups = new Map<string, number>(); // Map<baseName, currentIndex>
+        const initialEnemies = hostileEntities.map((e: any) => {
             // Extract base name from id (remove any existing numeric suffix)
-            // e.g., "goblin-2" -> "goblin", "goblin" -> "goblin"
+            // e.g., "goblin-2" -> "goblin", "goblin" -> "goblin", "orco-1" -> "orco"
             const baseId = e.id.split('-').slice(0, -1).join('-') || e.id.split('-')[0] || e.id;
-            const uniqueId = `${baseId}-${index}`;
+            
+            // Get or initialize the index for this base name
+            const currentIndex = enemyGroups.get(baseId) || 0;
+            enemyGroups.set(baseId, currentIndex + 1);
+            
+            const uniqueId = `${baseId}-${currentIndex}`;
             return { ...e, uniqueId };
         });
         const combatantsForInit = [ ...combatantData.filter(c => c.entityType === 'player'), ...initialEnemies.map(e => ({...e, id: e.uniqueId })) ];
@@ -1018,34 +1927,78 @@ export const combatManagerTool = ai.defineTool(
         // If hp or ac are missing, fetch from D&D API
         updatedEnemies = [];
         for (const enemy of initialEnemies) {
-            let hp = enemy.hp;
+            let hpValue: number | undefined;
+            let hpMax: number | undefined;
             let ac = enemy.ac;
             
+            // Handle hp: can be a number or an object { current: number, max: number }
+            if (enemy.hp !== undefined && enemy.hp !== null) {
+                if (typeof enemy.hp === 'number') {
+                    // HP is a single number, use it for both current and max
+                    hpValue = enemy.hp;
+                    hpMax = enemy.hp;
+                } else if (typeof enemy.hp === 'object' && 'current' in enemy.hp && 'max' in enemy.hp) {
+                    // HP is an object with current and max
+                    hpValue = typeof enemy.hp.current === 'number' ? enemy.hp.current : undefined;
+                    hpMax = typeof enemy.hp.max === 'number' ? enemy.hp.max : undefined;
+                }
+            }
+            
             // If hp or ac are missing, try to fetch from D&D API
-            if (hp === undefined || hp === null || ac === undefined || ac === null) {
+            if (hpValue === undefined || hpMax === undefined || ac === undefined || ac === null) {
                 localLog(`Enemy ${enemy.name} missing hp or ac, fetching from D&D API...`);
                 const stats = await getMonsterStatsFromDndApi(enemy.name);
                 
                 if (stats) {
-                    hp = hp !== undefined && hp !== null ? hp : stats.hp;
+                    // Use fetched stats if we don't have them
+                    hpValue = hpValue !== undefined ? hpValue : stats.hp;
+                    hpMax = hpMax !== undefined ? hpMax : stats.hp;
                     ac = ac !== undefined && ac !== null ? ac : stats.ac;
-                    localLog(`Fetched stats for ${enemy.name}: HP=${hp}, AC=${ac}`);
+                    localLog(`Fetched stats for ${enemy.name}: HP=${hpMax}, AC=${ac}`);
                 } else {
                     // Use defaults if API lookup fails
-                    hp = hp !== undefined && hp !== null ? hp : 10;
+                    hpValue = hpValue !== undefined ? hpValue : 10;
+                    hpMax = hpMax !== undefined ? hpMax : 10;
                     ac = ac !== undefined && ac !== null ? ac : 10;
-                    localLog(`Using default stats for ${enemy.name}: HP=${hp}, AC=${ac}`);
+                    localLog(`Using default stats for ${enemy.name}: HP=${hpMax}, AC=${ac}`);
                 }
             }
             
-            updatedEnemies.push({
+            // Ensure we have valid values (should always be true at this point, but double-check)
+            if (hpValue === undefined || hpMax === undefined) {
+                log.warn('Enemy HP still undefined after all attempts, using defaults', {
+                    module: 'CombatManager',
+                    enemyName: enemy.name,
+                    enemyId: enemy.id,
+                });
+                hpValue = 10;
+                hpMax = 10;
+            }
+            
+            if (ac === undefined || ac === null) {
+                log.warn('Enemy AC still undefined after all attempts, using default', {
+                    module: 'CombatManager',
+                    enemyName: enemy.name,
+                    enemyId: enemy.id,
+                });
+                ac = 10;
+            }
+            
+            // Create enemy with validated HP
+            // IMPORTANT: Use uniqueId as id to maintain consistency with initiativeOrder
+            // The original id from JSON is preserved in the enemy object but not used as the primary identifier
+            const newEnemy = {
                 uniqueId: enemy.uniqueId,
-                id: enemy.id,
+                id: enemy.uniqueId, // Use uniqueId as id to match initiativeOrder
                 name: enemy.name,
                 color: '#ef4444',
-                hp: { current: hp, max: hp },
+                hp: { current: hpValue, max: hpMax },
                 ac: ac,
-            });
+            };
+            
+            // Validate and clamp HP before adding to array
+            const validatedEnemy = validateAndClampHP(newEnemy);
+            updatedEnemies.push(validatedEnemy);
         }
         
         // Generate narrative BEFORE processing combat turns (so it appears first in the chat)
@@ -1160,6 +2113,36 @@ export const combatManagerTool = ai.defineTool(
             localLog(`Processing turn for AI combatant ${activeCombatant.characterName} at index ${currentTurnIndex}...`);
             
             const isCompanion = updatedParty.some(p => p.id === activeCombatant.id);
+            
+            // Issue #27: Check if active combatant is dead/unconscious - skip their turn if so
+            const activeCombatantDataInit = isCompanion 
+                ? updatedParty.find(p => p.id === activeCombatant.id)
+                : updatedEnemies.find(e => (e as any).uniqueId === activeCombatant.id);
+            
+            if (activeCombatantDataInit && isUnconsciousOrDead(activeCombatantDataInit)) {
+                log.debug('Skipping turn for dead/unconscious combatant (init)', {
+                    module: 'CombatManager',
+                    combatant: activeCombatant.characterName,
+                    hp: activeCombatantDataInit.hp.current,
+                    isDead: activeCombatantDataInit.isDead,
+                });
+                
+                // Mensaje apropiado según estado
+                const statusMessage = activeCombatantDataInit.isDead === true 
+                    ? `${activeCombatant.characterName} está muerto y no puede actuar.`
+                    : `${activeCombatant.characterName} está inconsciente y no puede actuar.`;
+                
+                messages.push({
+                    sender: 'DM',
+                    content: statusMessage
+                });
+                
+                // Advance to next turn
+                currentTurnIndex = (currentTurnIndex + 1) % newInitiativeOrder.length;
+                activeCombatant = newInitiativeOrder[currentTurnIndex];
+                continue;
+            }
+            
             let tacticianResponse;
 
             // Get visual names for enemies to pass to tacticians
@@ -1173,10 +2156,23 @@ export const combatManagerTool = ai.defineTool(
                 });
             }
 
+            // Filter out dead combatants before passing to tactician (Issue #18)
+            const alivePartyInit = updatedParty.filter(p => p.hp.current > 0);
+            const aliveEnemiesInit = updatedEnemies.filter(e => e.hp.current > 0);
+            
+            log.debug('Filtering dead combatants for tactician (init)', {
+                module: 'CombatManager',
+                activeCombatant: activeCombatant.characterName,
+                totalParty: updatedParty.length,
+                aliveParty: alivePartyInit.length,
+                totalEnemies: updatedEnemies.length,
+                aliveEnemies: aliveEnemiesInit.length,
+            });
+            
             const baseTacticianInput = {
                 activeCombatant: activeCombatant.characterName,
-                party: updatedParty,
-                enemies: updatedEnemies.map(e => ({ 
+                party: alivePartyInit,
+                enemies: aliveEnemiesInit.map(e => ({ 
                     name: enemyVisualNamesInit.get(e.uniqueId) || e.name, // Use visual name
                     id: e.uniqueId, 
                     hp: getHpStatus(e.hp.current, e.hp.max) 
@@ -1295,49 +2291,436 @@ export const combatManagerTool = ai.defineTool(
                         updatedEnemies
                     );
                     
-                    localLog(`Found target: ${targetVisualName}`);
-                    for (const rollData of requestedRolls) {
-                        const roll = await diceRollerTool({ ...rollData, roller: activeCombatant.characterName });
-                        diceRolls.push(roll);
-
-                        if (roll.description.toLowerCase().includes('attack')) {
-                            if (roll.totalResult >= target.ac) {
-                                messages.push({ sender: 'DM', content: `${activeCombatant.characterName} ataca a ${targetVisualName} y acierta.` });
-                            } else {
-                                messages.push({ sender: 'DM', content: `${activeCombatant.characterName} ataca a ${targetVisualName}, pero falla.` });
-                                break; // No damage if attack misses
-                            }
-                        } else if (roll.description.toLowerCase().includes('damage')) {
-                            const targetIsPlayer = updatedParty.some(p => p.id === target.id);
-                            if (targetIsPlayer) {
-                                updatedParty = updatedParty.map(p => p.id === target.id ? { ...p, hp: { ...p.hp, current: Math.max(0, p.hp.current - roll.totalResult) } } : p);
-                            } else {
-                                updatedEnemies = updatedEnemies.map(e => (e as any).uniqueId === (target as any).uniqueId ? { ...e, hp: { ...e.hp, current: Math.max(0, e.hp.current - roll.totalResult) } } : e);
-                            }
-                            messages.push({ sender: 'DM', content: `It deals ${roll.totalResult} damage.` });
-                            
-                            // Check if combat has ended after applying damage
-                            localLog('checkEndOfCombat: Checking for end of combat...');
-                            const combatCheck = checkEndOfCombat(updatedParty, updatedEnemies);
-                            if (combatCheck.combatEnded) {
-                                localLog(`checkEndOfCombat: End of combat detected! [Razón: ${combatCheck.reason}]`);
-                                if (combatCheck.reason === 'Todos los enemigos derrotados') {
-                                    messages.push({ sender: 'DM', content: '¡Victoria! Todos los enemigos han sido derrotados.' });
-                                } else if (combatCheck.reason === 'Todos los aliados derrotados') {
-                                    messages.push({ sender: 'DM', content: '¡Derrota! Todos los aliados han caído en combate.' });
+                        localLog(`Found target: ${targetVisualName}`);
+                        
+                        // Track attack result to ensure damage only applies if attack hits
+                        let attackHit = false;
+                        let attackRoll: any = null;
+                        
+                        // Log what rolls the tactician requested
+                        log.debug('Processing rolls for AI combatant', {
+                            module: 'CombatManager',
+                            combatant: activeCombatant.characterName,
+                            rollsCount: requestedRolls.length,
+                            rollDescriptions: requestedRolls.map((r: any) => r.description),
+                        });
+                        
+                        // Process rolls in order: attack first, then damage/healing
+                        for (const rollData of requestedRolls) {
+                            try {
+                                const roll = await diceRollerTool({ ...rollData, roller: activeCombatant.characterName });
+                                diceRolls.push(roll);
+                                
+                                const rollDescription = (roll.description || '').toLowerCase();
+                                // Extract attackType from rollData (provided by AI tactician)
+                                const attackType = (rollData as any).attackType;
+                                
+                                // Fallback to keyword detection if attackType is not provided (for backward compatibility)
+                                const isSavingThrowFromKeywords = rollDescription.includes('saving') || rollDescription.includes('salvación') || 
+                                                     rollDescription.includes('save') || rollDescription.includes('salvacion');
+                                
+                                // Determine if this is a saving throw spell (prefer explicit attackType, fallback to keywords)
+                                const isSavingThrow = attackType === 'saving_throw' || (!attackType && isSavingThrowFromKeywords);
+                                
+                                log.debug('Processing individual roll', {
+                                    module: 'CombatManager',
+                                    combatant: activeCombatant.characterName,
+                                    description: roll.description,
+                                    attackType: attackType || 'not specified',
+                                    isAttack: rollDescription.includes('attack') || rollDescription.includes('ataque'),
+                                    isDamage: rollDescription.includes('damage') || rollDescription.includes('daño'),
+                                    isHealing: rollDescription.includes('healing') || rollDescription.includes('curación') || rollDescription.includes('cura'),
+                                    isSavingThrow: isSavingThrow,
+                                });
+                                
+                                // Process attack roll (check both English and Spanish)
+                                if (rollDescription.includes('attack') || rollDescription.includes('ataque')) {
+                                    attackRoll = roll;
+                                    
+                                    // Validate target AC exists
+                                    let finalTargetAC: number;
+                                    if (target.ac === undefined || target.ac === null) {
+                                        log.warn('Attack roll processed but target AC is missing', {
+                                            module: 'CombatManager',
+                                            targetId: target.id,
+                                            targetName: targetVisualName,
+                                            roller: activeCombatant.characterName,
+                                        });
+                                        // Use default AC if missing
+                                        finalTargetAC = 10;
+                                    } else {
+                                        // Validate AC is a number
+                                        const targetAC = typeof target.ac === 'number' ? target.ac : parseInt(String(target.ac), 10);
+                                        if (isNaN(targetAC)) {
+                                            log.warn('Target AC is not a valid number, using default', {
+                                                module: 'CombatManager',
+                                                targetId: target.id,
+                                                targetAC: target.ac,
+                                            });
+                                            finalTargetAC = 10;
+                                        } else {
+                                            finalTargetAC = targetAC;
+                                        }
+                                    }
+                                    
+                                    attackHit = roll.totalResult >= finalTargetAC;
+                                    
+                                    // Update roll with combat information
+                                    const rollIndex = diceRolls.length - 1;
+                                    const updatedRoll = {
+                                        ...roll,
+                                        targetName: targetVisualName,
+                                        targetAC: finalTargetAC,
+                                        attackHit: attackHit,
+                                        outcome: attackHit ? (roll.outcome === 'crit' ? 'crit' : 'success') : (roll.outcome === 'pifia' ? 'pifia' : 'fail'),
+                                    };
+                                    diceRolls[rollIndex] = updatedRoll;
+                                    
+                                    log.debug('Updated attack roll with combat information', {
+                                        module: 'CombatManager',
+                                        roller: activeCombatant.characterName,
+                                        targetName: targetVisualName,
+                                        targetAC: finalTargetAC,
+                                        attackHit: attackHit,
+                                        outcome: updatedRoll.outcome,
+                                        rollTotal: roll.totalResult,
+                                    });
+                                    
+                                    if (attackHit) {
+                                        // Check for crit
+                                        if (roll.outcome === 'crit') {
+                                            messages.push({ 
+                                                sender: 'DM', 
+                                                content: `¡${activeCombatant.characterName} ataca a ${targetVisualName} con un golpe crítico!` 
+                                            });
+                                        } else {
+                                            messages.push({ 
+                                                sender: 'DM', 
+                                                content: `${activeCombatant.characterName} ataca a ${targetVisualName} y acierta (${roll.totalResult} vs AC ${finalTargetAC}).` 
+                                            });
+                                        }
+                                        log.debug('Attack hit', {
+                                            module: 'CombatManager',
+                                            rollTotal: roll.totalResult,
+                                            targetAC: finalTargetAC,
+                                            isCrit: roll.outcome === 'crit',
+                                        });
+                                    } else {
+                                        // Check for pifia
+                                        if (roll.outcome === 'pifia') {
+                                            messages.push({ 
+                                                sender: 'DM', 
+                                                content: `¡${activeCombatant.characterName} falla estrepitosamente al atacar a ${targetVisualName}! (Pifia: ${roll.totalResult} vs AC ${finalTargetAC})` 
+                                            });
+                                        } else {
+                                            messages.push({ 
+                                                sender: 'DM', 
+                                                content: `${activeCombatant.characterName} ataca a ${targetVisualName}, pero falla (${roll.totalResult} vs AC ${finalTargetAC}).` 
+                                            });
+                                        }
+                                        log.debug('Attack missed', {
+                                            module: 'CombatManager',
+                                            rollTotal: roll.totalResult,
+                                            targetAC: finalTargetAC,
+                                            isPifia: roll.outcome === 'pifia',
+                                        });
+                                    }
+                                    
+                                    // If attack missed, skip damage rolls
+                                    if (!attackHit) {
+                                        log.debug('Attack missed, skipping damage rolls', {
+                                            module: 'CombatManager',
+                                        });
+                                        break; // No damage if attack misses
+                                    }
                                 }
-                                // Mark combat as ended and break out of the roll loop
-                                combatHasEnded = true;
-                                break;
-                            }
-                        } else if (roll.description.toLowerCase().includes('healing')) {
-                            const targetIsPlayer = updatedParty.some(p => p.id === target.id);
-                            if (targetIsPlayer) {
-                                updatedParty = updatedParty.map(p => p.id === target.id ? { ...p, hp: { ...p.hp, current: Math.min(p.hp.max, p.hp.current + roll.totalResult) } } : p);
-                                messages.push({ sender: 'DM', content: `${target.name} is healed for ${roll.totalResult} points.` });
+                                // Process damage roll (only if attack hit or it's a saving throw spell)
+                                else if (rollDescription.includes('damage') || rollDescription.includes('daño')) {
+                                    // Determine if this is a saving throw spell using attackType (preferred) or keywords (fallback)
+                                    const isSavingThrowSpell = isSavingThrow;
+                                    
+                                    // Validate that attack hit first (unless it's a saving throw spell)
+                                    if (attackRoll === null && !isSavingThrowSpell) {
+                                        log.warn('Damage roll without prior attack roll - SKIPPING', {
+                                            module: 'CombatManager',
+                                            roller: activeCombatant.characterName,
+                                            rollDescription: roll.description,
+                                            attackType: attackType || 'not specified',
+                                        });
+                                        // Remove the invalid roll from the array
+                                        diceRolls.pop();
+                                        continue; // Skip damage if there was no attack roll
+                                    }
+                                    
+                                    if (!attackHit && !isSavingThrowSpell) {
+                                        log.debug('Skipping damage roll because attack missed', {
+                                            module: 'CombatManager',
+                                            roller: activeCombatant.characterName,
+                                            attackTotal: attackRoll?.totalResult,
+                                            targetAC: target.ac,
+                                        });
+                                        // Remove the invalid roll from the array
+                                        diceRolls.pop();
+                                        continue; // Skip damage if attack didn't hit
+                                    }
+                                    
+                                    // Log if this is a saving throw spell
+                                    if (isSavingThrowSpell) {
+                                        log.debug('Processing saving throw spell damage', {
+                                            module: 'CombatManager',
+                                            roller: activeCombatant.characterName,
+                                            targetName: targetVisualName,
+                                            damage: roll.totalResult,
+                                            attackType: attackType,
+                                        });
+                                    }
+                                    
+                                    // Validate damage is positive
+                                    if (roll.totalResult <= 0) {
+                                        log.warn('Damage roll resulted in non-positive damage', {
+                                            module: 'CombatManager',
+                                            damage: roll.totalResult,
+                                            roller: activeCombatant.characterName,
+                                        });
+                                        messages.push({ 
+                                            sender: 'DM', 
+                                            content: `${activeCombatant.characterName} intenta hacer daño a ${targetVisualName}, pero no causa ningún daño.` 
+                                        });
+                                        continue;
+                                    }
+                                    
+                                    const targetIsPlayer = updatedParty.some(p => p.id === target.id);
+                                    const previousHP = targetIsPlayer 
+                                        ? updatedParty.find(p => p.id === target.id)?.hp.current 
+                                        : updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId)?.hp.current;
+                                    
+                                    const damage = roll.totalResult;
+                                    
+                                    if (targetIsPlayer) {
+                                        // Para jugador/compañeros: aplicar regla de muerte masiva D&D 5e
+                                        updatedParty = updatedParty.map(p => {
+                                            if (p.id === target.id) {
+                                                const targetHP = p.hp.current;
+                                                const targetHPMax = p.hp.max;
+                                                
+                                                // Regla de muerte masiva: daño restante (después de llegar a 0) >= hpMax
+                                                // Fórmula: daño restante = damage - hp.current
+                                                const remainingDamage = damage - targetHP;
+                                                
+                                                if (remainingDamage >= targetHPMax) {
+                                                    // Muerte instantánea
+                                                    messages.push({
+                                                        sender: 'DM',
+                                                        content: `${p.name} ha recibido un golpe devastador y muere instantáneamente.`,
+                                                    });
+                                                    const updated = { 
+                                                        ...p, 
+                                                        hp: { current: 0, max: targetHPMax },
+                                                        isDead: true 
+                                                    };
+                                                    return validateAndClampHP(updated);
+                                                } else {
+                                                    // Daño normal: puede llegar a 0 (inconsciente) pero no muere
+                                                    const newHP = Math.max(0, targetHP - damage);
+                                                    
+                                                    if (newHP === 0 && targetHP > 0) {
+                                                        // Acaba de caer inconsciente
+                                                        messages.push({
+                                                            sender: 'DM',
+                                                            content: `${p.name} cae inconsciente.`,
+                                                        });
+                                                    }
+                                                    
+                                                    const updated = { 
+                                                        ...p, 
+                                                        hp: { current: newHP, max: targetHPMax },
+                                                        isDead: false
+                                                    };
+                                                    return validateAndClampHP(updated);
+                                                }
+                                            }
+                                            return p;
+                                        });
+                                    } else {
+                                        // Para enemigos, mantener comportamiento actual
+                                        updatedEnemies = updatedEnemies.map(e => {
+                                            if ((e as any).uniqueId === (target as any).uniqueId) {
+                                                const updated = { ...e, hp: { ...e.hp, current: Math.max(0, e.hp.current - damage) } };
+                                                return validateAndClampHP(updated);
+                                            }
+                                            return e;
+                                        });
+                                    }
+                                    
+                                    const newHP = targetIsPlayer 
+                                        ? updatedParty.find(p => p.id === target.id)?.hp.current 
+                                        : updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId)?.hp.current;
+                                    
+                                    // Check if target was killed by this damage
+                                    const targetKilled = newHP !== undefined && newHP <= 0;
+                                    
+                                    // Update roll with damage information
+                                    const rollIndex = diceRolls.length - 1;
+                                    diceRolls[rollIndex] = {
+                                        ...roll,
+                                        targetName: targetVisualName,
+                                        damageDealt: roll.totalResult,
+                                        targetKilled: targetKilled,
+                                    };
+                                    
+                                    messages.push({ 
+                                        sender: 'DM', 
+                                        content: `${activeCombatant.characterName} ha hecho ${roll.totalResult} puntos de daño a ${targetVisualName}${previousHP !== undefined && newHP !== undefined ? ` (${previousHP} → ${newHP} HP)` : ''}.` 
+                                    });
+                                    
+                                    log.debug('Damage applied', {
+                                        module: 'CombatManager',
+                                        target: targetVisualName,
+                                        damage: roll.totalResult,
+                                        previousHP,
+                                        newHP,
+                                        targetKilled,
+                                    });
+                                    
+                                    // Check if target was defeated
+                                    if (targetKilled) {
+                                        messages.push({
+                                            sender: 'DM',
+                                            content: `¡${activeCombatant.characterName} ha matado a ${targetVisualName}!`
+                                        });
+                                        localLog(`${activeCombatant.characterName} killed ${targetVisualName}!`);
+                                    }
+                                    
+                                    // Check if combat has ended after applying damage
+                                    localLog('checkEndOfCombat: Checking for end of combat...');
+                                    const combatCheck = checkEndOfCombat(updatedParty, updatedEnemies);
+                                    if (combatCheck.combatEnded) {
+                                        localLog(`checkEndOfCombat: End of combat detected! [Razón: ${combatCheck.reason}]`);
+                                        if (combatCheck.reason === 'Todos los enemigos derrotados') {
+                                            messages.push({ sender: 'DM', content: '¡Victoria! Todos los enemigos han sido derrotados.' });
+                                        } else if (combatCheck.reason === 'Todos los aliados derrotados') {
+                                            messages.push({ sender: 'DM', content: '¡Derrota! Todos los aliados han caído en combate.' });
+                                        }
+                                        // Mark combat as ended and break out of the roll loop
+                                        combatHasEnded = true;
+                                        break;
+                                    }
+                                }
+                                // Process healing roll
+                                else if (rollDescription.includes('healing') || rollDescription.includes('curación') || rollDescription.includes('cura')) {
+                                    // Validate healing is positive
+                                    if (roll.totalResult <= 0) {
+                                        log.warn('Healing roll resulted in non-positive healing', {
+                                            module: 'CombatManager',
+                                            healing: roll.totalResult,
+                                            roller: activeCombatant.characterName,
+                                        });
+                                        messages.push({ 
+                                            sender: 'DM', 
+                                            content: `${activeCombatant.characterName} intenta curar a ${targetVisualName}, pero no tiene efecto.` 
+                                        });
+                                        continue;
+                                    }
+                                    
+                                    const targetIsPlayer = updatedParty.some(p => p.id === target.id);
+                                    if (targetIsPlayer) {
+                                        const previousHP = updatedParty.find(p => p.id === target.id)?.hp.current;
+                                        const wasUnconscious = previousHP !== undefined && previousHP <= 0;
+                                        
+                                        updatedParty = updatedParty.map(p => {
+                                            if (p.id === target.id) {
+                                                const updated = { 
+                                                    ...p, 
+                                                    hp: { ...p.hp, current: Math.min(p.hp.max, p.hp.current + roll.totalResult) },
+                                                    isDead: false // Curación revive personajes inconscientes
+                                                };
+                                                return validateAndClampHP(updated);
+                                            }
+                                            return p;
+                                        });
+                                        const newHP = updatedParty.find(p => p.id === target.id)?.hp.current;
+                                        
+                                        // Update roll with healing information
+                                        const rollIndex = diceRolls.length - 1;
+                                        diceRolls[rollIndex] = {
+                                            ...roll,
+                                            targetName: targetVisualName,
+                                            healingAmount: roll.totalResult,
+                                        };
+                                        
+                                        // Narrativa de revivencia si el personaje estaba inconsciente
+                                        if (wasUnconscious && newHP !== undefined && newHP > 0) {
+                                            messages.push({ 
+                                                sender: 'DM', 
+                                                content: `${targetVisualName} recupera la consciencia gracias a la curación recibida.` 
+                                            });
+                                        }
+                                        
+                                        messages.push({ 
+                                            sender: 'DM', 
+                                            content: `${targetVisualName} es curado por ${roll.totalResult} puntos${previousHP !== undefined && newHP !== undefined ? ` (${previousHP} → ${newHP} HP)` : ''}.` 
+                                        });
+                                        
+                                        log.debug('Healing applied', {
+                                            module: 'CombatManager',
+                                            target: targetVisualName,
+                                            healing: roll.totalResult,
+                                            previousHP,
+                                            newHP,
+                                        });
+                                    } else {
+                                        // Healing enemies is possible but less common
+                                        const previousHP = updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId)?.hp.current;
+                                        updatedEnemies = updatedEnemies.map(e => {
+                                            if ((e as any).uniqueId === (target as any).uniqueId) {
+                                                const updated = { ...e, hp: { ...e.hp, current: Math.min(e.hp.max, e.hp.current + roll.totalResult) } };
+                                                return validateAndClampHP(updated);
+                                            }
+                                            return e;
+                                        });
+                                        const newHP = updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId)?.hp.current;
+                                        
+                                        // Update roll with healing information
+                                        const rollIndex = diceRolls.length - 1;
+                                        diceRolls[rollIndex] = {
+                                            ...roll,
+                                            targetName: targetVisualName,
+                                            healingAmount: roll.totalResult,
+                                        };
+                                        
+                                        messages.push({ 
+                                            sender: 'DM', 
+                                            content: `${targetVisualName} es curado por ${roll.totalResult} puntos${previousHP !== undefined && newHP !== undefined ? ` (${previousHP} → ${newHP} HP)` : ''}.` 
+                                        });
+                                        
+                                        log.debug('Healing applied to enemy', {
+                                            module: 'CombatManager',
+                                            target: targetVisualName,
+                                            healing: roll.totalResult,
+                                            previousHP,
+                                            newHP,
+                                        });
+                                    }
+                                    // Note: We don't check for end of combat after healing, as healing shouldn't end combat
+                                }
+                            } catch (error: any) {
+                                // Handle errors gracefully
+                                log.error('Error processing dice roll', {
+                                    module: 'CombatManager',
+                                    roller: activeCombatant.characterName,
+                                    rollData,
+                                    error: error.message,
+                                }, error);
+                                
+                                messages.push({ 
+                                    sender: 'DM', 
+                                    content: `${activeCombatant.characterName} intenta realizar una acción, pero algo sale mal.` 
+                                });
+                                
+                                // Continue with next roll instead of breaking
+                                continue;
                             }
                         }
-                    }
                 } else { localLog(`Could not find target combatant with id: "${targetId}"`); }
             } else if (!targetId) { localLog('Action had no targetId.'); }
             

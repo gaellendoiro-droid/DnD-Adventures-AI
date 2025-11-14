@@ -1,0 +1,481 @@
+==========================================================
+NOTAS DE DESARROLLO - D&D ADVENTURES AI
+==========================================================
+Última actualización: [14/11/25]
+
+LEYENDA DE CLASIFICACIÓN:
+  TIPOS DE IDEA:
+    [ISSUE] = Bug o problema que necesita corrección
+    [NUEVA FUNCIONALIDAD] = Feature nueva a implementar
+    [REVISION] = Revisar/mejorar funcionalidad existente
+    [DOCUMENTACION] = Tarea de documentación
+    [TESTING] = Tarea relacionada con pruebas
+
+  PRIORIDADES:
+    [PMA] = Prioridad Muy Alta
+    [PA] = Prioridad Alta
+    [PM] = Prioridad Media  
+    [PB] = Prioridad Baja
+    [PMB] = Prioridad Muy Baja
+
+  CATEGORÍAS:
+    [INTERFAZ DE USUARIO] = UI/UX, componentes visuales
+    [SISTEMA DE COMBATE] = Mecánicas de combate, turnos, acciones
+    [SISTEMA DE PERSONAJES] = Fichas, compañeros, estados de personajes
+    [SISTEMA DE AVENTURAS Y DATOS] = Aventuras JSON, datos, APIs
+    [CALIDAD Y PULIDO] = Testing, corrección ortográfica, logs
+
+  ESTADO DE DOCUMENTACIÓN:
+    [EN ROADMAP] = Ya documentado en docs/roadmap.md
+    [EN PLAN] = Ya documentado en docs/planes-desarrollo/
+    [SIN DOCUMENTAR] = Aún no está en documentación oficial
+
+==========================================================
+ISSUES (Bugs/Problemas)
+==========================================================
+
+--- PRIORIDAD MUY ALTA ---
+
+[#28] [ISSUE] [PMA] [SISTEMA DE PERSONAJES] [✅ RESUELTO]
+  Después de un combate, compañero muerto sigue reaccionando
+  └─ Después de un combate, uno de nuestros compañeros ha muerto sin embargo
+     sigue reaccionando a nuestros comentarios.
+  └─ El sistema debe verificar el estado de vida antes de generar reacciones.
+  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #26
+  └─ ✅ RESUELTO: Filtrado de compañeros muertos añadido en game-coordinator.ts y validación defensiva en companion-expert.ts
+
+--- PRIORIDAD ALTA ---
+
+[#29] [ISSUE] [PA] [SISTEMA DE COMBATE] [EN PLAN]
+  Verificación de muerte de personajes
+  └─ En combate y en cualquier momento tiene que comprobarse quien ha muerto
+     y quien sigue vivo.
+  └─ Si el jugador ha muerto, no puede actuar por lo que no se le debería
+     preguntar que quiere hacer.
+  └─ Si todo el grupo muere se debería mostrar una narración especial junto
+     con un mensaje de partida terminada o similar.
+  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #27
+
+--- PRIORIDAD MEDIA ---
+
+[#30] [ISSUE] [PM] [INTERFAZ DE USUARIO] [EN PLAN]
+  Visualización de barra de vida en panel Grupo
+  └─ En el panel Grupo cuando un personaje está seleccionado no se ve bien
+     el trozo de la barra de vida que está vacío.
+  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #28
+
+[#31] [ISSUE] [PM] [SISTEMA DE COMBATE] [EN PLAN]
+  Stats de enemigos incorrectos en combate
+  └─ En combate, comprobar que los stats de los enemigos se están obteniendo
+     correctamente.
+  └─ Cuando luchamos contra la mantícora parece que tiene menos HP de los
+     que debería tener según su ficha oficial de D&D.
+  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #29
+
+[#32] [ISSUE] [PM] [CALIDAD Y PULIDO] [EN PLAN]
+  Errores de conexión a APIs con logs verbosos
+  └─ Revisar los errores de conexión a las APIs y simplificar sus logs
+     para que no ocupen tanto en la terminal.
+  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #30
+
+--- PRIORIDAD BAJA ---
+
+[#02] [ISSUE] [PB] [INTERFAZ DE USUARIO] [EN PLAN]
+  Logs del navegador colapsados por defecto
+  └─ Hacer que los logs de estado en la consola del navegador 
+     aparezcan colapsados para una mejor legibilidad.
+  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #25
+
+[#33] [ISSUE] [PB] [SISTEMA DE COMBATE] [EN PLAN]
+  Gestión de ataques múltiples
+  └─ Comprobar la gestión de ataques múltiples (ej: la mantícora hace varios
+     ataques en su turno pero parece que el sistema solo tiene en cuenta 1).
+  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #31
+
+[#34] [ISSUE] [PB] [INTERFAZ DE USUARIO] [EN PLAN]
+  Paneles de combate se limpian de forma inconsistente
+  └─ Al terminar el combate el panel de orden de combate se limpia pero el
+     de tiradas no.
+  └─ Hacer que ningún panel se limpie e implementar un botón para poder
+     limpiarlos solo cuando estamos fuera de combate.
+  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #32
+
+--- PRIORIDAD MUY BAJA ---
+
+[#35] [ISSUE] [PMB] [CALIDAD Y PULIDO] [EN PLAN]
+  Logs muestran turnIndex cuando inCombat es false
+  └─ Los logs si el inCombat es false no deberían indicar el turnIndex.
+  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #33
+
+==========================================================
+NUEVAS FUNCIONALIDADES
+==========================================================
+
+--- PRIORIDAD MUY ALTA ---
+
+[#22] [NUEVA FUNCIONALIDAD] [PMA] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Sistema de turnos paso a paso (no por lote)
+  └─ ACTUALMENTE: El DM calcula todos los turnos hasta el jugador
+     y los muestra todos de golpe.
+  └─ MEJORA: El jugador debería poder pasar los turnos manualmente,
+     ejecutándose uno a uno en el servidor según se vayan pasando.
+  └─ Beneficios:
+     - Mayor control para el jugador
+     - Puede observar cada turno con detalle
+     - Más inmersivo y similar a D&D de mesa
+     - Permite reacciones entre turnos
+
+--- PRIORIDAD ALTA ---
+
+(Ninguna en esta sección)
+
+--- PRIORIDAD MEDIA ---
+
+[#04] [NUEVA FUNCIONALIDAD] [PM] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Actualización de stats y estados en combate
+  └─ Sistema para actualizar no solo HP, sino también:
+     - Estadísticas temporales (bonificadores, penalizaciones)
+     - Estados de condición (aturdido, envenenado, etc.)
+     - Recursos gastados (slots de hechizo, usos de habilidades)
+  └─ ¿Crear herramienta dedicada para esto?
+
+[#10] [NUEVA FUNCIONALIDAD] [PM] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Diálogo en turnos de combate
+  └─ Los compañeros y enemigos deberían poder "hablar" en sus turnos,
+     al igual que el jugador (que puede hablar como su personaje o
+     describir su acción).
+  └─ Cada turno debería incluir:
+     - Acción del personaje
+     - Posible diálogo/reacción del personaje
+     - Descripción/narración del DM
+
+[#26] [NUEVA FUNCIONALIDAD] [PM] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Sistema de foco de objetivo en combate
+  └─ Los enemigos y aliados deben tener un sistema de selección
+     de objetivo que considere:
+     - Distancia al objetivo (cuerpo a cuerpo vs a distancia)
+     - Amenaza táctica (quién es más peligroso)
+     - Estado del objetivo (herido, vulnerable, etc.)
+     - Capacidades del atacante (alcance de armas/hechizos)
+
+[#36] [NUEVA FUNCIONALIDAD] [PM] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Narración post-combate del DM
+  └─ Cuando un combate acaba el DM tiene que hacer una narración con las
+     consecuencias, breve resumen, etc para continuar con la historia.
+
+--- PRIORIDAD BAJA ---
+
+[#08] [NUEVA FUNCIONALIDAD] [PB] [INTERFAZ DE USUARIO] [SIN DOCUMENTAR]
+  Mejorar input del jugador durante su turno en combate
+  └─ Cuando es el turno del jugador, el input debería mostrar:
+     "Es tu turno ¿Qué haces?" y posiblemente sugerir acciones
+     disponibles (atacar, moverse, usar objeto, lanzar hechizo).
+
+[#09] [NUEVA FUNCIONALIDAD] [PB] [INTERFAZ DE USUARIO] [SIN DOCUMENTAR]
+  Mostrar nombre de la aventura en la barra superior
+  └─ La ventana del juego debería mostrar el nombre de la aventura
+     que se está jugando en la barra superior/header.
+
+[#12] [NUEVA FUNCIONALIDAD] [PB] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Sistema de acciones detallado para el jugador
+  └─ En el turno del jugador, si hace un ataque debería especificar:
+     - Tipo de acción (ataque con arma, hechizo, movimiento, etc.)
+     - Objetivo (si es necesario)
+     - Detalles específicos (qué arma, qué hechizo, etc.)
+  └─ El sistema debe validar si se define correctamente.
+  └─ Si no está claro, el DM debe preguntar al jugador para aclarar.
+
+[#13] [NUEVA FUNCIONALIDAD] [PB] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Sistema de distancia y proximidad
+  └─ Hace falta un sistema para detectar si un personaje está
+     cuerpo a cuerpo con un enemigo.
+  └─ Esto tiene repercusiones importantes:
+     - Ataques de oportunidad
+     - Restricciones de movimiento
+     - Bonus/malus a tiradas según distancia
+     - Hechizos y rangos
+
+[#14] [NUEVA FUNCIONALIDAD] [PB] [INTERFAZ DE USUARIO] [SIN DOCUMENTAR]
+  Menú de selección de aventuras JSON
+  └─ El botón "Cargar Aventura JSON" debería desplegar un menú
+     con las aventuras disponibles en la carpeta JSON_adventures.
+     Conservar también la opción de cargar desde el sistema de archivos.
+
+[#16] [NUEVA FUNCIONALIDAD] [PB] [INTERFAZ DE USUARIO] [SIN DOCUMENTAR]
+  Reestructurar panel DebugLog para desarrollo
+  └─ Mostrar solo logs esenciales para el desarrollo de la partida.
+  └─ En combate, cada log debe mostrar el personaje al que pertenece.
+  └─ Deben ser más sencillos y legibles que los logs de la terminal.
+
+[#17] [NUEVA FUNCIONALIDAD] [PB] [INTERFAZ DE USUARIO] [SIN DOCUMENTAR]
+  Reflejar estados de personajes en panel de Grupo
+  └─ El panel debería mostrar estados como: muerto, bendecido,
+     aturdido, envenenado, paralizado, etc.
+  └─ Estados visuales con iconos o colores.
+
+[#18] [NUEVA FUNCIONALIDAD] [PB] [INTERFAZ DE USUARIO] [SIN DOCUMENTAR]
+  Reflejar estados en ficha de personaje
+  └─ La ficha de personaje debería tener una pestaña dedicada
+     para mostrar estados activos y sus efectos.
+
+[#19] [NUEVA FUNCIONALIDAD] [PB] [CALIDAD Y PULIDO] [SIN DOCUMENTAR]
+  Corrección ortográfica de IA y jugador
+  └─ Implementar corrección ortográfica para:
+     - Texto generado por las IAs
+     - Texto ingresado por el jugador (opcional, ayuda)
+  └─ Podría usar API de corrección o modelo de lenguaje.
+
+[#23] [NUEVA FUNCIONALIDAD] [PB] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Sistema de gestión de acciones en combate
+  └─ Revisar e implementar correctamente:
+     - Acciones normales (1 por turno)
+     - Acciones bonus (1 por turno)
+     - Reacciones (fuera de tu turno)
+     - Acciones extras (por habilidades especiales)
+  └─ Aplicar reglas de D&D 5e para cada tipo de acción.
+
+[#24] [NUEVA FUNCIONALIDAD] [PB] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Gestión de magia en combate y narración
+  └─ Implementar sistema completo para lanzamiento de hechizos:
+     - Detección de objetivos válidos
+     - Cálculo de tiradas de salvación
+     - Áreas de efecto
+     - Duración de efectos
+  └─ Debe funcionar tanto en combate como en narración.
+
+[#25] [NUEVA FUNCIONALIDAD] [PB] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Sistema de tipos de daño
+  └─ Implementar diferentes tipos de daño:
+     - Físicos: cortante, contundente, perforante
+     - Elementales: fuego, hielo, eléctrico, ácido
+     - Energéticos: radiante, necrótico, psíquico
+     - Especiales: veneno, fuerza
+  └─ Incluir resistencias, vulnerabilidades e inmunidades.
+
+[#27] [NUEVA FUNCIONALIDAD] [PB] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Sistema completo de magia
+  └─ Implementar todo lo referente a slots de conjuros:
+     - Slots por nivel de hechizo
+     - Conjuros conocidos
+     - Conjuros preparados
+     - Reglas específicas por clase (Wizard, Sorcerer, Cleric, etc.)
+     - Recuperación de slots (descanso corto/largo)
+
+[#39] [NUEVA FUNCIONALIDAD] [PB] [SISTEMA DE PERSONAJES] [SIN DOCUMENTAR]
+  Sistema de voces para compañeros
+  └─ Se podría mejorar el sistema de lectura para que los compañeros también
+     pudiesen hablar y definir a cada uno una voz característica basada en
+     su personalidad, sexo, raza, etc.
+
+--- PRIORIDAD MUY BAJA ---
+
+[#37] [NUEVA FUNCIONALIDAD] [PMB] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Sistema de pifias y críticos narrativos
+  └─ Implementar un sistema para pifias y críticos.
+  └─ Que el DM las identifique y que les de una narración especial con
+     alguna consecuencia creativa.
+  └─ Ejemplos:
+     - Pifia: un compañero pierde su arma o le da a otro compañero sin querer
+     - Crítico: el ataque es especialmente destructivo, o si es una prueba
+       de habilidad el éxito es especialmente efectivo.
+
+[#38] [NUEVA FUNCIONALIDAD] [PMB] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Diálogo narrativo de compañeros en combate
+  └─ Implementar la opción de que en combate, los compañeros puedan
+     expresarse narrativamente.
+  └─ ¿Solo en su turno o en cualquier turno?
+
+==========================================================
+REVISIONES (Mejoras/Análisis)
+==========================================================
+
+--- PRIORIDAD ALTA ---
+
+[#06] [REVISION] [PA] [SISTEMA DE PERSONAJES] [SIN DOCUMENTAR]
+  Revisar y mejorar estructura de ficha de personajes
+  └─ La ficha actual puede necesitar:
+     - Mejor organización de información
+     - Más datos accesibles (habilidades, rasgos)
+     - Mejor visualización de estados temporales
+     - Pestañas o secciones colapsables
+  └─ Evaluar qué información es esencial y qué es secundaria.
+
+--- PRIORIDAD MEDIA ---
+
+[#01] [REVISION] [PM] [SISTEMA DE PERSONAJES] [EN ROADMAP]
+  Memoria contextual para compañeros
+  └─ Dar más memoria contextual a los compañeros para que 
+     reaccionen mejor a la situación y decisiones pasadas.
+  └─ Ver: docs/roadmap.md - Sección 4 (Memoria a Largo Plazo)
+
+[#20] [REVISION] [PM] [SISTEMA DE AVENTURAS Y DATOS] [EN ROADMAP]
+  Compendio de D&D Local
+  └─ Optimizar API para descargar fichas completas de monstruos
+     una sola vez y añadirlas a un caché o base de datos local.
+  └─ Ver: docs/roadmap.md - Sección 5
+  └─ Ver: docs/planes-desarrollo/sin-comenzar/compendio-dnd-local.md
+
+[#21] [REVISION] [PM] [SISTEMA DE AVENTURAS Y DATOS] [EN ROADMAP]
+  Convertidor PDF
+  └─ Definir esquema estándar para JSONs de aventuras que aborde
+     todos los posibles escenarios.
+  └─ Este esquema se usará en:
+     - Aplicación auxiliar para convertir PDFs a JSON
+     - El juego mismo para validar aventuras
+  └─ Ver: docs/roadmap.md - Sección 6
+  └─ Ver: docs/planes-desarrollo/sin-comenzar/pdf-to-json-converter.md
+
+[#40] [REVISION] [PM] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Verificar reglas de persuasión en combate
+  └─ En modo combate el jugador puede intentar persuadir a un enemigo?
+     Comprobar en las reglas de D&D 5e.
+
+[#41] [REVISION] [PM] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Expandir funciones de resolución de IDs
+  └─ Actualmente hay una función resolveEnemyId.
+  └─ ¿Deberíamos implementar más funciones similares para identificar
+     mejor localizaciones o PNJs?
+
+[#44] [REVISION] [PM] [INTERFAZ DE USUARIO] [SIN DOCUMENTAR]
+  Rediseño del panel de Fichas de personajes
+  └─ Rediseño del panel de Fichas de personajes.
+
+[#45] [REVISION] [PM] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Gestión de ataques múltiples que matan
+  └─ Ver como gestionar cuando un enemigo lanza un ataque múltiple a un
+     compañero o jugador y lo mata con el primero.
+  └─ ¿Se detiene el ataque o continúa con los demás ataques?
+
+[#46] [REVISION] [PM] [SISTEMA DE PERSONAJES] [EN PLAN]
+  Gestión de muerte permanente de compañeros
+  └─ ¿Qué pasa cuando uno de nuestros compañeros muere y no hay posibilidad
+     de revivirlo?
+  └─ ¿Cómo afecta esto a la narrativa y al gameplay?
+  └─ Ver: docs/planes-desarrollo/sin-comenzar/sistema-death-saving-throws.md (plan futuro)
+
+--- PRIORIDAD BAJA ---
+
+[#03] [REVISION] [PB] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Supervisor de reglas de D&D
+  └─ Mejorar el Combat Manager (o módulo correspondiente) para
+     aplicar correctamente todas las reglas de D&D 5e.
+  └─ Evaluar si es necesario crear un "supervisor de reglas"
+     dedicado que valide acciones y resultados.
+
+[#07] [REVISION] [PB] [SISTEMA DE AVENTURAS Y DATOS] [SIN DOCUMENTAR]
+  Mejorar generación de introducciones
+  └─ Revisar la creación de introducciones para aventuras
+     cargadas desde JSON que no traen una intro definida.
+  └─ La IA debería generar una introducción contextual y atractiva.
+
+[#11] [REVISION] [PB] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Revisar asignación de IDs en combate
+  └─ Los compañeros y el jugador actualmente tienen IDs simples (números).
+  └─ Los enemigos tienen IDs más completos (ej: "goblin-0").
+  └─ Evaluar si se necesita estandarizar o mejorar este sistema.
+
+[#15] [REVISION] [PB] [SISTEMA DE AVENTURAS Y DATOS] [SIN DOCUMENTAR]
+  Cache de parseo de aventuras JSON
+  └─ El parseo de aventuras de JSON_adventures debería guardarse
+     en caché para cargas más rápidas.
+  └─ Implementar sistema de verificación de si el parseo está
+     actualizado (comparar fecha de modificación del JSON).
+
+[#42] [REVISION] [PB] [SISTEMA DE PERSONAJES] [SIN DOCUMENTAR]
+  Sistema de reacciones de compañeros para conversaciones
+  └─ Revisar el sistema de reacciones de compañeros para comprobar si es
+     posible entablar conversaciones fluidas con ellos.
+
+[#43] [REVISION] [PB] [SISTEMA DE AVENTURAS Y DATOS] [SIN DOCUMENTAR]
+  Sistema de comercio completo
+  └─ Revisar en profundidad el sistema de comercio (inventario, dinero,
+     compras, ventas, regateos, etc).
+
+--- PRIORIDAD MUY BAJA ---
+
+(Ninguna en esta sección)
+
+==========================================================
+TESTING
+==========================================================
+
+--- PRIORIDAD MUY ALTA ---
+
+[#47] [TESTING] [PMA] [CALIDAD Y PULIDO] [SIN DOCUMENTAR]
+  Sistema de pruebas unitarias y playgrounds
+  └─ Implementar un sistema sólido de pruebas unitarias y testeo con
+     playgrounds específicos.
+
+--- PRIORIDAD ALTA ---
+
+(Ninguna en esta sección)
+
+--- PRIORIDAD MEDIA ---
+
+(Ninguna en esta sección)
+
+--- PRIORIDAD BAJA ---
+
+(Ninguna en esta sección)
+
+--- PRIORIDAD MUY BAJA ---
+
+(Ninguna en esta sección)
+
+==========================================================
+DOCUMENTACION
+==========================================================
+
+--- PRIORIDAD MUY ALTA ---
+
+(Ninguna en esta sección)
+
+--- PRIORIDAD ALTA ---
+
+(Ninguna en esta sección)
+
+--- PRIORIDAD MEDIA ---
+
+(Ninguna en esta sección)
+
+--- PRIORIDAD BAJA ---
+
+(Ninguna en esta sección)
+
+--- PRIORIDAD MUY BAJA ---
+
+[#48] [DOCUMENTACION] [PMB] [CALIDAD Y PULIDO] [SIN DOCUMENTAR]
+  Compendio de prompts de IA
+  └─ Documentar un compendio de todos los prompts que está usando la
+     aplicación para sus diferentes módulos de IA.
+
+==========================================================
+NOTAS FINALES
+==========================================================
+
+→ Para ver el estado actual del desarrollo, consultar:
+  - CHANGELOG.md (cambios implementados)
+  - docs/roadmap.md (mejoras planificadas a largo plazo)
+  - docs/planes-desarrollo/ (planes activos y completados)
+  - doc/planes-desarrollo/issues-encontrados.md
+
+→ Items marcados con [EN ROADMAP] o [EN PLAN] están ya
+  documentados exhaustivamente en su ubicación correspondiente.
+
+→ Este documento es para notas rápidas y brainstorming.
+  Para planificación formal, usar los documentos del proyecto.
+
+→ Clasificación de ideas:
+  1. Tipo de idea (ISSUE, NUEVA FUNCIONALIDAD, REVISION, DOCUMENTACION, TESTING)
+  2. Prioridad (PMA, PA, PM, PB, PMB)
+  3. Categoría dentro de la aplicación
+  4. Estado de documentación oficial ([EN ROADMAP], [EN PLAN], [SIN DOCUMENTAR])
+
+==========================================================
+NUEVAS IDEAS
+==========================================================
+
+1 - ¿Que pasa si decido atacar a uno de mis compañeros de aventura, o si en una conversación uno de ellos decide atacarme a mi? ¿Que harán los demás compañeros? (PMB)
+2 - ¿Que pasa si un compañero decide abandonarnos o  continuar por otro camino? (PMB)
+
+

@@ -124,29 +124,84 @@ type GameMessage = {
 
 ```typescript
 type Combatant = {
-  id: string,                    // ID del combatiente
-  name: string,                  // Nombre
-  initiative: number,             // Iniciativa
-  controlledBy: "Player" | "AI",  // Control
-  isEnemy?: boolean              // Si es enemigo
+  id: string,                       // ID del combatiente
+  characterName: string,            // Nombre del personaje
+  total: number,                    // Total de iniciativa
+  type: 'player' | 'npc',           // Tipo de combatiente
+  controlledBy: "Player" | "AI"     // Quién controla al combatiente
 }
 ```
+
+### EnemyInCombat (Enemigo en Combate)
+
+**Ubicación:** `src/ai/tools/combat-manager.ts`
+
+Los enemigos en combate tienen la siguiente estructura:
+
+```typescript
+type EnemyInCombat = {
+  uniqueId: string,                 // ID único generado (ej: "goblin-0", "goblin-1")
+  name: string,                     // Nombre del monstruo (ej: "Goblin")
+  ac: number,                       // Clase de armadura
+  hp: {                             // Puntos de vida
+    current: number,
+    max: number
+  },
+  attackModifier?: number,          // Modificador de ataque
+  attackDamage?: string,            // Notación de daño (ej: "1d6+2")
+  // Otros campos pueden incluir datos de la D&D API
+}
+```
+
+**Notas:**
+- El `uniqueId` se genera automáticamente para diferenciar múltiples enemigos del mismo tipo
+- Cuando hay múltiples enemigos del mismo tipo, se añade un índice (ej: "goblin-0", "goblin-1", "goblin-2")
+- Los nombres visuales se generan para la UI (ej: "Goblin 1", "Goblin 2", "Goblin 3")
 
 ### DiceRoll (Tirada de Dados)
 
 **Ubicación:** `src/lib/types.ts`
 
 ```typescript
+type DiceRollOutcome = 'crit' | 'success' | 'fail' | 'pifia' | 'neutral' | 'initiative';
+
 type DiceRoll = {
-  id: string,                    // ID único
-  timestamp: string,              // Timestamp
-  roller: string,                 // Quién hizo la tirada
-  rollNotation: string,           // Notación (ej: "1d20+5")
-  result: number,                 // Resultado
-  description: string,            // Descripción
-  outcome: "success" | "failure" | "critical" | "damage"
+  id: string,                       // ID único
+  timestamp: Date,                  // Timestamp
+  roller: string,                   // Quién hizo la tirada (nombre del personaje o "DM")
+  rollNotation: string,             // Notación (ej: "1d20+5", "2d6")
+  individualRolls: number[],        // Resultados individuales de cada dado
+  modifier?: number,                // Modificador aplicado
+  totalResult: number,              // Resultado total (suma + modificador)
+  outcome: DiceRollOutcome,         // Resultado de la tirada
+  description?: string,             // Descripción de la tirada
+  
+  // Información específica de combate (añadida para mejorar el panel de tiradas)
+  targetName?: string,              // Nombre del objetivo (para ataques/daño/curación)
+  targetAC?: number,                // AC del objetivo (para tiradas de ataque)
+  attackHit?: boolean,              // Si el ataque acertó (para tiradas de ataque)
+  damageDealt?: number,             // Daño infligido (para tiradas de daño)
+  targetKilled?: boolean,           // Si el objetivo fue derrotado por este daño
+  healingAmount?: number,           // Cantidad de curación (para tiradas de curación)
+  
+  // Para futura implementación completa de saving throws (Issue #22)
+  savingThrowResult?: number,       // Resultado de la tirada de salvación del objetivo
+  savingThrowDC?: number,           // DC que el objetivo debe superar
+  savingThrowSuccess?: boolean,     // Si el objetivo acertó la salvación
+  savingThrowType?: 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha',  // Tipo de salvación
 }
 ```
+
+**Notas:**
+- Los campos de combate (`targetName`, `targetAC`, etc.) se populan automáticamente en `combat-manager.ts`
+- El campo `outcome` se determina por las reglas de D&D 5e:
+  - `'crit'`: 20 natural en 1d20
+  - `'pifia'`: 1 natural en 1d20
+  - `'success'`: Ataque que acierta (>= AC del objetivo)
+  - `'fail'`: Ataque que falla (< AC del objetivo)
+  - `'neutral'`: Tiradas sin contexto de éxito/fallo
+  - `'initiative'`: Tiradas de iniciativa
+- Los campos de `savingThrow*` están preparados para futura implementación (ver Issue #22)
 
 ## Server Actions
 
@@ -322,11 +377,19 @@ Decide acciones de compañeros en combate.
   diceRolls?: Array<{
     roller: string,
     rollNotation: string,
-    description: string
+    description: string,
+    attackType?: 'attack_roll' | 'saving_throw' | 'healing' | 'other'  // Tipo de tirada (OBLIGATORIO para ataques)
   }>,
   debugLogs?: Array<string>
 }
 ```
+
+**Notas sobre `attackType`:**
+- `'attack_roll'`: Para armas/hechizos que usan 1d20 para acertar (Ray of Frost, Mace, etc.)
+- `'saving_throw'`: Para hechizos donde el objetivo tira salvación (Sacred Flame, Fireball, etc.)
+- `'healing'`: Para hechizos de curación
+- `'other'`: Para tiradas de utilidad
+- Este campo es **OBLIGATORIO** para todas las tiradas de ataque/daño/curación
 
 ### enemyTacticianTool
 
@@ -336,7 +399,26 @@ Decide acciones de enemigos en combate.
 
 **Entrada:** (Igual que `companionTacticianTool`)
 
-**Salida:** (Igual que `companionTacticianTool`)
+**Salida:**
+```typescript
+{
+  narration: string,
+  targetId: string | null,
+  diceRolls?: Array<{
+    roller: string,
+    rollNotation: string,
+    description: string,
+    attackType?: 'attack_roll' | 'saving_throw' | 'other'  // Tipo de tirada (OBLIGATORIO para ataques)
+  }>,
+  debugLogs?: Array<string>
+}
+```
+
+**Notas sobre `attackType`:**
+- `'attack_roll'`: Para armas/hechizos que usan 1d20 para acertar
+- `'saving_throw'`: Para hechizos donde el objetivo tira salvación (raro para enemigos básicos)
+- `'other'`: Para tiradas de utilidad
+- Este campo es **OBLIGATORIO** para todas las tiradas de ataque/daño
 
 ### companionExpertTool
 
@@ -365,25 +447,35 @@ Genera diálogos de compañeros fuera de combate.
 
 **Ubicación:** `src/ai/tools/dice-roller.ts`
 
-Realiza tiradas de dados.
+Realiza tiradas de dados siguiendo las reglas de D&D 5e.
 
 **Entrada:**
 ```typescript
 {
-  notation: string,  // Ej: "1d20+5", "2d6+3"
-  description?: string
+  rollNotation: string,     // Notación de dados (ej: "1d20+5", "2d6+3", "1d8")
+  roller: string,           // Nombre de quien tira los dados
+  description?: string      // Descripción de la tirada
 }
 ```
 
 **Salida:**
 ```typescript
-{
-  result: number,
-  rolls: Array<number>,  // Resultados individuales
-  notation: string,
-  description?: string
+Omit<DiceRoll, 'id' | 'timestamp'> = {
+  roller: string,                 // Nombre del tirador
+  rollNotation: string,           // Notación usada
+  individualRolls: number[],      // Resultados individuales de cada dado
+  modifier?: number,              // Modificador aplicado (si hay)
+  totalResult: number,            // Resultado total (suma de dados + modificador)
+  outcome: DiceRollOutcome,       // 'crit', 'pifia', o 'neutral'
+  description?: string            // Descripción de la tirada
 }
 ```
+
+**Notas:**
+- Detecta automáticamente **críticos** (20 natural en 1d20) y **pifias** (1 natural en 1d20)
+- Valida la notación de dados antes de tirar
+- Soporta modificadores positivos y negativos
+- El `id` y `timestamp` se añaden automáticamente en el `combat-manager` o `game-coordinator`
 
 ### locationLookupTool
 
@@ -475,9 +567,32 @@ Si la validación falla:
 - **Inputs:** Terminan en `Input` (ej: `ActionInterpreterInput`)
 - **Outputs:** Terminan en `Output` (ej: `ActionInterpreterOutput`)
 
+## Actualizaciones Recientes
+
+### v0.5.x - Sistema de Combate Mejorado
+
+**Añadido:**
+- **Campos de combate en `DiceRoll`**: `targetName`, `targetAC`, `attackHit`, `damageDealt`, `targetKilled`, `healingAmount`
+- **Interface `EnemyInCombat`**: Estructura formal para enemigos en combate con HP y estadísticas
+- **Campo `attackType` en tacticians**: Metadata explícita para distinguir tipos de ataques/hechizos
+  - `'attack_roll'`: Para ataques normales con 1d20
+  - `'saving_throw'`: Para hechizos con tirada de salvación del objetivo
+  - `'healing'`: Para hechizos de curación
+- **Campos de saving throws en `DiceRoll`**: Preparados para futura implementación completa (Issue #22)
+
+**Mejorado:**
+- `DiceRollOutcome`: Ahora incluye `'crit'`, `'pifia'`, `'success'`, `'fail'`, `'neutral'`, `'initiative'`
+- `Combatant`: Actualizado con campos correctos (`characterName`, `total`, `type`)
+- `diceRollerTool`: Ahora retorna `individualRolls` y detecta automáticamente críticos/pifias
+
+**Referencias:**
+- [CHANGELOG.md](../CHANGELOG.md) - Historial completo de cambios
+- [Issues Encontrados](./planes-desarrollo/issues-encontrados.md) - Issues #18-#22 documentan estas mejoras
+
 ## Referencias Cruzadas
 
 - [Arquitectura del Backend IA](./arquitectura/arquitectura-backend.md) - Descripción detallada de flujos y herramientas
 - [Flujo de Datos](./arquitectura/flujo-datos.md) - Cómo se usan estos esquemas en el flujo
 - [Arquitectura del Frontend](./arquitectura/arquitectura-frontend.md) - Cómo el frontend usa estos esquemas
+- [Plan Maestro de Desarrollo](./planes-desarrollo/plan-maestro.md) - Estado actual del proyecto y planes futuros
 

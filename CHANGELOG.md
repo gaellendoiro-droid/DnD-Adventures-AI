@@ -15,13 +15,74 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+---
+
+## [0.4.9] - 2025-11-14
+
 ### Added
+- **Sistema de Inconsciencia y Muerte Masiva (D&D 5e):**
+  - **Objetivo:** Distinguir entre personajes inconscientes (HP 0) y muertos (muerte masiva) según reglas oficiales de D&D 5e
+  - **Regla implementada:** Muerte instantánea ocurre cuando el daño restante (después de reducir HP a 0) >= HP máximo del personaje
+  - **Implementación:**
+    - Añadido campo `isDead` a `CharacterSchema` para distinguir muerte real de inconsciencia
+    - Lógica de muerte masiva: si `damage - hp.current >= hp.max`, entonces muerte instantánea
+    - Personajes inconscientes (HP 0, isDead = false) pueden ser curados y recuperar consciencia
+    - Personajes muertos (isDead = true) no pueden ser curados sin magia de revivir
+    - Solo aplicable a jugador y compañeros; enemigos mantienen comportamiento actual (HP 0 = derrotado)
+  - **Mejoras de narrativa:**
+    - Mensajes específicos: "X cae inconsciente" vs "X muere instantáneamente"
+    - Narrativa de revivencia: "X recupera la consciencia gracias a la curación recibida"
+    - Verificación mejorada fuera de combate: DM informa explícitamente si personaje está muerto o inconsciente
+    - Verificación de game over: distingue entre todos inconscientes vs todos muertos
+  - **Archivos modificados:**
+    - `src/lib/schemas.ts`: Añadido campo `isDead` a CharacterSchema
+    - `src/ai/tools/combat-manager.ts`: Lógica de muerte masiva, inconsciencia, revivencia, y función helper `isUnconsciousOrDead`
+    - `src/ai/flows/game-coordinator.ts`: Verificaciones expandidas para interacciones con personajes muertos/inconscientes, reacciones de compañeros, y game over
+  - **Beneficios:**
+    - Mayor fidelidad a D&D 5e
+    - Tensión dramática mejorada (diferencia entre inconsciente y muerto)
+    - Narrativa más rica y apropiada para cada situación
+    - Base sólida para futuro sistema de Death Saving Throws ([plan detallado](docs/planes-desarrollo/sin-comenzar/sistema-death-saving-throws.md))
+  - **Relacionado con:** Issue #27 (Verificación de muerte), [Sistema de Death Saving Throws](docs/planes-desarrollo/sin-comenzar/sistema-death-saving-throws.md) (plan futuro)
+- **Sistema de reacciones de compañeros en dos momentos (before_dm / after_dm):**
+  - **Objetivo:** Simular el comportamiento de jugadores reales que reaccionan tanto a propuestas como a situaciones narradas
+  - **Implementación:**
+    - **Reacciones ANTES del DM** (`before_dm`): Los compañeros pueden reaccionar a la propuesta del jugador antes de que el DM narre
+      - Momento: Jugador → Compañeros (opcional) → DM → Compañeros (opcional)
+      - Probabilidad: ~30-40% (selectivo, solo acciones significativas: move, attack, interact)
+      - Contexto: Solo la acción propuesta por el jugador
+      - Ejemplo: Jugador: "vamos a la cueva oscura" → Elara: "¿Estás seguro? Parece peligroso..."
+    - **Reacciones DESPUÉS del DM** (`after_dm`): Los compañeros reaccionan a lo que acaba de ser narrado
+      - Momento: Jugador → DM → Compañeros (opcional)
+      - Probabilidad: ~50-60% (más común, reacción natural a eventos)
+      - Contexto: Acción del jugador + narración completa del DM
+      - Ejemplo: DM: "veis un dragón enorme" → Merryl: "¡Por todos los dioses! ¡Es enorme!"
+    - **Control de verbosidad:** Los compañeros pueden permanecer en silencio (devolver `action: ""`), implementado mediante prompt engineering
+  - **Archivos modificados:**
+    - `src/ai/tools/companion-expert.ts`: Añadido campo `reactionTiming` al schema y actualizado prompt con instrucciones específicas para cada momento
+    - `src/ai/flows/game-coordinator.ts`: Implementado flujo de reacciones en dos momentos (líneas 166-205 y 236-271)
+  - **Beneficios:**
+    - Interacciones más naturales y realistas
+    - Los compañeros se sienten como otros jugadores en la mesa
+    - Permite interrupciones y diálogo antes de la narración
+    - Evita saturación mediante control de probabilidad
 - **Issue #16 - Gestión de nombres de múltiples monstruos:** Documentado nuevo issue sobre la necesidad de crear un módulo separado para gestionar y unificar nombres de múltiples monstruos del mismo tipo, reutilizable en narraciones del DM, combat manager y narraciones de compañeros.
+- **Issue #21 - Código duplicado en `combat-manager.ts` (Deuda Técnica):** Documentado que el procesamiento de dice rolls para AI combatants está duplicado en dos lugares (~260 líneas cada uno): turnos normales (líneas 1241-1500) e iniciación de combate (líneas 2081-2340). Esta duplicación dificulta mantenimiento y causó que el fix del Issue #20 tuviera que aplicarse dos veces. Propuesta: extraer función `processAICombatantRolls` como parte del refactoring mayor de `combat-manager.ts`. Prioridad media, estimación 4-6 horas.
+- **Issue #22 - Sistema completo de Saving Throws (Feature Incompleta):** Documentado que los saving throw spells funcionan pero de forma simplificada. El daño se aplica automáticamente sin simular la tirada de salvación del objetivo (1d20+bonus vs Spell Save DC) ni aplicar la regla de mitad de daño si el target acierta. Sistema actual funcional pero no 100% fiel a D&D 5e. Prioridad media, implementar después del refactoring de `combat-manager.ts`. Estimación: 9-12 horas.
 - **Análisis del Sistema de HP:** Creado análisis completo del sistema de gestión de HP y fichas de personajes/enemigos identificando problemas críticos que bloquean el funcionamiento del sistema de combate.
   - Documento: `docs/planes-desarrollo/planes-en-curso/combate-turnos-analisis-hp.md`
   - Identifica 5 problemas principales: sincronización frontend-backend, inicialización de HP, validación, estandarización de estructura, y sistema centralizado
 
 ### Changed
+- **Issue #14 - Mejorado logging para diagnóstico de AI Tacticians:** Añadido logging detallado en `companion-tactician.ts` para diagnosticar por qué el AI a veces devuelve output inválido/null
+  - Log de input del prompt (activeCombatant, partySize, enemiesCount)
+  - Log de respuesta del AI (hasOutput, outputKeys)
+  - Log detallado de errores de validación (errorMessage, errorCode, errorDetails)
+  - **Objetivo:** Recopilar datos para entender por qué el AI falla y poder mejorar los prompts en la siguiente fase
+  - **Contexto:** Reportado por usuario que Merryl "parece confundido/a y no hace nada en su turno" al iniciar combate vs Mantícora
+- **Reducción de verbosidad en logs:** Eliminado listado de todos los `locationIds` del log "Adventure data cache updated" para mejorar legibilidad
+  - Antes: `locationIds=["phandalin-plaza-del-pueblo", "camino-a-las-afueras-de-phandalin", ...]` (38 items)
+  - Ahora: Solo se muestran `adventureId`, `locationsCount` y `entitiesCount`
 - **Reorganización de documentación de issues:** Movido `issues-encontrados.md` de `completados/` a la raíz de `planes-desarrollo/` para mejor organización y acceso.
   - Actualizadas todas las referencias en `combate-turnos.md`, `plan-maestro.md` y `CHANGELOG.md`
 - **Actualización del Plan de Combate por Turnos:** Revisado y actualizado el estado real del plan de combate por turnos.
@@ -30,9 +91,238 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
   - Identificado bloqueador crítico: sistema de gestión de HP no funcional
   - Estado actualizado: 3 de 5 pasos completamente funcionales (60%), 1 no completado, 1 completado
 - **Issue #16 refinado:** Actualizado el Issue #16 para reflejar mejor la propuesta específica de gestión de nombres de múltiples monstruos (no post-procesamiento general de narraciones).
+- **Mejora del `actionInterpreter`:** Mejorado el prompt del `actionInterpreter` para ser más conservador al asignar `targetId` cuando el jugador no especifica un objetivo explícito (ej: "atacamos!" vs "ataco al goblin").
+  - El `targetId` ahora se entiende como el objetivo inicial, no el único enemigo que participará en el combate
+- **Mejora del `combatInitiationExpertTool`:** Mejorado el prompt para que la IA entienda claramente que el `Direct Target ID` es solo el objetivo inicial mencionado por el jugador, y que todos los enemigos hostiles presentes en la ubicación deben participar en el combate.
 
 ### Fixed
+- **🔴 CRÍTICO: Sistema completo de verificación de muerte de personajes (Issue #27):**
+  - **Problema:** Enemigos y compañeros muertos podían participar en nuevos combates, tomar turnos y actuar como si estuvieran vivos. El jugador muerto podía seguir actuando. No había detección de "game over".
+  - **Causa raíz múltiple:**
+    1. `combat-manager.ts` no verificaba HP al crear orden de iniciativa
+    2. `combatInitiationExpertTool` incluía enemigos muertos en nuevos combates
+    3. `actionInterpreter` permitía atacar enemigos muertos
+    4. No había verificación de muerte del jugador
+    5. Faltaba detección de "game over" cuando todo el grupo muere
+  - **Solución implementada en 6 fases:**
+    - **Fase 1 (`combat-manager.ts` líneas 1729-1754):** Filtrar combatientes muertos al crear `combatantData` en iniciación de combate
+    - **Fase 2 (`combat-initiation-expert.ts` líneas 68-85):** Añadido `updatedEnemies` al schema, filtrar enemigos muertos antes de pasar a IA
+    - **Fase 3 (`action-interpreter.ts` líneas 180-215):** Añadido `updatedEnemies` al schema, filtrar enemigos muertos en fallback de ataques
+    - **Fase 4 (`game-coordinator.ts` líneas 55-83):** Verificación de muerte del jugador y detección de "game over"
+    - **Fase 5 (`game-coordinator.ts` líneas 123, 158):** Pasar `updatedEnemies` a `actionInterpreter` y `combatInitiationExpertTool`
+    - **Fase 6 (`combat-manager.ts` líneas 2029-2049):** Verificación de muerte en iniciación de combate (similar a turnos normales)
+  - **Principio de diseño:** Los cadáveres permanecen en `locationContext.entitiesPresent` como objetos narrativos interactuables, pero se filtran para combate
+  - **Resultados:**
+    - ✅ Enemigos muertos no inician nuevos combates
+    - ✅ Compañeros muertos no toman turnos en combate
+    - ✅ Jugador muerto no puede actuar (mensaje apropiado)
+    - ✅ Detección de "game over" cuando todo el grupo muere
+    - ✅ Cadáveres permanecen en el mundo para narrativa/interacción
+    - ✅ Sistema robusto con múltiples capas de verificación
+  - **Archivos modificados:**
+    - `src/ai/tools/combat-manager.ts` (líneas 1729-1754, 2029-2049)
+    - `src/ai/tools/combat-initiation-expert.ts` (líneas 26-85, prompt actualizado)
+    - `src/ai/flows/action-interpreter.ts` (líneas 180-215)
+    - `src/ai/flows/game-coordinator.ts` (líneas 55-83, 123, 158)
+    - `src/ai/flows/schemas.ts` (línea 15 - añadido `updatedEnemies`)
+- **🔴 CRÍTICO: Compañeros muertos seguían reaccionando después de combate (Issue #26):**
+  - **Problema:** Después de un combate, si un compañero había muerto, el sistema seguía generando reacciones para ese compañero como si estuviera vivo, rompiendo completamente la inmersión y la lógica del juego
+  - **Causa raíz:** El sistema de reacciones de compañeros no verificaba el estado de vida (`hp.current > 0`) antes de generar reacciones
+  - **Solución:** 
+    - **Filtrado en `game-coordinator.ts`:** Añadida verificación `character.hp.current > 0` en ambos lugares donde se generan reacciones (líneas 178 y 243: `before_dm` y `after_dm`)
+    - **Validación defensiva en `companion-expert.ts`:** Añadida verificación adicional después de obtener los datos del personaje (líneas 102-111) como capa de protección extra
+  - **Resultados:**
+    - ✅ Compañeros muertos ya no reaccionan en ningún momento
+    - ✅ Doble protección: filtrado principal + validación defensiva
+    - ✅ Mejora drástica de inmersión y coherencia del juego
+    - ✅ Logging mejorado para debugging
+  - **Archivos modificados:**
+    - `src/ai/flows/game-coordinator.ts` (líneas 178 y 243)
+    - `src/ai/tools/companion-expert.ts` (líneas 102-111)
+- **🔴 CRÍTICO: Helper `eq` no disponible en Handlebars bloqueaba todas las reacciones de compañeros:**
+  - **Problema:** El prompt de `companion-expert.ts` usaba `{{#if (eq reactionTiming "before_dm")}}` para comparar strings, pero Genkit usa Handlebars con `knownHelpersOnly: true`, que no incluye el helper `eq`
+  - **Síntoma:** Error `"You specified knownHelpersOnly, but used the unknown helper eq - 15:10"` en terminal, ningún compañero reaccionaba a ninguna acción
+  - **Causa raíz:** Uso de sintaxis de Handlebars no soportada en Genkit
+  - **Solución:** Reemplazado el parámetro `reactionTiming` (string) con dos variables booleanas `isBeforeDm` e `isAfterDm` en el schema del prompt (líneas 32-33)
+  - **Cambios técnicos:**
+    ```typescript
+    // ANTES (líneas 29-33 - NO FUNCIONABA):
+    input: {schema: z.object({
+        character: CharacterSchema,
+        context: z.string(),
+        reactionTiming: z.string().optional(), // ❌ Requería helper 'eq' para comparar
+    })}
+    
+    // AHORA (líneas 29-34 - FUNCIONA):
+    input: {schema: z.object({
+        character: CharacterSchema,
+        context: z.string(),
+        isBeforeDm: z.boolean().optional(), // ✅ Directo en template
+        isAfterDm: z.boolean().optional(),   // ✅ Directo en template
+    })}
+    ```
+    ```handlebars
+    <!-- ANTES (líneas 49 y 56 - NO FUNCIONABA): -->
+    {{#if (eq reactionTiming "before_dm")}} ❌ Helper 'eq' no existe
+    {{#if (eq reactionTiming "after_dm")}}  ❌ Helper 'eq' no existe
+    
+    <!-- AHORA (líneas 48 y 56 - FUNCIONA): -->
+    {{#if isBeforeDm}} ✅ Variable booleana directa
+    {{#if isAfterDm}}  ✅ Variable booleana directa
+    ```
+  - **Llamada al prompt actualizada** (líneas 109-114):
+    ```typescript
+    // ANTES:
+    await reactionGenerationPrompt({
+        character: characterData,
+        context: context,
+        reactionTiming: input.reactionTiming || 'after_dm',
+    });
+    
+    // AHORA:
+    await reactionGenerationPrompt({
+        character: characterData,
+        context: context,
+        isBeforeDm: input.reactionTiming === 'before_dm',
+        isAfterDm: input.reactionTiming === 'after_dm' || !input.reactionTiming,
+    });
+    ```
+  - **Archivos modificados:**
+    - `src/ai/tools/companion-expert.ts` (líneas 27-77, 109-114)
+  - **Impacto:**
+    - ✅ **Sistema de reacciones de compañeros vuelve a funcionar completamente**
+    - ✅ Reacciones `before_dm` (antes de la narración del DM) funcionan
+    - ✅ Reacciones `after_dm` (después de la narración del DM) funcionan
+    - ✅ No más errores de Handlebars en la terminal
+- **Tipo restrictivo en `log.gameCoordinator` causaba 13 errores de TypeScript:**
+  - **Problema:** El tipo de `log.gameCoordinator` solo aceptaba `action`, `inCombat` y `turnIndex`, pero el código pasaba propiedades adicionales como `locationId`, `actionType`, `partySize`, `character`, etc.
+  - **Solución:** Añadido `[key: string]: any` al tipo de datos en `src/lib/logger.ts` (líneas 119 y 168-169), igual que `serverAction`, `aiTool` y `aiFlow`
+  - **Impacto:** Eliminados todos los errores de linter sin cambiar la funcionalidad
+- **Orden incorrecto de reacciones de compañeros en acciones de movimiento:**
+  - **Problema:** Cuando el jugador se movía a una nueva ubicación, las reacciones de los compañeros eran ilógicas. El DM narraba la llegada al lugar (ej: "veis un monstruo atacando"), pero los compañeros luego preguntaban "¿Por qué vamos allí?" como si aún no hubieran llegado
+  - **Causa raíz:** Las reacciones de los compañeros solo recibían la acción original del jugador como contexto (`"vamos a la colina del resentimiento"`), no la narración del DM que acababa de ocurrir
+  - **Solución:** Modificado `game-coordinator.ts` (líneas 203-206) para incluir la narración del DM en el contexto de las reacciones de los compañeros
+  - **Antes:** 
+    1. Jugador: "vamos a la colina"
+    2. DM: "Ya habéis llegado, veis un monstruo..."
+    3. Compañeros: "¿Por qué vamos allí?" ❌ (sin contexto de la narración)
+  - **Ahora:**
+    1. Jugador: "vamos a la colina"
+    2. DM: "Ya habéis llegado, veis un monstruo..."
+    3. Compañeros: "¡Cuidado con ese monstruo!" / "Parece peligroso..." ✅ (reaccionando a la situación narrada)
+  - **Impacto:** Mejora la coherencia narrativa y la inmersión, las reacciones de los compañeros ahora tienen sentido contextual
+- **Issue #23 - Selección automática de objetivo único y manejo de acciones ambiguas:** ✅ RESUELTO COMPLETAMENTE
+  - **Parte 1 (Selección automática de objetivo único):** Implementado auto-selección del único enemigo vivo cuando el jugador ataca sin especificar objetivo
+    - Antes: "ataco con mi mandoble" (1 enemigo) → "No puedes encontrar ese objetivo" → turno saltado ❌
+    - Ahora: "ataco con mi mandoble" (1 enemigo) → Auto-selección → Ataque procesado correctamente ✅
+    - El DM añade un mensaje aclaratorio: "Galador ataca a Goblin 1."
+  - **Parte 2 (Petición de aclaración con múltiples enemigos):** Implementado sistema de petición de aclaración cuando no hay objetivo específico
+    - Antes: "ataco" (múltiples combatientes) → Fallo → Turno saltado ❌
+    - Ahora: "ataco" (múltiples combatientes) → "No has especificado un objetivo. ¿A quién o qué quieres atacar?" → Turno NO avanza, espera respuesta del jugador ✅
+    - **Diseño abierto:** El mensaje no lista enemigos específicos para no restringir las opciones del jugador (puede atacar enemigos, compañeros, PNJs, objetos, etc.)
+  - **Parte 3 (Resolución de nombres con acentos - BUG FIX):** Corregido bug donde el `actionInterpreter` devolvía nombres sin acentos (ej: "manticora") pero el JSON de aventura tiene nombres con acentos (ej: "Mantícora"), causando que el target no se encontrara
+    - **Problema:** `resolveEnemyId` comparaba strings directamente (`"mantícora" === "manticora"` → false)
+    - **Solución:** Usar `normalizeNameForMatching` (que ya existía) para normalizar nombres antes de comparar, quitando acentos de ambos lados
+    - **Antes:** "ataco" → actionInterpreter devuelve `targetId="manticora"` → "No puedes encontrar ese objetivo" → turno saltado ❌
+    - **Ahora:** "ataco" → actionInterpreter devuelve `targetId="manticora"` → Sistema normaliza y encuentra "Mantícora" → Ataque procesado ✅
+    - Modificado: `src/ai/tools/combat-manager.ts` función `resolveEnemyId` (líneas 595-616)
+  - **Impacto:** Mejora drástica de UX en combate, elimina turnos perdidos injustamente, comportamiento más inteligente del DM, funciona correctamente con nombres que tienen acentos
 - **Referencias rotas:** Corregidas todas las referencias a `issues-encontrados.md` después de moverlo a la raíz de `planes-desarrollo/`.
+- **Issue #17 - IA no incluye todos los enemigos hostiles en el combate:** ✅ RESUELTO
+  - Mejorados los prompts de `actionInterpreter` y `combatInitiationExpertTool` para que la IA entienda que debe incluir todos los enemigos hostiles presentes en la ubicación, independientemente del `targetId` específico
+  - La IA ahora incluye correctamente todos los enemigos hostiles (ej: 2 goblins + 1 orco) cuando se inicia combate con órdenes genéricas ("atacamos!") o específicas ("atacamos a los goblins!")
+- **Generación incorrecta de `uniqueId` para enemigos:** Corregida la lógica de generación de `uniqueId` en `combat-manager.ts` para que agrupe enemigos por nombre base y los numere dentro de cada grupo, en lugar de usar el índice del array completo.
+  - **Antes:** `orco-1` (index 2) → `orco-2` ❌
+  - **Ahora:** `orco-1` → `orco-0` ✅ (primer orco en el grupo "orco")
+  - Esto asegura que los `uniqueId` sean consistentes: `goblin-0`, `goblin-1`, `orco-0` en lugar de `goblin-0`, `goblin-1`, `orco-2`
+- **Issue #19 - 🔴 Turno del jugador no procesa tiradas de dados ni narración del DM (CRÍTICO):** ✅ RESUELTO
+  - Implementado procesamiento completo del turno del jugador en `combat-manager.ts` (líneas 738-1005)
+  - **Generación de tiradas de dados:** El sistema ahora genera automáticamente attack roll (`1d20+modificador`) y damage roll (`1d8+modificador` si acierta) usando los modificadores de habilidad del jugador
+  - **Narración del DM:** Se generan mensajes del DM para acierto/fallo, daño aplicado con cambios de HP, críticos, pifias, y derrota de enemigos
+  - **Aplicación de daño:** El daño se aplica correctamente al enemigo objetivo, actualizando HP con validación (`validateAndClampHP`)
+  - **Panel de tiradas:** Las tiradas del jugador ahora incluyen toda la información de combate (`targetName`, `targetAC`, `attackHit`, `damageDealt`) y se muestran correctamente en el panel de tiradas
+  - **Nota:** El dado de daño por defecto es `1d8`. TODO: Leer del arma equipada del personaje en el futuro
+  - **Impacto:** Los jugadores ahora pueden atacar efectivamente en combate. Este era un bloqueador crítico del gameplay.
+- **Issue #13 - 🔴 Connect Timeout Error al iniciar combate (CRÍTICO):** ✅ RESUELTO
+  - Implementado retry logic con exponential backoff + fallback inteligente en `action-interpreter.ts`
+  - **Retry Logic:** Función `retryWithExponentialBackoff` que reintenta hasta 3 veces (4 intentos totales) con delays de 1s, 2s, 4s
+  - **Fallback Inteligente:** Si todos los reintentos fallan, análisis por palabras clave detecta acciones de ataque ('ataco', 'atacar', 'atacamos', etc.) y extrae el objetivo del contexto
+  - **Impacto:** Reduce significativamente los fallos de API, permite jugar incluso cuando hay problemas de red, experiencia más confiable
+- **Issue #18 - IA Táctica ataca a personajes ya derrotados (HP <= 0):** ✅ RESUELTO
+  - Modificado `combat-manager.ts` para filtrar personajes muertos antes de pasarlos a los AI tacticians
+  - **Filtrado implementado** en dos lugares: turno normal (líneas 1026-1049) e iniciación de combate (líneas 1838-1861)
+  - Los arrays `aliveParty` y `aliveEnemies` solo incluyen personajes con HP > 0
+  - **Impacto:** Los enemigos y aliados ya no atacan a personajes derrotados, mejorando realismo y lógica del combate
+- **Mejora de mensajes de derrota en combate:**
+  - Modificado `combat-manager.ts` para incluir el nombre del atacante en mensajes de muerte
+  - **Antes:** "¡Merryl ha sido derrotado!" → **Ahora:** "¡Goblin 1 ha matado a Merryl!"
+  - Aplicado tanto para turnos de jugador como de IA (líneas 952-956 y después de aplicar daño)
+  - **Impacto:** Narración más clara y dramática cuando un personaje cae en combate
+- **Mejora de resolución de targetId en combate:**
+  - Mejorada función `resolveEnemyId` en `combat-manager.ts` (líneas 570-592)
+  - **Problema:** El `actionInterpreter` devolvía IDs como `goblin-2` pero el sistema usa `uniqueId` como `goblin-0`, `goblin-1`
+  - **Solución:** Cuando recibe un ID con formato `nombre-número` que no existe, lo convierte a nombre visual y busca en initiativeOrder
+  - **Ejemplo:** `goblin-2` → "Goblin 2" → encuentra `uniqueId: goblin-1`
+  - **Impacto:** El turno del jugador ahora procesa correctamente ataques a enemigos específicos sin error "No puedes encontrar ese objetivo"
+- **Sistema de mensajes de muerte y curación en panel de Tiradas:**
+  - **Problema 1:** Los mensajes de muerte solo aparecían en el chat del DM, no en el panel de Tiradas
+  - **Problema 2:** Las tiradas de curación no mostraban información del objetivo ni cantidad curada
+  - **Problema 3:** Combatientes muertos seguían actuando en su turno
+  - **Solución implementada:**
+    - Añadidos campos `targetKilled` y `healingAmount` a interfaz `DiceRoll` en `types.ts`
+    - Modificado `combat-manager.ts` para:
+      - Skipear turnos de combatientes con HP ≤ 0 y mostrar mensaje "X está muerto y no puede actuar"
+      - Poblar `targetKilled: true` en damage rolls cuando HP del objetivo llega a 0
+      - Poblar `healingAmount` y `targetName` en healing rolls
+    - Modificado `dice-roll-result.tsx` para mostrar:
+      - "💀 ¡X ha matado a Y!" debajo de las tiradas de daño letales
+      - "X ha curado N puntos de vida a Y" en tiradas de curación
+  - **Impacto:** Panel de Tiradas ahora muestra claramente muertes y curaciones, mejorando feedback visual y realismo del combate
+- **Soporte para hechizos con tiradas de salvación (Saving Throw Spells) - MEJORADO CON METADATA EXPLÍCITA:**
+  - **Problema original:** Hechizos como Sacred Flame (Llama Sagrada) que usan tirada de salvación del objetivo en lugar de tirada de ataque del lanzador no funcionaban correctamente. El sistema rechazaba el damage roll porque no había un attack roll previo
+  - **Solución inicial (keywords):** Detección por palabras clave como "radiante", "sacred", "salvación" - FRÁGIL y no escalable
+  - **Solución definitiva (metadata explícita):**
+    - **Schemas actualizados** en `companion-tactician.ts` y `enemy-tactician.ts`:
+      - Agregado campo `attackType` en el schema de `diceRolls`: `z.enum(['attack_roll', 'saving_throw', 'healing', 'other'])`
+      - Los AI tacticians ahora especifican explícitamente el tipo de cada roll
+      - **Ventaja:** No requiere parsing de strings ni mantenimiento de listas de keywords
+    - **Prompts mejorados:**
+      - Instrucciones claras sobre cuándo usar cada `attackType`
+      - Ejemplos actualizados con el campo `attackType` incluido
+      - **TYPE 1:** `attackType: "attack_roll"` para armas/hechizos que requieren 1d20 para acertar
+      - **TYPE 2:** `attackType: "saving_throw"` para hechizos donde el objetivo tira salvación
+      - **TYPE 3:** `attackType: "healing"` para hechizos de curación
+    - **`combat-manager.ts` actualizado** (líneas 1248-1267, 1372-1409):
+      - Lee `attackType` del rollData proporcionado por los tacticians
+      - Fallback a detección por keywords para retrocompatibilidad
+      - Log mejorado que muestra el `attackType` recibido
+      - Validación robusta basada en metadata explícita en lugar de string parsing
+    - **`dice-roll-result.tsx`** (líneas 46-57, 129-138):
+      - Detecta saving throw spells automáticamente
+      - Muestra mensaje específico: "X sufre N puntos de daño radiante (hechizo de salvación)"
+  - **Impacto:** 
+    - Sistema robusto y mantenible que no requiere añadir keywords para cada nuevo hechizo
+    - Los AI tacticians ya consultan `dndApiLookupTool`, por lo que conocen el tipo de hechizo
+    - Explícito > implícito: menos errores, más fácil de debuggear
+    - Hechizos como Sacred Flame, Fireball funcionan correctamente
+    - Escalable a futuras mecánicas de D&D 5e sin cambios de código
+- **Resaltado visual de críticos y pifias en panel de Tiradas:**
+  - **Objetivo:** Hacer que los críticos y pifias sean visualmente impactantes y fáciles de identificar
+  - **Implementación en `dice-roll-result.tsx`:**
+    - **Críticos:** 
+      - Borde dorado grueso (`border-4 border-yellow-400`)
+      - Fondo con gradiente dorado-verde brillante
+      - Sombra dorada (`shadow-lg shadow-yellow-500/50`)
+      - Animación de pulso (`animate-pulse`)
+      - Etiqueta "⭐ ¡CRÍTICO!" en texto grande con glow effect
+      - Número del resultado con brillo dorado
+    - **Pifias:**
+      - Borde rojo intenso grueso (`border-4 border-red-600`)
+      - Fondo con gradiente rojo oscuro
+      - Sombra roja (`shadow-lg shadow-red-600/50`)
+      - Etiqueta "☠️ ¡PIFIA!" en texto grande con glow effect
+      - Número del resultado con brillo rojo
+  - **Impacto:** Los momentos épicos (críticos) y desastrosos (pifias) ahora destacan dramáticamente en el panel de Tiradas, mejorando la emoción del combate
 
 ---
 

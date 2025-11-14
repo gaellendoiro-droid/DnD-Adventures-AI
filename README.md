@@ -96,7 +96,7 @@ El proyecto incluye documentación completa:
 - **[Arquitectura del Backend IA](./docs/arquitectura/arquitectura-backend.md)** - Detalles del servidor
 - **[Flujo de Datos](./docs/arquitectura/flujo-datos.md)** - Diagramas detallados de flujos
 - **[Sistema de Logging](./docs/arquitectura/sistema-logging.md)** - Sistema de logging estructurado y centralizado
-- **[Referencia de API](./docs/referencia-api.md)** - Esquemas y contratos de datos
+- **[Referencia de API](./docs/arquitectura/referencia-api.md)** - Esquemas y contratos de datos
 - **[Roadmap](./docs/roadmap.md)** - Mejoras futuras planificadas
 
 ## Solución de Problemas

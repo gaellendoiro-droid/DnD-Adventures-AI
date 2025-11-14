@@ -16,6 +16,7 @@ const CompanionExpertInputSchema = z.object({
   characterName: z.string().describe("The name of the AI-controlled character whose action is being decided."),
   context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
   inCombat: z.boolean().describe("Whether the party is currently in combat."),
+  reactionTiming: z.enum(['before_dm', 'after_dm']).optional().describe("When this reaction is being generated: 'before_dm' (reacting to player's proposal) or 'after_dm' (reacting to what just happened)."),
 });
 
 const CompanionExpertOutputSchema = z.object({
@@ -28,6 +29,8 @@ const reactionGenerationPrompt = ai.definePrompt({
     input: {schema: z.object({
         character: CharacterSchema,
         context: z.string(),
+        isBeforeDm: z.boolean().optional(),
+        isAfterDm: z.boolean().optional(),
     })},
     output: {schema: CompanionExpertOutputSchema},
     prompt: `You are orchestrating an AI-controlled character in a D&D party. Your goal is to make their interactions feel natural and true to their unique personality. You MUST ALWAYS reply in Spanish from Spain.
@@ -42,15 +45,34 @@ const reactionGenerationPrompt = ai.definePrompt({
     **Current Situation:**
     "{{{context}}}"
 
+    {{#if isBeforeDm}}
+    **Reaction Timing: before_dm**
+    - You are reacting to the PLAYER'S PROPOSAL or action BEFORE the DM narrates what happens.
+    - This is your chance to express doubt, agreement, caution, or enthusiasm about the plan.
+    - Example: Player says "vamos a la cueva oscura" → You might say "¿Estás seguro? Parece peligroso..." or "¡Buena idea, necesitamos explorar!"
+    - **Be selective:** Only react if your character has a strong opinion. Silence is often more realistic.
+    - **Probability guideline:** React about 30-40% of the time.
+    {{/if}}
+    {{#if isAfterDm}}
+    **Reaction Timing: after_dm**
+    - You are reacting to WHAT JUST HAPPENED (the DM's narration).
+    - React to the current situation, what you see, hear, or experience.
+    - Example: DM narrates "veis un dragón" → You might say "¡Cuidado! ¡Es enorme!" or remain focused and silent.
+    - **Be natural:** React as a real player would, based on your personality.
+    - **Probability guideline:** React about 50-60% of the time.
+    {{/if}}
+    {{#unless isBeforeDm}}{{#unless isAfterDm}}
     **You are in narrative/exploration mode.**
     - Based on your character's personality and the situation, decide if they would say or do something.
+    {{/unless}}{{/unless}}
     - **It's okay to be silent.** If the character has no strong opinion or reason to act, they should remain silent.
 
     **RULES:**
     - **CRITICAL: Do not use Markdown.** The output must be plain text.
     - Your output MUST be a valid JSON object matching the schema.
-    - Keep actions concise.
+    - Keep actions concise (1-2 sentences maximum).
     - If the character does nothing, return an empty string for the action inside the JSON object, like this: {"action": ""}.
+    - DO NOT repeat what was already said or narrated. Add something NEW.
     `,
 });
 
@@ -77,15 +99,29 @@ export const companionExpertTool = ai.defineTool(
                 return { action: "" };
             }
 
+            // Issue #26: Defensive check - dead companions cannot react
+            if (characterData.hp && characterData.hp.current <= 0) {
+                log.debug('Skipping reaction for dead companion', { 
+                    module: 'AITool',
+                    tool: 'companionExpertTool',
+                    characterName,
+                    hp: characterData.hp.current,
+                });
+                return { action: "" };
+            }
+
             log.aiTool('companionExpertTool', 'Generating companion reaction', { 
                 characterName,
                 inCombat: input.inCombat,
+                reactionTiming: input.reactionTiming || 'after_dm',
             });
 
             // STEP 2: Call the LLM with all context provided. No tools needed.
             const { output } = await reactionGenerationPrompt({
                 character: characterData,
                 context: context,
+                isBeforeDm: input.reactionTiming === 'before_dm',
+                isAfterDm: input.reactionTiming === 'after_dm' || !input.reactionTiming,
             });
             
             if (!output) {

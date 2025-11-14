@@ -19,7 +19,6 @@ export async function setAdventureDataCache(adventureData: any): Promise<void> {
     adventureId: adventureDataCache?.adventureId || 'unknown',
     locationsCount: adventureDataCache?.locations?.length || 0,
     entitiesCount: adventureDataCache?.entities?.length || 0,
-    locationIds: adventureDataCache?.locations?.map((l: any) => l.id) || [],
   });
 }
 

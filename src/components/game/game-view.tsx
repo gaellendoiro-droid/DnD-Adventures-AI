@@ -282,6 +282,11 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         if (player) setSelectedCharacter(player);
       }
       
+      // Update enemies with HP changes if provided
+      if (result.updatedEnemies) {
+        setEnemies(result.updatedEnemies);
+      }
+      
       // Update combat-related states with synchronization
       if (typeof result.inCombat === 'boolean') {
         setInCombat(result.inCombat);
@@ -294,13 +299,15 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           // If combat starts or continues, update combat states
           if (result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
           if (result.turnIndex !== undefined) setTurnIndex(result.turnIndex);
-          if (result.enemies) setEnemies(result.enemies);
+          // Only update enemies if updatedEnemies is not provided (fallback to enemies)
+          if (!result.updatedEnemies && result.enemies) setEnemies(result.enemies);
         }
       } else {
         // If inCombat is not explicitly set, only update if provided
-      if (result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
-      if (result.turnIndex !== undefined) setTurnIndex(result.turnIndex);
-      if (result.enemies) setEnemies(result.enemies);
+        if (result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
+        if (result.turnIndex !== undefined) setTurnIndex(result.turnIndex);
+        // Only update enemies if updatedEnemies is not provided (fallback to enemies)
+        if (!result.updatedEnemies && result.enemies) setEnemies(result.enemies);
       }
 
     } catch (error: any) {

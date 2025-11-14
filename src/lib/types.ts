@@ -29,6 +29,13 @@ export interface DiceRoll {
   outcome: DiceRollOutcome;
   timestamp: Date;
   description?: string;
+  // Combat-specific information
+  targetName?: string; // Name of the target (for attack/damage/healing rolls)
+  targetAC?: number; // AC of the target (for attack rolls)
+  attackHit?: boolean; // Whether the attack hit (for attack rolls)
+  damageDealt?: number; // Damage dealt (for damage rolls)
+  targetKilled?: boolean; // Whether the target was killed by this damage roll
+  healingAmount?: number; // Healing amount (for healing rolls)
 }
 
 export interface InitiativeRoll {

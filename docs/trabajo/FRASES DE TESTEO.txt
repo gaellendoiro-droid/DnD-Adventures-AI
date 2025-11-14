@@ -20,8 +20,10 @@ Vamos a la colina del Resentimiento.
 	De que monstruo se trata?
 	Saco el mandoble y me lanzo al ataque contra el monstruo.
 
-Vamos al bazar escudo de leon
+Vamos al bazar escudo de leon.
 	Quiero comprar una espada larga
 	Cuanto cuesta?
 	de acuerdo, la compro.
+
+Vamos a la posada.
 

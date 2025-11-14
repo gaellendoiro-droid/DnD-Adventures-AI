@@ -52,6 +52,47 @@ export const gameCoordinatorFlow = ai.defineFlow(
     });
     localLog(`GameCoordinator: Received action: "${playerAction}". InCombat: ${inCombat}. TurnIndex: ${turnIndex}.`);
     
+    // Issue #27: Verificar muerte del jugador y game over
+    const player = party.find(p => p.controlledBy === 'Player') || party[0];
+    if (player && player.hp && (player.hp.current <= 0 || player.isDead === true)) {
+        // Verificar si todos están muertos o inconscientes (incluye isDead)
+        const allDead = party.every(p => p.hp && (p.hp.current <= 0 || p.isDead === true));
+        if (allDead) {
+            log.gameCoordinator('Game over: All party members dead/unconscious', { partySize: party.length });
+            return {
+                messages: [{
+                    sender: 'DM',
+                    content: 'Todos los miembros del grupo han caído en combate. Vuestro viaje termina aquí, pero vuestra historia será recordada. La aventura ha terminado.',
+                }],
+                debugLogs: [...debugLogs, 'Game over: All party members are dead/unconscious'],
+                updatedParty: party,
+                inCombat: false,
+                turnIndex: 0,
+            };
+        }
+        
+        // Mensaje específico según estado del jugador
+        const statusMessage = player.isDead === true
+            ? `${player.name} ha muerto. La aventura no puede continuar sin ti.`
+            : `${player.name} está inconsciente y no puede actuar. Los compañeros deben estabilizarte o curarte antes de que puedas continuar.`;
+        
+        log.gameCoordinator('Player is dead/unconscious', { 
+            player: player.name, 
+            hp: player.hp.current,
+            isDead: player.isDead === true,
+        });
+        return {
+            messages: [{
+                sender: 'DM',
+                content: statusMessage,
+            }],
+            debugLogs: [...debugLogs, `Player ${player.name} is ${player.isDead ? 'dead' : 'unconscious'}`],
+            updatedParty: party,
+            inCombat: inCombat,
+            turnIndex: turnIndex,
+        };
+    }
+    
     const adventureData = await getAdventureData();
     if (!adventureData) {
       log.error('Failed to load adventure data', { module: 'GameCoordinator' });
@@ -90,6 +131,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         playerAction,
         locationContext: JSON.stringify(currentLocationData),
         party: party,
+        updatedEnemies: input.enemies, // Issue #27: Pass enemies to filter dead ones
     });
     
     if (inCombat) {
@@ -108,6 +150,74 @@ export const gameCoordinatorFlow = ai.defineFlow(
       targetId: interpretation.targetId,
     });
     
+    // Issue #27 (Punto 1): Verificar si el jugador intenta interactuar con un personaje muerto/inconsciente
+    if (interpretation.actionType === 'interact' && interpretation.targetId) {
+        // Verificar compañeros/jugador
+        const targetCompanion = party.find(p => p.name === interpretation.targetId);
+        if (targetCompanion) {
+            if (targetCompanion.isDead === true) {
+                // Muerte real
+                log.gameCoordinator('Player tried to interact with dead companion', { 
+                    target: interpretation.targetId,
+                    hp: targetCompanion.hp.current,
+                    isDead: true,
+                });
+                return {
+                    messages: [{
+                        sender: 'DM',
+                        content: `${targetCompanion.name} está muerto y no puede responder.`,
+                    }],
+                    debugLogs: [...debugLogs, `Player tried to interact with dead companion: ${interpretation.targetId}`],
+                    updatedParty: party,
+                    inCombat: inCombat,
+                    turnIndex: turnIndex,
+                };
+            } else if (targetCompanion.hp && targetCompanion.hp.current <= 0) {
+                // Inconsciente
+                log.gameCoordinator('Player tried to interact with unconscious companion', { 
+                    target: interpretation.targetId,
+                    hp: targetCompanion.hp.current,
+                    isDead: false,
+                });
+                return {
+                    messages: [{
+                        sender: 'DM',
+                        content: `${targetCompanion.name} está inconsciente y no puede responder. Necesita ser estabilizado o curado antes de poder interactuar.`,
+                    }],
+                    debugLogs: [...debugLogs, `Player tried to interact with unconscious companion: ${interpretation.targetId}`],
+                    updatedParty: party,
+                    inCombat: inCombat,
+                    turnIndex: turnIndex,
+                };
+            }
+        }
+        
+        // Verificar enemigos muertos
+        if (currentLocationData?.entitiesPresent && input.enemies) {
+            const targetEnemy = input.enemies.find(e => 
+                e.id === interpretation.targetId || 
+                (e as any).uniqueId === interpretation.targetId ||
+                e.name === interpretation.targetId
+            );
+            if (targetEnemy && targetEnemy.hp && targetEnemy.hp.current <= 0) {
+                log.gameCoordinator('Player tried to interact with dead enemy', { 
+                    target: interpretation.targetId,
+                    hp: targetEnemy.hp.current,
+                });
+                return {
+                    messages: [{
+                        sender: 'DM',
+                        content: `${targetEnemy.name} está muerto y no puede responder. Su cadáver yace inmóvil.`,
+                    }],
+                    debugLogs: [...debugLogs, `Player tried to interact with dead enemy: ${interpretation.targetId}`],
+                    updatedParty: party,
+                    inCombat: inCombat,
+                    turnIndex: turnIndex,
+                };
+            }
+        }
+    }
+    
     const historyTranscript = conversationHistory.map(formatMessageForTranscript).join('\n');
 
     if (interpretation.actionType === 'ooc') {
@@ -118,7 +228,14 @@ export const gameCoordinatorFlow = ai.defineFlow(
     if (interpretation.actionType === 'attack') {
         log.gameCoordinator('Initiating combat', { targetId: interpretation.targetId });
         localLog("GameCoordinator: Action is 'attack'. Initiating combat...");
-        const initiationResult = await combatInitiationExpertTool({ playerAction, locationId, targetId: interpretation.targetId || '', locationContext: currentLocationData, party });
+        const initiationResult = await combatInitiationExpertTool({ 
+            playerAction, 
+            locationId, 
+            targetId: interpretation.targetId || '', 
+            locationContext: currentLocationData, 
+            party,
+            updatedEnemies: input.enemies, // Issue #27: Pass enemies to filter dead ones
+        });
         
         log.gameCoordinator('Combat initiated', { 
           combatantIds: initiationResult.combatantIds?.length || 0,
@@ -163,7 +280,49 @@ export const gameCoordinatorFlow = ai.defineFlow(
         }
     }
     
-    // Generate DM narration FIRST (especially important for adventure start)
+    // Generate companion reactions BEFORE DM narration (optional, selective reactions to player's proposal)
+    // Skip on adventure start and only for significant actions
+    const significantActions = ['move', 'attack', 'interact'];
+    if (!isAdventureStart && significantActions.includes(interpretation.actionType || '')) {
+        log.gameCoordinator('Generating companion reactions (before DM)', { 
+          partySize: party.length,
+          actionType: interpretation.actionType,
+        });
+        localLog("GameCoordinator: Generating companion reactions before DM narration...");
+        
+        for (const character of party) {
+            // Issue #26/#27: Skip dead/unconscious companions - they cannot react
+            if (character.controlledBy === 'AI' && character.hp.current > 0 && character.isDead !== true) {
+                const isTargeted = interpretation.actionType === 'interact' && interpretation.targetId === character.name;
+                const companionContext = `The player just proposed/said: "${playerAction}"${isTargeted ? `\n\n(You are being directly addressed.)` : ''}`;
+                
+                const companionResult = await companionExpertTool({
+                    party: party,
+                    characterName: character.name,
+                    context: companionContext,
+                    inCombat: inCombat,
+                    reactionTiming: 'before_dm',
+                });
+                
+                if (companionResult.action && companionResult.action.trim() !== '') {
+                    log.gameCoordinator('Companion reacted (before DM)', { 
+                      character: character.name,
+                      action: companionResult.action.substring(0, 50) + '...',
+                    });
+                    localLog(`${character.name} reacted before DM: "${companionResult.action}"`);
+                    messages.push({
+                        sender: 'Character',
+                        senderName: character.name,
+                        characterColor: character.color,
+                        content: companionResult.action,
+                        originalContent: companionResult.action,
+                    });
+                }
+            }
+        }
+    }
+    
+    // Generate DM narration AFTER companion reactions to player's proposal
     log.gameCoordinator('Generating DM narration', { 
       actionType: interpretation.actionType,
       isAdventureStart,
@@ -194,26 +353,32 @@ export const gameCoordinatorFlow = ai.defineFlow(
 
     // Generate companion reactions AFTER DM narration (and skip on adventure start)
     if (!isAdventureStart) {
-        log.gameCoordinator('Generating companion reactions', { partySize: party.length });
-        localLog("GameCoordinator: Generating companion reactions...");
+        log.gameCoordinator('Generating companion reactions (after DM)', { partySize: party.length });
+        localLog("GameCoordinator: Generating companion reactions after DM narration...");
         for (const character of party) {
-            if (character.controlledBy === 'AI') {
+            // Issue #26/#27: Skip dead/unconscious companions - they cannot react
+            if (character.controlledBy === 'AI' && character.hp.current > 0 && character.isDead !== true) {
                 const isTargeted = interpretation.actionType === 'interact' && interpretation.targetId === character.name;
-                const companionContext = `The player's action is: "${playerAction}"\n${isTargeted ? `(You are being directly addressed.)` : ''}`;
+                // Include DM narration in context so companions react to the CURRENT SITUATION, not just the player's original action
+                const dmNarrationContext = narrativeResult.dmNarration 
+                    ? `\n\nDM narration (what just happened):\n"${narrativeResult.dmNarration}"` 
+                    : '';
+                const companionContext = `The player's action was: "${playerAction}"${dmNarrationContext}${isTargeted ? `\n\n(You are being directly addressed.)` : ''}`;
                 
                 const companionResult = await companionExpertTool({
                     party: party,
                     characterName: character.name,
                     context: companionContext,
                     inCombat: inCombat,
+                    reactionTiming: 'after_dm',
                 });
                 
-                if (companionResult.action) {
-                    log.gameCoordinator('Companion reacted', { 
+                if (companionResult.action && companionResult.action.trim() !== '') {
+                    log.gameCoordinator('Companion reacted (after DM)', { 
                       character: character.name,
                       action: companionResult.action.substring(0, 50) + '...',
                     });
-                    localLog(`${character.name} reacted: "${companionResult.action}"`);
+                    localLog(`${character.name} reacted after DM: "${companionResult.action}"`);
                     messages.push({
                         sender: 'Character',
                         senderName: character.name,

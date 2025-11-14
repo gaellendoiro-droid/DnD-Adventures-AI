@@ -116,7 +116,7 @@ class Logger {
   /**
    * Log específico para el flujo de coordinación del juego
    */
-  gameCoordinator(message: string, data?: { action?: string; inCombat?: boolean; turnIndex?: number }): void {
+  gameCoordinator(message: string, data?: { action?: string; inCombat?: boolean; turnIndex?: number; [key: string]: any }): void {
     this.info(message, {
       module: 'GameCoordinator',
       ...data,
@@ -165,7 +165,7 @@ export const log = {
   info: (message: string, context?: LogContext) => logger.info(message, context),
   warn: (message: string, context?: LogContext) => logger.warn(message, context),
   error: (message: string, context?: LogContext, error?: Error) => logger.error(message, context, error),
-  gameCoordinator: (message: string, data?: { action?: string; inCombat?: boolean; turnIndex?: number }) => 
+  gameCoordinator: (message: string, data?: { action?: string; inCombat?: boolean; turnIndex?: number; [key: string]: any }) => 
     logger.gameCoordinator(message, data),
   serverAction: (message: string, data?: { action?: string; [key: string]: any }) => 
     logger.serverAction(message, data),

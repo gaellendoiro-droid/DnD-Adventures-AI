@@ -143,5 +143,5 @@ El estado completo del juego se mantiene en el frontend y se envía al backend e
 - [Arquitectura del Frontend](./arquitectura-frontend.md) - Detalles del cliente
 - [Arquitectura del Backend IA](./arquitectura-backend.md) - Detalles del servidor
 - [Flujo de Datos](./flujo-datos.md) - Diagramas detallados
-- [Referencia API](../referencia-api.md) - Contratos de datos
+- [Referencia API](./referencia-api.md) - Contratos de datos
 

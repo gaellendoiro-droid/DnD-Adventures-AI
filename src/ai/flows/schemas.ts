@@ -12,6 +12,7 @@ export const ActionInterpreterInputSchema = z.object({
   playerAction: z.string().describe('The action taken by the player.'),
   locationContext: z.string().describe('A JSON string with the full data of the current location, including its exits, interactable objects and entities present.'),
   party: z.array(z.any()).describe("The array of party member objects. Used to identify companions."),
+  updatedEnemies: z.array(z.any()).optional().describe("Array of enemies with current HP status to filter out dead entities."),
 });
 export type ActionInterpreterInput = z.infer<typeof ActionInterpreterInputSchema>;
 
@@ -56,6 +57,7 @@ export const GameCoordinatorOutputSchema = z.object({
   diceRolls: z.array(z.any()).optional(),
   debugLogs: z.array(z.string()).optional(),
   updatedParty: z.array(z.any()).optional(),
+  updatedEnemies: z.array(z.any()).optional(), // Added: Updated enemies with HP changes
   nextLocationId: z.string().optional().nullable(),
   inCombat: z.boolean().optional(),
   initiativeOrder: z.array(z.any()).optional(), // Combatant[]

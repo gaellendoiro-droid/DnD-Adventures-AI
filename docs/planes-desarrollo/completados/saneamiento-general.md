@@ -364,7 +364,7 @@ Este plan se considera completado cuando:
 
 - [Arquitectura General](../arquitectura/vision-general.md) - Para entender la estructura del sistema
 - [Flujo de Datos](../arquitectura/flujo-datos.md) - Para entender cómo fluyen los datos
-- [Referencia de API](../referencia-api.md) - Para entender los contratos de datos
+- [Referencia de API](../arquitectura/referencia-api.md) - Para entender los contratos de datos
 - [Sistema de Logging](../arquitectura/sistema-logging.md) - Documentación completa del sistema de logging
 
 ---

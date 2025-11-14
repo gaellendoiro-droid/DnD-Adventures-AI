@@ -51,6 +51,7 @@ export const CharacterSchema = z.object({
     controlledBy: z.enum(["Player", "AI"]),
     inventory: z.array(z.object({ id: z.string(), name: z.string(), quantity: z.number(), description: z.string().optional().nullable() })),
     spells: z.array(z.object({ id: z.string(), name: z.string(), level: z.number(), description: z.string().nullable() })),
+    isDead: z.boolean().optional().default(false), // Sistema de muerte masiva D&D 5e
 });
 
 /**
