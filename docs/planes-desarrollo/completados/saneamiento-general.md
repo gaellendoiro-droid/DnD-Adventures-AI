@@ -227,7 +227,7 @@ Este documento detalla un proceso sistemático de revisión y depuración de la 
 - [x] Todos los flujos críticos funcionan correctamente ✅ (revisión de código muestra implementación correcta de todos los flujos)
 - [x] No hay interrupciones o errores durante el juego ✅ (manejo de errores implementado con try-catch, validación de datos, errores estructurados)
 - [x] La experiencia es fluida y coherente ✅ (sincronización de estado correcta, mensajes de carga, toasts informativos)
-- [x] Los problemas encontrados están documentados ✅ (issues documentados en `issues-encontrados.md`)
+- [x] Los problemas encontrados están documentados ✅ (issues documentados en [Issues Tracker](../../tracking/issues/README.md))
 
 **Nota:** Esta revisión se basa en el análisis del código. Se recomienda realizar pruebas manuales de cada flujo para verificar el comportamiento en tiempo de ejecución, especialmente para el sistema de combate que está en desarrollo activo.
 
@@ -304,7 +304,7 @@ Este documento detalla un proceso sistemático de revisión y depuración de la 
 **Objetivo:** Crear un documento consolidado con todos los problemas encontrados y su prioridad.
 
 - [x] **Crear Documento de Issues:**
-  - [x] Listar todos los bugs encontrados ✅ (12 issues documentados en `issues-encontrados.md`)
+  - [x] Listar todos los bugs encontrados ✅ (12 issues documentados en [Issues Tracker](../../tracking/issues/README.md))
   - [x] Categorizar por severidad (Crítico, Alto, Medio, Bajo) ✅ (1 crítico, 5 advertencias, 6 mejoras)
   - [x] Incluir pasos para reproducir cada bug ✅ (cada issue tiene descripción detallada y ubicación)
   - [x] Incluir contexto y logs relevantes ✅ (cada issue tiene contexto, problema e impacto documentados)
@@ -316,7 +316,7 @@ Este documento detalla un proceso sistemático de revisión y depuración de la 
   - [x] Crear orden de corrección recomendado ✅ (todos los issues críticos y advertencias corregidos, mejoras opcionales documentadas)
 
 **Verificación:**
-- [x] Todos los problemas encontrados están documentados ✅ (12 issues documentados en `issues-encontrados.md`)
+- [x] Todos los problemas encontrados están documentados ✅ (12 issues documentados en [Issues Tracker](../../tracking/issues/README.md))
 - [x] Cada problema tiene suficiente contexto para ser corregido ✅ (cada issue incluye ubicación, descripción, problema, impacto y solución)
 - [x] Hay un plan claro para abordar los problemas ✅ (10 issues corregidos, 3 mejoras opcionales documentadas)
 
@@ -344,8 +344,8 @@ Este documento detalla un proceso sistemático de revisión y depuración de la 
 Este plan se considera completado cuando:
 
 - [x] Todas las áreas han sido revisadas sistemáticamente ✅ (7 secciones completadas: Frontend, Backend, Integración, Logs, Flujos Críticos, Rendimiento, Validación y Seguridad)
-- [x] Todos los problemas encontrados están documentados ✅ (12 issues documentados en `issues-encontrados.md`)
-- [x] Se ha creado un documento consolidado de issues ✅ (`issues-encontrados.md` contiene todos los issues con detalles completos)
+- [x] Todos los problemas encontrados están documentados ✅ (12 issues documentados en [Issues Tracker](../../tracking/issues/README.md))
+- [x] Se ha creado un documento consolidado de issues ✅ ([Issues Tracker](../../tracking/issues/README.md) contiene todos los issues con detalles completos)
 - [x] Se ha creado un plan de corrección priorizado ✅ (10 issues corregidos, 3 mejoras opcionales documentadas)
 - [x] Los problemas críticos han sido identificados y documentados ✅ (1 issue crítico identificado y corregido, 5 advertencias corregidas)
 

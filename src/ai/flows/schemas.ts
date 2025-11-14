@@ -17,7 +17,7 @@ export const ActionInterpreterInputSchema = z.object({
 export type ActionInterpreterInput = z.infer<typeof ActionInterpreterInputSchema>;
 
 export const ActionInterpreterOutputSchema = z.object({
-  actionType: z.enum(['move', 'interact', 'attack', 'narrate', 'ooc']).describe("The interpreted type of the player's action."),
+  actionType: z.enum(['move', 'interact', 'attack', 'narrate', 'ooc', 'continue_turn']).describe("The interpreted type of the player's action. 'continue_turn' is used for step-by-step combat to advance to the next AI turn."),
   targetId: z.string().optional().nullable().describe("The ID of the target for the action. For 'move', it's the destination ID. For 'attack', the entity ID. For 'interact', it's the specific interaction action name (e.g., 'Leer Misión de la Colina del Resentimiento') or the character name (e.g., 'Elara')."),
 });
 export type ActionInterpreterOutput = z.infer<typeof ActionInterpreterOutputSchema>;
@@ -64,6 +64,7 @@ export const GameCoordinatorOutputSchema = z.object({
   enemies: z.array(z.any()).optional(),
   error: z.string().optional(),
   turnIndex: z.number().optional(), // Added turnIndex to the output
+  hasMoreAITurns: z.boolean().optional(), // Step-by-step combat: indicates if more AI turns are pending
 });
 export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
 

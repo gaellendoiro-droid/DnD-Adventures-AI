@@ -59,7 +59,7 @@ It is **{{{activeCombatant}}}'s** turn.
 
 1.  **Analyze the Battlefield:** Identify the biggest threat in the player's party. Who is most wounded? Who is the most dangerous?
 2.  **Choose a Tactical Action:** Decide the most logical action. This is almost always attacking the most threatening or vulnerable player character. Use the provided tools to look up your stats and abilities.
-3.  **Narrate the Action:** Provide a short, exciting narration (in Spanish from Spain).
+3.  **Narrate the Action:** Provide a short, exciting narration (in Spanish from Spain). **CRITICAL: You MUST use EXACTLY the name "{{{activeCombatant}}}" when referring to this creature in your narration. DO NOT translate or change this name (e.g., if it's "Goblin 1", write "Goblin 1", NOT "Gnomo 1").**
 4.  **Specify the Target:** In the 'targetId' field, provide the unique ID of the character you are attacking. You can see the IDs in the context above.
 5.  **Request Dice Rolls (⚠️ CRITICAL - MANDATORY - READ CAREFULLY):**
 

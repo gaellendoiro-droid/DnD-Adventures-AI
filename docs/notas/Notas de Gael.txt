@@ -41,7 +41,7 @@ ISSUES (Bugs/Problemas)
   └─ Después de un combate, uno de nuestros compañeros ha muerto sin embargo
      sigue reaccionando a nuestros comentarios.
   └─ El sistema debe verificar el estado de vida antes de generar reacciones.
-  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #26
+  └─ Ver: docs/tracking/issues/corregidos.md - Issue #26
   └─ ✅ RESUELTO: Filtrado de compañeros muertos añadido en game-coordinator.ts y validación defensiva en companion-expert.ts
 
 --- PRIORIDAD ALTA ---
@@ -54,7 +54,7 @@ ISSUES (Bugs/Problemas)
      preguntar que quiere hacer.
   └─ Si todo el grupo muere se debería mostrar una narración especial junto
      con un mensaje de partida terminada o similar.
-  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #27
+  └─ Ver: docs/tracking/issues/corregidos.md - Issue #27
 
 --- PRIORIDAD MEDIA ---
 
@@ -62,7 +62,7 @@ ISSUES (Bugs/Problemas)
   Visualización de barra de vida en panel Grupo
   └─ En el panel Grupo cuando un personaje está seleccionado no se ve bien
      el trozo de la barra de vida que está vacío.
-  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #28
+  └─ Ver: docs/tracking/issues/pendientes.md - Issue #28
 
 [#31] [ISSUE] [PM] [SISTEMA DE COMBATE] [EN PLAN]
   Stats de enemigos incorrectos en combate
@@ -70,13 +70,13 @@ ISSUES (Bugs/Problemas)
      correctamente.
   └─ Cuando luchamos contra la mantícora parece que tiene menos HP de los
      que debería tener según su ficha oficial de D&D.
-  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #29
+  └─ Ver: docs/tracking/issues/pendientes.md - Issue #29
 
 [#32] [ISSUE] [PM] [CALIDAD Y PULIDO] [EN PLAN]
   Errores de conexión a APIs con logs verbosos
   └─ Revisar los errores de conexión a las APIs y simplificar sus logs
      para que no ocupen tanto en la terminal.
-  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #30
+  └─ Ver: docs/tracking/issues/pendientes.md - Issue #30
 
 --- PRIORIDAD BAJA ---
 
@@ -84,13 +84,13 @@ ISSUES (Bugs/Problemas)
   Logs del navegador colapsados por defecto
   └─ Hacer que los logs de estado en la consola del navegador 
      aparezcan colapsados para una mejor legibilidad.
-  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #25
+  └─ Ver: docs/tracking/issues/pendientes.md - Issue #25
 
 [#33] [ISSUE] [PB] [SISTEMA DE COMBATE] [EN PLAN]
   Gestión de ataques múltiples
   └─ Comprobar la gestión de ataques múltiples (ej: la mantícora hace varios
      ataques en su turno pero parece que el sistema solo tiene en cuenta 1).
-  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #31
+  └─ Ver: docs/tracking/issues/pendientes.md - Issue #31
 
 [#34] [ISSUE] [PB] [INTERFAZ DE USUARIO] [EN PLAN]
   Paneles de combate se limpian de forma inconsistente
@@ -98,14 +98,14 @@ ISSUES (Bugs/Problemas)
      de tiradas no.
   └─ Hacer que ningún panel se limpie e implementar un botón para poder
      limpiarlos solo cuando estamos fuera de combate.
-  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #32
+  └─ Ver: docs/tracking/issues/pendientes.md - Issue #32
 
 --- PRIORIDAD MUY BAJA ---
 
 [#35] [ISSUE] [PMB] [CALIDAD Y PULIDO] [EN PLAN]
   Logs muestran turnIndex cuando inCombat es false
   └─ Los logs si el inCombat es false no deberían indicar el turnIndex.
-  └─ Ver: docs/planes-desarrollo/issues-encontrados.md - Issue #33
+  └─ Ver: docs/tracking/issues/pendientes.md - Issue #33
 
 ==========================================================
 NUEVAS FUNCIONALIDADES
@@ -457,7 +457,7 @@ NOTAS FINALES
   - CHANGELOG.md (cambios implementados)
   - docs/roadmap.md (mejoras planificadas a largo plazo)
   - docs/planes-desarrollo/ (planes activos y completados)
-  - doc/planes-desarrollo/issues-encontrados.md
+  - docs/tracking/issues/README.md
 
 → Items marcados con [EN ROADMAP] o [EN PLAN] están ya
   documentados exhaustivamente en su ubicación correspondiente.
@@ -477,5 +477,9 @@ NUEVAS IDEAS
 
 1 - ¿Que pasa si decido atacar a uno de mis compañeros de aventura, o si en una conversación uno de ellos decide atacarme a mi? ¿Que harán los demás compañeros? (PMB)
 2 - ¿Que pasa si un compañero decide abandonarnos o  continuar por otro camino? (PMB)
+3 - En el panel de Tiradas hay que darle un nuevo color a las tiradas de curación. Buscar otros colores para otros tipos de tiradas. (PB)
+4 - Se podía estudiar la posibilidad de aceptar aventuras que incluyan fichas de personajes predefinidos (por ejemplo aventuras que necesiten personajes de cierto nivel). Estudiar más a fondo esta idea. (PMB)
+5 - Comprobar los porcentajes de propabilidad para que un compañero haga un comentario narrativo. Ahora parece que siempre que pueden dicen algo. (PM)
+6 - Hay que revisar el formateo del texto en los mensajes del DM y de los Compañeros. (PM)
 
 

@@ -8,26 +8,46 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** Activos | **Cantidad:** 1 plan
-
-### [Sistema de Turnos Paso a Paso en Combate](planes-en-curso/sistema-turnos-paso-a-paso.md) 🚧 **EN CURSO**
-- **Estado:** En desarrollo
-- **Objetivo:** Cambiar el sistema de turnos para que el jugador pueda pasar turnos manualmente uno a uno, en lugar de mostrar todos los turnos de golpe
-- **Prioridad:** Muy Alta
-- **Componentes:**
-  - Ejecución de turnos uno a uno en el servidor
-  - Control manual del jugador para pasar turnos
-  - Soporte para reacciones entre turnos (opcional)
-- **Impacto:** Mayor control para el jugador, más inmersivo y similar a D&D de mesa
-- **Referencia:** [Plan Detallado](planes-en-curso/sistema-turnos-paso-a-paso.md)
+**Estado:** Ninguno activo | **Última implementación:** Sistema de Turnos Paso a Paso (2025-11-14)
 
 ---
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 3 planes
+**Estado:** Finalizados | **Cantidad:** 5 planes
 
 Planes que han sido implementados exitosamente:
+
+### [Sistema de Turnos Paso a Paso en Combate](completados/sistema-turnos-paso-a-paso.md) ✅ **COMPLETADO**
+- **Estado:** Implementado y funcional (pulido pendiente)
+- **Objetivo:** Cambiar el sistema de turnos para que el jugador pueda ver los turnos uno a uno, en lugar de mostrar todos los turnos de golpe
+- **Prioridad:** Muy Alta
+- **Componentes implementados:**
+  - ✅ Modificar bucles de turnos en backend (cambio `while` → `if`)
+  - ✅ Añadir campo `hasMoreAITurns` al output del combatManagerTool
+  - ✅ Botón "Pasar 1 Turno" para avance manual
+  - ✅ Botón "Avanzar Todos" para avance automático con delay de 1.5s
+  - ✅ Implementar acción especial "continuar turno" en game-coordinator
+  - ✅ Corrección de bugs de sincronización de estado usando refs
+- **Resultado:** El jugador ahora tiene control total sobre el avance de turnos, puede ver cada turno de IA individualmente y avanzar manualmente o automáticamente
+- **Fecha de implementación:** 2025-11-14
+- **Fecha de finalización:** 2025-11-14
+- **Referencia:** [Plan Detallado](completados/sistema-turnos-paso-a-paso.md)
+
+### [Refactorización del Módulo `combat-manager.ts` (Fases 1-2)](planes-en-curso/refactorizacion-combat-manager.md) ⏸️ **PARCIALMENTE COMPLETADO**
+- **Estado:** Fases 1-2 completadas (54.6% de reducción), Fase 3 pausada (opcional)
+- **Objetivo:** Refactorizar `combat-manager.ts` (2723 líneas) en módulos más pequeños y manejables
+- **Resultados:**
+  - ✅ Reducción: 2723 → 1235 líneas (54.6% de reducción)
+  - ✅ Módulos creados: 5 módulos especializados (1310 líneas extraídas)
+  - ✅ Issues resueltos: #21 (código duplicado), #16 (gestión de nombres)
+  - ✅ Testing: 10/10 tests PASS — Sin regresiones
+  - ✅ Código duplicado eliminado: ~798 líneas
+- **Decisión:** Pausado después de Fase 2 para priorizar sistema de turnos paso a paso (Prioridad Muy Alta). La Fase 3 se puede retomar en el futuro si es necesaria.
+- **Fecha de finalización parcial:** 2025-11-14
+- **Referencia:** [Plan Detallado](planes-en-curso/refactorizacion-combat-manager.md)
+
+---
 
 ### [Sistema de Turnos de Combate](completados/combate-turnos.md) ✅ **COMPLETADO**
 - **Estado:** 100% funcional (5 de 5 pasos completamente funcionales)
@@ -50,7 +70,7 @@ Planes que han sido implementados exitosamente:
 - **Objetivo:** Revisión sistemática de la aplicación para identificar y corregir bugs, problemas y errores
 - **Fecha de finalización:** Completado - 7 secciones revisadas, 12 issues identificados, 10 corregidos, sanitización HTML implementada
 - **Resultados:** 10 issues corregidos, sistema de logging centralizado, sanitización HTML con DOMPurify
-- **Documentación:** [Issues Encontrados](issues-encontrados.md)
+- **Documentación:** [Issues Tracker](../tracking/issues/README.md)
 
 ### [Refactorización de Esquemas](completados/refactor-esquemas.md)
 - **Estado:** 100% completado
@@ -205,13 +225,17 @@ Planes identificados pero aún no iniciados:
 
 ## 🎯 Prioridades Estratégicas
 
+### Prioridad Muy Alta
+
+1. **✅ Sistema de Turnos Paso a Paso en Combate** - Control manual del jugador para pasar turnos uno a uno - **COMPLETADO**
+
 ### Prioridad Alta
 
-1. **🚧 Sistema de Turnos Paso a Paso en Combate** - Control manual del jugador para pasar turnos uno a uno (Prioridad Muy Alta) - **EN CURSO**
-2. **Sistema de Progresión y Gestión** - XP, niveles, inventario, persistencia con base de datos
-3. **Sistema de Inicio de Combate Dinámico** - Evaluación automática de hostilidad
-4. **Mejora de Estructura de Fichas de Personajes** - Mejor organización y visualización de datos
-5. **Mejoras del Sistema de Combate** - Sistema completo de Saving Throws (Issue #22), refactoring de `combat-manager.ts` (Issue #21)
+1. **✅ Refactorización del Módulo `combat-manager.ts` (Fases 1-2)** - Reducción de 2723 → 1235 líneas (54.6%), Issues #21 y #16 resueltos - **COMPLETADO (Fase 3 pausada)**
+3. **Sistema de Progresión y Gestión** - XP, niveles, inventario, persistencia con base de datos
+4. **Sistema de Inicio de Combate Dinámico** - Evaluación automática de hostilidad
+5. **Mejora de Estructura de Fichas de Personajes** - Mejor organización y visualización de datos
+6. **Mejoras del Sistema de Combate** - Sistema completo de Saving Throws (Issue #22)
 
 ### Prioridad Media
 
@@ -232,15 +256,16 @@ Planes identificados pero aún no iniciados:
 
 ## 📊 Estado General del Proyecto
 
-- **Planes Completados:** 3
-- **Planes en Curso:** 1
-- **Planes Sin Comenzar:** 12
-  - **Prioridad Alta:** 3 planes
+- **Planes Completados:** 5
+- **Planes en Curso:** 0 (Refactorización parcialmente completada, Fase 3 pausada)
+- **Planes Sin Comenzar:** 11
+  - **Prioridad Alta:** 4 planes
   - **Prioridad Media:** 8 planes
   - **Prioridad Baja:** 2 planes
 
 ### ✅ Logros Recientes
 
+- **Sistema de Turnos Paso a Paso:** ✅ Completado - Control total del jugador sobre el avance de turnos, botones "Pasar 1 Turno" y "Avanzar Todos", experiencia más inmersiva similar a D&D de mesa
 - **Sistema de Combate por Turnos:** Completado al 100% - Sistema completamente funcional con detección de fin de combate, sistema de HP sincronizado, y validación completa de tiradas de dados
 - **Sistema de HP:** Implementado y funcionando - Sincronización frontend-backend, validación con `validateAndClampHP`, inicialización correcta de enemigos
 - **Sistema de Tiradas:** Validado y funcionando - Soporte para saving throw spells, resaltado visual de críticos/pifias, mensajes de muerte y curación

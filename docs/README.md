@@ -23,7 +23,7 @@ Bienvenido a la documentación del proyecto. Esta carpeta contiene toda la infor
 ## 📋 Planes de Desarrollo
 
 - **[Plan Maestro](./planes-desarrollo/plan-maestro.md)** - Coordinación de todos los planes y estado actual
-- **[Issues Encontrados](./planes-desarrollo/issues-encontrados.md)** - Problemas, bugs y mejoras identificadas
+- **[Issues Tracker](./tracking/issues/README.md)** - Problemas, bugs y mejoras identificadas
 - **[README de Planes](./planes-desarrollo/README.md)** - Cómo trabajar con planes de desarrollo
 
 ### Estado de los Planes
@@ -51,7 +51,7 @@ Bienvenido a la documentación del proyecto. Esta carpeta contiene toda la infor
 
 ### Para Contribuir
 1. Revisa el [Plan Maestro](./planes-desarrollo/plan-maestro.md) para ver qué está en desarrollo
-2. Consulta [Issues Encontrados](./planes-desarrollo/issues-encontrados.md) para ver problemas conocidos
+2. Consulta [Issues Tracker](./tracking/issues/README.md) para ver problemas conocidos
 3. Lee el [README de Planes](./planes-desarrollo/README.md) para entender cómo crear nuevos planes
 
 ### Para Entender el Estado del Proyecto

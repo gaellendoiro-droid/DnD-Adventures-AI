@@ -67,13 +67,13 @@ D&D Adventures AI es una aplicación web que permite jugar partidas de Dungeons 
 ## 🚧 En Desarrollo / Mejoras Pendientes
 
 ### Prioridad Alta
-- **Sistema de Turnos Paso a Paso**: Permitir al jugador controlar manualmente cada turno en lugar de procesar todos de golpe
+- **Refactoring de `combat-manager.ts`**: Dividir en módulos más pequeños y manejables (Issue #21 - Código duplicado) - **EN CURSO**
+- **Sistema de Turnos Paso a Paso**: Permitir al jugador controlar manualmente cada turno en lugar de procesar todos de golpe (se implementará después de la refactorización)
 - **Sistema de Progresión**: XP, subida de nivel, mejora de estadísticas
 - **Inicio de Combate Dinámico**: Evaluación automática de hostilidad para iniciar combate cuando las acciones del jugador lo provoquen
 - **Mejora de Fichas de Personaje**: Mejor organización, visualización de estados temporales, pestañas colapsables
 
 ### Prioridad Media
-- **Refactoring de `combat-manager.ts`**: Dividir en módulos más pequeños y manejables (Issue #21 - Código duplicado)
 - **Sistema Completo de Saving Throws**: Implementar tiradas de salvación del objetivo y cálculo de Spell Save DC (Issue #22)
 - **Compendio de D&D Local**: Base de datos local con información de monstruos, hechizos y reglas para consultas rápidas
 - **Sistema de Estados y Condiciones**: Gestión de estados temporales (aturdido, envenenado, etc.) y recursos gastados

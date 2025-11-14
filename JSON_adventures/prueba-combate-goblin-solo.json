@@ -1,0 +1,42 @@
+{
+  "adventureId": "prueba-combate-goblin-solo",
+  "title": "Prueba de Combate - Goblin Solo",
+  "summary": "Una aventura de prueba para testear el sistema de combate por turnos. Los aventureros aparecen directamente en una ubicación con un solo goblin hostil.",
+  "table_of_contents": {
+    "locations": [
+      {
+        "name": "Claro del Bosque",
+        "id": "claro-del-bosque"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Goblin",
+        "id": "goblin-1"
+      }
+    ]
+  },
+  "locations": [
+    {
+      "id": "claro-del-bosque",
+      "title": "Claro del Bosque",
+      "description": "Un claro abierto en medio de un bosque denso. La luz del sol se filtra entre las hojas de los árboles altos que rodean el área. Una pequeña figura verde con ojos brillantes y sonrisa maliciosa emerge de entre los arbustos, blandiendo una cimitarra oxidada. ¡Un goblin!",
+      "entitiesPresent": [
+        "goblin-1"
+      ],
+      "interactables": [],
+      "exits": [],
+      "dmNotes": "Esta es una ubicación de prueba para testear el sistema de combate. El goblin es un enemigo hostil y atacará inmediatamente si se le provoca."
+    }
+  ],
+  "entities": [
+    {
+      "id": "goblin-1",
+      "name": "Goblin",
+      "type": "monster",
+      "description": "Un pequeño humanoide de piel verdosa con orejas puntiagudas y ojos amarillos brillantes. Viste harapos sucios y empuña una cimitarra oxidada. Su sonrisa revela dientes afilados y su actitud es claramente hostil.",
+      "dmNotes": "Un goblin común de D&D 5e. El sistema obtendrá automáticamente sus estadísticas (HP: 7, AC: 15) de la API de D&D 5e si no están especificadas aquí."
+    }
+  ]
+}
+

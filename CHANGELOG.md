@@ -15,6 +15,47 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+### Added
+- **Sistema de Turnos Paso a Paso en Combate (✅ COMPLETADO)**
+  - **Descripción:** El sistema de combate ahora ejecuta los turnos de IA uno a uno, dando al jugador control total sobre el avance de turnos
+  - **Características:**
+    - Backend procesa solo 1 turno de IA por llamada (cambio `while` → `if`)
+    - Nuevo campo `hasMoreAITurns` en el output del `combatManagerTool`
+    - **Botón "Pasar 1 Turno"**: Avanza manualmente un solo turno de IA
+    - **Botón "Avanzar Todos"**: Avanza automáticamente todos los turnos de IA con delay de 1.5s entre cada uno
+    - Acción especial "continuar turno" para avanzar sin interpretación
+    - Experiencia más inmersiva, similar a D&D de mesa con control total del jugador
+  - **Archivos modificados:**
+    - `src/ai/tools/combat-manager.ts`: Cambio de bucles `while` a `if`, añadido campo `hasMoreAITurns`
+    - `src/ai/flows/schemas.ts`: Añadido campo `hasMoreAITurns` al `GameCoordinatorOutputSchema` y `ActionInterpreterOutputSchema`
+    - `src/ai/flows/game-coordinator.ts`: Manejo de acción especial "continuar turno"
+    - `src/components/game/game-view.tsx`: Estados `hasMoreAITurns` y `autoAdvancing`, lógica de avance, refs para sincronización
+    - `src/components/game/chat-panel.tsx`: Botones "Pasar 1 Turno" y "Avanzar Todos"
+  - **Estado:** Implementación completa y funcional. Testing exhaustivo y pulido pendientes para futuro.
+  - **Referencia:** [Plan Detallado](docs/planes-desarrollo/planes-en-curso/sistema-turnos-paso-a-paso.md)
+
+### Changed
+- **Refactorización de `combat-manager.ts`: Fases 1-2 completadas, Fase 3 pausada**
+  - **Decisión:** Pausar la Fase 3 de refactorización para priorizar el sistema de turnos paso a paso (Prioridad Muy Alta)
+  - **Resultados alcanzados:**
+    - ✅ Reducción de código: 2723 → 1235 líneas (54.6% de reducción)
+    - ✅ 5 módulos especializados creados (1310 líneas extraídas)
+    - ✅ Issues #21 (código duplicado) y #16 (gestión de nombres) resueltos
+    - ✅ 10/10 tests PASS — Sin regresiones
+    - ✅ Código duplicado eliminado: ~798 líneas
+  - **Justificación:** La Fase 3 no es necesaria para implementar turnos paso a paso. El módulo ya está en mejor estado (54.6% de reducción) y la implementación de turnos paso a paso solo requiere modificar el bucle de turnos existente, no extraer toda la lógica a módulos separados. La Fase 3 se puede retomar en el futuro si se considera necesaria.
+  - **Referencia:** [Plan de Refactorización](docs/planes-desarrollo/planes-en-curso/refactorizacion-combat-manager.md)
+
+### Fixed
+- **Bug de Nombrado de Enemigos en Narración (detectado en Test 2 de refactoring):** El prompt de `enemyTacticianTool` no instruía explícitamente a la AI para usar el nombre exacto del enemigo activo en su narración. Esto causaba que la AI tradujera o inventara nombres incorrectos (e.g., generaba "Gnomo 1" en lugar de "Goblin 1"). Se añadió instrucción explícita en el prompt: "You MUST use EXACTLY the name '{{{activeCombatant}}}' when referring to this creature in your narration. DO NOT translate or change this name."
+- **Bug de Sincronización de Estado en Sistema de Turnos Paso a Paso:** Cuando se usaba "Avanzar Todos", el frontend enviaba estados desactualizados al backend porque las actualizaciones de estado de React son asíncronas. Esto causaba que enemigos atacaran a personajes que ya estaban inconscientes. **Solución:** Se implementaron refs (`partyRef`, `locationIdRef`, `inCombatRef`, `messagesRef`, `selectedCharacterRef`) para acceso síncrono a los estados críticos, asegurando que siempre se envíen los valores más recientes al backend, incluso en callbacks asíncronos como `setTimeout`.
+- **Bug en Botón "Pasar 1 Turno":** Error de validación de schema porque `ActionInterpreterOutputSchema` no incluía `'continue_turn'` en el enum `actionType`. Se añadió `'continue_turn'` al enum.
+- **Bug en Botón "Avanzar Todos":** El botón cambiaba a "Avanzando" pero no procesaba turnos porque `autoAdvancing` se actualizaba asíncronamente. Se implementó `autoAdvancingRef` para acceso síncrono y se corrigió la lógica del `setTimeout`.
+- **Bug de Logging:** Se estaba llamando a `logClient.gameEvent()` que no existe. Se reemplazó por `logClient.uiEvent()`.
+  - **Archivos modificados:** `src/ai/tools/enemy-tactician.ts`
+  - **Impacto:** Crítico (narrativa inconsistente, confundía al jugador)
+  - **Testing:** Test 2 (múltiples enemigos) - pendiente de re-test
+
 ---
 
 ## [0.4.9] - 2025-11-14

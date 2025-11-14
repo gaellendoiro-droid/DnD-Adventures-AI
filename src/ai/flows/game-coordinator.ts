@@ -125,14 +125,34 @@ export const gameCoordinatorFlow = ai.defineFlow(
       locationTitle: currentLocationData.title || 'unknown',
     });
     
-    log.gameCoordinator('Interpreting player action', { action: playerAction });
-    localLog("GameCoordinator: Interpreting player action...");
-    const { interpretation, debugLogs: interpreterLogs } = await actionInterpreter({
-        playerAction,
-        locationContext: JSON.stringify(currentLocationData),
-        party: party,
-        updatedEnemies: input.enemies, // Issue #27: Pass enemies to filter dead ones
-    });
+    // Check if this is a "continue turn" action (step-by-step combat)
+    const isContinueTurn = playerAction.toLowerCase().includes('continuar') || 
+                          playerAction.toLowerCase().includes('pasar turno') ||
+                          playerAction.toLowerCase().includes('siguiente turno');
+    
+    let interpretation;
+    let interpreterLogs: string[] = [];
+    
+    if (inCombat && isContinueTurn) {
+        // Special case: continue turn action in combat (no need to interpret)
+        log.gameCoordinator('Continue turn action detected', { action: playerAction });
+        localLog("GameCoordinator: Continue turn action detected. Skipping interpretation.");
+        interpretation = {
+            actionType: 'continue_turn' as const,
+            targetId: null,
+        };
+    } else {
+        log.gameCoordinator('Interpreting player action', { action: playerAction });
+        localLog("GameCoordinator: Interpreting player action...");
+        const result = await actionInterpreter({
+            playerAction,
+            locationContext: JSON.stringify(currentLocationData),
+            party: party,
+            updatedEnemies: input.enemies, // Issue #27: Pass enemies to filter dead ones
+        });
+        interpretation = result.interpretation;
+        interpreterLogs = result.debugLogs;
+    }
     
     if (inCombat) {
         log.gameCoordinator('Processing combat turn', { turnIndex, actionType: interpretation.actionType });

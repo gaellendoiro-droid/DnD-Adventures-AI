@@ -587,7 +587,7 @@ Si la validación falla:
 
 **Referencias:**
 - [CHANGELOG.md](../CHANGELOG.md) - Historial completo de cambios
-- [Issues Encontrados](./planes-desarrollo/issues-encontrados.md) - Issues #18-#22 documentan estas mejoras
+- [Issues Tracker](../tracking/issues/README.md) - Issues #18-#22 documentan estas mejoras
 
 ## Referencias Cruzadas
 

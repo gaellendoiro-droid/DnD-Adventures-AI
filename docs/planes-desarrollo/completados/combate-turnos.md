@@ -416,19 +416,19 @@ El sistema de HP está funcional y el Paso 4 está completado. El sistema de tir
 
 ### 🔗 Issues Relacionados
 
-Para evitar duplicación de información, los issues relacionados con el sistema de combate por turnos están documentados en el [documento de issues encontrados](../issues-encontrados.md):
+Para evitar duplicación de información, los issues relacionados con el sistema de combate por turnos están documentados en el [Issues Tracker](../../tracking/issues/README.md):
 
-- **[Issue #14: Enemigos a veces no eligen acción (targetId=null) en combate](../issues-encontrados.md#issue-14-enemigos-a-veces-no-eligen-acción-targetidnull-en-combate)**
+- **[Issue #14: Enemigos a veces no eligen acción (targetId=null) en combate](../../tracking/issues/pendientes.md#issue-14-ai-tacticians-enemigos-y-companions-a-veces-devuelven-output-inválidonull-en-combate)**
   - **Estado:** Pendiente
   - **Relación:** Afecta directamente al Paso 3 (Lógica Táctica de IA)
   - **Descripción:** Algunos enemigos devuelven `targetId=null` y no realizan acciones en su turno
   - **Solución propuesta:** Mejorar el prompt del `enemyTacticianTool` y añadir lógica de fallback
 
-- **[Issue #11: Estados de combate no sincronizados](../issues-encontrados.md#issue-11-estados-de-combate-no-sincronizados)** ✅ CORREGIDO
+- **[Issue #11: Estados de combate no sincronizados](../../tracking/issues/corregidos.md#issue-11-estados-de-combate-no-sincronizados-corregido)** ✅ CORREGIDO
   - **Estado:** Corregido
   - **Relación:** Relacionado con el Paso 1 (Integración del `turnIndex`)
 
-- **[Issue #12: `enemies` no se inicializa desde `initialData`](../issues-encontrados.md#issue-12-enemies-no-se-inicializa-desde-initialdata)** ✅ CORREGIDO
+- **[Issue #12: `enemies` no se inicializa desde `initialData`](../../tracking/issues/corregidos.md#issue-12-enemies-no-se-inicializa-desde-initialdata-corregido)** ✅ CORREGIDO
   - **Estado:** Corregido
   - **Relación:** Relacionado con el Paso 1 (Integración del `turnIndex`)
 

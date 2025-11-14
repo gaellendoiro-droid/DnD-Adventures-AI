@@ -77,7 +77,20 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   **Solución:** Implementar un sistema para que la IA resuma y almacene los eventos y decisiones más importantes en una base de datos persistente. Este resumen se añadiría al contexto de la IA en futuras sesiones.
     *   **Impacto:** Aumentaría la coherencia y la continuidad de la narrativa a lo largo de una campaña.
 
-### 7. Mejoras de Mecánicas de D&D 5e
+### 7. Refactorización del Módulo `combat-manager.ts` (Prioridad Alta)
+*   **Problema Actual:** El módulo `combat-manager.ts` ha crecido hasta convertirse en un "God Object" con más de 2700 líneas de código, múltiples responsabilidades mezcladas, y código duplicado (~260 líneas).
+*   **Mejora Propuesta:**
+    *   **División en Módulos Especializados:** Refactorizar en módulos más pequeños y manejables siguiendo el principio de responsabilidad única (SRP).
+    *   **Eliminación de Código Duplicado:** Extraer lógica de procesamiento de rolls a módulo centralizado (resuelve Issue #21).
+    *   **Separación de Responsabilidades:** Extraer gestión de nombres, parseo de stats, validaciones, y lógica de combate a módulos dedicados.
+    *   **Reducción del Módulo Principal:** Reducir `combat-manager.ts` de ~2723 líneas a ~300-400 líneas (orquestador delgado).
+*   **Impacto:** Crítico para mantenibilidad, facilita implementación de nuevas features (turnos paso a paso, saving throws completos), mejora testabilidad y reduce deuda técnica.
+*   **Documentación:** 
+    *   [Plan de Refactorización Detallado](../planes-desarrollo/sin-comenzar/refactorizacion-combat-manager.md)
+    *   [Issues Tracker - Issue #21](../tracking/issues/pendientes.md#issue-21-código-duplicado-en-combat-managerts-para-procesamiento-de-rolls-deuda-técnica)
+    *   [Issues Tracker - Issue #16](../tracking/issues/pendientes.md#issue-16-gestión-de-nombres-de-múltiples-monstruos-debería-estar-en-un-módulo-separado)
+
+### 8. Mejoras de Mecánicas de D&D 5e
 *   **Estado Actual:** El sistema implementa las mecánicas básicas de D&D 5e, pero algunas reglas avanzadas están simplificadas o pendientes.
 *   **Mejoras Propuestas:**
     *   **Sistema Completo de Saving Throws:** Actualmente los hechizos con saving throws aplican daño automáticamente. Implementar cálculo de Spell Save DC, tirada de salvación del objetivo, y regla de mitad de daño si acierta.
@@ -90,10 +103,10 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Impacto:** Mayor fidelidad a las reglas oficiales de D&D 5e, mejor balance de combate, opciones tácticas más ricas, y combate más narrativo e inmersivo.
 *   **Documentación:** 
     *   [Sistema de Death Saving Throws](../planes-desarrollo/sin-comenzar/sistema-death-saving-throws.md)
-    *   [Issues Encontrados - Issue #22](../planes-desarrollo/issues-encontrados.md#issue-22-sistema-completo-de-saving-throws-tiradas-de-salvación-del-objetivo-feature-incompleta)
+    *   [Issues Tracker - Issue #22](../tracking/issues/pendientes.md#issue-22-sistema-completo-de-saving-throws-tiradas-de-salvación-del-objetivo-feature-incompleta)
     *   [Notas de Gael - #26, #10, #36](../trabajo/Notas%20de%20Gael.txt)
 
-### 8. Convertidor de PDF a JSON - Aplicación Auxiliar
+### 9. Convertidor de PDF a JSON - Aplicación Auxiliar
 *   **Problema Actual:** Añadir nuevas aventuras al juego requiere crear manualmente archivos JSON con una estructura específica, lo cual es tedioso y propenso a errores. Los usuarios que tienen aventuras en formato PDF no pueden usarlas directamente.
 *   **Mejora Propuesta:**
     *   **Aplicación Auxiliar Independiente:** Crear una aplicación CLI (y futuramente web) que analice PDFs de aventuras de D&D y los convierta automáticamente en JSON compatible con el juego.
@@ -107,7 +120,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   **Accesibilidad:** Permite a usuarios usar aventuras oficiales o homebrew en formato PDF
 *   **Documentación:** Ver [Plan de Desarrollo: Convertidor de PDF a JSON](../planes-desarrollo/sin-comenzar/pdf-to-json-converter.md)
 
-### 9. Música y Sonido Dinámicos
+### 10. Música y Sonido Dinámicos
 *   **Problema Actual:** La experiencia de juego es silenciosa, careciendo de un fondo sonoro que ayude a la inmersión.
 *   **Mejora Propuesta:**
     *   Integrar un reproductor de audio que pueda cambiar la pista musical dinámicamente según el estado del juego (exploración, combate, localización específica).
@@ -120,11 +133,11 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 
 Mejoras de calidad de vida y características adicionales que mejoran la experiencia pero no son esenciales.
 
-### 10. Comandos de Voz
+### 11. Comandos de Voz
 *   **Mejora Propuesta:** Integrar la API de Reconocimiento de Voz del navegador (`SpeechRecognition`) para añadir un botón de "dictar" en la interfaz.
 *   **Impacto:** Aumentaría la accesibilidad y ofrecería una forma más rápida e inmersiva de interactuar, acercándose a la experiencia de una partida de rol de mesa.
 
-### 11. Automatización del Versionado y Changelog
+### 12. Automatización del Versionado y Changelog
 *   **Estado Actual:** Se ha implementado un sistema manual para mantener un archivo `CHANGELOG.md`.
 *   **Objetivo Futuro:** Automatizar la actualización del `CHANGELOG.md` al cambiar la versión en `package.json`.
 *   **Impacto:** Es una mejora de calidad de vida para el desarrollador, sin impacto directo en la experiencia del jugador.

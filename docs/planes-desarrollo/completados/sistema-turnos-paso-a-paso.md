@@ -3,8 +3,12 @@
 Este documento detalla los pasos necesarios para implementar un sistema de turnos de combate donde cada turno se ejecuta individualmente y el jugador tiene control manual para avanzar turno por turno, en lugar de mostrar todos los turnos de golpe.
 
 **Prioridad:** Muy Alta  
-**Estado:** En Curso  
-**Referencia:** Issue #22 en Notas de Gael
+**Estado:** ✅ IMPLEMENTADO (Funcional, pulido pendiente)  
+**Referencia:** Issue #22 en Notas de Gael  
+**Nota:** Implementado sobre la arquitectura mejorada del `combat-manager.ts` (Fases 1-2 de refactorización completadas, 54.6% de reducción). La Fase 3 de refactorización no fue necesaria para esta implementación.
+
+**Fecha de implementación:** 2025-11-14  
+**Fecha de finalización:** 2025-11-14
 
 ---
 
@@ -41,6 +45,270 @@ En lugar de ejecutar todos los turnos de IA en un bucle continuo, el sistema deb
 2. Devolver el estado inmediatamente después de ese turno
 3. Esperar a que el jugador avance manualmente al siguiente turno
 4. Repetir hasta llegar al turno del jugador
+
+---
+
+## 🎨 Diseño Técnico Detallado
+
+### Análisis del Código Actual
+
+El módulo `combat-manager.ts` tiene **2 bucles `while` idénticos** que procesan turnos de IA:
+
+1. **Bucle 1 (línea ~495):** Para combate en curso (después de turno del jugador)
+2. **Bucle 2 (línea ~1034):** Para iniciación de combate
+
+**Código actual:**
+```typescript
+while(activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded) {
+    // 1. Verificar si combatiente está muerto/inconsciente → skip
+    // 2. Obtener nombres visuales de enemigos
+    // 3. Invocar tactician (enemigo o compañero)
+    // 4. Procesar narración
+    // 5. Procesar rolls (ataque/daño/curación)
+    // 6. Avanzar turnIndex
+}
+// Retornar después de procesar TODOS los turnos de IA
+```
+
+**Problema:** Ejecuta todos los turnos de IA en secuencia antes de retornar, el jugador ve todos los resultados de golpe.
+
+### Solución: Cambio `while` → `if`
+
+**Nueva estructura:**
+```typescript
+if(activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded) {
+    // 1. Verificar si combatiente está muerto/inconsciente → skip pero RETORNAR
+    // 2. Obtener nombres visuales de enemigos
+    // 3. Invocar tactician (enemigo o compañero)
+    // 4. Procesar narración
+    // 5. Procesar rolls (ataque/daño/curación)
+    // 6. Avanzar turnIndex
+    // 7. RETORNAR INMEDIATAMENTE con flag `hasMoreAITurns: true`
+}
+// Retornar después de procesar UN SOLO turno
+```
+
+### Flujo de Ejecución
+
+**Antes (todos los turnos de golpe):**
+```
+Player Action → [AI-1, AI-2, AI-3, AI-4] → Player Turn
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+                Todos procesados en una llamada
+```
+
+**Después (un turno a la vez):**
+```
+Player Action → AI-1 (return hasMoreAITurns=true)
+Frontend recibe → muestra turno → jugador presiona "Pasar Turno"
+→ AI-2 (return hasMoreAITurns=true)
+Frontend recibe → muestra turno → jugador presiona "Pasar Turno"
+→ AI-3 (return hasMoreAITurns=true)
+Frontend recibe → muestra turno → jugador presiona "Pasar Turno"
+→ AI-4 (return hasMoreAITurns=false) → Player Turn
+```
+
+### Cambios Técnicos Específicos
+
+#### Backend: `src/ai/tools/combat-manager.ts`
+
+**1. Modificar Output Schema:**
+```typescript
+export const CombatManagerOutputSchema = z.object({
+    // ... campos existentes ...
+    hasMoreAITurns: z.boolean().optional(), // ← NUEVO CAMPO
+});
+```
+
+**2. Cambiar bucle 1 (combate en curso, línea ~495):**
+
+**De:**
+```typescript
+while(activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded) {
+    // ... procesamiento del turno (~210 líneas) ...
+    
+    // Avanzar turno al final del bucle
+    if (!combatHasEnded) {
+        currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
+        activeCombatant = initiativeOrder[currentTurnIndex];
+    }
+}
+
+// Retornar después del bucle
+return { messages, diceRolls, inCombat: true, ... };
+```
+
+**A:**
+```typescript
+// Ejecutar SOLO un turno de IA (si corresponde)
+if(activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded) {
+    // ... procesamiento del turno (mismo código, ~210 líneas) ...
+    
+    // Avanzar turno
+    if (!combatHasEnded) {
+        currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
+        activeCombatant = initiativeOrder[currentTurnIndex];
+    }
+    
+    // Verificar si el siguiente turno es también de IA
+    const hasMoreAITurns = activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded;
+    
+    // RETORNAR INMEDIATAMENTE después de procesar este turno
+    return { 
+        messages, 
+        diceRolls, 
+        inCombat: true, 
+        turnIndex: currentTurnIndex, 
+        initiativeOrder, 
+        updatedParty, 
+        updatedEnemies,
+        hasMoreAITurns, // ← NUEVO CAMPO
+    };
+}
+
+// Si no es turno de IA, retornar normalmente
+return { 
+    messages, 
+    diceRolls, 
+    inCombat: true, 
+    turnIndex: currentTurnIndex, 
+    initiativeOrder, 
+    updatedParty, 
+    updatedEnemies,
+    hasMoreAITurns: false,
+};
+```
+
+**3. Cambiar bucle 2 (iniciación de combate, línea ~1034):**
+
+**Mismo cambio que el bucle 1**, con las variables locales correspondientes (`newInitiativeOrder` en lugar de `initiativeOrder`, etc.)
+
+**4. Manejo de combatientes muertos/inconscientes:**
+
+**Actualmente:**
+```typescript
+if (activeCombatantData && activeCombatantData.hp.current <= 0) {
+    messages.push({ sender: 'DM', content: '...' });
+    currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
+    activeCombatant = initiativeOrder[currentTurnIndex];
+    continue; // ← Continúa al siguiente turno en el bucle
+}
+```
+
+**Cambiar a:**
+```typescript
+if (activeCombatantData && activeCombatantData.hp.current <= 0) {
+    messages.push({ sender: 'DM', content: '...' });
+    currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
+    activeCombatant = initiativeOrder[currentTurnIndex];
+    
+    // Verificar si el siguiente turno es también de IA
+    const hasMoreAITurns = activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded;
+    
+    // RETORNAR (no continuar bucle)
+    return { 
+        messages, 
+        diceRolls, 
+        inCombat: true, 
+        turnIndex: currentTurnIndex, 
+        initiativeOrder, 
+        updatedParty, 
+        updatedEnemies,
+        hasMoreAITurns,
+    };
+}
+```
+
+#### Frontend: `src/components/game/game-view.tsx`
+
+**1. Detectar `hasMoreAITurns`:**
+
+Cuando el frontend recibe la respuesta del `combatManagerTool`:
+
+```typescript
+const result = await processPlayerAction(action);
+
+// Si hay más turnos de IA pendientes, automáticamente continuar
+if (result.hasMoreAITurns) {
+    // Opción A: Avanzar automáticamente después de un pequeño delay (para que el jugador pueda leer)
+    setTimeout(() => {
+        processPlayerAction('continuar_turnos'); // Acción especial
+    }, 1500); // 1.5 segundos de delay
+    
+    // Opción B: Mostrar botón "Pasar Turno" para que el jugador avance manualmente
+    setShowPassTurnButton(true);
+}
+```
+
+**2. Botón "Pasar Turno":**
+
+```tsx
+{inCombat && showPassTurnButton && (
+    <button 
+        onClick={() => processPlayerAction('continuar_turnos')}
+        disabled={isProcessing}
+    >
+        Pasar Turno ▶
+    </button>
+)}
+```
+
+**3. Acción "continuar_turnos":**
+
+Esta acción especial indica al backend que continúe procesando el siguiente turno sin acción del jugador:
+
+```typescript
+// En el action-interpreter o en el processPlayerAction
+if (playerAction === 'continuar_turnos' || playerAction === 'pasar turno') {
+    // No interpretar acción, solo llamar al combatManagerTool con el estado actual
+    return { actionType: 'continue_turn' };
+}
+```
+
+### Casos de Prueba
+
+1. **Test 1: Combate con 1 enemigo**
+   - Jugador ataca → Enemigo ataca (1 turno) → Jugador ataca
+   - Verificar: 1 turno de IA procesado, `hasMoreAITurns=false`
+
+2. **Test 2: Combate con múltiples enemigos**
+   - Jugador ataca → Enemigo 1 ataca (1 turno) → [espera] → Enemigo 2 ataca (1 turno) → [espera] → Jugador ataca
+   - Verificar: 2 turnos de IA procesados individualmente, `hasMoreAITurns=true` luego `false`
+
+3. **Test 3: Combate con compañero**
+   - Jugador ataca → Compañero cura/ataca (1 turno) → [espera] → Enemigo ataca (1 turno) → [espera] → Jugador ataca
+   - Verificar: Turnos de compañero y enemigo procesados individualmente
+
+4. **Test 4: Enemigo muerto salta turno**
+   - Jugador mata enemigo → Enemigo muerto (mensaje "está muerto", skip turno, retornar) → Siguiente turno
+   - Verificar: Mensaje de muerte, turno saltado correctamente, `hasMoreAITurns` correcto
+
+5. **Test 5: Fin de combate en turno de IA**
+   - Compañero mata último enemigo → Combate termina
+   - Verificar: `inCombat=false`, no más turnos
+
+6. **Test 6: Iniciación de combate con IA primero**
+   - Iniciar combate → IA tiene iniciativa más alta → Procesar 1 turno de IA → Retornar
+   - Verificar: Solo 1 turno procesado al iniciar
+
+### Notas de Implementación
+
+**Compatibilidad:**
+- El input schema no cambia
+- El output schema solo añade un campo opcional `hasMoreAITurns`
+- El frontend puede ignorar el campo si no está implementado aún
+- Los tests existentes seguirán funcionando (solo verán 1 turno a la vez en lugar de todos)
+
+**Rollback:**
+Si necesitamos revertir el cambio:
+1. Cambiar los `if` de vuelta a `while`
+2. Eliminar el campo `hasMoreAITurns` del output
+3. Listo
+
+**Performance:**
+- **Antes:** 1 llamada grande (procesar N turnos)
+- **Después:** N llamadas pequeñas (1 turno cada una)
+- **Resultado:** Menor latencia percibida (el jugador ve resultados más rápido), misma cantidad total de procesamiento
 
 ---
 
@@ -310,20 +578,50 @@ En lugar de ejecutar todos los turnos de IA en un bucle continuo, el sistema deb
 
 ## ✅ Checklist de Implementación
 
-- [ ] Paso 1: Modificar bucle de turnos en backend
-- [ ] Paso 2: Crear acción de "Pasar Turno" en frontend
-- [ ] Paso 3: Modificar flujo de coordinación del juego
-- [ ] Paso 4: Actualizar UI del tracker de iniciativa
-- [ ] Paso 5: Manejar reacciones entre turnos (opcional)
-- [ ] Paso 6: Pruebas y validación
-- [ ] Documentación actualizada
-- [ ] Código revisado y sin errores de linting
-- [ ] Pruebas manuales completadas
-- [ ] Plan movido a `completados/` cuando esté finalizado
+### Backend
+- [x] Modificar `CombatManagerOutputSchema` (añadir `hasMoreAITurns`)
+- [x] Cambiar bucle 1 (`while` → `if`, línea ~495)
+- [x] Cambiar bucle 2 (`while` → `if`, línea ~1034)
+- [x] Modificar manejo de combatientes muertos (retornar en lugar de `continue`)
+
+### Frontend
+- [x] Implementar detección de `hasMoreAITurns` en `game-view.tsx`
+- [x] Implementar estados `hasMoreAITurns` y `autoAdvancing`
+- [x] Implementar botón "Pasar 1 Turno" en `chat-panel.tsx`
+- [x] Implementar botón "Avanzar Todos" en `chat-panel.tsx` (avance automático con delay 1.5s)
+- [x] Implementar acción especial "continuar_turnos" en `game-coordinator.ts`
+
+### Testing
+- [ ] Testing de backend (Unit tests) - **Pendiente para futuro**
+- [ ] Testing de frontend (E2E tests) - **Pendiente para futuro**
+- [x] Testing manual básico completado (funcionalidad mínima verificada)
+- [ ] Testing completo de integración (6 casos de prueba) - **Pendiente para futuro**
+  - [ ] Test 1: Combate con 1 enemigo
+  - [ ] Test 2: Combate con múltiples enemigos
+  - [ ] Test 3: Combate con compañero
+  - [ ] Test 4: Enemigo muerto salta turno
+  - [ ] Test 5: Fin de combate en turno de IA
+  - [ ] Test 6: Iniciación de combate con IA primero
+
+### Finalización
+- [x] Documentación actualizada
+- [x] Código revisado y sin errores de linting
+- [x] Pruebas manuales básicas completadas (funcionalidad mínima verificada)
+- [ ] Pulido y optimización - **Pendiente para futuro**
+- [x] Plan movido a `completados/` - **2025-11-14**
 
 ---
 
-**Última actualización:** [Fecha de creación del plan]  
-**Estado:** En Curso  
-**Prioridad:** Muy Alta
+**Última actualización:** 2025-11-14  
+**Estado:** ✅ COMPLETADO (Funcional, pulido pendiente)  
+**Prioridad:** Muy Alta  
+**Tiempo invertido:** ~4-6 horas  
+**Riesgo:** Bajo (cambio aislado, fácil de revertir)  
+**Ubicación:** `docs/planes-desarrollo/completados/sistema-turnos-paso-a-paso.md`
+
+**Notas finales:**
+- ✅ La funcionalidad básica está implementada y funcionando
+- ✅ Se corrigieron problemas de sincronización de estado usando refs para acceso síncrono
+- ✅ Los botones "Pasar 1 Turno" y "Avanzar Todos" funcionan correctamente
+- ⏳ Pendientes para futuro: pruebas exhaustivas, pulido de UX, y optimizaciones menores
 

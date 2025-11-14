@@ -8,13 +8,19 @@ import { ChatMessage } from "./chat-message";
 import { PlayerInput } from "./player-input";
 import { DiceRoller } from "./dice-roller";
 import { Skeleton } from "../ui/skeleton";
-import { Bot } from "lucide-react";
+import { Button } from "../ui/button";
+import { Bot, Play, FastForward } from "lucide-react";
 
 interface ChatPanelProps {
   messages: GameMessage[];
   onSendMessage: (content: string) => void;
   onDiceRoll: (roll: { result: number; sides: number }) => void;
   isThinking: boolean;
+  inCombat?: boolean;
+  hasMoreAITurns?: boolean;
+  autoAdvancing?: boolean;
+  onPassTurn?: () => void;
+  onAdvanceAll?: () => void;
 }
 
 export function ChatPanel({
@@ -22,6 +28,11 @@ export function ChatPanel({
   onSendMessage,
   onDiceRoll,
   isThinking,
+  inCombat = false,
+  hasMoreAITurns = false,
+  autoAdvancing = false,
+  onPassTurn,
+  onAdvanceAll,
 }: ChatPanelProps) {
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +69,32 @@ export function ChatPanel({
         </div>
       </ScrollArea>
       <Separator />
-      <div className="p-4 bg-background/50 rounded-b-lg">
+      <div className="p-4 bg-background/50 rounded-b-lg space-y-3">
+        {/* Step-by-step combat buttons */}
+        {inCombat && hasMoreAITurns && !isThinking && onPassTurn && onAdvanceAll && (
+          <div className="flex gap-2">
+            <Button 
+              onClick={onPassTurn}
+              disabled={isThinking || autoAdvancing}
+              variant="outline"
+              size="sm"
+              className="flex-1"
+            >
+              <Play className="mr-2 h-4 w-4" />
+              Pasar 1 Turno
+            </Button>
+            <Button 
+              onClick={onAdvanceAll}
+              disabled={isThinking || autoAdvancing}
+              variant="default"
+              size="sm"
+              className="flex-1"
+            >
+              <FastForward className="mr-2 h-4 w-4" />
+              {autoAdvancing ? "Avanzando..." : "Avanzar Todos"}
+            </Button>
+          </div>
+        )}
         <PlayerInput onSendMessage={onSendMessage} disabled={isThinking} onDiceRoll={onDiceRoll} />
       </div>
     </div>

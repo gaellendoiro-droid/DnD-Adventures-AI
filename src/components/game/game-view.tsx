@@ -45,6 +45,17 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const [isDMThinking, setIsDMThinking] = useState(false);
   const [debugMessages, setDebugMessages] = useState<string[]>([]);
   const [turnIndex, setTurnIndex] = useState(initialData.turnIndex || 0);
+  const [hasMoreAITurns, setHasMoreAITurns] = useState(false);
+  const [autoAdvancing, setAutoAdvancing] = useState(false);
+  const autoAdvancingRef = useRef(false); // Use ref for synchronous access
+  const turnIndexRef = useRef(initialData.turnIndex || 0); // Use ref for synchronous access
+  const initiativeOrderRef = useRef<Combatant[]>(initialData.initiativeOrder || []); // Use ref for synchronous access
+  const enemiesRef = useRef<any[]>(initialData.enemies || []); // Use ref for synchronous access
+  const partyRef = useRef<Character[]>(initialData.party); // Use ref for synchronous access
+  const locationIdRef = useRef<string>(initialData.locationId); // Use ref for synchronous access
+  const inCombatRef = useRef<boolean>(initialData.inCombat || false); // Use ref for synchronous access
+  const messagesRef = useRef<GameMessage[]>(initialData.messages); // Use ref for synchronous access
+  const selectedCharacterRef = useRef<Character | null>(initialData.party.find(c => c.controlledBy === 'Player') || null); // Use ref for synchronous access
 
   const { toast } = useToast();
 
@@ -57,6 +68,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   useEffect(() => {
     setParty(initialData.party);
+    partyRef.current = initialData.party; // Update ref synchronously
     // Ensure all initial messages have unique IDs
     const baseTimestamp = Date.now();
     const messagesWithUniqueIds = initialData.messages.map((msg, index) => {
@@ -69,14 +81,24 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       };
     });
     setMessages(messagesWithUniqueIds);
+    messagesRef.current = messagesWithUniqueIds; // Update ref synchronously
     setDiceRolls(initialData.diceRolls);
     setLocationId(initialData.locationId);
-    setSelectedCharacter(initialData.party.find(c => c.controlledBy === 'Player') || null);
+    locationIdRef.current = initialData.locationId; // Update ref synchronously
+    const initialSelectedCharacter = initialData.party.find(c => c.controlledBy === 'Player') || null;
+    setSelectedCharacter(initialSelectedCharacter);
+    selectedCharacterRef.current = initialSelectedCharacter; // Update ref synchronously
     setInCombat(initialData.inCombat || false);
+    inCombatRef.current = initialData.inCombat || false; // Update ref synchronously
     setInitiativeOrder(initialData.initiativeOrder || []);
     setTurnIndex(initialData.turnIndex || 0);
     setEnemies(initialData.enemies || []);
     setDebugMessages([]);
+    // Sync refs with initial data
+    turnIndexRef.current = initialData.turnIndex || 0;
+    initiativeOrderRef.current = initialData.initiativeOrder || [];
+    enemiesRef.current = initialData.enemies || [];
+    partyRef.current = initialData.party;
     addDebugMessages(["Game state initialized from initialData."]);
   }, [initialData, addDebugMessages]);
 
@@ -165,7 +187,9 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     };
     setMessages((prevMessages) => {
       const filteredMessages = isRetryMessage ? prevMessages.filter(m => m.sender !== 'Error') : prevMessages;
-      return [...filteredMessages, messageToAdd];
+      const newMessages = [...filteredMessages, messageToAdd];
+      messagesRef.current = newMessages; // Update ref synchronously
+      return newMessages;
     });
   }, []);
 
@@ -182,7 +206,9 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     });
     setMessages((prev) => {
       const filteredMessages = isRetry ? prev.filter(m => m.sender !== 'Error') : prev;
-      return [...filteredMessages, ...messagesToAdd];
+      const newMessages = [...filteredMessages, ...messagesToAdd];
+      messagesRef.current = newMessages; // Update ref synchronously
+      return newMessages;
     });
   }, []);
 
@@ -197,33 +223,45 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   }, []);
 
   const buildConversationHistory = useCallback(() => {
-    // Returning the raw message objects now
-    return messages.slice(-10);
-  }, [messages]);
+    // Use ref for synchronous access to messages (important for async callbacks)
+    return messagesRef.current.slice(-10);
+  }, []);
 
   const handleSendMessage = useCallback(async (content: string, options: { isRetry?: boolean, isContinuation?: boolean } = {}) => {
     const { isRetry = false, isContinuation = false } = options;
 
     if (!isRetry && !isContinuation) {
-      addMessage({ sender: "Player", senderName: selectedCharacter?.name, content }, isRetry);
+      addMessage({ sender: "Player", senderName: selectedCharacterRef.current?.name, content }, isRetry);
     } else if (isRetry) {
-      setMessages(prev => [...prev.filter(m => m.sender !== 'Error')]);
+      setMessages(prev => {
+        const filtered = prev.filter(m => m.sender !== 'Error');
+        messagesRef.current = filtered; // Update ref synchronously
+        return filtered;
+      });
     }
 
     setIsDMThinking(true);
 
     try {
       const conversationHistory = buildConversationHistory();
+      // Use refs for all critical state values to ensure we have the latest values
+      // especially important for auto-advancing turns (state updates are async)
       const actionInput = { 
         playerAction: content, 
-        party, 
-        locationId, 
-        inCombat, 
+        party: partyRef.current, 
+        locationId: locationIdRef.current, 
+        inCombat: inCombatRef.current, 
         conversationHistory, 
-        turnIndex,
-        initiativeOrder,
-        enemies,
+        turnIndex: turnIndexRef.current,
+        initiativeOrder: initiativeOrderRef.current,
+        enemies: enemiesRef.current,
       };
+      
+      // Debug: Log party HP to verify we're sending updated data
+      if (inCombatRef.current) {
+        const partyHpStatus = partyRef.current.map(p => `${p.name}: ${p.hp.current}/${p.hp.max}`).join(', ');
+        addDebugMessages([`Sending party to backend: ${partyHpStatus}`]);
+      }
 
       // Validate the entire game state before sending
       try {
@@ -275,11 +313,18 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         addMessages(messagesWithUniqueIds, isRetry);
       }
       if (result.diceRolls) addDiceRolls(result.diceRolls);
-      if (result.nextLocationId) setLocationId(result.nextLocationId);
+      if (result.nextLocationId) {
+        setLocationId(result.nextLocationId);
+        locationIdRef.current = result.nextLocationId; // Update ref synchronously
+      }
       if (result.updatedParty) {
         setParty(result.updatedParty);
-        const player = result.updatedParty.find(p => p.id === selectedCharacter?.id);
-        if (player) setSelectedCharacter(player);
+        partyRef.current = result.updatedParty; // Update ref synchronously
+        const player = result.updatedParty.find(p => p.id === selectedCharacterRef.current?.id);
+        if (player) {
+          setSelectedCharacter(player);
+          selectedCharacterRef.current = player; // Update ref synchronously
+        }
       }
       
       // Update enemies with HP changes if provided
@@ -290,30 +335,98 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       // Update combat-related states with synchronization
       if (typeof result.inCombat === 'boolean') {
         setInCombat(result.inCombat);
+        inCombatRef.current = result.inCombat; // Update ref synchronously
         // If combat ends, clear combat-related states
         if (!result.inCombat) {
           setInitiativeOrder([]);
           setTurnIndex(0);
           setEnemies([]);
+          // Update refs
+          initiativeOrderRef.current = [];
+          turnIndexRef.current = 0;
+          enemiesRef.current = [];
         } else {
           // If combat starts or continues, update combat states
-          if (result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
-          if (result.turnIndex !== undefined) setTurnIndex(result.turnIndex);
+          if (result.initiativeOrder) {
+            setInitiativeOrder(result.initiativeOrder);
+            initiativeOrderRef.current = result.initiativeOrder;
+          }
+          if (result.turnIndex !== undefined) {
+            setTurnIndex(result.turnIndex);
+            turnIndexRef.current = result.turnIndex;
+          }
           // Only update enemies if updatedEnemies is not provided (fallback to enemies)
-          if (!result.updatedEnemies && result.enemies) setEnemies(result.enemies);
+          if (!result.updatedEnemies && result.enemies) {
+            setEnemies(result.enemies);
+            enemiesRef.current = result.enemies;
+          }
         }
       } else {
         // If inCombat is not explicitly set, only update if provided
-        if (result.initiativeOrder) setInitiativeOrder(result.initiativeOrder);
-        if (result.turnIndex !== undefined) setTurnIndex(result.turnIndex);
+        if (result.initiativeOrder) {
+          setInitiativeOrder(result.initiativeOrder);
+          initiativeOrderRef.current = result.initiativeOrder;
+        }
+        if (result.turnIndex !== undefined) {
+          setTurnIndex(result.turnIndex);
+          turnIndexRef.current = result.turnIndex;
+        }
         // Only update enemies if updatedEnemies is not provided (fallback to enemies)
-        if (!result.updatedEnemies && result.enemies) setEnemies(result.enemies);
+        if (!result.updatedEnemies && result.enemies) {
+          setEnemies(result.enemies);
+          enemiesRef.current = result.enemies;
+        }
+      }
+      
+      // Update enemies ref if updatedEnemies is provided
+      if (result.updatedEnemies) {
+        enemiesRef.current = result.updatedEnemies;
+      }
+      
+      // Step-by-step combat: Update hasMoreAITurns state
+      if (result.hasMoreAITurns !== undefined) {
+        setHasMoreAITurns(result.hasMoreAITurns);
+        
+        // If in auto-advance mode and there are more AI turns, continue automatically
+        // Use ref for synchronous access to autoAdvancing state
+        if (result.hasMoreAITurns && autoAdvancingRef.current) {
+          addDebugMessages([`Auto-advancing to next AI turn in 1.5 seconds...`]);
+          logClient.uiEvent('GameView', 'Step-by-step combat: Auto-advancing', {
+            currentTurnIndex: result.turnIndex,
+            hasMoreAITurns: result.hasMoreAITurns,
+            autoAdvancing: autoAdvancingRef.current,
+          });
+          
+          // Store the hasMoreAITurns value from this result
+          const shouldContinue = result.hasMoreAITurns;
+          
+          setTimeout(() => {
+            // Check again before continuing (in case user cancelled or combat ended)
+            if (autoAdvancingRef.current && shouldContinue) {
+              addDebugMessages([`Auto-continuing to next AI turn...`]);
+              handleSendMessage('continuar turno', { isContinuation: true });
+            } else {
+              addDebugMessages([`Auto-advance cancelled or no more turns.`]);
+              autoAdvancingRef.current = false;
+              setAutoAdvancing(false);
+            }
+          }, 1500);
+        } else if (!result.hasMoreAITurns) {
+          // Combat reached player's turn or ended, exit auto-advance mode
+          autoAdvancingRef.current = false;
+          setAutoAdvancing(false);
+        }
+      } else {
+        // No hasMoreAITurns field, assume no more AI turns
+        setHasMoreAITurns(false);
+        autoAdvancingRef.current = false;
+        setAutoAdvancing(false);
       }
 
     } catch (error: any) {
       logClient.uiError('GameView', 'Error processing action', error, {
         action: content,
-        inCombat,
+        inCombat: inCombatRef.current,
       });
       addDebugMessages([`CRITICAL ERROR: ${error.message}`, `DETAILS: ${JSON.stringify(error)}`]);
       addMessage({
@@ -321,21 +434,26 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         content: `El Dungeon Master está confundido. Error: ${error.message}. Revisa la consola para más detalles.`,
         onRetry: () => handleSendMessage(content, { isRetry: true }),
       });
+      
+      // Reset auto-advance mode on error
+      autoAdvancingRef.current = false;
+      setAutoAdvancing(false);
+      setHasMoreAITurns(false);
     } finally {
       setIsDMThinking(false);
     }
-  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, inCombat, locationId, party, selectedCharacter, addDiceRolls, turnIndex, initiativeOrder, enemies]);
+  }, [addDebugMessages, addMessage, addMessages, buildConversationHistory, addDiceRolls]);
 
   const handleDiceRoll = useCallback((roll: { result: number, sides: number }) => {
     addDiceRolls([{
-      roller: selectedCharacter?.name ?? 'Player',
+      roller: selectedCharacterRef.current?.name ?? 'Player',
       rollNotation: `1d${roll.sides}`,
       individualRolls: [roll.result],
       totalResult: roll.result,
       outcome: 'neutral',
       description: `Tirada de d${roll.sides} del jugador`
     }]);
-  }, [addDiceRolls, selectedCharacter]);
+  }, [addDiceRolls]);
 
   const handleInternalSaveGame = useCallback(() => {
     const saveData = { savedAt: new Date().toISOString(), party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex };
@@ -377,7 +495,10 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           <PartyPanel
             party={party}
             selectedCharacterId={selectedCharacter?.id}
-            onSelectCharacter={setSelectedCharacter}
+            onSelectCharacter={(character) => {
+              setSelectedCharacter(character);
+              selectedCharacterRef.current = character; // Update ref synchronously
+            }}
           />
           <Separator />
           <CharacterSheet character={selectedCharacter} />
@@ -389,6 +510,17 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         onSendMessage={handleSendMessage}
         onDiceRoll={handleDiceRoll}
         isThinking={isDMThinking}
+        inCombat={inCombat}
+        hasMoreAITurns={hasMoreAITurns}
+        autoAdvancing={autoAdvancing}
+        onPassTurn={() => {
+          handleSendMessage('continuar turno', { isContinuation: true });
+        }}
+        onAdvanceAll={() => {
+          autoAdvancingRef.current = true; // Set ref synchronously
+          setAutoAdvancing(true);
+          handleSendMessage('continuar turno', { isContinuation: true });
+        }}
       />
     </GameLayout>
   );
