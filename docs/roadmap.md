@@ -34,7 +34,7 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
     *   **Pestañas o Secciones Colapsables:** Permitir al jugador expandir/colapsar secciones según necesidad
     *   **Evaluación de Información:** Distinguir entre información esencial (siempre visible) y secundaria (expandible)
 *   **Impacto:** Mejora significativa de la experiencia de usuario, facilita la gestión de personajes y hace más accesible la información durante el combate.
-*   **Referencia:** [Notas de Gael - #06](../trabajo/Notas%20de%20Gael.txt)
+*   **Referencia:** [Notas de Gael - #06](../notas/Notas%20de%20Gael.txt)
 
 ---
 
@@ -77,16 +77,22 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   **Solución:** Implementar un sistema para que la IA resuma y almacene los eventos y decisiones más importantes en una base de datos persistente. Este resumen se añadiría al contexto de la IA en futuras sesiones.
     *   **Impacto:** Aumentaría la coherencia y la continuidad de la narrativa a lo largo de una campaña.
 
-### 7. Refactorización del Módulo `combat-manager.ts` (Prioridad Alta)
-*   **Problema Actual:** El módulo `combat-manager.ts` ha crecido hasta convertirse en un "God Object" con más de 2700 líneas de código, múltiples responsabilidades mezcladas, y código duplicado (~260 líneas).
-*   **Mejora Propuesta:**
+### 7. Refactorización del Módulo `combat-manager.ts` (Prioridad Alta) ⏸️ **PARCIALMENTE COMPLETADO**
+*   **Estado Actual:** Fases 1-2 completadas (54.6% de reducción), Fase 3 pausada (opcional)
+*   **Resultados Alcanzados:**
+    *   ✅ Reducción de código: 2723 → 1235 líneas (54.6% de reducción)
+    *   ✅ 5 módulos especializados creados (1310 líneas extraídas)
+    *   ✅ Issues #21 (código duplicado) y #16 (gestión de nombres) resueltos
+    *   ✅ 10/10 tests PASS — Sin regresiones
+    *   ✅ Código duplicado eliminado: ~798 líneas
+*   **Problema Original:** El módulo `combat-manager.ts` había crecido hasta convertirse en un "God Object" con más de 2700 líneas de código, múltiples responsabilidades mezcladas, y código duplicado (~260 líneas).
+*   **Mejora Propuesta (Fase 3 - Pausada):**
     *   **División en Módulos Especializados:** Refactorizar en módulos más pequeños y manejables siguiendo el principio de responsabilidad única (SRP).
-    *   **Eliminación de Código Duplicado:** Extraer lógica de procesamiento de rolls a módulo centralizado (resuelve Issue #21).
-    *   **Separación de Responsabilidades:** Extraer gestión de nombres, parseo de stats, validaciones, y lógica de combate a módulos dedicados.
-    *   **Reducción del Módulo Principal:** Reducir `combat-manager.ts` de ~2723 líneas a ~300-400 líneas (orquestador delgado).
-*   **Impacto:** Crítico para mantenibilidad, facilita implementación de nuevas features (turnos paso a paso, saving throws completos), mejora testabilidad y reduce deuda técnica.
+    *   **Reducción del Módulo Principal:** Reducir `combat-manager.ts` de ~1235 líneas a ~300-400 líneas (orquestador delgado).
+*   **Decisión:** La Fase 3 se pausó para priorizar el sistema de turnos paso a paso (Prioridad Muy Alta). La Fase 3 se puede retomar en el futuro si se considera necesaria.
+*   **Impacto:** Crítico para mantenibilidad, facilita implementación de nuevas features (turnos paso a paso ya implementado, saving throws completos), mejora testabilidad y reduce deuda técnica.
 *   **Documentación:** 
-    *   [Plan de Refactorización Detallado](../planes-desarrollo/sin-comenzar/refactorizacion-combat-manager.md)
+    *   [Plan de Refactorización Detallado](../planes-desarrollo/planes-en-curso/refactorizacion-combat-manager.md)
     *   [Issues Tracker - Issue #21](../tracking/issues/pendientes.md#issue-21-código-duplicado-en-combat-managerts-para-procesamiento-de-rolls-deuda-técnica)
     *   [Issues Tracker - Issue #16](../tracking/issues/pendientes.md#issue-16-gestión-de-nombres-de-múltiples-monstruos-debería-estar-en-un-módulo-separado)
 
@@ -104,7 +110,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Documentación:** 
     *   [Sistema de Death Saving Throws](../planes-desarrollo/sin-comenzar/sistema-death-saving-throws.md)
     *   [Issues Tracker - Issue #22](../tracking/issues/pendientes.md#issue-22-sistema-completo-de-saving-throws-tiradas-de-salvación-del-objetivo-feature-incompleta)
-    *   [Notas de Gael - #26, #10, #36](../trabajo/Notas%20de%20Gael.txt)
+    *   [Notas de Gael - #26, #10, #36](../notas/Notas%20de%20Gael.txt)
 
 ### 9. Convertidor de PDF a JSON - Aplicación Auxiliar
 *   **Problema Actual:** Añadir nuevas aventuras al juego requiere crear manualmente archivos JSON con una estructura específica, lo cual es tedioso y propenso a errores. Los usuarios que tienen aventuras en formato PDF no pueden usarlas directamente.

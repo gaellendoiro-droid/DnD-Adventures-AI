@@ -109,7 +109,7 @@ Solo necesitas ejecutar:
 npm run dev
 ```
 
-Esto iniciará el servidor de desarrollo en `http://localhost:3000`. **La aplicación funcionará completamente** porque Genkit se integra directamente con Next.js a través de Server Actions. No necesitas un servidor separado de Genkit para usar la aplicación.
+Esto iniciará el servidor de desarrollo en `http://localhost:8080`. **La aplicación funcionará completamente** porque Genkit se integra directamente con Next.js a través de Server Actions. No necesitas un servidor separado de Genkit para usar la aplicación.
 
 ### Para Desarrollo y Depuración (Opcional)
 
@@ -150,7 +150,7 @@ Tienes dos opciones:
 
 Una vez que el servidor esté corriendo:
 
-1. Abre tu navegador en `http://localhost:3000`
+1. Abre tu navegador en `http://localhost:8080`
 2. Deberías ver la interfaz principal del juego
 3. Crea una nueva partida o carga una existente
 4. Prueba enviar una acción al DM (ej: "Exploro la plaza del pueblo")
@@ -176,11 +176,11 @@ Si todo funciona correctamente:
 - Verifica que la variable se llama exactamente `GOOGLE_GENAI_API_KEY`
 - Reinicia ambos servidores después de crear/modificar el `.env`
 
-### Error: "Port 3000 already in use"
+### Error: "Port 8080 already in use"
 
 **Solución:** 
-- Cierra cualquier aplicación que esté usando el puerto 3000
-- O cambia el puerto en `package.json`: `"dev": "next dev -p 3001"`
+- Cierra cualquier aplicación que esté usando el puerto 8080
+- O cambia el puerto en `package.json`: `"dev": "next dev --turbopack -p 8081"`
 
 ### El DM no responde o hay errores en la consola
 

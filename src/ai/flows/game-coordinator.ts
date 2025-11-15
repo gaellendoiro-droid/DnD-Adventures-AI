@@ -135,7 +135,13 @@ export const gameCoordinatorFlow = ai.defineFlow(
     
     if (inCombat && isContinueTurn) {
         // Special case: continue turn action in combat (no need to interpret)
-        log.gameCoordinator('Continue turn action detected', { action: playerAction });
+        const currentCombatant = input.initiativeOrder?.[turnIndex]?.characterName || 'Unknown';
+        log.gameCoordinator('Continue turn action detected', { 
+            action: playerAction,
+            currentTurnIndex: turnIndex,
+            currentCombatant,
+            initiativeOrderLength: input.initiativeOrder?.length,
+        });
         localLog("GameCoordinator: Continue turn action detected. Skipping interpretation.");
         interpretation = {
             actionType: 'continue_turn' as const,
@@ -155,12 +161,33 @@ export const gameCoordinatorFlow = ai.defineFlow(
     }
     
     if (inCombat) {
-        log.gameCoordinator('Processing combat turn', { turnIndex, actionType: interpretation.actionType });
+        const currentCombatant = input.initiativeOrder?.[turnIndex]?.characterName || 'Unknown';
+        log.gameCoordinator('Processing combat turn', { 
+            turnIndex, 
+            actionType: interpretation.actionType,
+            currentCombatant,
+            isContinueTurn: interpretation.actionType === 'continue_turn',
+        });
         const combatResult = await combatManagerTool({
             ...input,
             interpretedAction: interpretation,
             locationContext: currentLocationData,
         });
+        
+        // Log combat result details
+        const resultCombatant = combatResult.initiativeOrder?.[combatResult.turnIndex || 0]?.characterName || 'Unknown';
+        log.gameCoordinator('Combat turn processed', {
+            turnIndexChange: {
+                from: turnIndex,
+                to: combatResult.turnIndex,
+                previousCombatant: currentCombatant,
+                resultCombatant,
+            },
+            hasMoreAITurns: combatResult.hasMoreAITurns,
+            messagesCount: combatResult.messages?.length || 0,
+            diceRollsCount: combatResult.diceRolls?.length || 0,
+        });
+        
         return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
     }
     interpreterLogs.forEach(localLog);

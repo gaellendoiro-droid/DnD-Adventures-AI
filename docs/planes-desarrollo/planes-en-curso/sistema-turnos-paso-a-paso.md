@@ -570,7 +570,7 @@ Si necesitamos revertir el cambio:
 ## 📚 Referencias
 
 - [Plan de Combate por Turnos Completado](../completados/combate-turnos.md) - Sistema actual de turnos
-- [Notas de Gael](../../trabajo/Notas%20de%20Gael.txt) - Issue #22
+- [Notas de Gael](../../notas/Notas%20de%20Gael.txt) - Issue #22
 - [Plan Maestro](../plan-maestro.md) - Prioridades y estado general
 - [Visión de Diseño](../../vision-diseno.md) - Prioridad Alta mencionada
 

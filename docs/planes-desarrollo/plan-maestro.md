@@ -75,7 +75,7 @@ Planes que han sido implementados exitosamente:
 ### [Refactorización de Esquemas](completados/refactor-esquemas.md)
 - **Estado:** 100% completado
 - **Objetivo:** Eliminar duplicaciones e inconsistencias en la arquitectura de esquemas
-- **Fecha de finalización:** Implementado en v0.4.70
+- **Fecha de finalización:** Implementado en v0.4.70 (Refactorización completada)
 
 ---
 
@@ -110,7 +110,7 @@ Planes identificados pero aún no iniciados:
 - **Referencia:** [Roadmap - Sección 2](../roadmap.md#2-sistema-de-inicio-de-combate-dinámico-prioridad-alta)
 
 
-#### [Mejora de Estructura de Fichas de Personajes](../trabajo/Notas de Gael.txt#sección-3-sistema-de-personajes)
+#### [Mejora de Estructura de Fichas de Personajes](../notas/Notas de Gael.txt#sección-3-sistema-de-personajes)
 - **Estado:** Sin comenzar
 - **Objetivo:** Revisar y mejorar la estructura de fichas de personajes con mejor organización, más datos accesibles y mejor visualización de estados temporales
 - **Prioridad:** Alta
@@ -119,7 +119,7 @@ Planes identificados pero aún no iniciados:
   - Más datos accesibles (habilidades, rasgos)
   - Mejor visualización de estados temporales
   - Pestañas o secciones colapsables
-- **Referencia:** [Notas de Gael - #06](../../trabajo/Notas de Gael.txt#sección-3-sistema-de-personajes)
+- **Referencia:** [Notas de Gael - #06](../../notas/Notas de Gael.txt#sección-3-sistema-de-personajes)
 
 ### Prioridad Media
 
@@ -172,7 +172,7 @@ Planes identificados pero aún no iniciados:
 - **Nota:** Extiende el sistema de inconsciencia y muerte masiva ya implementado
 - **Referencia:** [Plan Detallado](sin-comenzar/sistema-death-saving-throws.md)
 
-#### [Sistema de Estados y Condiciones en Combate](../trabajo/Notas de Gael.txt#sección-2-sistema-de-combate)
+#### [Sistema de Estados y Condiciones en Combate](../notas/Notas de Gael.txt#sección-2-sistema-de-combate)
 - **Estado:** Sin comenzar
 - **Objetivo:** Implementar sistema para actualizar estadísticas temporales, estados de condición (aturdido, envenenado, etc.) y recursos gastados (slots de hechizo, usos de habilidades)
 - **Prioridad:** Media
@@ -180,9 +180,9 @@ Planes identificados pero aún no iniciados:
   - Actualización de estadísticas temporales (bonificadores, penalizaciones)
   - Estados de condición (aturdido, envenenado, paralizado, etc.)
   - Recursos gastados (slots de hechizo, usos de habilidades)
-- **Referencia:** [Notas de Gael - #04](../../trabajo/Notas de Gael.txt#sección-2-sistema-de-combate)
+- **Referencia:** [Notas de Gael - #04](../../notas/Notas de Gael.txt#sección-2-sistema-de-combate)
 
-#### [Sistema de Foco de Objetivo en Combate](../trabajo/Notas de Gael.txt#sección-2-sistema-de-combate)
+#### [Sistema de Foco de Objetivo en Combate](../notas/Notas de Gael.txt#sección-2-sistema-de-combate)
 - **Estado:** Sin comenzar
 - **Objetivo:** Implementar sistema de selección de objetivo que considere distancia, amenaza táctica, estado del objetivo y capacidades del atacante
 - **Prioridad:** Media
@@ -191,7 +191,7 @@ Planes identificados pero aún no iniciados:
   - Evaluación de amenaza táctica
   - Análisis de estado del objetivo (herido, vulnerable, etc.)
   - Consideración de capacidades del atacante (alcance de armas/hechizos)
-- **Referencia:** [Notas de Gael - #26](../../trabajo/Notas de Gael.txt#sección-2-sistema-de-combate)
+- **Referencia:** [Notas de Gael - #26](../../notas/Notas de Gael.txt#sección-2-sistema-de-combate)
 
 #### [Música y Sonido Dinámicos](roadmap.md#7-música-y-sonido-dinámicos-prioridad-media-baja)
 - **Estado:** Sin comenzar

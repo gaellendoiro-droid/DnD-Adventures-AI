@@ -10,58 +10,7 @@ import { z } from 'zod';
 import { ActionInterpreterInputSchema, ActionInterpreterOutputSchema, type ActionInterpreterInput, type ActionInterpreterOutput } from '@/ai/flows/schemas';
 import { getAdventureData } from '@/app/game-state-actions';
 import { log } from '@/lib/logger';
-
-/**
- * Retry a function with exponential backoff
- * @param fn Function to retry
- * @param maxRetries Maximum number of retry attempts (default: 3)
- * @param initialDelayMs Initial delay in milliseconds (default: 1000)
- * @returns Result of the function
- */
-async function retryWithExponentialBackoff<T>(
-    fn: () => Promise<T>,
-    maxRetries: number = 3,
-    initialDelayMs: number = 1000
-): Promise<T> {
-    let lastError: Error | null = null;
-    
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-            log.debug(`Attempting API call (attempt ${attempt + 1}/${maxRetries + 1})`, {
-                module: 'AIFlow',
-                flow: 'actionInterpreter',
-            });
-            return await fn();
-        } catch (error: any) {
-            lastError = error;
-            
-            // Check if it's a timeout/network error that we should retry
-            const isRetryableError = 
-                error.message?.includes('timeout') ||
-                error.message?.includes('fetch failed') ||
-                error.message?.includes('ECONNRESET') ||
-                error.code === 'UND_ERR_CONNECT_TIMEOUT';
-            
-            if (!isRetryableError || attempt === maxRetries) {
-                // Don't retry non-network errors or if we've exhausted retries
-                throw error;
-            }
-            
-            const delay = initialDelayMs * Math.pow(2, attempt);
-            log.warn(`API call failed, retrying in ${delay}ms...`, {
-                module: 'AIFlow',
-                flow: 'actionInterpreter',
-                attempt: attempt + 1,
-                maxRetries: maxRetries + 1,
-                error: error.message,
-            });
-            
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-    }
-    
-    throw lastError || new Error('Retry failed with unknown error');
-}
+import { retryWithExponentialBackoff } from './retry-utils';
 
 // This prompt no longer needs tools. All context is provided directly.
 const actionInterpreterPrompt = ai.definePrompt({
@@ -152,8 +101,9 @@ export const actionInterpreterFlow = ai.defineFlow(
                         party: input.party,
                         allLocationNames: allLocationNames,
                     }),
-                    3, // max 3 retries (4 total attempts)
-                    1000 // start with 1 second delay
+                    3, // maxRetries (4 total attempts)
+                    1000, // initialDelayMs
+                    'actionInterpreter' // flowName
                 );
             } catch (retryError: any) {
                 // All retries exhausted - implement intelligent fallback

@@ -1,7 +1,7 @@
 ==========================================================
 NOTAS DE DESARROLLO - D&D ADVENTURES AI
 ==========================================================
-Última actualización: [14/11/25]
+Última actualización: [15/12/24]
 
 LEYENDA DE CLASIFICACIÓN:
   TIPOS DE IDEA:
@@ -472,14 +472,139 @@ NOTAS FINALES
   4. Estado de documentación oficial ([EN ROADMAP], [EN PLAN], [SIN DOCUMENTAR])
 
 ==========================================================
-NUEVAS IDEAS
+ISSUES (Bugs/Problemas) - Continuación
 ==========================================================
 
-1 - ¿Que pasa si decido atacar a uno de mis compañeros de aventura, o si en una conversación uno de ellos decide atacarme a mi? ¿Que harán los demás compañeros? (PMB)
-2 - ¿Que pasa si un compañero decide abandonarnos o  continuar por otro camino? (PMB)
-3 - En el panel de Tiradas hay que darle un nuevo color a las tiradas de curación. Buscar otros colores para otros tipos de tiradas. (PB)
-4 - Se podía estudiar la posibilidad de aceptar aventuras que incluyan fichas de personajes predefinidos (por ejemplo aventuras que necesiten personajes de cierto nivel). Estudiar más a fondo esta idea. (PMB)
-5 - Comprobar los porcentajes de propabilidad para que un compañero haga un comentario narrativo. Ahora parece que siempre que pueden dicen algo. (PM)
-6 - Hay que revisar el formateo del texto en los mensajes del DM y de los Compañeros. (PM)
+--- PRIORIDAD MUY ALTA ---
 
+[#49] [ISSUE] [PMA] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Fallo de targeting en combate
+  └─ En combate se detectó un fallo de targeting: cuando Galador dice
+     "ataco a goblin 1", el DM interpreta que ataca al Goblin 2.
+  └─ El sistema de resolución de objetivos no está funcionando correctamente.
+  └─ Necesita revisión y corrección del sistema de identificación de enemigos.
+
+--- PRIORIDAD ALTA ---
+
+[#50] [ISSUE] [PA] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Inconsistencias en sistema de combate turno por turno
+  └─ El sistema de combates turno por turno acaba de implementarse y
+     parece que tiene algunas inconsistencias.
+  └─ Necesita revisión y corrección de bugs en el sistema de turnos paso a paso.
+
+[#51] [ISSUE] [PA] [INTERFAZ DE USUARIO] [SIN DOCUMENTAR]
+  Falta indicador visual de personajes muertos en panel de orden de combate
+  └─ En el panel de orden de combate deberíamos marcar los personajes que
+     han muerto con algún símbolo, para saber quiénes están vivos y quiénes
+     muertos o inconscientes (en el caso del personaje del jugador y sus compañeros).
+
+--- PRIORIDAD MEDIA ---
+
+[#52] [ISSUE] [PM] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Narración de inicio de combate incorrecta
+  └─ Cuando comienza un combate hay que revisar la generación de la narración
+     de inicio porque a veces dice cosas sin mucho sentido (como que Galador
+     ataca a un enemigo directamente cuando aún no se procesó ningún turno).
+  └─ La narración inicial debe ser más genérica y no asumir acciones que aún
+     no han ocurrido.
+
+==========================================================
+NUEVAS FUNCIONALIDADES - Continuación
+==========================================================
+
+--- PRIORIDAD MUY BAJA ---
+
+[#53] [NUEVA FUNCIONALIDAD] [PMB] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Sistema de combate entre compañeros
+  └─ ¿Qué pasa si decido atacar a uno de mis compañeros de aventura, o si
+     en una conversación uno de ellos decide atacarme a mí?
+  └─ ¿Qué harán los demás compañeros?
+  └─ Necesita implementar lógica para manejar combate PvP y reacciones de
+     otros compañeros ante conflictos internos.
+
+[#54] [NUEVA FUNCIONALIDAD] [PMB] [SISTEMA DE PERSONAJES] [SIN DOCUMENTAR]
+  Sistema de abandono de compañeros
+  └─ ¿Qué pasa si un compañero decide abandonarnos o continuar por otro camino?
+  └─ Implementar lógica para que compañeros puedan tomar decisiones independientes
+     y abandonar el grupo bajo ciertas circunstancias.
+
+[#55] [NUEVA FUNCIONALIDAD] [PMB] [SISTEMA DE AVENTURAS Y DATOS] [SIN DOCUMENTAR]
+  Aventuras con personajes predefinidos
+  └─ Estudiar la posibilidad de aceptar aventuras que incluyan fichas de
+     personajes predefinidos (por ejemplo aventuras que necesiten personajes
+     de cierto nivel).
+  └─ Esto permitiría aventuras más específicas y balanceadas.
+
+==========================================================
+REVISIONES (Mejoras/Análisis) - Continuación
+==========================================================
+
+--- PRIORIDAD MEDIA ---
+
+[#56] [REVISION] [PM] [SISTEMA DE PERSONAJES] [SIN DOCUMENTAR]
+  Ajustar probabilidad de comentarios narrativos de compañeros
+  └─ Comprobar los porcentajes de probabilidad para que un compañero haga
+     un comentario narrativo.
+  └─ Ahora parece que siempre que pueden dicen algo, lo cual puede ser
+     excesivo y reducir el impacto de sus comentarios.
+
+[#57] [REVISION] [PM] [INTERFAZ DE USUARIO] [SIN DOCUMENTAR]
+  Revisar formateo de texto en mensajes
+  └─ Hay que revisar el formateo del texto en los mensajes del DM y de
+     los Compañeros.
+  └─ Mejorar la presentación visual y legibilidad de los mensajes.
+
+[#58] [REVISION] [PM] [INTERFAZ DE USUARIO] [SIN DOCUMENTAR]
+  Revisión completa de la UI
+  └─ Hay que hacer una revisión completa de la UI.
+  └─ Evaluar consistencia, usabilidad y mejoras generales de la interfaz.
+
+[#59] [REVISION] [PM] [INTERFAZ DE USUARIO] [SIN DOCUMENTAR]
+  Integrar botones de avance de turnos en panel de orden de combate
+  └─ En el combate turno a turno, los botones de "avanzar 1 turno" y
+     "avanzar todos" quizás deberían estar integrados en el panel de
+     Orden de combate.
+  └─ Mejoraría la organización visual y la accesibilidad de estas funciones.
+
+[#60] [REVISION] [PM] [INTERFAZ DE USUARIO] [SIN DOCUMENTAR]
+  Resaltar turno del jugador en combate
+  └─ En el combate turno a turno, cuando llega el turno del jugador, hay
+     que hacer un resalte de alguna forma para avisar de que es el turno
+     del jugador.
+  └─ Mejoraría la claridad y evitaría que el jugador se pierda en el orden
+     de turnos.
+
+--- PRIORIDAD BAJA ---
+
+[#61] [REVISION] [PB] [INTERFAZ DE USUARIO] [SIN DOCUMENTAR]
+  Mejorar colores en panel de Tiradas
+  └─ En el panel de Tiradas hay que darle un nuevo color a las tiradas de
+     curación.
+  └─ Buscar otros colores para otros tipos de tiradas para mejorar la
+     diferenciación visual.
+
+--- PRIORIDAD MUY BAJA ---
+
+[#62] [REVISION] [PMB] [CALIDAD Y PULIDO] [SIN DOCUMENTAR]
+  Cambiar nivel de log para fallos de API de D&D
+  └─ En los logs habría que cambiar que cuando falla el fetching de la API
+     de D&D en vez de error sea un warning.
+  └─ Los fallos de API son esperables y no deberían tratarse como errores
+     críticos si hay sistema de fallback.
+
+==========================================================
+NUEVAS IDEAS Y FALLOS ENCONTRADOS
+==========================================================
+
+Esta sección es para apuntar ideas rápidas, fallos detectados y notas
+informales antes de clasificarlas formalmente en las secciones correspondientes
+(ISSUES, NUEVAS FUNCIONALIDADES, REVISIONES, etc.).
+
+Al clasificar un item de esta sección, debe moverse a su sección correspondiente
+y eliminarse de aquí, manteniendo esta sección como un área de trabajo temporal.
+
+1 - Revisar como se gestionan los ataques de los enemigos a compañeros inconscientes para rematarlos. (PM)
+2 - En el input tex para dar las acciones del personaje podríamos implementar un sistema para recuperar órdenes ya dadas. Usando la tecla de flecha arriba mientras estamos en este cuadro se recuperarían los menajes anteriores, del más reciente al más antiguo. (PB)
+3 - En el panel de orden de combate ¿deberíamos ver un inicador de la vida de cada personaje? (PM)
+4 - Cuando en medio de un combate decido atacar a uno de mis compañeros hay que ver que pasaría ¿se vuelve hostil solo el, todos los compañeros,...? (PB)
 

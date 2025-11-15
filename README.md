@@ -1,4 +1,4 @@
-# D&D Adventures AI (v0.4.70)
+# D&D Adventures AI (v0.5.0)
 
 Este proyecto es una aplicación web interactiva que simula una partida de Dungeons & Dragons 5ª Edición. Utiliza un Dungeon Master (DM) impulsado por Inteligencia Artificial para crear una experiencia de juego de rol conversacional y dinámica, todo en español. Los jugadores pueden explorar un mundo, interactuar con personajes, tomar decisiones y participar en combates, todo ello narrado y gestionado por la IA.
 
@@ -43,7 +43,7 @@ Para **usar la aplicación**, solo necesitas:
 npm run dev
 ```
 
-Esto iniciará el servidor de desarrollo en `http://localhost:3000`. La aplicación funcionará completamente, ya que Genkit se integra con Next.js a través de Server Actions.
+Esto iniciará el servidor de desarrollo en `http://localhost:8080`. La aplicación funcionará completamente, ya que Genkit se integra con Next.js a través de Server Actions.
 
 **Para desarrollo y depuración (opcional):**
 

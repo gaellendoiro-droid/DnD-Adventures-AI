@@ -8,6 +8,7 @@ import { dndApiLookupTool } from './dnd-api-lookup';
 import { adventureLookupTool } from './adventure-lookup';
 import { CharacterSchema } from '@/lib/schemas';
 import { log } from '@/lib/logger';
+import { retryWithExponentialBackoff } from '../flows/retry-utils';
 
 const CompanionTacticianInputSchema = z.object({
   activeCombatant: z.string().describe("The name of the friendly NPC/companion whose turn it is."),
@@ -15,6 +16,12 @@ const CompanionTacticianInputSchema = z.object({
   enemies: z.array(z.object({name: z.string(), id: z.string(), hp: z.string()})).describe("A list of all hostile NPCs/monsters currently in combat and their HP status (e.g., 'Healthy', 'Wounded', 'Badly Wounded')."),
   locationDescription: z.string().describe('A description of the current location.'),
   conversationHistory: z.string().describe("A transcript of the last few turns of combat to provide immediate context."),
+  availableSpells: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    level: z.number(),
+    description: z.string().nullable(),
+  })).describe("The list of spells available to the active combatant. This is CRITICAL - only use spells from this list."),
 });
 export type CompanionTacticianInput = z.infer<typeof CompanionTacticianInputSchema>;
 
@@ -34,7 +41,7 @@ const companionTacticianPrompt = ai.definePrompt({
   name: 'companionTacticianPrompt',
   input: {schema: CompanionTacticianInputSchema},
   output: {schema: CompanionTacticianOutputSchema},
-  tools: [dndApiLookupTool, adventureLookupTool],
+  tools: [dndApiLookupTool, adventureLookupTool], // Use tools ONLY for additional spell mechanics info, NOT to determine available spells
   prompt: `You are the AI brain for a friendly companion in a D&D 5e combat. You MUST ALWAYS reply in Spanish from Spain.
 
 **Your ONLY job is to decide the action for a SINGLE companion on their turn and return it in a structured format.**
@@ -46,6 +53,14 @@ const companionTacticianPrompt = ai.definePrompt({
   {{#each party}}
   - **{{this.name}}** (ID: {{this.id}}, HP: {{this.hp.current}}/{{this.hp.max}}, AC: {{this.ac}}, Class: {{this.characterClass}})
   {{/each}}
+- **YOUR AVAILABLE SPELLS (CRITICAL - ONLY USE THESE):**
+  {{#if availableSpells}}
+    {{#each availableSpells}}
+    - **{{this.name}}** (Level {{this.level}}): {{this.description}}
+    {{/each}}
+  {{else}}
+    - **No spells available** - You can only use your weapons or basic actions.
+  {{/if}}
 - **Enemies:**
   {{#each enemies}}
   - **{{this.name}}** (ID: {{this.id}}, Status: {{this.hp}})
@@ -60,14 +75,18 @@ It is **your** turn. As a loyal companion, you must act decisively. Follow this 
 
 1.  **Analyze the Battlefield:**
     *   First, check if any of your allies are **significantly wounded** (HP below 50% of their maximum).
-    *   Then, use your tools to see if you have any healing abilities.
+    *   **CRITICAL - USE YOUR CHARACTER SHEET FIRST:** Check your **YOUR AVAILABLE SPELLS** list above to see what spells you have. **This is your PRIMARY source of information. ONLY use spells that are explicitly listed in YOUR AVAILABLE SPELLS.**
+    *   **ONLY if you need additional information** about a spell's mechanics (damage dice, range, etc.) that is not in the description, you may use the \`dndApiLookupTool\` to look it up. **But DO NOT use tools to determine what spells you have - that information is already in YOUR AVAILABLE SPELLS list.**
+    *   **DO NOT assume you have healing spells just because you are a Cleric. If the YOUR AVAILABLE SPELLS list says "No spells available" or doesn't include healing spells, you CANNOT use healing spells.**
     *   Identify the most dangerous enemy.
 
 2.  **Choose Your Action (Conditional Logic):**
-    *   **IF** you have healing abilities **AND** an ally is **significantly wounded (HP < 50% max)**, your action is to **HEAL** the most injured ally.
-    *   **IF** an ally is **critically wounded (HP < 25% max)**, healing takes priority over attacking.
-    *   **OTHERWISE**, your action is to **ATTACK** an enemy. Choose the most logical target (lowest HP, most dangerous, or closest) and use your best offensive spell or weapon.
+    *   **IF** you have healing spells in your **YOUR AVAILABLE SPELLS** list **AND** an ally is **significantly wounded (HP < 50% max)**, your action is to **HEAL** the most injured ally using one of your available healing spells.
+    *   **IF** an ally is **critically wounded (HP < 25% max)** **AND** you have healing spells in your **YOUR AVAILABLE SPELLS** list, healing takes priority over attacking.
+    *   **IF** you do **NOT** have any healing spells in your **YOUR AVAILABLE SPELLS** list (or the list says "No spells available"), you **MUST ATTACK** an enemy instead, even if allies are wounded.
+    *   **OTHERWISE**, your action is to **ATTACK** an enemy. Choose the most logical target (lowest HP, most dangerous, or closest) and use your best offensive spell from your **YOUR AVAILABLE SPELLS** list, or your weapon if you have no offensive spells.
     *   **NEVER waste healing on allies who are at full HP or only slightly wounded (HP > 75% max)**.
+    *   **NEVER use spells that are NOT in your YOUR AVAILABLE SPELLS list.**
 
 3.  **Format Your Response:**
     *   **narration:** Provide a short, exciting narration for your chosen action (in Spanish from Spain).
@@ -153,7 +172,10 @@ Sacred Flame (TYPE 2: saving throw - no attack roll):
 - YOU MUST NOT BE PASSIVE. You must always either heal or attack.
 - For attacks: BOTH attack and damage rolls are mandatory
 - For healing: Only the healing roll
-- Use the tools to look up your correct modifiers
+- **PRIORITY ORDER FOR INFORMATION:**
+  1. **FIRST:** Use information from your character sheet (YOUR AVAILABLE SPELLS list, party member stats, etc.)
+  2. **SECOND:** Only use tools (\`dndApiLookupTool\`) if you need additional mechanics information (e.g., exact damage dice for a spell, attack modifiers) that is not in your character sheet
+  3. **NEVER:** Use tools to determine what spells or abilities you have - that information comes from YOUR AVAILABLE SPELLS list
 - This is not optional - missing the attack roll will cause your action to fail
 
 **DO NOT:**
@@ -185,7 +207,12 @@ export const companionTacticianTool = ai.defineTool(
 
         let output;
         try {
-          const response = await companionTacticianPrompt(input);
+          const response = await retryWithExponentialBackoff(
+            () => companionTacticianPrompt(input),
+            3,
+            1000,
+            'companionTactician'
+          );
           output = response.output;
           
           log.debug('Received response from companionTacticianPrompt', {

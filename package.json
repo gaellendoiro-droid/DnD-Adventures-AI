@@ -1,9 +1,9 @@
 {
   "name": "nextn",
-  "version": "0.4.9",
+  "version": "0.5.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack -p 8080",
     "genkit:dev": "tsx src/ai/dev.ts",
     "genkit:watch": "tsx --watch src/ai/dev.ts",
     "genkit:ui": "genkit start -- tsx src/ai/dev.ts",

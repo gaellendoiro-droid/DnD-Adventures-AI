@@ -15,6 +15,72 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+### Fixed
+- **🟡 Issue #49: Resolución incorrecta de targets en combate con enemigos múltiples:**
+  - **Problema:** Cuando el jugador especificaba un target con número (ej: "Ataco a Goblin 1"), el sistema a veces interpretaba incorrectamente el target y dirigía el ataque contra un enemigo diferente (ej: Goblin 2).
+  - **Causa Raíz:** Los `uniqueId` se generaban con numeración 0-indexed (`goblin-0`, `goblin-1`) mientras que los nombres visuales usaban 1-indexed ("Goblin 1", "Goblin 2"), requiriendo conversión compleja y propensa a errores.
+  - **Solución implementada:** ✅ Refactorización arquitectónica - Cambio a numeración 1-indexed en uniqueIds
+    - **Cambio principal:** Los `uniqueId` ahora empiezan en 1 (`goblin-1`, `goblin-2`) para coincidir directamente con los nombres visuales
+    - **Simplificación:** Eliminada toda la lógica compleja de conversión en `target-resolver.ts` (reducido de ~50 líneas a ~15 líneas)
+    - **Beneficios:**
+      - Código más simple y mantenible
+      - Menos errores: el número del uniqueId coincide directamente con el visual
+      - Más intuitivo: `goblin-1` → "Goblin 1" (sin conversión)
+  - **Archivos modificados:**
+    - `src/ai/tools/combat-manager.ts`: Cambiada generación de uniqueIds para empezar en 1 (línea 923)
+    - `src/lib/combat/monster-name-manager.ts`: Simplificado para usar número del uniqueId directamente (línea 52-54)
+    - `src/lib/combat/target-resolver.ts`: Eliminada lógica compleja de conversión, ahora mapeo directo (líneas 53-76)
+  - **Impacto:** Alto - Los ataques ahora se dirigen correctamente al target especificado, código más simple y robusto
+  - **Estado:** ✅ CORREGIDO - Refactorización completa implementada
+  - **Referencia:** Issue #49 en `docs/tracking/issues/corregidos.md`
+- **🔴 Sistema de Sincronización de Turnos - Solución Definitiva (CRÍTICO):**
+  - **Problema:** El sistema de turnos paso a paso tenía múltiples problemas de sincronización entre backend y frontend:
+    - El marcador visual del turno (`turnIndex`) se actualizaba prematuramente, mostrando el siguiente turno antes de que el jugador presionara "Pasar 1 Turno"
+    - La lógica del frontend era extremadamente compleja e ineficaz, intentando inferir qué turno se había procesado mediante cálculos complejos de índices, búsquedas hacia atrás, y detección de saltos de turnos
+    - El backend no proporcionaba información explícita sobre qué turno se había procesado, forzando al frontend a adivinar
+    - Múltiples intentos de corrección fallaron debido a la complejidad inherente de la solución
+  - **Solución implementada:** ✅ Refactorización completa con campos explícitos en el backend
+    - **Backend (`combat-manager.ts`):**
+      - Añadidos nuevos campos al schema: `lastProcessedTurnWasAI: boolean` y `lastProcessedTurnIndex: number`
+      - Estos campos indican **explícitamente** qué turno se procesó en la última respuesta
+      - Actualizados todos los puntos de retorno (10 ubicaciones) para incluir estos campos:
+        - Turno de IA procesado → `lastProcessedTurnWasAI: true`, `lastProcessedTurnIndex: <índice del turno procesado>`
+        - Turno del jugador procesado → `lastProcessedTurnWasAI: false`, `lastProcessedTurnIndex: <índice del turno procesado>`
+        - Turno saltado (muerto/inconsciente) → `lastProcessedTurnWasAI: false`, `lastProcessedTurnIndex: <índice del turno saltado>`
+    - **Frontend (`game-view.tsx`):**
+      - Eliminada toda la lógica compleja de inferencia (cálculos de índices, búsquedas hacia atrás, detección de saltos)
+      - Reemplazada por lógica simple y directa:
+        - Si `lastProcessedTurnWasAI === true` → Mostrar `lastProcessedTurnIndex` en el marcador visual, mostrar botón "Pasar 1 Turno"
+        - Si `lastProcessedTurnWasAI === false` → Mostrar `result.turnIndex` (turno actual del jugador)
+      - Reducción de código: ~150 líneas de lógica compleja → ~20 líneas de lógica simple
+  - **Archivos modificados:**
+    - `src/ai/tools/combat-manager.ts`: Añadidos campos `lastProcessedTurnWasAI` y `lastProcessedTurnIndex` al schema y todos los puntos de retorno
+    - `src/components/game/game-view.tsx`: Simplificada drásticamente la lógica de sincronización de turnos
+  - **Impacto:** Crítico - Soluciona definitivamente los problemas de sincronización de turnos que habían persistido a través de múltiples intentos de corrección. El sistema ahora es robusto, simple y eficaz.
+  - **Estado:** ✅ RESUELTO - Sistema completamente funcional y probado con combates completos
+- **Retry Logic para `narrativeExpertFlow` - Manejo de errores de timeout de conexión:**
+  - **Problema:** El `narrativeExpertFlow` no tenía retry logic, causando fallos cuando ocurrían timeouts de conexión a la API de Gemini durante la iniciación de combate o generación de narración.
+  - **Solución:** 
+    - Extraída función `retryWithExponentialBackoff` a módulo compartido `src/ai/flows/retry-utils.ts` para reutilización
+    - Añadido retry logic a `narrativeExpertFlow` con 3 reintentos (4 intentos totales) y backoff exponencial (1s, 2s, 4s)
+    - Actualizado `actionInterpreterFlow` para usar el módulo compartido en lugar de función local
+  - **Archivos modificados:**
+    - `src/ai/flows/retry-utils.ts` (nuevo): Módulo compartido con función de retry reutilizable
+    - `src/ai/flows/narrative-expert.ts`: Añadido retry logic alrededor de `narrativeExpertPrompt`
+    - `src/ai/flows/action-interpreter.ts`: Refactorizado para usar módulo compartido
+  - **Impacto:** Mejora la robustez del sistema ante errores transitorios de red, especialmente durante iniciación de combate. Consistencia en el manejo de errores entre flows.
+- **🔴 Retry Logic para `companionTacticianTool` y `enemyTacticianTool` (CRÍTICO):**
+  - **Problema:** Los tools que deciden las acciones de la IA en combate (`companionTacticianTool` y `enemyTacticianTool`) no tenían lógica de reintentos. Un `ConnectTimeoutError` con la API de Gemini provocaba que el tool fallase y devolviera una acción por defecto ("no hace nada"), paralizando a todos los NPCs.
+  - **Solución:** Se implementó la lógica de reintentos existente en el módulo compartido `retry-utils.ts` en ambos tools.
+  - **Archivos modificados:**
+    - `src/ai/tools/companion-tactician.ts`: Añadido `retryWithExponentialBackoff`.
+    - `src/ai/tools/enemy-tactician.ts`: Añadido `retryWithExponentialBackoff`.
+  - **Impacto:** Crítico - Asegura que los errores transitorios de red no impidan que la IA actúe en combate, mejorando significativamente la robustez del sistema.
+
+---
+
+## [0.5.0] - 2025-11-15
+
 ### Added
 - **Sistema de Turnos Paso a Paso en Combate (✅ COMPLETADO)**
   - **Descripción:** El sistema de combate ahora ejecuta los turnos de IA uno a uno, dando al jugador control total sobre el avance de turnos
@@ -32,7 +98,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - `src/components/game/game-view.tsx`: Estados `hasMoreAITurns` y `autoAdvancing`, lógica de avance, refs para sincronización
     - `src/components/game/chat-panel.tsx`: Botones "Pasar 1 Turno" y "Avanzar Todos"
   - **Estado:** Implementación completa y funcional. Testing exhaustivo y pulido pendientes para futuro.
-  - **Referencia:** [Plan Detallado](docs/planes-desarrollo/planes-en-curso/sistema-turnos-paso-a-paso.md)
+  - **Referencia:** [Plan Detallado](docs/planes-desarrollo/completados/sistema-turnos-paso-a-paso.md)
 
 ### Changed
 - **Refactorización de `combat-manager.ts`: Fases 1-2 completadas, Fase 3 pausada**
@@ -47,6 +113,18 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
   - **Referencia:** [Plan de Refactorización](docs/planes-desarrollo/planes-en-curso/refactorizacion-combat-manager.md)
 
 ### Fixed
+- **🔴 Issues #35, #36, #37: Corrección de mensajes de inconsciencia/muerte (CRÍTICO)**
+  - **Problema:** Los mensajes del sistema no distinguían correctamente entre inconsciencia y muerte, y aparecían en orden incorrecto, confundiendo las reglas de D&D 5e y rompiendo la narrativa del juego.
+  - **Issue #35 - Orden incorrecto de mensajes:** El mensaje "X cae inconsciente" aparecía ANTES del mensaje de daño, causando una secuencia ilógica. **Solución:** Reordenado para que el mensaje de inconsciencia aparezca DESPUÉS del mensaje de daño aplicado.
+  - **Issue #36 - Mensaje "ha matado" incorrecto:** El sistema mostraba "ha matado" cuando un personaje caía a 0 HP sin muerte masiva (debería ser "ha dejado inconsciente"). **Solución:** Verificación del campo `isDead` para distinguir entre muerte real (`isDead === true`) e inconsciencia (`hp.current <= 0` pero `isDead !== true`).
+  - **Issue #37 - Mensaje "está muerto" incorrecto:** El sistema mostraba "está muerto" cuando un personaje inconsciente intentaba tomar su turno. **Solución:** Verificación de `isDead` en la verificación de turnos para distinguir entre muerte e inconsciencia.
+  - **Distinción entre personajes del grupo y enemigos:**
+    - **Personajes del grupo (jugador y compañeros):** Pueden quedar inconscientes cuando HP llega a 0 sin muerte masiva (`isDead = false`) o morir por muerte masiva (`isDead = true`). Mensajes apropiados según estado.
+    - **Enemigos:** Mueren directamente al llegar a HP 0 (no quedan inconscientes). Siempre muestran "está muerto" o "ha matado".
+  - **Archivos modificados:**
+    - `src/ai/tools/combat/dice-roll-processor.ts`: Reordenado mensajes, verificación de `isDead` para mensajes de muerte/inconsciencia
+    - `src/ai/tools/combat-manager.ts`: Verificación de `isDead` en turnos normales e iniciación de combate, distinción entre enemigos y personajes del grupo
+  - **Impacto:** Crítico - Mejora drástica de coherencia narrativa, fidelidad a reglas de D&D 5e, y claridad para el jugador sobre el estado de los personajes.
 - **Bug de Nombrado de Enemigos en Narración (detectado en Test 2 de refactoring):** El prompt de `enemyTacticianTool` no instruía explícitamente a la AI para usar el nombre exacto del enemigo activo en su narración. Esto causaba que la AI tradujera o inventara nombres incorrectos (e.g., generaba "Gnomo 1" en lugar de "Goblin 1"). Se añadió instrucción explícita en el prompt: "You MUST use EXACTLY the name '{{{activeCombatant}}}' when referring to this creature in your narration. DO NOT translate or change this name."
 - **Bug de Sincronización de Estado en Sistema de Turnos Paso a Paso:** Cuando se usaba "Avanzar Todos", el frontend enviaba estados desactualizados al backend porque las actualizaciones de estado de React son asíncronas. Esto causaba que enemigos atacaran a personajes que ya estaban inconscientes. **Solución:** Se implementaron refs (`partyRef`, `locationIdRef`, `inCombatRef`, `messagesRef`, `selectedCharacterRef`) para acceso síncrono a los estados críticos, asegurando que siempre se envíen los valores más recientes al backend, incluso en callbacks asíncronos como `setTimeout`.
 - **Bug en Botón "Pasar 1 Turno":** Error de validación de schema porque `ActionInterpreterOutputSchema` no incluía `'continue_turn'` en el enum `actionType`. Se añadió `'continue_turn'` al enum.

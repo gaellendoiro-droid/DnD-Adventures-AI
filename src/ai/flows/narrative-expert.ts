@@ -15,6 +15,7 @@ import { adventureLookupTool } from '../tools/adventure-lookup';
 import { NarrativeExpertInputSchema, NarrativeExpertOutputSchema, type NarrativeExpertInput, type NarrativeExpertOutput } from './schemas';
 import { characterLookupTool } from '../tools/character-lookup';
 import { log } from '@/lib/logger';
+import { retryWithExponentialBackoff } from './retry-utils';
 
 
 const narrativeExpertPrompt = ai.definePrompt({
@@ -80,8 +81,14 @@ export const narrativeExpertFlow = ai.defineFlow(
 
     try {
         localLog("NarrativeExpert: Generating narration based on player action and context...");
-                
-        const llmResponse = await narrativeExpertPrompt(input);
+        
+        // STEP 1: Call the LLM with retry logic to handle transient network errors
+        const llmResponse = await retryWithExponentialBackoff(
+            () => narrativeExpertPrompt(input),
+            3, // maxRetries (4 total attempts)
+            1000, // initialDelayMs
+            'narrativeExpert' // flowName
+        );
         
         if (llmResponse.history?.length) {
             llmResponse.history.forEach(turn => {

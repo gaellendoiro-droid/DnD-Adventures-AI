@@ -8,6 +8,7 @@ import { dndApiLookupTool } from './dnd-api-lookup';
 import { adventureLookupTool } from './adventure-lookup';
 import { CharacterSchema } from '@/lib/schemas';
 import { log } from '@/lib/logger';
+import { retryWithExponentialBackoff } from '../flows/retry-utils';
 
 const EnemyTacticianInputSchema = z.object({
   activeCombatant: z.string().describe("The name of the hostile NPC/monster whose turn it is."),
@@ -159,7 +160,12 @@ export const enemyTacticianTool = ai.defineTool(
         
         let output;
         try {
-          const response = await enemyTacticianPrompt(input);
+          const response = await retryWithExponentialBackoff(
+            () => enemyTacticianPrompt(input),
+            3,
+            1000,
+            'enemyTactician'
+          );
           output = response.output;
         } catch (promptError: any) {
           // Catch Genkit schema validation errors (when AI returns null)

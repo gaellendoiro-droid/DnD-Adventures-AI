@@ -68,6 +68,9 @@ export const CombatManagerOutputSchema = z.object({
     debugLogs: z.array(z.string()).optional(),
     turnIndex: z.number().optional(),
     hasMoreAITurns: z.boolean().optional(),
+    // Nuevos campos para comunicación explícita de qué turno se procesó
+    lastProcessedTurnWasAI: z.boolean().optional(), // true si el último turno procesado fue de IA/Enemy
+    lastProcessedTurnIndex: z.number().optional(),  // índice del turno que se acaba de procesar
 });
 
 
@@ -103,12 +106,29 @@ export const combatManagerTool = ai.defineTool(
             
             // Handle "continue turn" action (step-by-step combat)
             if (interpretedAction && interpretedAction.actionType === 'continue_turn') {
+                log.info('Continue turn action detected in combat', {
+                    module: 'CombatManager',
+                    currentTurnIndex,
+                    activeCombatant: activeCombatant?.characterName || 'Unknown',
+                    activeCombatantControlledBy: activeCombatant?.controlledBy,
+                    initiativeOrderLength: initiativeOrder.length,
+                });
                 localLog(`Continue turn action detected. Skipping player action processing.`);
                 // If it's currently the player's turn, advance to next turn
                 if (activeCombatant && activeCombatant.controlledBy === 'Player') {
-                    localLog(`Player's turn detected with continue_turn. Advancing to next turn.`);
+                    const previousIndex = currentTurnIndex;
+                    const previousCombatant = activeCombatant.characterName;
                     currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
                     activeCombatant = initiativeOrder[currentTurnIndex];
+                    log.info('Advanced from player turn to next turn', {
+                        module: 'CombatManager',
+                        fromIndex: previousIndex,
+                        toIndex: currentTurnIndex,
+                        fromCombatant: previousCombatant,
+                        toCombatant: activeCombatant?.characterName || 'Unknown',
+                        toControlledBy: activeCombatant?.controlledBy,
+                    });
+                    localLog(`Player's turn detected with continue_turn. Advancing to next turn.`);
                 }
                 // Don't process player action, just continue to next turn (which will be processed below if it's AI)
             }
@@ -177,6 +197,8 @@ export const combatManagerTool = ai.defineTool(
                                 initiativeOrder,
                                 updatedParty,
                                 updatedEnemies,
+                                lastProcessedTurnWasAI: false,
+                                lastProcessedTurnIndex: currentTurnIndex, // Still on same turn
                             };
                         } else {
                             // No enemies alive
@@ -220,6 +242,8 @@ export const combatManagerTool = ai.defineTool(
                             initiativeOrder,
                             updatedParty,
                             updatedEnemies,
+                            lastProcessedTurnWasAI: false,
+                            lastProcessedTurnIndex: currentTurnIndex, // Still on same turn
                         };
                     }
                     
@@ -507,21 +531,38 @@ export const combatManagerTool = ai.defineTool(
             if(activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded) {
                 localLog(`Processing turn for AI combatant ${activeCombatant.characterName} at index ${currentTurnIndex}...`);
                 
-                // Check if active combatant is dead - skip their turn if so
+                // Check if active combatant is dead or unconscious - skip their turn if so
                 const isCompanion = updatedParty.some(p => p.id === activeCombatant.id);
                 const activeCombatantData = isCompanion 
                     ? updatedParty.find(p => p.id === activeCombatant.id)
                     : updatedEnemies.find(e => (e as any).uniqueId === activeCombatant.id);
                 
-                if (activeCombatantData && activeCombatantData.hp.current <= 0) {
-                    log.debug('Skipping turn for dead combatant', {
+                if (activeCombatantData && isUnconsciousOrDead(activeCombatantData)) {
+                    log.debug('Skipping turn for dead/unconscious combatant', {
                         module: 'CombatManager',
                         combatant: activeCombatant.characterName,
                         hp: activeCombatantData.hp.current,
+                        isDead: activeCombatantData.isDead,
+                        isCompanion: isCompanion,
                     });
+                    
+                    // Mensaje apropiado según estado y tipo de combatiente
+                    // Enemigos: mueren directamente al llegar a HP 0 (no quedan inconscientes)
+                    // Personajes del grupo: pueden quedar inconscientes (isDead = false) o muertos (isDead = true)
+                    let statusMessage: string;
+                    if (isCompanion) {
+                        // Personaje del grupo: distinguir entre muerto e inconsciente
+                        statusMessage = activeCombatantData.isDead === true 
+                            ? `${activeCombatant.characterName} está muerto y no puede actuar.`
+                            : `${activeCombatant.characterName} está inconsciente y no puede actuar.`;
+                    } else {
+                        // Enemigo: si HP <= 0, está muerto (no tienen concepto de inconsciencia)
+                        statusMessage = `${activeCombatant.characterName} está muerto y no puede actuar.`;
+                    }
+                    
                     messages.push({
                         sender: 'DM',
-                        content: `${activeCombatant.characterName} está muerto y no puede actuar.`
+                        content: statusMessage
                     });
                     
                     // Advance to next turn
@@ -530,6 +571,9 @@ export const combatManagerTool = ai.defineTool(
                     
                     // Check if next turn is also AI
                     const hasMoreAITurns = activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded;
+                    
+                    // Calculate which turn was just processed (skipped due to dead/unconscious)
+                    const processedTurnIndex = (currentTurnIndex - 1 + initiativeOrder.length) % initiativeOrder.length;
                     
                     // Return immediately (don't continue loop)
                     return {
@@ -542,6 +586,8 @@ export const combatManagerTool = ai.defineTool(
                         updatedParty,
                         updatedEnemies,
                         hasMoreAITurns,
+                        lastProcessedTurnWasAI: true,
+                        lastProcessedTurnIndex: processedTurnIndex,
                     };
                 }
                 let tacticianResponse;
@@ -579,7 +625,8 @@ export const combatManagerTool = ai.defineTool(
                         hp: getHpStatus(e.hp.current, e.hp.max) 
                     })),
                     locationDescription: locationContext?.description || "An unknown battlefield",
-                    conversationHistory: conversationHistory.map(formatMessageForTranscript).join('\n')
+                    conversationHistory: conversationHistory.map(formatMessageForTranscript).join('\n'),
+                    availableSpells: isCompanion ? (activeCombatant.spells || []) : []
                 };
 
                 if (isCompanion) {
@@ -621,7 +668,7 @@ export const combatManagerTool = ai.defineTool(
                             });
                         }
                         
-                        // Replace uniqueId references first (e.g., "goblin-0", "goblin-1")
+                        // Replace uniqueId references first (e.g., "goblin-1", "goblin-2")
                         const beforeUniqueId = processedNarration;
                         processedNarration = processedNarration.replace(
                             new RegExp(`\\b${enemy.uniqueId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'),
@@ -734,6 +781,7 @@ export const combatManagerTool = ai.defineTool(
             
                 // If combat ended during this turn, return final state
                 if (combatHasEnded) {
+                    // The AI turn that just finished caused the combat to end
                     return {
                         messages,
                         diceRolls,
@@ -744,15 +792,39 @@ export const combatManagerTool = ai.defineTool(
                         enemies: [],
                         updatedParty,
                         updatedEnemies,
+                        lastProcessedTurnWasAI: true,
+                        lastProcessedTurnIndex: currentTurnIndex, // The turn that ended combat
                     };
                 }
                 
                 // Check if next turn is also AI
                 const hasMoreAITurns = activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded;
                 
+                log.info('AI turn processed - determining hasMoreAITurns', {
+                    module: 'CombatManager',
+                    currentTurnIndex,
+                    nextCombatant: activeCombatant?.characterName || 'Unknown',
+                    nextControlledBy: activeCombatant?.controlledBy,
+                    hasMoreAITurns,
+                    combatHasEnded,
+                });
+                
                 localLog(`AI turn processed. Next combatant: ${activeCombatant?.characterName} (hasMoreAITurns: ${hasMoreAITurns})`);
                 
+                // Calculate which turn was just processed (it's the previous one before advancing)
+                const processedTurnIndex = (currentTurnIndex - 1 + initiativeOrder.length) % initiativeOrder.length;
+                
                 // Return immediately after processing ONE AI turn
+                log.info('Returning combat result after AI turn', {
+                    module: 'CombatManager',
+                    turnIndex: currentTurnIndex,
+                    processedTurnIndex,
+                    hasMoreAITurns,
+                    messagesCount: messages.length,
+                    diceRollsCount: diceRolls.length,
+                    nextCombatant: activeCombatant?.characterName || 'Unknown',
+                });
+                
                 return {
                     messages,
                     diceRolls,
@@ -763,12 +835,17 @@ export const combatManagerTool = ai.defineTool(
                     updatedParty,
                     updatedEnemies,
                     hasMoreAITurns,
+                    lastProcessedTurnWasAI: true,
+                    lastProcessedTurnIndex: processedTurnIndex,
                 };
             }
             
             // If it's not an AI's turn (i.e., player's turn), return without processing
             const playerCombatant = initiativeOrder.find(c => c.controlledBy === 'Player');
             localLog(`Player's turn. Control ceded to player ${playerCombatant?.characterName} at index ${currentTurnIndex}.`);
+            
+            // The last processed turn was the player's turn (no AI turn was processed in this response)
+            const processedTurnIndex = (currentTurnIndex - 1 + initiativeOrder.length) % initiativeOrder.length;
             
             return { 
                 messages, 
@@ -780,6 +857,8 @@ export const combatManagerTool = ai.defineTool(
                 updatedParty, 
                 updatedEnemies,
                 hasMoreAITurns: false,
+                lastProcessedTurnWasAI: false,
+                lastProcessedTurnIndex: processedTurnIndex,
             };
         }
         
@@ -833,7 +912,7 @@ export const combatManagerTool = ai.defineTool(
         }
         messages.push({ sender: 'System', content: `¡Comienza el Combate!` });
         // Generate uniqueIds for enemies based on their base name (extract from id if it has dashes)
-        // This ensures consistent uniqueIds like "goblin-0", "goblin-1", "orco-0" instead of using array index
+        // This ensures consistent uniqueIds like "goblin-1", "goblin-2", "orco-1" (1-indexed to match visual names)
         // Group enemies by base name and number them within each group
         const enemyGroups = new Map<string, number>(); // Map<baseName, currentIndex>
         const initialEnemies = hostileEntities.map((e: any) => {
@@ -841,8 +920,8 @@ export const combatManagerTool = ai.defineTool(
             // e.g., "goblin-2" -> "goblin", "goblin" -> "goblin", "orco-1" -> "orco"
             const baseId = e.id.split('-').slice(0, -1).join('-') || e.id.split('-')[0] || e.id;
             
-            // Get or initialize the index for this base name
-            const currentIndex = enemyGroups.get(baseId) || 0;
+            // Get or initialize the index for this base name (start at 1 to match visual numbering)
+            const currentIndex = enemyGroups.get(baseId) || 1;
             enemyGroups.set(baseId, currentIndex + 1);
             
             const uniqueId = `${baseId}-${currentIndex}`;
@@ -1103,12 +1182,22 @@ export const combatManagerTool = ai.defineTool(
                     combatant: activeCombatant.characterName,
                     hp: activeCombatantDataInit.hp.current,
                     isDead: activeCombatantDataInit.isDead,
+                    isCompanion: isCompanion,
                 });
                 
-                // Mensaje apropiado según estado
-                const statusMessage = activeCombatantDataInit.isDead === true 
-                    ? `${activeCombatant.characterName} está muerto y no puede actuar.`
-                    : `${activeCombatant.characterName} está inconsciente y no puede actuar.`;
+                // Mensaje apropiado según estado y tipo de combatiente
+                // Enemigos: mueren directamente al llegar a HP 0 (no quedan inconscientes)
+                // Personajes del grupo: pueden quedar inconscientes (isDead = false) o muertos (isDead = true)
+                let statusMessage: string;
+                if (isCompanion) {
+                    // Personaje del grupo: distinguir entre muerto e inconsciente
+                    statusMessage = activeCombatantDataInit.isDead === true 
+                        ? `${activeCombatant.characterName} está muerto y no puede actuar.`
+                        : `${activeCombatant.characterName} está inconsciente y no puede actuar.`;
+                } else {
+                    // Enemigo: si HP <= 0, está muerto (no tienen concepto de inconsciencia)
+                    statusMessage = `${activeCombatant.characterName} está muerto y no puede actuar.`;
+                }
                 
                 messages.push({
                     sender: 'DM',
@@ -1122,6 +1211,9 @@ export const combatManagerTool = ai.defineTool(
                 // Check if next turn is also AI
                 const hasMoreAITurns = activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded;
                 
+                // Calculate which turn was just processed (skipped due to dead/unconscious)
+                const processedTurnIndex = (currentTurnIndex - 1 + newInitiativeOrder.length) % newInitiativeOrder.length;
+                
                 // Return immediately (don't continue loop)
                 return {
                     messages,
@@ -1133,6 +1225,8 @@ export const combatManagerTool = ai.defineTool(
                     debugLogs,
                     updatedParty,
                     hasMoreAITurns,
+                    lastProcessedTurnWasAI: true,
+                    lastProcessedTurnIndex: processedTurnIndex,
                 };
             }
             
@@ -1171,7 +1265,8 @@ export const combatManagerTool = ai.defineTool(
                     hp: getHpStatus(e.hp.current, e.hp.max) 
                 })),
                 locationDescription: locationContext?.description || "An unknown battlefield",
-                conversationHistory: conversationHistory.map(formatMessageForTranscript).join('\n')
+                conversationHistory: conversationHistory.map(formatMessageForTranscript).join('\n'),
+                availableSpells: isCompanion ? (activeCombatant.spells || []) : []
             };
 
             if (isCompanion) {
@@ -1305,6 +1400,7 @@ export const combatManagerTool = ai.defineTool(
             
             // If combat ended during this turn, return final state
             if (combatHasEnded) {
+                // The initial AI turn that just finished caused the combat to end
                 return {
                     messages,
                     diceRolls,
@@ -1315,15 +1411,39 @@ export const combatManagerTool = ai.defineTool(
                     enemies: [],
                     updatedParty,
                     updatedEnemies,
+                    lastProcessedTurnWasAI: true,
+                    lastProcessedTurnIndex: currentTurnIndex, // The turn that ended combat
                 };
             }
             
             // Check if next turn is also AI
             const hasMoreAITurns = activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded;
             
+            log.info('Initial AI turn processed - determining hasMoreAITurns', {
+                module: 'CombatManager',
+                currentTurnIndex,
+                nextCombatant: activeCombatant?.characterName || 'Unknown',
+                nextControlledBy: activeCombatant?.controlledBy,
+                hasMoreAITurns,
+                combatHasEnded,
+            });
+            
             localLog(`Initial AI turn processed. Next combatant: ${activeCombatant?.characterName} (hasMoreAITurns: ${hasMoreAITurns})`);
             
+            // Calculate which turn was just processed (it's the previous one before advancing)
+            const processedTurnIndex = (currentTurnIndex - 1 + newInitiativeOrder.length) % newInitiativeOrder.length;
+            
             // Return immediately after processing ONE AI turn
+            log.info('Returning combat result after initial AI turn', {
+                module: 'CombatManager',
+                turnIndex: currentTurnIndex,
+                processedTurnIndex,
+                hasMoreAITurns,
+                messagesCount: messages.length,
+                diceRollsCount: diceRolls.length,
+                nextCombatant: activeCombatant?.characterName || 'Unknown',
+            });
+            
             return {
                 messages,
                 diceRolls,
@@ -1334,6 +1454,8 @@ export const combatManagerTool = ai.defineTool(
                 debugLogs,
                 updatedParty,
                 hasMoreAITurns,
+                lastProcessedTurnWasAI: true,
+                lastProcessedTurnIndex: processedTurnIndex,
             };
         }
         
@@ -1351,6 +1473,8 @@ export const combatManagerTool = ai.defineTool(
             debugLogs,
             updatedParty,
             hasMoreAITurns: false,
+            lastProcessedTurnWasAI: false,
+            lastProcessedTurnIndex: undefined, // Combat just started, no turn was processed yet
         };
         localLog(`Data being returned: ${JSON.stringify({ messages: finalResult.messages?.length, diceRolls: finalResult.diceRolls?.length, initiativeOrder: finalResult.initiativeOrder?.map(c => c.characterName), inCombat: finalResult.inCombat, turnIndex: finalResult.turnIndex, hasMoreAITurns: finalResult.hasMoreAITurns })}`);
         return finalResult;

@@ -20,6 +20,7 @@ D&D Adventures AI es una aplicación web que permite jugar partidas de Dungeons 
 
 ### Sistema de Combate ⚔️ (Completado v0.5.x)
 - **Combate por Turnos**: Sistema completamente funcional siguiendo reglas de D&D 5e
+- **Sistema de Turnos Paso a Paso**: ✅ Control manual del jugador para avanzar turnos uno a uno con botones "Pasar 1 Turno" y "Avanzar Todos"
 - **Orden de Iniciativa**: Cálculo automático y gestión de turnos
 - **Tiradas de Dados**: Sistema robusto con detección automática de críticos (20 natural) y pifias (1 natural)
 - **IA Táctica**: Enemigos y compañeros toman decisiones inteligentes basadas en el estado del combate
@@ -67,8 +68,8 @@ D&D Adventures AI es una aplicación web que permite jugar partidas de Dungeons 
 ## 🚧 En Desarrollo / Mejoras Pendientes
 
 ### Prioridad Alta
-- **Refactoring de `combat-manager.ts`**: Dividir en módulos más pequeños y manejables (Issue #21 - Código duplicado) - **EN CURSO**
-- **Sistema de Turnos Paso a Paso**: Permitir al jugador controlar manualmente cada turno en lugar de procesar todos de golpe (se implementará después de la refactorización)
+- **Refactoring de `combat-manager.ts`**: Fases 1-2 completadas (54.6% de reducción), Fase 3 pausada (opcional) - **PARCIALMENTE COMPLETADO**
+- **Sistema de Turnos Paso a Paso**: ✅ **COMPLETADO** - El jugador ahora puede controlar manualmente cada turno con botones "Pasar 1 Turno" y "Avanzar Todos"
 - **Sistema de Progresión**: XP, subida de nivel, mejora de estadísticas
 - **Inicio de Combate Dinámico**: Evaluación automática de hostilidad para iniciar combate cuando las acciones del jugador lo provoquen
 - **Mejora de Fichas de Personaje**: Mejor organización, visualización de estados temporales, pestañas colapsables
@@ -122,6 +123,6 @@ El objetivo es crear una plataforma completa para jugar D&D 5e con IA que:
 
 ---
 
-**Estado del Proyecto**: Fase Alpha - Sistema de combate completado, sistema de progresión pendiente
+**Estado del Proyecto**: Fase Alpha - Sistema de combate completado, Sistema de turnos paso a paso implementado, sistema de progresión pendiente
 
-**Última Actualización**: Noviembre 2024
+**Última Actualización**: Diciembre 2024

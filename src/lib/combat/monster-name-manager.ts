@@ -41,15 +41,17 @@ export function generateDifferentiatedNames(enemies: any[]): Map<string, string>
         
         // Sort by uniqueId to ensure consistent ordering (based on original index)
         const sorted = [...group].sort((a, b) => {
-            const aIndex = parseInt(a.uniqueId.split('-').pop() || '0', 10);
-            const bIndex = parseInt(b.uniqueId.split('-').pop() || '0', 10);
+            const aIndex = parseInt(a.uniqueId.split('-').pop() || '1', 10);
+            const bIndex = parseInt(b.uniqueId.split('-').pop() || '1', 10);
             return aIndex - bIndex;
         });
         
         // ALWAYS number all enemies, even if there's only one
         // This ensures consistency: if there's 1 goblin, it's "Goblin 1", not just "Goblin"
-        sorted.forEach((enemy, index) => {
-            nameMap.set(enemy.uniqueId, `${baseName} ${index + 1}`);
+        // Now the uniqueId number matches the visual number directly (1-indexed)
+        sorted.forEach((enemy) => {
+            const visualNumber = parseInt(enemy.uniqueId.split('-').pop() || '1', 10);
+            nameMap.set(enemy.uniqueId, `${baseName} ${visualNumber}`);
         });
     }
     
@@ -141,8 +143,8 @@ export function replaceOrdinalReferences(narration: string, enemies: any[], visu
         
         // Sort by uniqueId to ensure consistent ordering
         const sortedEnemies = [...sameNameEnemies].sort((a, b) => {
-            const aIndex = parseInt(a.uniqueId.split('-').pop() || '0', 10);
-            const bIndex = parseInt(b.uniqueId.split('-').pop() || '0', 10);
+            const aIndex = parseInt(a.uniqueId.split('-').pop() || '1', 10);
+            const bIndex = parseInt(b.uniqueId.split('-').pop() || '1', 10);
             return aIndex - bIndex;
         });
         

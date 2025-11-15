@@ -2,12 +2,45 @@
 
 Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 18 issues  
-**Última actualización:** 2025-11-14
+**Total:** 20 issues  
+**Última actualización:** 2025-11-15
 
 ---
 
 ## 🔴 Prioridad Muy Alta (PMA) - Críticos
+
+### Issue #49: Resolución incorrecta de targets en combate con enemigos múltiples ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-15
+- **Fecha de corrección:** 2025-11-15
+- **Ubicación:** `src/lib/combat/target-resolver.ts`
+- **Severidad:** 🟡 **ALTA** (afecta gameplay, puede causar ataques contra targets incorrectos)
+- **Descripción:** Cuando el jugador especificaba un target explícito con número (ej: "Ataco a Goblin 1"), el sistema a veces interpretaba incorrectamente el target y dirigía el ataque contra un enemigo diferente (ej: Goblin 2 en lugar de Goblin 1).
+- **Contexto:** Detectado durante Test 19 (Verificación de Regresiones - Refactorización de combat-manager.ts) en combate contra 2 Goblins y 1 Orco.
+- **Problema identificado:**
+  - Los `uniqueId` se generaban con numeración 0-indexed (`goblin-0`, `goblin-1`) mientras que los nombres visuales usaban 1-indexed ("Goblin 1", "Goblin 2")
+  - Esto requería conversión compleja y propensa a errores: `uniqueId "goblin-0"` → "Goblin 1", `uniqueId "goblin-1"` → "Goblin 2"
+  - El código en `target-resolver.ts` intentaba hacer esta conversión pero tenía bugs que causaban targets incorrectos
+- **Solución implementada:** ✅ Refactorización arquitectónica - Cambio a numeración 1-indexed en uniqueIds
+  - **Cambio principal:** Los `uniqueId` ahora empiezan en 1 (`goblin-1`, `goblin-2`) para coincidir directamente con los nombres visuales
+  - **Simplificación:** Eliminada toda la lógica compleja de conversión en `target-resolver.ts` (reducido de ~50 líneas a ~15 líneas)
+  - **Beneficios:**
+    - Código más simple y mantenible
+    - Menos errores: el número del uniqueId coincide directamente con el visual
+    - Más intuitivo: `goblin-1` → "Goblin 1" (sin conversión)
+- **Ejemplo de corrección:**
+  - Ahora: `uniqueId "goblin-1"` → "Goblin 1" ✅ (mapeo directo, sin conversión)
+  - Antes: `uniqueId "goblin-0"` → "Goblin 1" (requería conversión compleja) ❌
+- **Archivos modificados:**
+  - `src/ai/tools/combat-manager.ts`: Cambiada generación de uniqueIds para empezar en 1 (línea 923)
+  - `src/lib/combat/monster-name-manager.ts`: Simplificado para usar número del uniqueId directamente (línea 52-54)
+  - `src/lib/combat/target-resolver.ts`: Eliminada lógica compleja de conversión, ahora mapeo directo (líneas 53-76)
+- **Impacto:** Alto - Los ataques ahora se dirigen correctamente al target especificado, código más simple y robusto
+- **Estado:** ✅ RESUELTO - Refactorización completa implementada
+- **Detección:** Testing de v0.5.0 - Test 19
+- **Referencia:** CHANGELOG [Unreleased]
+
+---
 
 ### Issue #13: Connect Timeout Error al iniciar combate ✅ RESUELTO
 
@@ -22,6 +55,49 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
   - Fallback inteligente por palabras clave si todos los reintentos fallan
 - **Archivos modificados:** `src/ai/flows/action-interpreter.ts` (líneas 14-217)
 - **Estado:** ✅ RESUELTO
+- **Nota adicional (2025-11-15):** La función de retry fue extraída a `src/ai/flows/retry-utils.ts` como módulo compartido y también se aplicó a `narrativeExpertFlow` para manejar timeouts durante la iniciación de combate y generación de narración.
+
+### Issue #52: Timeouts de conexión en `companionTacticianTool` y `enemyTacticianTool` ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-15
+- **Fecha de corrección:** 2025-11-15
+- **Ubicación:** `src/ai/tools/companion-tactician.ts`, `src/ai/tools/enemy-tactician.ts`
+- **Severidad:** 🔴 **CRÍTICO** (cuando ocurre, impide que los personajes de la IA actúen)
+- **Descripción:** Se detectó un `ConnectTimeoutError` al llamar a la API de Gemini desde `companionTacticianTool`. Ni este tool ni `enemyTacticianTool` tenían implementada una lógica de reintentos.
+- **Solución implementada:** ✅ Se añadió lógica de reintentos con backoff exponencial a ambos tools utilizando el módulo compartido `retry-utils.ts`.
+  - Se importó `retryWithExponentialBackoff` en ambos archivos.
+  - Se envolvieron las llamadas a `companionTacticianPrompt` y `enemyTacticianPrompt` con la función de reintentos.
+- **Archivos modificados:**
+  - `src/ai/tools/companion-tactician.ts`
+  - `src/ai/tools/enemy-tactician.ts`
+- **Estado:** ✅ RESUELTO
+- **Impacto:** Crítico - Asegura que los errores transitorios de red no impidan que la IA actúe en combate, mejorando significativamente la robustez del sistema.
+
+### Issue #48: Sistema de Sincronización de Turnos - Problemas de Sincronización UI ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-15
+- **Fecha de corrección:** 2025-11-15
+- **Ubicación:** `src/components/game/game-view.tsx`, `src/ai/tools/combat-manager.ts`
+- **Severidad:** 🔴 **CRÍTICO** (afecta la experiencia de juego, múltiples intentos de corrección fallaron)
+- **Descripción:** El sistema de turnos paso a paso tenía múltiples problemas de sincronización entre backend y frontend:
+  - El marcador visual del turno (`turnIndex`) se actualizaba prematuramente, mostrando el siguiente turno antes de que el jugador presionara "Pasar 1 Turno"
+  - La lógica del frontend era extremadamente compleja e ineficaz, intentando inferir qué turno se había procesado mediante cálculos complejos de índices, búsquedas hacia atrás, y detección de saltos de turnos
+  - El backend no proporcionaba información explícita sobre qué turno se había procesado, forzando al frontend a adivinar
+  - Múltiples intentos de corrección fallaron debido a la complejidad inherente de la solución
+- **Solución implementada:** ✅ Refactorización completa con campos explícitos en el backend
+  - **Backend (`combat-manager.ts`):**
+    - Añadidos nuevos campos al schema: `lastProcessedTurnWasAI: boolean` y `lastProcessedTurnIndex: number`
+    - Estos campos indican **explícitamente** qué turno se procesó en la última respuesta
+    - Actualizados todos los puntos de retorno (10 ubicaciones) para incluir estos campos
+  - **Frontend (`game-view.tsx`):**
+    - Eliminada toda la lógica compleja de inferencia (cálculos de índices, búsquedas hacia atrás, detección de saltos)
+    - Reemplazada por lógica simple y directa basada en los campos explícitos del backend
+    - Reducción de código: ~150 líneas de lógica compleja → ~20 líneas de lógica simple
+- **Archivos modificados:**
+  - `src/ai/tools/combat-manager.ts`: Añadidos campos `lastProcessedTurnWasAI` y `lastProcessedTurnIndex` al schema y todos los puntos de retorno
+  - `src/components/game/game-view.tsx`: Simplificada drásticamente la lógica de sincronización de turnos
+- **Estado:** ✅ RESUELTO - Sistema completamente funcional y probado con combates completos
+- **Impacto:** Crítico - Soluciona definitivamente los problemas de sincronización de turnos que habían persistido a través de múltiples intentos de corrección. El sistema ahora es robusto, simple y eficaz.
 
 ### Issue #19: Turno del jugador no procesa tiradas de dados ni narración del DM ✅ RESUELTO
 

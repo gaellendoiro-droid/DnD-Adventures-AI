@@ -19,7 +19,7 @@ El proyecto sigue un modelo cliente-servidor claramente separado:
 
 ### Frontend (Cliente)
 
-- **Framework:** Next.js 15.3.3 con App Router
+- **Framework:** Next.js 15.5.6 con App Router
 - **Lenguaje:** TypeScript
 - **UI:** React 18.3.1 + shadcn/ui + Tailwind CSS
 - **Estado:** React Hooks (`useState`, `useCallback`)

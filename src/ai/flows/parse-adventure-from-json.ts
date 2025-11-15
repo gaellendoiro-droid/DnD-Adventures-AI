@@ -121,9 +121,9 @@ const parseAdventureFromJsonFlow = ai.defineFlow(
             .substring(0, maxLength);
         };
         
-        errorMessage = cleanMessage(errorMessage, 200);
+        errorMessage = cleanMessage(errorMessage, 150);
         if (causeMessage) {
-          causeMessage = cleanMessage(causeMessage, 100);
+          causeMessage = cleanMessage(causeMessage, 80);
         }
         
         // Check if it's a connection timeout error
@@ -133,66 +133,42 @@ const parseAdventureFromJsonFlow = ai.defineFlow(
                               causeCode === 'UND_ERR_CONNECT_TIMEOUT' ||
                               (causeMessage && causeMessage.includes('Connect Timeout'));
         
-        log.warn(`Adventure parsing attempt ${attempt} failed`, {
+        log.warn(`Gemini API error (attempt ${attempt}/${maxRetries})`, {
           module: 'ParseAdventure',
-          flow: 'parseAdventureFromJsonFlow',
-          attempt,
-          maxRetries,
-          isTimeoutError,
-          errorCode,
-          errorMessage,
-          causeCode,
-          causeMessage,
-          errorType: error?.constructor?.name || typeof error,
+          code: errorCode,
+          msg: errorMessage,
+          ...(isTimeoutError && { type: 'timeout' }),
         });
         
         if (isTimeoutError && attempt < maxRetries) {
           // Wait a bit before retrying (exponential backoff)
           const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-          log.info(`Retrying after ${delay}ms (exponential backoff)`, {
-            module: 'ParseAdventure',
-            flow: 'parseAdventureFromJsonFlow',
-            attempt,
-            nextAttempt: attempt + 1,
-            delayMs: delay,
-          });
           await new Promise(resolve => setTimeout(resolve, delay));
           continue; // Retry
         }
         // If it's not a timeout or we've exhausted retries, throw
         const finalErrorCode = lastError?.code || lastError?.cause?.code || 'UNKNOWN';
         let finalErrorMessage = lastError?.message || lastError?.toString() || 'Unknown error';
-        const finalCauseCode = lastError?.cause?.code || null;
         
         // Clean error message: remove newlines and excessive whitespace, then truncate
-        finalErrorMessage = finalErrorMessage
-          .replace(/\s+/g, ' ') // Replace all whitespace (including newlines) with single space
-          .trim()
-          .substring(0, 300);
+        finalErrorMessage = cleanMessage(finalErrorMessage, 150);
         
-        log.error('Adventure parsing failed permanently', {
+        log.warn('Gemini API error: parsing failed after all retries', {
           module: 'ParseAdventure',
-          flow: 'parseAdventureFromJsonFlow',
-          attempt,
-          maxRetries,
-          isTimeoutError,
-          errorCode: finalErrorCode,
-          errorMessage: finalErrorMessage,
-          causeCode: finalCauseCode,
-          errorType: lastError?.constructor?.name || typeof lastError,
-        }, lastError);
+          code: finalErrorCode,
+          msg: finalErrorMessage,
+        });
         throw error;
       }
     }
     
     if (!output) {
       const errorMessage = `Could not extract adventure title and summary after ${maxRetries} attempts. ${lastError ? `Last error: ${lastError.message}` : ''}`;
-      log.error('Adventure parsing failed: no output after all retries', {
+      const lastErrorMsg = lastError?.message || lastError?.toString() || 'Unknown';
+      log.warn('Gemini API error: no output after all retries', {
         module: 'ParseAdventure',
-        flow: 'parseAdventureFromJsonFlow',
-        maxRetries,
-        lastErrorCode: lastError?.code,
-        lastErrorMessage: lastError?.message,
+        code: lastError?.code || 'UNKNOWN',
+        msg: lastErrorMsg.substring(0, 150),
       });
       throw new Error(errorMessage);
     }

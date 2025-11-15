@@ -1,9 +1,11 @@
 /**
  * @fileOverview Target Resolver
  * Handles resolution of target identifiers in combat, mapping visual names
- * (like "Goblin 1") to internal unique IDs (like "goblin-0").
+ * (like "Goblin 1") to internal unique IDs (like "goblin-1").
  * 
  * This module is part of the Fase 1.3 refactorization.
+ * 
+ * Note: uniqueIds are now 1-indexed to match visual names directly (goblin-1 = "Goblin 1").
  */
 
 import type { Combatant } from '@/lib/types';
@@ -11,12 +13,12 @@ import { log } from '@/lib/logger';
 import { normalizeNameForMatching, generateDifferentiatedNames } from './monster-name-manager';
 
 /**
- * Resolves a targetId (which can be a visual name like "Goblin 1" or a uniqueId like "goblin-0")
+ * Resolves a targetId (which can be a visual name like "Goblin 1" or a uniqueId like "goblin-1")
  * to the actual uniqueId for target lookup.
  * 
  * Handles:
  * - Direct uniqueId lookups
- * - Visual name to uniqueId mapping
+ * - Visual name to uniqueId mapping (now simplified: uniqueId number = visual number)
  * - Base name matching with ambiguity detection
  * - Accent normalization for matching
  * 
@@ -48,23 +50,24 @@ export function resolveEnemyId(
             return { uniqueId: found.id || (found as any).uniqueId, ambiguous: false, matches: [] };
         }
         
-        // If not found, try to interpret as visual name (e.g., "goblin-2" -> "Goblin 2")
-        // Extract base name and number from ID format (e.g., "goblin-2" -> "goblin", "2")
+        // If not found directly, map uniqueId to visual name (now simplified: uniqueId number = visual number)
+        // Example: uniqueId "goblin-1" -> visual name "Goblin 1" (direct match!)
         const parts = targetId.split('-');
         if (parts.length === 2) {
             const baseName = parts[0];
-            const visualNumber = parseInt(parts[1], 10);
+            const visualNumber = parseInt(parts[1], 10); // Now the number in uniqueId IS the visual number
             
-            // Construct visual name (capitalize first letter, add space and number)
+            // Construct visual name directly from uniqueId
             const capitalizedBaseName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
             const visualName = `${capitalizedBaseName} ${visualNumber}`;
             
             // Search in initiativeOrder by visual name
             const visualMatch = initiativeOrder.find(c => c.characterName === visualName);
             if (visualMatch) {
-                log.debug('Resolved ID-format targetId to visual name', {
+                log.debug('Resolved ID-format targetId to visual name (direct mapping)', {
                     module: 'TargetResolver',
                     originalTargetId: targetId,
+                    visualNumber: visualNumber,
                     visualName: visualName,
                     resolvedUniqueId: visualMatch.id,
                 });

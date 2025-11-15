@@ -3,26 +3,27 @@
 Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras identificados durante el desarrollo del proyecto.
 
 **Fecha de inicio:** Durante el saneamiento general de la aplicación (2025-11-10)  
-**Última actualización:** 2025-11-14
+**Última actualización:** 2025-11-15
 
 ---
 
 ## 📊 Resumen Estadístico
 
-- **Total de issues:** 38
-- **Issues corregidos:** 18 (47%)
-- **Issues pendientes:** 20 (53%)
+- **Total de issues:** 39
+- **Issues corregidos:** 20 (51%)
+- **Issues pendientes:** 19 (49%)
 
 ### Por Prioridad
 
 **Issues Corregidos:**
-- 🔴 PMA (Prioridad Muy Alta): 7 issues
+- 🔴 PMA (Prioridad Muy Alta): 8 issues
 - 🟡 PA (Prioridad Alta): 2 issues
 - 🟢 PM (Prioridad Media): 9 issues
+- ⚪ PB (Prioridad Baja): 1 issue
 
 **Issues Pendientes:**
 - 🔴 PMA (Prioridad Muy Alta): 0 issues
-- 🟡 PA (Prioridad Alta): 5 issues (Issue #35, #36, #37, #34, #14)
+- 🟡 PA (Prioridad Alta): 4 issues (Issue #50, #51, #35, #36, #37)
 - 🟢 PM (Prioridad Media): 9 issues
 - ⚪ PB (Prioridad Baja): 3 issues
 - ⚫ PMB (Prioridad Muy Baja): 1 issue
@@ -51,11 +52,11 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 ### Issues Pendientes por Prioridad
 
 **🟡 Prioridad Alta (PA):**
+- [Issue #50: Daño de crítico no se duplica correctamente](./pendientes.md#issue-50-daño-de-crítico-no-se-duplica-correctamente-advertencia) *[Detectado en testing]*
+- [Issue #51: Mensaje "ha matado" incorrecto cuando personaje ya estaba inconsciente](./pendientes.md#issue-51-mensaje-ha-matado-incorrecto-cuando-personaje-ya-estaba-inconsciente-advertencia) *[Detectado en testing]*
 - [Issue #35: Orden incorrecto de mensajes cuando personaje cae a 0 HP](./pendientes.md#issue-35-orden-incorrecto-de-mensajes-cuando-personaje-cae-a-0-hp-advertencia) *[Detectado en testing]*
 - [Issue #36: Mensaje "ha matado" cuando personaje está inconsciente](./pendientes.md#issue-36-mensaje-ha-matado-cuando-personaje-está-inconsciente-no-muerto-advertencia) *[Detectado en testing]*
 - [Issue #37: Mensaje "está muerto" cuando personaje está inconsciente](./pendientes.md#issue-37-mensaje-está-muerto-cuando-personaje-está-inconsciente-advertencia) *[Detectado en testing]*
-- [Issue #34: AI de enemigos traduce/inventa nombres en narración](./pendientes.md#issue-34-ai-de-enemigos-traduceinventa-nombres-en-narración-en-lugar-de-usar-nombre-exacto-advertencia) *[Corregido - Pendiente de re-test]*
-- [Issue #14: AI Tacticians devuelven output inválido/null](./pendientes.md#issue-14-ai-tacticians-enemigos-y-companions-a-veces-devuelven-output-inválidonull-en-combate)
 
 **🟢 Prioridad Media (PM):**
 - [Issue #38: Auto-redirección de ataque a enemigo diferente cuando target está muerto](./pendientes.md#issue-38-auto-redirección-de-ataque-a-enemigo-diferente-cuando-target-está-muerto-mejora--decisión-de-diseño) *[Detectado en testing - Decisión de diseño pendiente]*

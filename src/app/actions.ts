@@ -20,6 +20,11 @@ export async function processPlayerAction(
     inCombat: input.inCombat,
     turnIndex: input.turnIndex,
     locationId: input.locationId,
+    isContinueTurn: input.playerAction?.toLowerCase().includes('continuar turno') || 
+                     input.playerAction?.toLowerCase().includes('pasar turno') ||
+                     input.playerAction?.toLowerCase().includes('siguiente turno'),
+    partySize: input.party?.length,
+    enemiesCount: input.enemies?.length,
   });
 
   try {
@@ -32,12 +37,25 @@ export async function processPlayerAction(
         inCombat: result.inCombat,
         nextLocationId: result.nextLocationId,
         turnIndex: result.turnIndex,
+        hasMoreAITurns: result.hasMoreAITurns,
     };
+    
+    // Get combatant names for better debugging
+    const currentCombatant = result.initiativeOrder?.[result.turnIndex || 0]?.characterName || 'Unknown';
+    const previousCombatant = result.initiativeOrder?.[input.turnIndex || 0]?.characterName || 'Unknown';
     
     log.serverAction('Returning result to client', {
       summary: logSummary,
       messagesCount: result.messages?.length || 0,
       diceRollsCount: result.diceRolls?.length || 0,
+      turnIndexChange: {
+        from: input.turnIndex,
+        to: result.turnIndex,
+        previousCombatant,
+        currentCombatant,
+      },
+      hasMoreAITurns: result.hasMoreAITurns,
+      initiativeOrderLength: result.initiativeOrder?.length,
     });
 
     return {

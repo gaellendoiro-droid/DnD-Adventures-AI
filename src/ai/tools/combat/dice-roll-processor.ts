@@ -317,14 +317,6 @@ export async function processAICombatantRolls(
                                 // Daño normal: puede llegar a 0 (inconsciente) pero no muere
                                 const newHP = Math.max(0, targetHP - damage);
 
-                                if (newHP === 0 && targetHP > 0) {
-                                    // Acaba de caer inconsciente
-                                    messages.push({
-                                        sender: 'DM',
-                                        content: `${p.name} cae inconsciente.`,
-                                    });
-                                }
-
                                 const updated = {
                                     ...p,
                                     hp: { current: newHP, max: targetHPMax },
@@ -378,13 +370,45 @@ export async function processAICombatantRolls(
                     targetKilled,
                 });
 
-                // Check if target was defeated
+                // Check if target was defeated or knocked unconscious
                 if (targetKilled) {
-                    messages.push({
-                        sender: 'DM',
-                        content: `¡${activeCombatant.characterName} ha matado a ${targetVisualName}!`,
-                    });
-                    localLog(`${activeCombatant.characterName} killed ${targetVisualName}!`);
+                    // Get updated target to check isDead status
+                    const updatedTarget = targetIsPlayer
+                        ? updatedParty.find((p) => p.id === target.id)
+                        : updatedEnemies.find((e: any) => (e as any).uniqueId === (target as any).uniqueId);
+                    
+                    const targetIsDead = updatedTarget?.isDead === true;
+                    
+                    if (targetIsPlayer && updatedTarget) {
+                        // For players/companions: distinguish between death and unconsciousness
+                        // Players/companions can fall unconscious (isDead = false) or die (isDead = true via massive damage)
+                        if (targetIsDead) {
+                            messages.push({
+                                sender: 'DM',
+                                content: `¡${activeCombatant.characterName} ha matado a ${targetVisualName}!`,
+                            });
+                            localLog(`${activeCombatant.characterName} killed ${targetVisualName}!`);
+                        } else if (newHP === 0 && previousHP !== undefined && previousHP > 0) {
+                            // Target just fell unconscious (not dead) - only for players/companions
+                            messages.push({
+                                sender: 'DM',
+                                content: `¡${activeCombatant.characterName} ha dejado inconsciente a ${targetVisualName}!`,
+                            });
+                            messages.push({
+                                sender: 'DM',
+                                content: `${targetVisualName} cae inconsciente.`,
+                            });
+                            localLog(`${activeCombatant.characterName} knocked ${targetVisualName} unconscious!`);
+                        }
+                    } else {
+                        // For enemies: they die directly at HP 0 (no unconsciousness concept)
+                        // Enemies don't have the isDead field or it's not used - they simply die when HP <= 0
+                        messages.push({
+                            sender: 'DM',
+                            content: `¡${activeCombatant.characterName} ha matado a ${targetVisualName}!`,
+                        });
+                        localLog(`${activeCombatant.characterName} killed ${targetVisualName}!`);
+                    }
                 }
 
                 // Check if combat has ended after applying damage

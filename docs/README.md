@@ -27,14 +27,14 @@ Bienvenido a la documentación del proyecto. Esta carpeta contiene toda la infor
 - **[README de Planes](./planes-desarrollo/README.md)** - Cómo trabajar con planes de desarrollo
 
 ### Estado de los Planes
-- **Completados:** 3 planes (Sistema de Combate, Saneamiento General, Refactor de Esquemas)
-- **En Curso:** 0 planes (todos completados)
-- **Sin Comenzar:** 12 planes identificados
+- **Completados:** 5 planes (Sistema de Combate, Saneamiento General, Refactor de Esquemas, Sistema de Turnos Paso a Paso, Refactorización Combat Manager Fases 1-2)
+- **En Curso:** 0 planes (Refactorización parcialmente completada, Fase 3 pausada)
+- **Sin Comenzar:** 11 planes identificados
 
 ## 📝 Archivos de Trabajo
 
-- **[Notas de Gael](./trabajo/Notas de Gael.txt)** - Notas de desarrollo y brainstorming
-- **[Frases de Testeo](./trabajo/FRASES DE TESTEO.txt)** - Frases para testing del sistema
+- **[Notas de Gael](./notas/Notas de Gael.txt)** - Notas de desarrollo y brainstorming
+- **[Frases de Testeo](./notas/FRASES DE TESTEO.txt)** - Frases para testing del sistema
 
 ## 🔗 Enlaces Útiles
 
@@ -61,6 +61,6 @@ Bienvenido a la documentación del proyecto. Esta carpeta contiene toda la infor
 
 ---
 
-**Última actualización:** Noviembre 2024  
-**Estado del Proyecto:** Fase Alpha - Sistema de combate completado
+**Última actualización:** Diciembre 2024  
+**Estado del Proyecto:** Fase Alpha - Sistema de combate completado, Sistema de turnos paso a paso implementado
 

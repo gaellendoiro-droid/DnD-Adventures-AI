@@ -18,6 +18,7 @@ interface ChatPanelProps {
   isThinking: boolean;
   inCombat?: boolean;
   hasMoreAITurns?: boolean;
+  justProcessedAITurn?: boolean;
   autoAdvancing?: boolean;
   onPassTurn?: () => void;
   onAdvanceAll?: () => void;
@@ -30,6 +31,7 @@ export function ChatPanel({
   isThinking,
   inCombat = false,
   hasMoreAITurns = false,
+  justProcessedAITurn = false,
   autoAdvancing = false,
   onPassTurn,
   onAdvanceAll,
@@ -71,7 +73,8 @@ export function ChatPanel({
       <Separator />
       <div className="p-4 bg-background/50 rounded-b-lg space-y-3">
         {/* Step-by-step combat buttons */}
-        {inCombat && hasMoreAITurns && !isThinking && onPassTurn && onAdvanceAll && (
+        {/* Show button if there are more AI turns OR if we just processed an AI turn (even if next is player's turn) */}
+        {inCombat && (hasMoreAITurns || justProcessedAITurn) && !isThinking && onPassTurn && onAdvanceAll && (
           <div className="flex gap-2">
             <Button 
               onClick={onPassTurn}

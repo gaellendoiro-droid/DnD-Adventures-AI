@@ -46,6 +46,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const [debugMessages, setDebugMessages] = useState<string[]>([]);
   const [turnIndex, setTurnIndex] = useState(initialData.turnIndex || 0);
   const [hasMoreAITurns, setHasMoreAITurns] = useState(false);
+  const [justProcessedAITurn, setJustProcessedAITurn] = useState(false); // Track if we just processed an AI turn (even if next is player)
   const [autoAdvancing, setAutoAdvancing] = useState(false);
   const autoAdvancingRef = useRef(false); // Use ref for synchronous access
   const turnIndexRef = useRef(initialData.turnIndex || 0); // Use ref for synchronous access
@@ -120,7 +121,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       prevStateRef.current = currentState;
       
       // Log estructurado y expandible
-      console.group('🎮 [GameView] Estado actual');
+      console.groupCollapsed('🎮 [GameView] Estado actual');
       
       // Información básica
       console.log('📍 Ubicación:', locationId);
@@ -229,6 +230,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
 
   const handleSendMessage = useCallback(async (content: string, options: { isRetry?: boolean, isContinuation?: boolean } = {}) => {
     const { isRetry = false, isContinuation = false } = options;
+    const wasInCombat = inCombatRef.current; // Capture state before action
 
     if (!isRetry && !isContinuation) {
       addMessage({ sender: "Player", senderName: selectedCharacterRef.current?.name, content }, isRetry);
@@ -352,8 +354,32 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
             initiativeOrderRef.current = result.initiativeOrder;
           }
           if (result.turnIndex !== undefined) {
-            setTurnIndex(result.turnIndex);
+            // Always update the ref to the next turn for internal logic
             turnIndexRef.current = result.turnIndex;
+
+            // NEW SIMPLE LOGIC: The backend explicitly tells us if an AI turn was processed
+            if (result.lastProcessedTurnWasAI) {
+              // An AI turn was just processed - show that turn in the UI
+              const displayIndex = result.lastProcessedTurnIndex ?? result.turnIndex;
+              
+              logClient.uiEvent('GameView', 'Backend processed AI turn', {
+                displayIndex,
+                displayCombatant: initiativeOrderRef.current[displayIndex]?.characterName || 'Unknown',
+                nextTurnIndex: result.turnIndex,
+                nextCombatant: initiativeOrderRef.current[result.turnIndex]?.characterName || 'Unknown',
+                hasMoreAITurns: result.hasMoreAITurns,
+              });
+              
+              setTurnIndex(displayIndex);
+            } else {
+              // No AI turn was processed - show the next turn (player's turn or combat just started with player)
+              logClient.uiEvent('GameView', 'No AI turn processed', {
+                turnIndex: result.turnIndex,
+                combatant: initiativeOrderRef.current[result.turnIndex]?.characterName || 'Unknown',
+              });
+              
+              setTurnIndex(result.turnIndex);
+            }
           }
           // Only update enemies if updatedEnemies is not provided (fallback to enemies)
           if (!result.updatedEnemies && result.enemies) {
@@ -368,8 +394,32 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           initiativeOrderRef.current = result.initiativeOrder;
         }
         if (result.turnIndex !== undefined) {
-          setTurnIndex(result.turnIndex);
+          // Always update the ref to the next turn for internal logic
           turnIndexRef.current = result.turnIndex;
+
+          // NEW SIMPLE LOGIC: The backend explicitly tells us if an AI turn was processed
+          if (result.lastProcessedTurnWasAI) {
+            // An AI turn was just processed - show that turn in the UI
+            const displayIndex = result.lastProcessedTurnIndex ?? result.turnIndex;
+            
+            logClient.uiEvent('GameView', 'Backend processed AI turn', {
+              displayIndex,
+              displayCombatant: initiativeOrderRef.current[displayIndex]?.characterName || 'Unknown',
+              nextTurnIndex: result.turnIndex,
+              nextCombatant: initiativeOrderRef.current[result.turnIndex]?.characterName || 'Unknown',
+              hasMoreAITurns: result.hasMoreAITurns,
+            });
+            
+            setTurnIndex(displayIndex);
+          } else {
+            // No AI turn was processed - show the next turn (player's turn or combat just started with player)
+            logClient.uiEvent('GameView', 'No AI turn processed', {
+              turnIndex: result.turnIndex,
+              combatant: initiativeOrderRef.current[result.turnIndex]?.characterName || 'Unknown',
+            });
+            
+            setTurnIndex(result.turnIndex);
+          }
         }
         // Only update enemies if updatedEnemies is not provided (fallback to enemies)
         if (!result.updatedEnemies && result.enemies) {
@@ -385,7 +435,30 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       
       // Step-by-step combat: Update hasMoreAITurns state
       if (result.hasMoreAITurns !== undefined) {
+        logClient.uiEvent('GameView', 'Updating hasMoreAITurns', {
+          previousHasMoreAITurns: hasMoreAITurns,
+          newHasMoreAITurns: result.hasMoreAITurns,
+          lastProcessedTurnWasAI: result.lastProcessedTurnWasAI,
+          inCombat: inCombatRef.current,
+          turnIndex: result.turnIndex,
+        });
+        
         setHasMoreAITurns(result.hasMoreAITurns);
+        
+        // NEW SIMPLE LOGIC: Use the explicit flag from backend
+        // If an AI turn was just processed, we need to pause and show the "Pasar 1 Turno" button.
+        if (result.lastProcessedTurnWasAI && inCombatRef.current) {
+          logClient.uiEvent('GameView', 'Setting justProcessedAITurn=true', {
+            reason: 'Backend explicitly reported AI turn was processed',
+            lastProcessedTurnIndex: result.lastProcessedTurnIndex,
+          });
+          setJustProcessedAITurn(true);
+        } else {
+          logClient.uiEvent('GameView', 'Setting justProcessedAITurn=false', {
+            reason: 'Backend reported no AI turn was processed',
+          });
+          setJustProcessedAITurn(false);
+        }
         
         // If in auto-advance mode and there are more AI turns, continue automatically
         // Use ref for synchronous access to autoAdvancing state
@@ -415,12 +488,24 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           // Combat reached player's turn or ended, exit auto-advance mode
           autoAdvancingRef.current = false;
           setAutoAdvancing(false);
+          // NOTE: We do NOT update turnIndex here.
+          // The turnIndex was already set earlier based on whether an AI turn was processed.
+          // This check using `justProcessedAITurn` would use the OLD value (before the update),
+          // so it would incorrectly overwrite the turnIndex we carefully calculated.
+        } else {
+          // There are more AI turns
+          // The turnIndex visual should already be updated if isContinuation is true
+          // (handled in the earlier turnIndex update logic)
         }
       } else {
         // No hasMoreAITurns field, assume no more AI turns
         setHasMoreAITurns(false);
+        setJustProcessedAITurn(false);
         autoAdvancingRef.current = false;
         setAutoAdvancing(false);
+        // NOTE: We do NOT update turnIndex here.
+        // The turnIndex was already set earlier based on whether an AI turn was processed.
+        // Updating it here would overwrite that carefully calculated value.
       }
 
     } catch (error: any) {
@@ -512,13 +597,95 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         isThinking={isDMThinking}
         inCombat={inCombat}
         hasMoreAITurns={hasMoreAITurns}
+        justProcessedAITurn={justProcessedAITurn}
         autoAdvancing={autoAdvancing}
         onPassTurn={() => {
-          handleSendMessage('continuar turno', { isContinuation: true });
+          // Log detailed state information for debugging
+          const currentCombatant = initiativeOrderRef.current[turnIndex]?.characterName || 'Unknown';
+          const nextCombatant = turnIndexRef.current !== undefined 
+            ? initiativeOrderRef.current[turnIndexRef.current]?.characterName || 'Unknown'
+            : 'Unknown';
+          
+          logClient.uiEvent('GameView', 'Pasar 1 Turno clicked', {
+            currentTurnIndex: turnIndex,
+            currentCombatant,
+            nextTurnIndex: turnIndexRef.current,
+            nextCombatant,
+            hasMoreAITurns,
+            justProcessedAITurn,
+            inCombat: inCombatRef.current,
+            initiativeOrderLength: initiativeOrderRef.current.length,
+            initiativeOrder: initiativeOrderRef.current.map((c, i) => ({
+              index: i,
+              name: c.characterName,
+              controlledBy: c.controlledBy,
+              isCurrent: i === turnIndex,
+              isNext: i === turnIndexRef.current,
+            })),
+          });
+          
+          // When the user clicks "Pasar 1 Turno", several things happen:
+          // 1. Visually advance the turn indicator to the character whose turn is *next*.
+          //    This value is already stored in our ref from the last backend response.
+          if (turnIndexRef.current !== undefined) {
+            logClient.uiEvent('GameView', 'Updating visual turnIndex', {
+              from: turnIndex,
+              to: turnIndexRef.current,
+              combatant: nextCombatant,
+            });
+            setTurnIndex(turnIndexRef.current);
+          }
+          // 2. Hide the "Pasar 1 Turno" button.
+          setJustProcessedAITurn(false);
+          
+          // 3. If there are still more AI turns to process, send a request to the backend.
+          //    If the next turn is the player's, `hasMoreAITurns` will be false, and we do nothing.
+          if (hasMoreAITurns) {
+            logClient.uiEvent('GameView', 'Sending continuar turno request', {
+              reason: 'hasMoreAITurns is true',
+              nextTurnIndex: turnIndexRef.current,
+              nextCombatant,
+            });
+            handleSendMessage('continuar turno', { isContinuation: true });
+          } else {
+            logClient.uiEvent('GameView', 'NOT sending continuar turno request', {
+              reason: 'hasMoreAITurns is false',
+              nextTurnIndex: turnIndexRef.current,
+              nextCombatant,
+            });
+          }
         }}
         onAdvanceAll={() => {
+          // Log detailed state information for debugging
+          const currentCombatant = initiativeOrderRef.current[turnIndex]?.characterName || 'Unknown';
+          const nextCombatant = turnIndexRef.current !== undefined 
+            ? initiativeOrderRef.current[turnIndexRef.current]?.characterName || 'Unknown'
+            : 'Unknown';
+          
+          logClient.uiEvent('GameView', 'Pasar Todos clicked', {
+            currentTurnIndex: turnIndex,
+            currentCombatant,
+            nextTurnIndex: turnIndexRef.current,
+            nextCombatant,
+            hasMoreAITurns,
+            justProcessedAITurn,
+            inCombat: inCombatRef.current,
+            initiativeOrderLength: initiativeOrderRef.current.length,
+            initiativeOrder: initiativeOrderRef.current.map((c, i) => ({
+              index: i,
+              name: c.characterName,
+              controlledBy: c.controlledBy,
+              isCurrent: i === turnIndex,
+              isNext: i === turnIndexRef.current,
+            })),
+          });
+          
           autoAdvancingRef.current = true; // Set ref synchronously
           setAutoAdvancing(true);
+          logClient.uiEvent('GameView', 'Sending continuar turno request (auto-advance)', {
+            nextTurnIndex: turnIndexRef.current,
+            nextCombatant,
+          });
           handleSendMessage('continuar turno', { isContinuation: true });
         }}
       />

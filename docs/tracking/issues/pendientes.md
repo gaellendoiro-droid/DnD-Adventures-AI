@@ -2,8 +2,8 @@
 
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 20 issues  
-**Última actualización:** 2025-11-14
+**Total:** 23 issues  
+**Última actualización:** 2025-11-15
 
 ---
 
@@ -14,6 +14,84 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
 ---
 
 ## 🟡 Prioridad Alta (PA) - Advertencias
+
+### Issue #50: Daño de crítico no se duplica correctamente 🟡 ADVERTENCIA
+
+- **Fecha de creación:** 2025-11-15
+- **Ubicación:** `src/ai/tools/combat-manager.ts`
+- **Severidad:** 🟡 **ALTA** (afecta mecánicas de combate, reduce efectividad de críticos)
+- **Descripción:** Cuando un jugador hace un crítico, el daño no se duplica correctamente según las reglas de D&D 5e.
+- **Contexto:** Detectado durante Test 15 (Sistema de Inconsciencia y Muerte - Personajes Muertos No Pueden Ser Curados).
+- **Problema:**
+  - El jugador hace un crítico (rollTotal=22, outcome=crit)
+  - El daño aplicado es solo 5 puntos (1d8+2 = 5)
+  - En D&D 5e, un crítico debería duplicar los **dados de daño**, no el total
+  - Ejemplo correcto: Si normalmente haces `1d8+2`, en crítico deberías hacer `2d8+2`
+- **Regla D&D 5e:** En un crítico, se tiran el doble de dados de daño, pero el modificador se aplica solo una vez.
+- **Archivos involucrados:**
+  - `src/ai/tools/combat-manager.ts`: Líneas 362-366 (generación de daño de jugador)
+- **Impacto:** Alto - Los críticos no son tan efectivos como deberían, reduciendo la emoción y efectividad del combate
+- **Estado:** 📝 **PENDIENTE**
+- **Prioridad de corrección:** Alta
+- **Detección:** Testing de v0.5.0 - Test 15
+
+---
+
+### Issue #51: Mensaje "ha matado" incorrecto cuando personaje ya estaba inconsciente 🟡 ADVERTENCIA
+
+- **Fecha de creación:** 2025-11-15
+- **Ubicación:** `src/ai/tools/combat/dice-roll-processor.ts`, `src/ai/tools/combat-manager.ts`
+- **Severidad:** 🟡 **ALTA** (afecta narrativa y reglas de D&D 5e, confunde al jugador)
+- **Descripción:** Cuando un personaje ya está inconsciente (HP 0) y recibe daño adicional, el sistema muestra "ha matado" incluso cuando el daño no es suficiente para muerte masiva y el personaje puede ser curado después.
+- **Contexto:** Detectado durante Test 15 (Sistema de Inconsciencia y Muerte - Personajes Muertos No Pueden Ser Curados).
+- **Problema:**
+  - Merryl está inconsciente (HP 0, `isDead: false`)
+  - El jugador ataca a Merryl con un crítico
+  - El daño aplicado es 5 puntos (previousHP=0, newHP=0)
+  - El sistema muestra "¡Galador ha matado a Merryl!"
+  - Sin embargo, Elara puede curar a Merryl después, lo que significa que NO está muerta
+  - El daño adicional (5) no es suficiente para muerte masiva (necesitaría >= HP máximo de Merryl)
+- **Análisis del código:**
+  - En `dice-roll-processor.ts` línea 374: `if (targetKilled)` se evalúa cuando `newHP <= 0`
+  - En línea 380: Se verifica `targetIsDead` pero el problema es que cuando el target ya estaba en 0 HP, el mensaje se genera antes de verificar muerte masiva
+  - En `combat-manager.ts` líneas 404-438: La lógica de muerte masiva solo se aplica cuando `targetHP > 0`, no cuando ya está en 0 HP
+- **Solución propuesta:**
+  - Cuando un personaje ya está en 0 HP y recibe daño adicional, verificar si el daño restante es >= HP máximo para determinar muerte masiva
+  - Si no es muerte masiva, mostrar "ha dejado inconsciente" o no mostrar mensaje de muerte si ya estaba inconsciente
+  - Solo mostrar "ha matado" si realmente se produce muerte masiva
+- **Archivos involucrados:**
+  - `src/ai/tools/combat/dice-roll-processor.ts`: Lógica de mensajes de muerte/inconsciencia
+  - `src/ai/tools/combat-manager.ts`: Lógica de aplicación de daño y muerte masiva
+- **Impacto:** Alto - Confunde al jugador sobre el estado real del personaje (muerto vs inconsciente), rompe la narrativa y las reglas de D&D 5e
+- **Estado:** 📝 **PENDIENTE**
+- **Prioridad de corrección:** Alta
+- **Detección:** Testing de v0.5.0 - Test 15
+
+### Issue #53: Companions no usan hechizos disponibles en su ficha 🟡 ADVERTENCIA
+
+- **Fecha de creación:** 2025-11-15
+- **Ubicación:** `src/ai/tools/companion-tactician.ts`, `src/ai/tools/combat-manager.ts`
+- **Severidad:** 🟡 **ALTA** (afecta gameplay, los companions no usan sus hechizos disponibles)
+- **Descripción:** Después de implementar la verificación de conjuros disponibles desde la ficha del personaje, los companions (Merryl, Elara) no están usando los hechizos que tienen disponibles en su ficha, prefiriendo usar armas básicas en su lugar.
+- **Contexto:** Detectado durante testing de v0.5.0 después de implementar el sistema de verificación de conjuros disponibles.
+- **Problema:**
+  - Merryl tiene hechizos disponibles (Rayo de escarcha, Dardo mágico, etc.) pero el sistema dice "Sin hechizos a mano" y usa su bastón
+  - Elara tiene hechizos disponibles (Llama sagrada, Escudo de fe, etc.) pero no los está usando
+  - El sistema está pasando correctamente los conjuros en `availableSpells`, pero la IA no los está utilizando
+- **Posibles causas:**
+  1. El prompt puede estar siendo demasiado restrictivo o confuso sobre cuándo usar hechizos
+  2. La lista de conjuros puede no estar mostrándose correctamente en el prompt
+  3. La IA puede estar interpretando incorrectamente las instrucciones sobre priorizar la ficha
+  4. Puede haber un problema con cómo se están pasando los conjuros desde `combat-manager.ts`
+- **Archivos involucrados:**
+  - `src/ai/tools/companion-tactician.ts`: Prompt y lógica de decisión de acciones
+  - `src/ai/tools/combat-manager.ts`: Paso de `availableSpells` al tool
+- **Impacto:** Alto - Los companions no utilizan sus capacidades mágicas, reduciendo su efectividad en combate y la variedad de acciones
+- **Estado:** 📝 **PENDIENTE**
+- **Prioridad de corrección:** Alta
+- **Detección:** Testing de v0.5.0 - Observación directa durante combate
+
+---
 
 ### Issue #35: Orden incorrecto de mensajes cuando personaje cae a 0 HP 🟡 ADVERTENCIA
 
