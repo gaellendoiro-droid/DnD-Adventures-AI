@@ -15,6 +15,46 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+### Added
+- **📋 Plan de Mejora de Testabilidad y Refactorización (2025-11-15):**
+  - Nuevo plan de desarrollo creado para mejorar la testabilidad del sistema
+  - Objetivo: Implementar Inyección de Dependencias (DI) y separar lógica pura de efectos secundarios
+  - Componentes principales:
+    - DI en funciones críticas (`combatManagerTool`, `processAICombatantRolls`)
+    - Separación de lógica pura de efectos secundarios
+    - Preparación de UI para tests E2E (data-testid)
+  - Prerequisito para el plan de Testing Integración y E2E
+  - Estimación: 32-46 horas
+  - **Referencia:** `docs/planes-desarrollo/sin-comenzar/mejora-testabilidad-refactorizacion.md`
+  - **Nota:** Este plan fue creado después de identificar problemas de acoplamiento que impiden escribir tests de integración robustos
+- **✨ Sistema de Turnos Paso a Paso - Pulido y Optimización (2025-11-15):**
+  - Indicadores visuales en tracker de iniciativa:
+    - Badge "Tu Turno" (azul) cuando es el turno del jugador
+    - Badge "Procesando..." (ámbar) durante turnos de IA
+  - Animación sutil (pulse) durante procesamiento de turnos
+  - Transiciones suaves (transition-all duration-300) para cambios de turno
+  - Mejoras de UX en el tracker de iniciativa
+  - **Archivos modificados:**
+    - `src/components/game/initiative-tracker.tsx` - Añadidos props `isPlayerTurn` e `isProcessing`, badges de estado, animaciones
+    - `src/components/game/game-view.tsx` - Lógica para determinar turno del jugador y pasar props al tracker
+  - **Estado:** Plan "Sistema de Turnos Paso a Paso en Combate" ahora 100% completado
+- **🧪 Sistema de Testing Implementado (2025-11-15):**
+  - Configuración completa de Vitest para unit tests y integration tests
+  - 106 tests implementados (36 backend + 32 frontend + 38 integration)
+  - Tests de integración para sistema de turnos paso a paso:
+    - `turn-system.test.ts` (24 tests) - Sincronización de estado, procesamiento de turnos
+    - `turn-system-flow.test.ts` (14 tests) - Flujos completos de turnos, wrap-around, fin de combate
+  - Tests para módulos críticos:
+    - `combat-validators.ts` (26 tests) - Validación de HP, estados de combate, fin de combate
+    - `retry-utils.ts` (10 tests) - Lógica de retry con exponential backoff
+    - `monster-name-manager.ts` (17 tests) - Generación y normalización de nombres
+    - `target-resolver.ts` (9 tests) - Resolución de IDs de objetivos
+    - `utils.ts` (6 tests) - Utilidades de frontend
+  - Scripts de test añadidos: `npm test`, `npm run test:ui`, `npm run test:run`, `npm run test:coverage`
+  - Documentación completa en `docs/testing/README.md` y `docs/testing/guia-rapida.md`
+  - Estructura de tests organizada: `tests/unit/backend/` y `tests/unit/frontend/`
+  - **Referencia:** Items 10-11 del plan "Sistema de Turnos Paso a Paso en Combate" completados
+
 ### Fixed
 - **🟡 Issue #49: Resolución incorrecta de targets en combate con enemigos múltiples:**
   - **Problema:** Cuando el jugador especificaba un target con número (ej: "Ataco a Goblin 1"), el sistema a veces interpretaba incorrectamente el target y dirigía el ataque contra un enemigo diferente (ej: Goblin 2).
@@ -76,6 +116,49 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - `src/ai/tools/companion-tactician.ts`: Añadido `retryWithExponentialBackoff`.
     - `src/ai/tools/enemy-tactician.ts`: Añadido `retryWithExponentialBackoff`.
   - **Impacto:** Crítico - Asegura que los errores transitorios de red no impidan que la IA actúe en combate, mejorando significativamente la robustez del sistema.
+- **🔴 Issue #54: El combate se detiene si el jugador cae inconsciente (CRÍTICO):**
+  - **Problema:** Cuando el personaje del jugador caía inconsciente (HP 0), el combate se detenía completamente, aunque hubiera compañeros de la IA todavía vivos y el combate debería continuar.
+  - **Causa Raíz:** En `game-coordinator.ts`, había una lógica que detenía el flujo inmediatamente cuando el jugador estaba inconsciente, sin verificar si había otros miembros del grupo activos. Esto impedía que el `combatManagerTool` procesara el combate correctamente.
+  - **Solución implementada:** ✅ Refactorización de lógica de game over
+    - **`game-coordinator.ts`:**
+      - Modificada la verificación de game over para solo detener el combate si TODOS los miembros del grupo están inconscientes/muertos
+      - Si el jugador está inconsciente pero hay compañeros vivos, el flujo continúa normalmente hacia `combatManagerTool`
+    - **`combat-manager.ts`:**
+      - Añadida detección de jugador inconsciente al inicio de su turno (líneas 107-146)
+      - Si el jugador está inconsciente en su turno, se muestra el mensaje automáticamente y se pausa el combate con los botones "Pasar turno"
+      - Modificado el bucle de procesamiento de turnos para también procesar turnos del jugador inconsciente (líneas 570-578)
+      - Actualizado `hasMoreAITurns` para considerar turnos del jugador inconsciente como turnos que deben procesarse automáticamente (4 ubicaciones)
+  - **Comportamiento corregido:**
+    - Cuando el jugador cae inconsciente, su turno se procesa mostrando el mensaje "está inconsciente y no puede actuar"
+    - El combate se pausa y aparecen los botones "Pasar 1 Turno" / "Pasar Todos"
+    - El jugador debe pulsar el botón para avanzar (mantiene consistencia con flujo paso a paso)
+    - El combate continúa con los compañeros de la IA, que pueden intentar curar al jugador caído
+    - Solo se muestra game over si TODOS los miembros del grupo están inconscientes/muertos
+  - **Archivos modificados:**
+    - `src/ai/flows/game-coordinator.ts`: Simplificada lógica de game over (líneas 55-74)
+    - `src/ai/tools/combat-manager.ts`: Añadida detección y procesamiento de turnos del jugador inconsciente (líneas 107-146, 570-578, y 4 ubicaciones de `hasMoreAITurns`)
+  - **Impacto:** Crítico - Permite que el combate continúe cuando el jugador cae, lo cual es esencial para la jugabilidad y las reglas de D&D 5e
+  - **Estado:** ✅ RESUELTO
+  - **Referencia:** Issue #54 en `docs/tracking/issues/corregidos.md`
+- **🟡 Issue #51: Mensaje "ha matado" incorrecto cuando personaje ya estaba inconsciente:**
+  - **Problema:** Cuando un personaje del grupo (companion o jugador) ya estaba inconsciente (HP 0, `isDead: false`) y recibía daño adicional del jugador, el sistema mostraba "¡ha matado!" incluso cuando el daño no era suficiente para muerte masiva y el personaje podía ser curado después.
+  - **Causa Raíz:** En `combat-manager.ts` líneas 513-519 (versión anterior), había código simplificado que siempre mostraba "ha matado" cuando `newHP <= 0`, sin distinguir entre:
+    1. Target es enemigo (debe mostrar "ha matado")
+    2. Target es companion/jugador que acaba de caer inconsciente (debe mostrar "ha dejado inconsciente")
+    3. Target es companion/jugador que YA estaba inconsciente y murió por daño masivo (debe mostrar "ha matado")
+    4. Target es companion/jugador que YA estaba inconsciente pero NO murió por daño masivo (NO debe mostrar mensaje de muerte)
+  - **Solución implementada:** ✅ Lógica diferenciada de mensajes de muerte/inconsciencia
+    - Reemplazado código simplificado con lógica completa que verifica el flag `isDead` y el `previousHP`
+    - Para companions/jugadores:
+      - Si `targetIsDead === true` → mostrar "ha matado" (muerte masiva)
+      - Si `newHP === 0 && previousHP > 0` → mostrar "ha dejado inconsciente" (acaba de caer)
+      - Si `newHP === 0 && previousHP === 0 && targetIsDead === false` → NO mostrar mensaje (ya estaba inconsciente, no hubo muerte masiva)
+    - Para enemigos: siempre mostrar "ha matado" (no tienen concepto de inconsciencia)
+  - **Archivos modificados:**
+    - `src/ai/tools/combat-manager.ts`: Reemplazada lógica de mensajes de derrota (líneas 512-548)
+  - **Impacto:** Alto - Mensajes narrativos ahora son correctos y consistentes con las reglas de D&D 5e y el estado real del personaje
+  - **Estado:** ✅ RESUELTO
+  - **Referencia:** Issue #51 en `docs/tracking/issues/corregidos.md`
 
 ---
 

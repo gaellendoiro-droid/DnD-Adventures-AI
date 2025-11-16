@@ -37,36 +37,6 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
 
 ---
 
-### Issue #51: Mensaje "ha matado" incorrecto cuando personaje ya estaba inconsciente 🟡 ADVERTENCIA
-
-- **Fecha de creación:** 2025-11-15
-- **Ubicación:** `src/ai/tools/combat/dice-roll-processor.ts`, `src/ai/tools/combat-manager.ts`
-- **Severidad:** 🟡 **ALTA** (afecta narrativa y reglas de D&D 5e, confunde al jugador)
-- **Descripción:** Cuando un personaje ya está inconsciente (HP 0) y recibe daño adicional, el sistema muestra "ha matado" incluso cuando el daño no es suficiente para muerte masiva y el personaje puede ser curado después.
-- **Contexto:** Detectado durante Test 15 (Sistema de Inconsciencia y Muerte - Personajes Muertos No Pueden Ser Curados).
-- **Problema:**
-  - Merryl está inconsciente (HP 0, `isDead: false`)
-  - El jugador ataca a Merryl con un crítico
-  - El daño aplicado es 5 puntos (previousHP=0, newHP=0)
-  - El sistema muestra "¡Galador ha matado a Merryl!"
-  - Sin embargo, Elara puede curar a Merryl después, lo que significa que NO está muerta
-  - El daño adicional (5) no es suficiente para muerte masiva (necesitaría >= HP máximo de Merryl)
-- **Análisis del código:**
-  - En `dice-roll-processor.ts` línea 374: `if (targetKilled)` se evalúa cuando `newHP <= 0`
-  - En línea 380: Se verifica `targetIsDead` pero el problema es que cuando el target ya estaba en 0 HP, el mensaje se genera antes de verificar muerte masiva
-  - En `combat-manager.ts` líneas 404-438: La lógica de muerte masiva solo se aplica cuando `targetHP > 0`, no cuando ya está en 0 HP
-- **Solución propuesta:**
-  - Cuando un personaje ya está en 0 HP y recibe daño adicional, verificar si el daño restante es >= HP máximo para determinar muerte masiva
-  - Si no es muerte masiva, mostrar "ha dejado inconsciente" o no mostrar mensaje de muerte si ya estaba inconsciente
-  - Solo mostrar "ha matado" si realmente se produce muerte masiva
-- **Archivos involucrados:**
-  - `src/ai/tools/combat/dice-roll-processor.ts`: Lógica de mensajes de muerte/inconsciencia
-  - `src/ai/tools/combat-manager.ts`: Lógica de aplicación de daño y muerte masiva
-- **Impacto:** Alto - Confunde al jugador sobre el estado real del personaje (muerto vs inconsciente), rompe la narrativa y las reglas de D&D 5e
-- **Estado:** 📝 **PENDIENTE**
-- **Prioridad de corrección:** Alta
-- **Detección:** Testing de v0.5.0 - Test 15
-
 ### Issue #53: Companions no usan hechizos disponibles en su ficha 🟡 ADVERTENCIA
 
 - **Fecha de creación:** 2025-11-15
@@ -90,8 +60,6 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
 - **Estado:** 📝 **PENDIENTE**
 - **Prioridad de corrección:** Alta
 - **Detección:** Testing de v0.5.0 - Observación directa durante combate
-
----
 
 ### Issue #35: Orden incorrecto de mensajes cuando personaje cae a 0 HP 🟡 ADVERTENCIA
 

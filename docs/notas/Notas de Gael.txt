@@ -267,6 +267,20 @@ NUEVAS FUNCIONALIDADES
      pudiesen hablar y definir a cada uno una voz característica basada en
      su personalidad, sexo, raza, etc.
 
+[#66] [NUEVA FUNCIONALIDAD] [PB] [INTERFAZ DE USUARIO] [SIN DOCUMENTAR]
+  Historial de comandos en input de acciones
+  └─ En el input de texto para dar las acciones del personaje implementar un
+     sistema para recuperar órdenes ya dadas.
+  └─ Usando la tecla de flecha arriba mientras estamos en este cuadro se
+     recuperarían los mensajes anteriores, del más reciente al más antiguo.
+
+[#67] [NUEVA FUNCIONALIDAD] [PA] [SISTEMA DE PERSONAJES] [SIN DOCUMENTAR]
+  Editor de party inicial en archivo JSON
+  └─ Mientras no hay editor y gestión de personajes deberíamos poder modificar
+     la party inicial fácilmente en un archivo JSON.
+  └─ Facilitaría la configuración inicial de la partida sin necesidad de
+     herramientas adicionales.
+
 --- PRIORIDAD MUY BAJA ---
 
 [#37] [NUEVA FUNCIONALIDAD] [PMB] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
@@ -345,6 +359,54 @@ REVISIONES (Mejoras/Análisis)
   └─ Ver como gestionar cuando un enemigo lanza un ataque múltiple a un
      compañero o jugador y lo mata con el primero.
   └─ ¿Se detiene el ataque o continúa con los demás ataques?
+
+[#68] [REVISION] [PM] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Gestión de ataques a compañeros inconscientes para rematarlos
+  └─ Revisar como se gestionan los ataques de los enemigos a compañeros
+     inconscientes para rematarlos.
+  └─ Verificar que se aplican correctamente las reglas de D&D 5e sobre
+     ataques a criaturas inconscientes.
+
+[#69] [REVISION] [PM] [INTERFAZ DE USUARIO] [SIN DOCUMENTAR]
+  Indicador de vida en panel de orden de combate
+  └─ En el panel de orden de combate ¿deberíamos ver un indicador de la vida
+     de cada personaje?
+  └─ Evaluar si añadir barras de vida o indicadores visuales de estado de salud.
+
+[#70] [REVISION] [PM] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Aceptar más acciones en turno del jugador
+  └─ Durante el turno del jugador en combate, habría que aceptar más acciones
+     que solo atacar.
+  └─ Actualmente si digo algo como "suelto mi arma" o "no hago nada", el DM no
+     lo entiende.
+  └─ El sistema debe reconocer y procesar diferentes tipos de acciones del jugador.
+
+[#71] [REVISION] [PM] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Narración de arma usada en ataques
+  └─ Durante el combate el DM debería narrar con qué arma se realiza el ataque.
+  └─ Si el jugador o la IA de compañero no lo especifica, el DM debería
+     preguntarle qué arma usa.
+  └─ Mejoraría la claridad narrativa y la inmersión.
+
+[#72] [REVISION] [PB] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Consecuencias de atacar a compañero en combate
+  └─ Cuando en medio de un combate decido atacar a uno de mis compañeros hay
+     que ver qué pasaría.
+  └─ ¿Se vuelve hostil solo él, todos los compañeros, o cómo reacciona el grupo?
+  └─ Definir la lógica de reacciones ante conflictos internos en combate.
+
+[#73] [REVISION] [PB] [SISTEMA DE PERSONAJES] [SIN DOCUMENTAR]
+  Comportamiento de compañeros al leer objetos visibles
+  └─ Cuando le pido a un compañero que lea algo que se supone que está a la vista,
+     parece que no lo hace, es el DM el que lo tiene que hacer.
+  └─ Estudiar si hay que cambiar este comportamiento para que los compañeros
+     puedan leer directamente objetos o textos visibles.
+
+[#74] [REVISION] [PM] [SISTEMA DE AVENTURAS Y DATOS] [SIN DOCUMENTAR]
+  Sistema de exploración y mapas
+  └─ Revisar el sistema de exploración.
+  └─ Relacionado con el sistema de mapas y distancias.
+  └─ Evaluar si necesita mejoras o expansión de funcionalidades.
 
 [#46] [REVISION] [PM] [SISTEMA DE PERSONAJES] [EN PLAN]
   Gestión de muerte permanente de compañeros
@@ -508,6 +570,26 @@ ISSUES (Bugs/Problemas) - Continuación
   └─ La narración inicial debe ser más genérica y no asumir acciones que aún
      no han ocurrido.
 
+[#63] [ISSUE] [PM] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Combate con IDs de personajes no consecutivos
+  └─ Comprobar que cuando en la initial party los id de los personajes no son
+     consecutivos o no están en orden, el combate se desarrolla con normalidad.
+  └─ Al tener solo 2 personajes con ids 1 y 3 el combate por turnos parecía
+     hacer cosas raras.
+
+[#64] [ISSUE] [PM] [CALIDAD Y PULIDO] [SIN DOCUMENTAR]
+  Logs de error de API de Gemini demasiado verbosos
+  └─ El error de llamada a la API de Gemini sigue apareciendo demasiado amplio
+     en el log de la terminal.
+  └─ Simplificar los logs para que sean más concisos.
+
+[#65] [ISSUE] [PA] [SISTEMA DE COMBATE] [SIN DOCUMENTAR]
+  Ataque a compañero fuera de combate no inicia combate
+  └─ Estando fuera de combate, si ataco a uno de mis compañeros no se entra
+     en modo combate.
+  └─ El sistema debería detectar el ataque y activar el modo combate o al menos
+     reconocer la acción como un ataque real.
+
 ==========================================================
 NUEVAS FUNCIONALIDADES - Continuación
 ==========================================================
@@ -603,8 +685,4 @@ informales antes de clasificarlas formalmente en las secciones correspondientes
 Al clasificar un item de esta sección, debe moverse a su sección correspondiente
 y eliminarse de aquí, manteniendo esta sección como un área de trabajo temporal.
 
-1 - Revisar como se gestionan los ataques de los enemigos a compañeros inconscientes para rematarlos. (PM)
-2 - En el input tex para dar las acciones del personaje podríamos implementar un sistema para recuperar órdenes ya dadas. Usando la tecla de flecha arriba mientras estamos en este cuadro se recuperarían los menajes anteriores, del más reciente al más antiguo. (PB)
-3 - En el panel de orden de combate ¿deberíamos ver un inicador de la vida de cada personaje? (PM)
-4 - Cuando en medio de un combate decido atacar a uno de mis compañeros hay que ver que pasaría ¿se vuelve hostil solo el, todos los compañeros,...? (PB)
-
+(Esta sección está vacía - todos los items han sido clasificados)

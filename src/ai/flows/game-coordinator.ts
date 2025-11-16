@@ -52,46 +52,35 @@ export const gameCoordinatorFlow = ai.defineFlow(
     });
     localLog(`GameCoordinator: Received action: "${playerAction}". InCombat: ${inCombat}. TurnIndex: ${turnIndex}.`);
     
-    // Issue #27: Verificar muerte del jugador y game over
-    const player = party.find(p => p.controlledBy === 'Player') || party[0];
-    if (player && player.hp && (player.hp.current <= 0 || player.isDead === true)) {
-        // Verificar si todos están muertos o inconscientes (incluye isDead)
+    // Issue #27 & #54: Verificar muerte del jugador y game over
+    // SOLO detener el combate si TODOS los miembros del grupo están muertos/inconscientes
         const allDead = party.every(p => p.hp && (p.hp.current <= 0 || p.isDead === true));
         if (allDead) {
-            log.gameCoordinator('Game over: All party members dead/unconscious', { partySize: party.length });
-            return {
-                messages: [{
-                    sender: 'DM',
-                    content: 'Todos los miembros del grupo han caído en combate. Vuestro viaje termina aquí, pero vuestra historia será recordada. La aventura ha terminado.',
-                }],
-                debugLogs: [...debugLogs, 'Game over: All party members are dead/unconscious'],
-                updatedParty: party,
-                inCombat: false,
-                turnIndex: 0,
-            };
-        }
+        // Distinguish between all unconscious and all dead
+        const allDeadFlag = party.every(p => p.isDead === true);
+        const gameOverMessage = allDeadFlag
+            ? '¡Game Over! Todos los miembros del grupo han muerto en combate. Vuestro viaje termina aquí, pero vuestra historia será recordada. La aventura ha terminado.'
+            : '¡Game Over! Todos los miembros del grupo han caído inconscientes. Sin nadie que pueda ayudarlos, vuestro viaje termina aquí. La aventura ha terminado.';
         
-        // Mensaje específico según estado del jugador
-        const statusMessage = player.isDead === true
-            ? `${player.name} ha muerto. La aventura no puede continuar sin ti.`
-            : `${player.name} está inconsciente y no puede actuar. Los compañeros deben estabilizarte o curarte antes de que puedas continuar.`;
-        
-        log.gameCoordinator('Player is dead/unconscious', { 
-            player: player.name, 
-            hp: player.hp.current,
-            isDead: player.isDead === true,
+        log.gameCoordinator('Game over: All party members dead/unconscious', { 
+            partySize: party.length,
+            allDead: allDeadFlag,
         });
         return {
             messages: [{
                 sender: 'DM',
-                content: statusMessage,
+                content: gameOverMessage,
             }],
-            debugLogs: [...debugLogs, `Player ${player.name} is ${player.isDead ? 'dead' : 'unconscious'}`],
+            debugLogs: [...debugLogs, `Game over: All party members are ${allDeadFlag ? 'dead' : 'unconscious'}`],
             updatedParty: party,
-            inCombat: inCombat,
-            turnIndex: turnIndex,
+            inCombat: false,
+            turnIndex: 0,
         };
     }
+    
+    // Issue #54: Si el jugador está inconsciente pero hay compañeros vivos, 
+    // NO detener el flujo. El combat-manager.ts se encargará de mostrar el mensaje
+    // y permitir que los compañeros continúen el combate.
     
     const adventureData = await getAdventureData();
     if (!adventureData) {

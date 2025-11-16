@@ -116,6 +116,7 @@ export function isUnconsciousOrDead(character: any): boolean {
 
 /**
  * Checks if combat has ended by verifying if all enemies or all allies are defeated.
+ * Distinguishes between all unconscious (can be healed) and all dead (cannot be healed without resurrection).
  * 
  * @param updatedParty Array of party members with current HP
  * @param updatedEnemies Array of enemies with current HP
@@ -131,7 +132,13 @@ export function checkEndOfCombat(updatedParty: any[], updatedEnemies: any[]): { 
     // Check if all allies are defeated or dead
     const allAlliesDefeated = updatedParty.every(p => isUnconsciousOrDead(p));
     if (allAlliesDefeated) {
-        return { combatEnded: true, reason: 'Todos los aliados derrotados' };
+        // Distinguish between all unconscious and all dead
+        const allDead = updatedParty.every(p => p.isDead === true);
+        if (allDead) {
+            return { combatEnded: true, reason: 'Todos los aliados muertos' };
+        } else {
+            return { combatEnded: true, reason: 'Todos los aliados inconscientes' };
+        }
     }
     
     return { combatEnded: false, reason: null };

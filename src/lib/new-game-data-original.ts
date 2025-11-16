@@ -28,8 +28,8 @@ export const initialParty: Character[] = [
       sabiduría: 1,
       carisma: 2,
     },
-    hp: { current: 2, max: 4 },
-    ac: 10,
+    hp: { current: 12, max: 12 },
+    ac: 18,
     isDead: false,
     skills: [
       { name: "Atletismo", proficient: true },
@@ -72,8 +72,8 @@ export const initialParty: Character[] = [
       sabiduría: 0,
       carisma: 0,
     },
-    hp: { current: 2, max: 4 },
-    ac: 10,
+    hp: { current: 8, max: 8 },
+    ac: 13,
     isDead: false,
     skills: [
       { name: "Arcano", proficient: true },
@@ -97,60 +97,60 @@ export const initialParty: Character[] = [
         { id: "spell-14", name: "Armadura de mago", level: 1, description: "Una fuerza mágica protectora te rodea, estableciendo tu CA base en 13 + tu modificador de Destreza." },
     ]
   },
-  {
-    id: "3",
-    name: "Elara",
-    race: "Semielfa",
-    characterClass: "Clériga",
-    level: 1,
-    sex: "Mujer",
-    background: "Acólita",
-    color: '#f97316', // orange-500
-    personality: "Una clériga devota pero pragmática. Tiende a ser la voz de la razón y la moral del grupo, pero no es ingenua. Es protectora y cautelosa, y a menudo desconfía de la magia arcana.",
-    abilityScores: {
-      fuerza: 14,
-      destreza: 8,
-      constitución: 15,
-      inteligencia: 10,
-      sabiduría: 16,
-      carisma: 12,
-    },
-    abilityModifiers: {
-      fuerza: 2,
-      destreza: -1,
-      constitución: 2,
-      inteligencia: 0,
-      sabiduría: 3,
-      carisma: 1,
-    },
-    hp: { current: 2, max: 4 },
-    ac: 10,
-    isDead: false,
-    skills: [
-      { name: "Medicina", proficient: true },
-      { name: "Religión", proficient: true },
-      { name: "Perspicacia", proficient: true },
-    ],
-    controlledBy: "AI",
-    inventory: [
-        { id: "item-5", name: "Maza", quantity: 1, description: "Un arma contundente simple pero efectiva." },
-        { id: "item-6", name: "Armadura de escamas", quantity: 1, description: null },
-        { id: "item-7", name: "Símbolo sagrado", quantity: 1, description: "Un amuleto de plata que canaliza su poder divino." },
-        { id: "item-8", name: "Paquete de sacerdote", quantity: 1, description: "Incluye agua bendita, viales y otros objetos para sus rituales." },
-        { id: "item-gp-2", name: "Monedas de Oro", quantity: 15, description: "Dinero contante y sonante." },
-    ],
-    spells: [
-        { id: "spell-1", name: "Luz", level: 0, description: "Haces que un objeto brille como una antorcha." },
-        { id: "spell-2", name: "Llama sagrada", level: 0, description: "Una llama divina desciende sobre una criatura, que debe superar una salvación de Destreza o recibir daño radiante." },
-        { id: "spell-3", name: "Orientación divina", level: 0, description: "Tocas a una criatura y le otorgas un d4 extra en una prueba de habilidad." },
-        // TEMPORALMENTE DESHABILITADO PARA TESTS - Restaurar después de los tests
-        // { id: "spell-4", name: "Curar heridas", level: 1, description: "Restauras puntos de golpe a una criatura que toques." },
-        { id: "spell-5", name: "Escudo de fe", level: 1, description: "Proteges a una criatura con un campo divino, otorgándole +2 a la CA." },
-        // TEMPORALMENTE DESHABILITADO PARA TESTS - Restaurar después de los tests
-        // { id: "spell-6", name: "Palabra de curación", level: 1, description: "Curación a distancia como una acción adicional." },
-        { id: "spell-7", name: "Infligir heridas", level: 1, description: "Un toque necrótico que causa un gran daño." },
-    ]
-  },
+  // TEMPORALMENTE DESHABILITADO PARA TESTS - Restaurar después de los tests
+  // {
+  //   id: "3",
+  //   name: "Elara",
+  //   race: "Semielfa",
+  //   characterClass: "Clériga",
+  //   level: 1,
+  //   sex: "Mujer",
+  //   background: "Acólita",
+  //   color: '#f97316', // orange-500
+  //   personality: "Una clériga devota pero pragmática. Tiende a ser la voz de la razón y la moral del grupo, pero no es ingenua. Es protectora y cautelosa, y a menudo desconfía de la magia arcana.",
+  //   abilityScores: {
+  //     fuerza: 14,
+  //     destreza: 8,
+  //     constitución: 15,
+  //     inteligencia: 10,
+  //     sabiduría: 16,
+  //     carisma: 12,
+  //   },
+  //   abilityModifiers: {
+  //     fuerza: 2,
+  //     destreza: -1,
+  //     constitución: 2,
+  //     inteligencia: 0,
+  //     sabiduría: 3,
+  //     carisma: 1,
+  //   },
+  //   hp: { current: 10, max: 10 },
+  //   ac: 18,
+  //   skills: [
+  //     { name: "Medicina", proficient: true },
+  //     { name: "Religión", proficient: true },
+  //     { name: "Perspicacia", proficient: true },
+  //   ],
+  //   controlledBy: "AI",
+  //   inventory: [
+  //       { id: "item-5", name: "Maza", quantity: 1, description: "Un arma contundente simple pero efectiva." },
+  //       { id: "item-6", name: "Armadura de escamas", quantity: 1, description: null },
+  //       { id: "item-7", name: "Símbolo sagrado", quantity: 1, description: "Un amuleto de plata que canaliza su poder divino." },
+  //       { id: "item-8", name: "Paquete de sacerdote", quantity: 1, description: "Incluye agua bendita, viales y otros objetos para sus rituales." },
+  //       { id: "item-gp-2", name: "Monedas de Oro", quantity: 15, description: "Dinero contante y sonante." },
+  //   ],
+  //   spells: [
+  //       { id: "spell-1", name: "Luz", level: 0, description: "Haces que un objeto brille como una antorcha." },
+  //       { id: "spell-2", name: "Llama sagrada", level: 0, description: "Una llama divina desciende sobre una criatura, que debe superar una salvación de Destreza o recibir daño radiante." },
+  //       { id: "spell-3", name: "Orientación divina", level: 0, description: "Tocas a una criatura y le otorgas un d4 extra en una prueba de habilidad." },
+  //       // TEMPORALMENTE DESHABILITADO PARA TESTS - Restaurar después de los tests
+  //       // { id: "spell-4", name: "Curar heridas", level: 1, description: "Restauras puntos de golpe a una criatura que toques." },
+  //       { id: "spell-5", name: "Escudo de fe", level: 1, description: "Proteges a una criatura con un campo divino, otorgándole +2 a la CA." },
+  //       // TEMPORALMENTE DESHABILITADO PARA TESTS - Restaurar después de los tests
+  //       // { id: "spell-6", name: "Palabra de curación", level: 1, description: "Curación a distancia como una acción adicional." },
+  //       { id: "spell-7", name: "Infligir heridas", level: 1, description: "Un toque necrótico que causa un gran daño." },
+  //   ]
+  // },
 ];
 
 export const initialMessage: GameMessage = {

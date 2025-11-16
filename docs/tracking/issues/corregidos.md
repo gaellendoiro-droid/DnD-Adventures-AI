@@ -2,7 +2,7 @@
 
 Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 20 issues  
+**Total:** 22 issues  
 **Última actualización:** 2025-11-15
 
 ---
@@ -38,6 +38,75 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 - **Impacto:** Alto - Los ataques ahora se dirigen correctamente al target especificado, código más simple y robusto
 - **Estado:** ✅ RESUELTO - Refactorización completa implementada
 - **Detección:** Testing de v0.5.0 - Test 19
+- **Referencia:** CHANGELOG [Unreleased]
+
+---
+
+### Issue #54: El combate se detiene si el jugador cae inconsciente ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-15
+- **Fecha de corrección:** 2025-11-15
+- **Ubicación:** `src/ai/flows/game-coordinator.ts`, `src/ai/tools/combat-manager.ts`
+- **Severidad:** 🔴 **CRÍTICO** (impide la continuación del combate)
+- **Descripción:** Cuando el personaje del jugador caía inconsciente (HP 0), el combate se detenía completamente, aunque hubiera compañeros de la IA todavía vivos y el combate debería continuar.
+- **Contexto:** Detectado durante Testing de v0.5.0 - Observación directa durante combate.
+- **Problema identificado:**
+  - En `game-coordinator.ts`, había una lógica que detenía el flujo inmediatamente cuando el jugador estaba inconsciente, sin verificar si había otros miembros del grupo activos
+  - Esto impedía que el `combatManagerTool` procesara el combate correctamente
+  - El combate solo debería terminar si TODOS los miembros del grupo están inconscientes/muertos
+- **Solución implementada:** ✅ Refactorización de lógica de game over
+  - **`game-coordinator.ts`:**
+    - Modificada la verificación de game over para solo detener el combate si TODOS los miembros del grupo están inconscientes/muertos
+    - Si el jugador está inconsciente pero hay compañeros vivos, el flujo continúa normalmente hacia `combatManagerTool`
+  - **`combat-manager.ts`:**
+    - Añadida detección de jugador inconsciente al inicio de su turno (líneas 107-146)
+    - Si el jugador está inconsciente en su turno, se muestra el mensaje automáticamente y se pausa el combate con los botones "Pasar turno"
+    - Modificado el bucle de procesamiento de turnos para también procesar turnos del jugador inconsciente (líneas 570-578)
+    - Actualizado `hasMoreAITurns` para considerar turnos del jugador inconsciente como turnos que deben procesarse automáticamente (4 ubicaciones)
+- **Comportamiento corregido:**
+  - Cuando el jugador cae inconsciente, su turno se procesa mostrando el mensaje "está inconsciente y no puede actuar"
+  - El combate se pausa y aparecen los botones "Pasar 1 Turno" / "Pasar Todos"
+  - El jugador debe pulsar el botón para avanzar (mantiene consistencia con flujo paso a paso)
+  - El combate continúa con los compañeros de la IA, que pueden intentar curar al jugador caído
+  - Solo se muestra game over si TODOS los miembros del grupo están inconscientes/muertos
+- **Archivos modificados:**
+  - `src/ai/flows/game-coordinator.ts`: Simplificada lógica de game over (líneas 55-74)
+  - `src/ai/tools/combat-manager.ts`: Añadida detección y procesamiento de turnos del jugador inconsciente
+- **Impacto:** Crítico - Permite que el combate continúe cuando el jugador cae, lo cual es esencial para la jugabilidad y las reglas de D&D 5e
+- **Estado:** ✅ RESUELTO
+- **Detección:** Testing de v0.5.0
+- **Referencia:** CHANGELOG [Unreleased]
+
+---
+
+### Issue #51: Mensaje "ha matado" incorrecto cuando personaje ya estaba inconsciente ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-15
+- **Fecha de corrección:** 2025-11-15
+- **Ubicación:** `src/ai/tools/combat-manager.ts`
+- **Severidad:** 🟡 **ALTA** (afecta narrativa y reglas de D&D 5e, confunde al jugador)
+- **Descripción:** Cuando un personaje del grupo (companion o jugador) ya estaba inconsciente (HP 0, `isDead: false`) y recibía daño adicional del jugador, el sistema mostraba "¡ha matado!" incluso cuando el daño no era suficiente para muerte masiva y el personaje podía ser curado después.
+- **Contexto:** Detectado durante Test 15 (Sistema de Inconsciencia y Muerte - Personajes Muertos No Pueden Ser Curados).
+- **Problema identificado:**
+  - En `combat-manager.ts` líneas 513-519 (versión anterior), había código simplificado que siempre mostraba "ha matado" cuando `newHP <= 0`
+  - Este código NO distinguía entre:
+    1. Target es enemigo (debe mostrar "ha matado")
+    2. Target es companion/jugador que acaba de caer inconsciente (debe mostrar "ha dejado inconsciente")
+    3. Target es companion/jugador que YA estaba inconsciente y murió por daño masivo (debe mostrar "ha matado")
+    4. Target es companion/jugador que YA estaba inconsciente pero NO murió por daño masivo (NO debe mostrar mensaje de muerte)
+  - Ejemplo: Merryl inconsciente (HP 0, `isDead: false`) recibe 5 de daño → sistema muestra "ha matado" → pero luego Elara la cura exitosamente
+- **Solución implementada:** ✅ Lógica diferenciada de mensajes de muerte/inconsciencia
+  - Reemplazado código simplificado con lógica completa que verifica el flag `isDead` y el `previousHP`
+  - Para companions/jugadores:
+    - Si `targetIsDead === true` → mostrar "ha matado" (muerte masiva)
+    - Si `newHP === 0 && previousHP > 0` → mostrar "ha dejado inconsciente" (acaba de caer)
+    - Si `newHP === 0 && previousHP === 0 && targetIsDead === false` → NO mostrar mensaje (ya estaba inconsciente, no hubo muerte masiva)
+  - Para enemigos: siempre mostrar "ha matado" (no tienen concepto de inconsciencia)
+- **Archivos modificados:**
+  - `src/ai/tools/combat-manager.ts`: Reemplazada lógica de mensajes de derrota (líneas 512-548)
+- **Impacto:** Alto - Mensajes narrativos ahora son correctos y consistentes con las reglas de D&D 5e y el estado real del personaje
+- **Estado:** ✅ RESUELTO
+- **Detección:** Testing de v0.5.0 - Test 15
 - **Referencia:** CHANGELOG [Unreleased]
 
 ---

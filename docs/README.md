@@ -17,6 +17,10 @@ Bienvenido a la documentación del proyecto. Esta carpeta contiene toda la infor
 - [Flujo de Datos](./arquitectura/flujo-datos.md) - Cómo fluyen los datos en la aplicación
 - [Sistema de Logging](./arquitectura/sistema-logging.md) - Sistema de logs estructurado
 
+### Testing
+- [Sistema de Testing](./testing/README.md) - Documentación completa del sistema de testing
+- [Guía Rápida de Testing](./testing/guia-rapida.md) - Inicio rápido para escribir tests
+
 ### Referencias
 - [Referencia de API](./arquitectura/referencia-api.md) - Esquemas, Server Actions y contratos de herramientas de IA
 
@@ -27,9 +31,9 @@ Bienvenido a la documentación del proyecto. Esta carpeta contiene toda la infor
 - **[README de Planes](./planes-desarrollo/README.md)** - Cómo trabajar con planes de desarrollo
 
 ### Estado de los Planes
-- **Completados:** 5 planes (Sistema de Combate, Saneamiento General, Refactor de Esquemas, Sistema de Turnos Paso a Paso, Refactorización Combat Manager Fases 1-2)
+- **Completados:** 6 planes (Sistema de Combate, Saneamiento General, Refactor de Esquemas, Sistema de Turnos Paso a Paso, Refactorización Combat Manager Fases 1-2, Plan de Testeo v0.5.0)
 - **En Curso:** 0 planes (Refactorización parcialmente completada, Fase 3 pausada)
-- **Sin Comenzar:** 11 planes identificados
+- **Sin Comenzar:** 13 planes identificados
 
 ## 📝 Archivos de Trabajo
 

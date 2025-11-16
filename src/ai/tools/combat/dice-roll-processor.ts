@@ -11,7 +11,12 @@ import type { GameMessage, DiceRoll, Combatant } from '@/lib/types';
 import { log } from '@/lib/logger';
 import { diceRollerTool } from '../dice-roller';
 import { getVisualName } from '@/lib/combat/monster-name-manager';
-import { validateAndClampHP, checkEndOfCombat } from './combat-validators';
+import {
+    getHpStatus,
+    validateAndClampHP,
+    isUnconsciousOrDead,
+    checkEndOfCombat,
+} from './combat-validators';
 
 /**
  * Result of processing AI combatant rolls
@@ -35,6 +40,7 @@ export interface ProcessAICombatantRollsParams {
     updatedEnemies: any[];
     newInitiativeOrder: Combatant[];
     localLog: (message: string) => void;
+    diceRoller?: typeof diceRollerTool; // Inyección de dependencia opcional
 }
 
 /**
@@ -58,6 +64,7 @@ export async function processAICombatantRolls(
         updatedEnemies: initialEnemies,
         newInitiativeOrder,
         localLog,
+        diceRoller = diceRollerTool, // Usar el inyectado o el original
     } = params;
 
     let updatedParty = initialParty;
@@ -88,14 +95,26 @@ export async function processAICombatantRolls(
     });
 
     // Process rolls in order: attack first, then damage/healing
-    for (const rollData of requestedRolls) {
+    for (const rollRequest of requestedRolls) {
         try {
-            const roll = await diceRollerTool({ ...rollData, roller: activeCombatant.characterName });
+            // Make the actual dice roll using the injected roller
+            const rollResult = await diceRoller({
+                roller: rollRequest.roller,
+                rollNotation: rollRequest.rollNotation,
+                description: rollRequest.description,
+            });
+            
+            const roll: DiceRoll = {
+                ...rollResult,
+                roller: rollRequest.roller,
+                rollNotation: rollRequest.rollNotation,
+                description: rollRequest.description,
+            };
             diceRolls.push(roll);
 
             const rollDescription = (roll.description || '').toLowerCase();
             // Extract attackType from rollData (provided by AI tactician)
-            const attackType = (rollData as any).attackType;
+            const attackType = (rollRequest as any).attackType;
 
             // Fallback to keyword detection if attackType is not provided (for backward compatibility)
             const isSavingThrowFromKeywords =
@@ -418,8 +437,16 @@ export async function processAICombatantRolls(
                     localLog(`checkEndOfCombat: End of combat detected! [Razón: ${combatCheck.reason}]`);
                     if (combatCheck.reason === 'Todos los enemigos derrotados') {
                         messages.push({ sender: 'DM', content: '¡Victoria! Todos los enemigos han sido derrotados.' });
-                    } else if (combatCheck.reason === 'Todos los aliados derrotados') {
-                        messages.push({ sender: 'DM', content: '¡Derrota! Todos los aliados han caído en combate.' });
+                    } else if (combatCheck.reason === 'Todos los aliados inconscientes') {
+                        messages.push({ 
+                            sender: 'DM', 
+                            content: '¡Game Over! Todos los miembros del grupo han caído inconscientes. Sin nadie que pueda ayudarlos, vuestro viaje termina aquí. La aventura ha terminado.' 
+                        });
+                    } else if (combatCheck.reason === 'Todos los aliados muertos') {
+                        messages.push({ 
+                            sender: 'DM', 
+                            content: '¡Game Over! Todos los miembros del grupo han muerto en combate. Vuestro viaje termina aquí, pero vuestra historia será recordada. La aventura ha terminado.' 
+                        });
                     }
                     // Mark combat as ended and break out of the roll loop
                     combatEnded = true;
@@ -538,7 +565,7 @@ export async function processAICombatantRolls(
             log.error('Error processing dice roll', {
                 module: 'DiceRollProcessor',
                 error: error instanceof Error ? error.message : String(error),
-                rollData,
+                rollRequest,
             });
             messages.push({
                 sender: 'DM',

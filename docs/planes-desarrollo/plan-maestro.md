@@ -8,18 +8,35 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** Ninguno activo | **Última implementación:** Sistema de Turnos Paso a Paso (2025-11-14)
+**Estado:** Ninguno activo | **Última implementación:** Sistema de Turnos Paso a Paso - Pulido y Optimización (2025-11-15)
 
 ---
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 5 planes
+**Estado:** Finalizados | **Cantidad:** 6 planes
 
-Planes que han sido implementados exitosamente:
+Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Plan de Testeo v0.5.0](completados/plan-testeo-v0.5.0.md) ✅ **COMPLETADO**
+- **Estado:** 20/20 tests completados (100%)
+- **Objetivo:** Realizar un testeo exhaustivo de la versión 0.5.0 para verificar que todas las funcionalidades implementadas funcionan correctamente
+- **Prioridad:** Alta
+- **Resultados:**
+  - ✅ Sistema de sincronización de turnos verificado (Tests 1-5)
+  - ✅ Sistema de inconsciencia y muerte verificado (Tests 6, 7, 14-17)
+  - ✅ Sistema de reacciones de compañeros verificado (Tests 12-13)
+  - ✅ Retry logic verificado (Test 8)
+  - ✅ Combate completo verificado (Tests 9-10)
+  - ✅ Verificación de regresiones completada (Tests 19-20)
+  - ✅ Bugs corregidos verificados (Tests 11, 18)
+- **Bugs detectados:** 2 (Issue #50 - Daño de crítico, Issue #51 - Mensaje "ha matado" incorrecto)
+- **Bugs corregidos:** 3 (Issue #49 - Resolución incorrecta de targets, Issue #54 - Combate se detiene si jugador inconsciente, Issue #51 - Mensaje "ha matado" incorrecto)
+- **Fecha de finalización:** 2025-11-15
+- **Referencia:** [Plan Detallado](completados/plan-testeo-v0.5.0.md)
 
 ### [Sistema de Turnos Paso a Paso en Combate](completados/sistema-turnos-paso-a-paso.md) ✅ **COMPLETADO**
-- **Estado:** Implementado y funcional (pulido pendiente)
+- **Estado:** 100% completado (funcional, testing completo, pulido implementado)
 - **Objetivo:** Cambiar el sistema de turnos para que el jugador pueda ver los turnos uno a uno, en lugar de mostrar todos los turnos de golpe
 - **Prioridad:** Muy Alta
 - **Componentes implementados:**
@@ -29,14 +46,18 @@ Planes que han sido implementados exitosamente:
   - ✅ Botón "Avanzar Todos" para avance automático con delay de 1.5s
   - ✅ Implementar acción especial "continuar turno" en game-coordinator
   - ✅ Corrección de bugs de sincronización de estado usando refs
-- **Resultado:** El jugador ahora tiene control total sobre el avance de turnos, puede ver cada turno de IA individualmente y avanzar manualmente o automáticamente
+  - ✅ Sistema de testing completo (68 unit tests + 6 integration tests)
+  - ✅ Pulido y optimización (indicadores visuales, animaciones, transiciones)
+- **Resultado:** El jugador ahora tiene control total sobre el avance de turnos, puede ver cada turno de IA individualmente y avanzar manualmente o automáticamente. Sistema completamente testeado y pulido.
 - **Fecha de implementación:** 2025-11-14
-- **Fecha de finalización:** 2025-11-14
+- **Fecha de finalización:** 2025-11-15
+- **Tiempo invertido:** ~12-17 horas total
 - **Referencia:** [Plan Detallado](completados/sistema-turnos-paso-a-paso.md)
 
 ### [Refactorización del Módulo `combat-manager.ts` (Fases 1-2)](planes-en-curso/refactorizacion-combat-manager.md) ⏸️ **PARCIALMENTE COMPLETADO**
 - **Estado:** Fases 1-2 completadas (54.6% de reducción), Fase 3 pausada (opcional)
 - **Objetivo:** Refactorizar `combat-manager.ts` (2723 líneas) en módulos más pequeños y manejables
+- **Prioridad:** Alta
 - **Resultados:**
   - ✅ Reducción: 2723 → 1235 líneas (54.6% de reducción)
   - ✅ Módulos creados: 5 módulos especializados (1310 líneas extraídas)
@@ -47,13 +68,10 @@ Planes que han sido implementados exitosamente:
 - **Fecha de finalización parcial:** 2025-11-14
 - **Referencia:** [Plan Detallado](planes-en-curso/refactorizacion-combat-manager.md)
 
----
-
 ### [Sistema de Turnos de Combate](completados/combate-turnos.md) ✅ **COMPLETADO**
 - **Estado:** 100% funcional (5 de 5 pasos completamente funcionales)
 - **Objetivo:** Implementar un sistema de turnos de combate proactivo y funcional
 - **Prioridad:** Alta
-- **Última actualización:** ✅ COMPLETADO - Sistema completamente funcional
 - **Resultados:**
   - ✅ Sistema de HP implementado y funcionando (sincronización frontend-backend, validación, inicialización)
   - ✅ Detección de fin de combate funcionando correctamente
@@ -62,26 +80,39 @@ Planes que han sido implementados exitosamente:
   - ✅ Resaltado visual de críticos y pifias
   - ✅ Mensajes de muerte y curación en panel de Tiradas
 - **Análisis:** [Análisis: Sistema de Gestión de HP y Fichas](completados/combate-turnos-analisis-hp.md)
+- **Referencia:** [Plan Detallado](completados/combate-turnos.md)
 
----
-
-### [Saneamiento General de la Aplicación](completados/saneamiento-general.md)
+### [Saneamiento General de la Aplicación](completados/saneamiento-general.md) ✅ **COMPLETADO**
 - **Estado:** 100% completado
 - **Objetivo:** Revisión sistemática de la aplicación para identificar y corregir bugs, problemas y errores
-- **Fecha de finalización:** Completado - 7 secciones revisadas, 12 issues identificados, 10 corregidos, sanitización HTML implementada
-- **Resultados:** 10 issues corregidos, sistema de logging centralizado, sanitización HTML con DOMPurify
+- **Prioridad:** Alta
+- **Resultados:**
+  - ✅ 7 secciones revisadas (Frontend, Backend, Validación, Rendimiento, Seguridad, Logging, Documentación)
+  - ✅ 12 issues identificados
+  - ✅ 10 issues corregidos
+  - ✅ Sistema de logging centralizado implementado
+  - ✅ Sanitización HTML con DOMPurify implementada
+- **Fecha de finalización:** Completado
 - **Documentación:** [Issues Tracker](../tracking/issues/README.md)
+- **Referencia:** [Plan Detallado](completados/saneamiento-general.md)
 
-### [Refactorización de Esquemas](completados/refactor-esquemas.md)
+### [Refactorización de Esquemas](completados/refactor-esquemas.md) ✅ **COMPLETADO**
 - **Estado:** 100% completado
 - **Objetivo:** Eliminar duplicaciones e inconsistencias en la arquitectura de esquemas
-- **Fecha de finalización:** Implementado en v0.4.70 (Refactorización completada)
+- **Prioridad:** Media
+- **Resultados:**
+  - ✅ Tipos unificados usando Zod como fuente única de verdad
+  - ✅ Rutas de importación estandarizadas con alias `@/`
+  - ✅ Eliminación de duplicaciones entre `types.ts` y `schemas.ts`
+  - ✅ Validación robusta en todos los módulos de IA
+- **Fecha de finalización:** Implementado en v0.4.70
+- **Referencia:** [Plan Detallado](completados/refactor-esquemas.md)
 
 ---
 
 ## 📝 Planes Sin Comenzar
 
-**Estado:** Pendientes | **Cantidad:** 11 planes
+**Estado:** Pendientes | **Cantidad:** 13 planes
 
 Planes identificados pero aún no iniciados:
 
@@ -239,13 +270,35 @@ Planes identificados pero aún no iniciados:
 
 ### Prioridad Media
 
-1. **Compendio de D&D Local** - Base de datos local para consultas rápidas y modo offline
-2. **IA Conversacional Avanzada** - Streaming y turnos por pasos para reacciones orgánicas
-3. **Calidad y Profundidad de la IA** - RAG y memoria a largo plazo
-4. **Sistema de Estados y Condiciones en Combate** - Estados temporales, condiciones, recursos gastados
-5. **Sistema de Foco de Objetivo en Combate** - Selección inteligente de objetivos basada en táctica
-6. **Convertidor de PDF a JSON** - Aplicación auxiliar para convertir aventuras de PDF a JSON
-7. **Música y Sonido Dinámicos** - Sistema de audio adaptativo según estado del juego
+1. **Mejora de Testabilidad y Refactorización** - Refactorizar código para permitir tests de integración y E2E robustos
+   - **Estado:** Sin comenzar
+   - **Objetivo:** Implementar Inyección de Dependencias (DI) y separar lógica pura de efectos secundarios
+   - **Componentes:**
+     - DI en funciones críticas (`combatManagerTool`, `processAICombatantRolls`)
+     - Separación de lógica pura de efectos secundarios
+     - Preparación de UI para tests E2E (data-testid)
+   - **Beneficios:** Tests de integración viables, código más mantenible, refactorizaciones más seguras
+   - **Estimación:** 32-46 horas
+   - **Dependencias:** Sistema de Unit Tests (✅ Completado)
+   - **Nota:** Prerequisito para el plan de Testing Integración y E2E
+   - **Referencia:** [Plan Detallado](sin-comenzar/mejora-testabilidad-refactorizacion.md)
+2. **Sistema de Testing - Integración y E2E** - Extender sistema de testing con tests de integración y E2E
+   - **Estado:** Sin comenzar
+   - **Objetivo:** Implementar tests de integración (Vitest) y tests E2E (Playwright) para cobertura completa
+   - **Componentes:**
+     - Tests de integración para flujos críticos (combate, interpretación de acciones, resolución de targets)
+     - Tests E2E para flujos de usuario completos (inicio de partida, combate, interacción con DM)
+   - **Beneficios:** Cobertura completa del sistema, detección temprana de bugs, confianza en refactorizaciones
+   - **Estimación:** 28-40 horas
+   - **Dependencias:** Sistema de Unit Tests (✅ Completado), Mejora de Testabilidad (⏳ Prerequisito)
+   - **Referencia:** [Plan Detallado](sin-comenzar/sistema-testing-integracion-e2e.md)
+3. **Compendio de D&D Local** - Base de datos local para consultas rápidas y modo offline
+4. **IA Conversacional Avanzada** - Streaming y turnos por pasos para reacciones orgánicas
+5. **Calidad y Profundidad de la IA** - RAG y memoria a largo plazo
+6. **Sistema de Estados y Condiciones en Combate** - Estados temporales, condiciones, recursos gastados
+7. **Sistema de Foco de Objetivo en Combate** - Selección inteligente de objetivos basada en táctica
+8. **Convertidor de PDF a JSON** - Aplicación auxiliar para convertir aventuras de PDF a JSON
+9. **Música y Sonido Dinámicos** - Sistema de audio adaptativo según estado del juego
 
 ### Prioridad Baja
 
@@ -256,19 +309,21 @@ Planes identificados pero aún no iniciados:
 
 ## 📊 Estado General del Proyecto
 
-- **Planes Completados:** 5
-- **Planes en Curso:** 0 (Refactorización parcialmente completada, Fase 3 pausada)
-- **Planes Sin Comenzar:** 11
+- **Planes Completados:** 6 (incluyendo 1 parcialmente completado)
+- **Planes en Curso:** 0
+- **Planes Sin Comenzar:** 13
   - **Prioridad Alta:** 4 planes
-  - **Prioridad Media:** 8 planes
+  - **Prioridad Media:** 10 planes
   - **Prioridad Baja:** 2 planes
 
 ### ✅ Logros Recientes
 
-- **Sistema de Turnos Paso a Paso:** ✅ Completado - Control total del jugador sobre el avance de turnos, botones "Pasar 1 Turno" y "Avanzar Todos", experiencia más inmersiva similar a D&D de mesa
-- **Sistema de Combate por Turnos:** Completado al 100% - Sistema completamente funcional con detección de fin de combate, sistema de HP sincronizado, y validación completa de tiradas de dados
-- **Sistema de HP:** Implementado y funcionando - Sincronización frontend-backend, validación con `validateAndClampHP`, inicialización correcta de enemigos
-- **Sistema de Tiradas:** Validado y funcionando - Soporte para saving throw spells, resaltado visual de críticos/pifias, mensajes de muerte y curación
+- **Plan de Testeo v0.5.0:** ✅ Completado - 20/20 tests completados, verificación exhaustiva de todas las funcionalidades de v0.5.0, 3 bugs corregidos durante el testeo
+- **Sistema de Turnos Paso a Paso:** ✅ 100% Completado - Control total del jugador sobre el avance de turnos, botones "Pasar 1 Turno" y "Avanzar Todos", 68 unit tests + 38 integration tests, indicadores visuales y animaciones implementadas
+- **Sistema de Testing:** ✅ Implementado - Vitest configurado, 106 tests (68 unit + 38 integration), documentación completa
+- **Refactorización de `combat-manager.ts`:** ✅ Fases 1-2 Completadas - Reducción de 2723 → 1235 líneas (54.6%), 5 módulos especializados creados
+- **Sistema de Combate por Turnos:** ✅ Completado al 100% - Sistema completamente funcional con detección de fin de combate, sistema de HP sincronizado, y validación completa de tiradas de dados
+- **Saneamiento General:** ✅ Completado - 10 issues corregidos, sistema de logging centralizado, sanitización HTML implementada
 
 ---
 
@@ -286,4 +341,86 @@ Planes identificados pero aún no iniciados:
 - Los planes se mueven entre carpetas según su estado
 - Al completar un plan, actualiza este documento y muévelo a `completados/`
 - Al iniciar un nuevo plan, créalo en `sin-comenzar/` y muévelo a `planes-en-curso/` cuando empieces a trabajar en él
+
+---
+
+## 📊 Resumen Ejecutivo
+
+### Estado General del Proyecto
+
+**Progreso Total:**
+- ✅ **6 planes completados** (incluyendo 1 parcialmente completado)
+- 🚧 **0 planes en curso** actualmente
+- 📝 **13 planes sin comenzar** identificados y planificados
+
+**Distribución por Prioridad:**
+- **Prioridad Alta:** 4 planes pendientes
+- **Prioridad Media:** 10 planes pendientes (incluyendo 2 relacionados con testing)
+- **Prioridad Baja:** 2 planes pendientes
+
+### Logros Principales
+
+**Sistema de Combate:**
+- ✅ Sistema de turnos paso a paso completamente funcional
+- ✅ Sistema de HP sincronizado y validado
+- ✅ Sistema de tiradas de dados completo
+- ✅ Detección de fin de combate implementada
+- ✅ Manejo de inconsciencia y muerte masiva
+
+**Calidad del Código:**
+- ✅ Refactorización mayor de `combat-manager.ts` (54.6% de reducción)
+- ✅ Sistema de esquemas unificado y robusto
+- ✅ Saneamiento general completado (10 issues corregidos)
+- ✅ Sistema de logging centralizado
+
+**Testing:**
+- ✅ 106 tests implementados (68 unit + 38 integration)
+- ✅ Sistema de testing documentado y funcional
+- ✅ Cobertura de módulos críticos
+
+### Próximos Pasos Recomendados
+
+**Corto Plazo (Prioridad Alta):**
+1. **Sistema de Progresión y Gestión** - Fundamental para campañas duraderas
+2. **Sistema de Inicio de Combate Dinámico** - Mejora la credibilidad del mundo
+3. **Mejora de Estructura de Fichas** - Mejora la experiencia del usuario
+
+**Medio Plazo (Prioridad Media):**
+1. **Mejora de Testabilidad** - Prerequisito para tests de integración y E2E robustos
+2. **Sistema de Testing - Integración y E2E** - Cobertura completa del sistema
+3. **Compendio de D&D Local** - Mejora de rendimiento y disponibilidad offline
+
+**Largo Plazo (Prioridad Media-Baja):**
+1. **IA Conversacional Avanzada** - Streaming y reacciones orgánicas
+2. **Calidad y Profundidad de la IA** - RAG y memoria a largo plazo
+3. **Sistema de Estados y Condiciones** - Complejidad táctica en combate
+
+### Métricas Clave
+
+**Código:**
+- Reducción de `combat-manager.ts`: 2723 → 1235 líneas (54.6%)
+- Módulos especializados creados: 5
+- Código duplicado eliminado: ~798 líneas
+
+**Testing:**
+- Tests unitarios: 68
+- Tests de integración: 38
+- Cobertura de módulos críticos: ✅ Completa
+
+**Calidad:**
+- Issues corregidos en saneamiento: 10
+- Bugs detectados en testeo v0.5.0: 2
+- Bugs corregidos en testeo v0.5.0: 3
+
+### Dependencias Críticas
+
+**Planes que requieren otros planes completados:**
+- ⏳ **Sistema de Testing - Integración y E2E** requiere **Mejora de Testabilidad** (prerequisito crítico)
+- ⏳ Varios planes de combate requieren el sistema base de combate (✅ completado)
+
+### Notas Importantes
+
+- El plan de **Refactorización de `combat-manager.ts`** está parcialmente completado (Fases 1-2). La Fase 3 está pausada y puede retomarse en el futuro si es necesaria.
+- El plan de **Mejora de Testabilidad** fue creado después de identificar problemas de acoplamiento que impiden escribir tests de integración robustos. Es un prerequisito crítico para el plan de Testing Integración y E2E.
+- Todos los planes completados están documentados con referencias a sus planes detallados para consulta completa.
 

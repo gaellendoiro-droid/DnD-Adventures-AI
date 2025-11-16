@@ -104,6 +104,47 @@ export const combatManagerTool = ai.defineTool(
             let currentTurnIndex = turnIndex;
             let activeCombatant = initiativeOrder[currentTurnIndex];
             
+            // Issue #54: If it's the player's turn and they're unconscious/dead, show message and pause
+            if (activeCombatant && activeCombatant.controlledBy === 'Player') {
+                const playerData = updatedParty.find(p => p.id === activeCombatant.id);
+                if (playerData && isUnconsciousOrDead(playerData)) {
+                    log.info('Player turn detected but player is unconscious/dead', {
+                        module: 'CombatManager',
+                        player: activeCombatant.characterName,
+                        hp: playerData.hp.current,
+                        isDead: playerData.isDead,
+                    });
+                    
+                    // Show message about player being unconscious/dead
+                    const statusMessage = playerData.isDead === true 
+                        ? `${activeCombatant.characterName} está muerto y no puede actuar.`
+                        : `${activeCombatant.characterName} está inconsciente y no puede actuar.`;
+                    
+                    messages.push({
+                        sender: 'DM',
+                        content: statusMessage
+                    });
+                    
+                    localLog(`Player ${activeCombatant.characterName} is ${playerData.isDead ? 'dead' : 'unconscious'}. Waiting for pass turn button.`);
+                    
+                    // Return immediately with hasMoreAITurns: true to show "Pasar turno" buttons
+                    // The player must press the button to advance to the next turn
+                    return {
+                        messages,
+                        diceRolls,
+                        inCombat: true,
+                        debugLogs,
+                        turnIndex: currentTurnIndex, // Keep on player's turn
+                        initiativeOrder,
+                        updatedParty,
+                        updatedEnemies,
+                        hasMoreAITurns: true, // Show "Pasar turno" buttons
+                        lastProcessedTurnWasAI: true, // Treat like an AI turn (pause and wait)
+                        lastProcessedTurnIndex: currentTurnIndex, // The turn we just "processed"
+                    };
+                }
+            }
+            
             // Handle "continue turn" action (step-by-step combat)
             if (interpretedAction && interpretedAction.actionType === 'continue_turn') {
                 log.info('Continue turn action detected in combat', {
@@ -468,13 +509,42 @@ export const combatManagerTool = ai.defineTool(
                                             newHP,
                                         });
                                         
-                                        // Check if target was defeated
+                                        // Issue #51: Check if target was defeated or knocked unconscious
                                         if (newHP !== undefined && newHP <= 0) {
+                                            // Get updated target to check isDead status
+                                            const updatedTarget = targetIsEnemy
+                                                ? updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId)
+                                                : updatedParty.find(p => p.id === target.id);
+                                            
+                                            const targetIsDead = updatedTarget?.isDead === true;
+                                            
+                                            if (!targetIsEnemy && updatedTarget) {
+                                                // For players/companions: distinguish between death and unconsciousness
+                                                if (targetIsDead) {
+                                                    // Target died (massive damage)
                                             messages.push({
                                                 sender: 'DM',
                                                 content: `¡${activeCombatant.characterName} ha matado a ${targetVisualName}!`
                                             });
                                             localLog(`${activeCombatant.characterName} killed ${targetVisualName}!`);
+                                                } else if (newHP === 0 && previousHP !== undefined && previousHP > 0) {
+                                                    // Target just fell unconscious (not dead)
+                                                    messages.push({
+                                                        sender: 'DM',
+                                                        content: `¡${activeCombatant.characterName} ha dejado inconsciente a ${targetVisualName}!`
+                                                    });
+                                                    localLog(`${activeCombatant.characterName} knocked ${targetVisualName} unconscious!`);
+                                                }
+                                                // If previousHP === 0 and targetIsDead === false, target was already unconscious
+                                                // and didn't die from massive damage - no additional message needed
+                                            } else {
+                                                // For enemies: they die directly at HP 0 (no unconsciousness concept)
+                                                messages.push({
+                                                    sender: 'DM',
+                                                    content: `¡${activeCombatant.characterName} ha matado a ${targetVisualName}!`
+                                                });
+                                                localLog(`${activeCombatant.characterName} killed ${targetVisualName}!`);
+                                            }
                                         }
                                     }
                                 } else {
@@ -526,10 +596,17 @@ export const combatManagerTool = ai.defineTool(
                 }
             }
             
-            // Process ONE AI turn (if it's an AI's turn)
+            // Issue #54: Process ONE AI turn OR player unconscious turn (if applicable)
             let combatHasEnded = false;
-            if(activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded) {
-                localLog(`Processing turn for AI combatant ${activeCombatant.characterName} at index ${currentTurnIndex}...`);
+            // Check if we should process this turn automatically (AI turn or player unconscious)
+            const shouldProcessTurn = activeCombatant && 
+                (activeCombatant.controlledBy === 'AI' || 
+                (activeCombatant.controlledBy === 'Player' && 
+                    isUnconsciousOrDead(updatedParty.find(p => p.id === activeCombatant.id))));
+            
+            if(shouldProcessTurn && !combatHasEnded) {
+                const isPlayerUnconscious = activeCombatant.controlledBy === 'Player';
+                localLog(`Processing turn for ${isPlayerUnconscious ? 'unconscious player' : 'AI combatant'} ${activeCombatant.characterName} at index ${currentTurnIndex}...`);
                 
                 // Check if active combatant is dead or unconscious - skip their turn if so
                 const isCompanion = updatedParty.some(p => p.id === activeCombatant.id);
@@ -569,8 +646,14 @@ export const combatManagerTool = ai.defineTool(
                     currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
                     activeCombatant = initiativeOrder[currentTurnIndex];
                     
-                    // Check if next turn is also AI
-                    const hasMoreAITurns = activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded;
+                    // Issue #54: Check if next turn should be processed automatically (AI or player unconscious)
+                    const nextTurnPlayerData = activeCombatant?.controlledBy === 'Player' 
+                        ? updatedParty.find(p => p.id === activeCombatant.id) 
+                        : null;
+                    const hasMoreAITurns = activeCombatant && 
+                        (activeCombatant.controlledBy === 'AI' || 
+                        (activeCombatant.controlledBy === 'Player' && nextTurnPlayerData && isUnconsciousOrDead(nextTurnPlayerData))) 
+                        && !combatHasEnded;
                     
                     // Calculate which turn was just processed (skipped due to dead/unconscious)
                     const processedTurnIndex = (currentTurnIndex - 1 + initiativeOrder.length) % initiativeOrder.length;
@@ -797,8 +880,14 @@ export const combatManagerTool = ai.defineTool(
                     };
                 }
                 
-                // Check if next turn is also AI
-                const hasMoreAITurns = activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded;
+                // Issue #54: Check if next turn should be processed automatically (AI or player unconscious)
+                const nextTurnPlayerData = activeCombatant?.controlledBy === 'Player' 
+                    ? updatedParty.find(p => p.id === activeCombatant.id) 
+                    : null;
+                const hasMoreAITurns = activeCombatant && 
+                    (activeCombatant.controlledBy === 'AI' || 
+                    (activeCombatant.controlledBy === 'Player' && nextTurnPlayerData && isUnconsciousOrDead(nextTurnPlayerData))) 
+                    && !combatHasEnded;
                 
                 log.info('AI turn processed - determining hasMoreAITurns', {
                     module: 'CombatManager',
@@ -1192,8 +1281,8 @@ export const combatManagerTool = ai.defineTool(
                 if (isCompanion) {
                     // Personaje del grupo: distinguir entre muerto e inconsciente
                     statusMessage = activeCombatantDataInit.isDead === true 
-                        ? `${activeCombatant.characterName} está muerto y no puede actuar.`
-                        : `${activeCombatant.characterName} está inconsciente y no puede actuar.`;
+                    ? `${activeCombatant.characterName} está muerto y no puede actuar.`
+                    : `${activeCombatant.characterName} está inconsciente y no puede actuar.`;
                 } else {
                     // Enemigo: si HP <= 0, está muerto (no tienen concepto de inconsciencia)
                     statusMessage = `${activeCombatant.characterName} está muerto y no puede actuar.`;
@@ -1208,8 +1297,14 @@ export const combatManagerTool = ai.defineTool(
                 currentTurnIndex = (currentTurnIndex + 1) % newInitiativeOrder.length;
                 activeCombatant = newInitiativeOrder[currentTurnIndex];
                 
-                // Check if next turn is also AI
-                const hasMoreAITurns = activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded;
+                // Issue #54: Check if next turn should be processed automatically (AI or player unconscious)
+                const nextTurnPlayerDataInit = activeCombatant?.controlledBy === 'Player' 
+                    ? updatedParty.find(p => p.id === activeCombatant.id) 
+                    : null;
+                const hasMoreAITurns = activeCombatant && 
+                    (activeCombatant.controlledBy === 'AI' || 
+                    (activeCombatant.controlledBy === 'Player' && nextTurnPlayerDataInit && isUnconsciousOrDead(nextTurnPlayerDataInit))) 
+                    && !combatHasEnded;
                 
                 // Calculate which turn was just processed (skipped due to dead/unconscious)
                 const processedTurnIndex = (currentTurnIndex - 1 + newInitiativeOrder.length) % newInitiativeOrder.length;
@@ -1416,8 +1511,14 @@ export const combatManagerTool = ai.defineTool(
                 };
             }
             
-            // Check if next turn is also AI
-            const hasMoreAITurns = activeCombatant && activeCombatant.controlledBy === 'AI' && !combatHasEnded;
+            // Issue #54: Check if next turn should be processed automatically (AI or player unconscious)
+            const nextTurnPlayerDataInitial = activeCombatant?.controlledBy === 'Player' 
+                ? updatedParty.find(p => p.id === activeCombatant.id) 
+                : null;
+            const hasMoreAITurns = activeCombatant && 
+                (activeCombatant.controlledBy === 'AI' || 
+                (activeCombatant.controlledBy === 'Player' && nextTurnPlayerDataInitial && isUnconsciousOrDead(nextTurnPlayerDataInitial))) 
+                && !combatHasEnded;
             
             log.info('Initial AI turn processed - determining hasMoreAITurns', {
                 module: 'CombatManager',

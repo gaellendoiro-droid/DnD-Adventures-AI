@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GameStateSchema } from "@/ai/flows/schemas";
 import { logClient } from "@/lib/logger-client";
 import { ZodError } from "zod";
+import { InitiativeTracker } from "./initiative-tracker";
 
 interface GameViewProps {
   initialData: {
@@ -57,8 +58,22 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const inCombatRef = useRef<boolean>(initialData.inCombat || false); // Use ref for synchronous access
   const messagesRef = useRef<GameMessage[]>(initialData.messages); // Use ref for synchronous access
   const selectedCharacterRef = useRef<Character | null>(initialData.party.find(c => c.controlledBy === 'Player') || null); // Use ref for synchronous access
-
+  const prevStateRef = useRef<string | null>(null);
   const { toast } = useToast();
+
+  const isPlayerTurn = !isDMThinking && initiativeOrder[turnIndex]?.controlledBy === 'Player';
+
+  // Refs for synchronous access in callbacks
+  useEffect(() => {
+    turnIndexRef.current = turnIndex;
+    initiativeOrderRef.current = initiativeOrder;
+    enemiesRef.current = enemies;
+    partyRef.current = party;
+    locationIdRef.current = locationId;
+    inCombatRef.current = inCombat;
+    messagesRef.current = messages;
+    selectedCharacterRef.current = selectedCharacter;
+  }, [turnIndex, initiativeOrder, enemies, party, locationId, inCombat, messages, selectedCharacter]);
 
   const addDebugMessages = useCallback((newLogs: string[] | undefined) => {
     if (!newLogs || newLogs.length === 0) return;
@@ -104,7 +119,6 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   }, [initialData, addDebugMessages]);
 
   // TEMPORAL: Log de estados para pruebas (Issue #11 y #12)
-  const prevStateRef = useRef<string>('');
   useEffect(() => {
     // Crear una representación serializada del estado para comparar
     const currentState = JSON.stringify({

@@ -59,7 +59,7 @@
       "name": "Orco",
       "type": "monster",
       "description": "Un humanoide brutal de piel verdosa, con facciones porcinas y colmillos inferiores prominentes. Viste armadura de pieles y empuña un hacha a dos manos.",
-      "dmNotes": "Un orco común de D&D 5e. El sistema obtendrá automáticamente sus estadísticas (HP: 15, AC: 13) de la API de D&D 5e si no están especificadas aquí."
+      "dmNotes": "Un orco común de D&D 5e. El sistema obtendrá automáticamente sus estadísticas (HP: 30, AC: 18) de la API de D&D 5e si no están especificadas aquí."
     }
   ]
 }
