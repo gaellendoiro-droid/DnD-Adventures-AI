@@ -3,28 +3,28 @@
 Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras identificados durante el desarrollo del proyecto.
 
 **Fecha de inicio:** Durante el saneamiento general de la aplicación (2025-11-10)  
-**Última actualización:** 2025-11-17 (Issue #78 marcado como resuelto; Issue #80 agregado)
+**Última actualización:** 2025-11-17 (Issue #81 marcado como resuelto)
 
 ---
 
 ## 📊 Resumen Estadístico
 
-- **Total de issues:** 55
-- **Issues corregidos:** 30 (55%)
-- **Issues pendientes:** 25 (45%)
+- **Total de issues:** 56
+- **Issues corregidos:** 32 (57%)
+- **Issues pendientes:** 24 (43%)
 
 ### Por Prioridad
 
 **Issues Corregidos:**
-- 🔴 PMA (Prioridad Muy Alta): 8 issues
+- 🔴 PMA (Prioridad Muy Alta): 10 issues (Issues #67, #79, #81)
 - 🟡 PA (Prioridad Alta): 6 issues (Issues #34, #35, #36, #37, #51, #68)
 - 🟢 PM (Prioridad Media): 9 issues
 - ⚪ PB (Prioridad Baja): 1 issue
 
 **Issues Pendientes:**
-- 🔴 PMA (Prioridad Muy Alta): 1 issue (Issue #67) ⚠️ **CRÍTICO**
+- 🔴 PMA (Prioridad Muy Alta): 0 issues ✅
 - 🟡 PA (Prioridad Alta): 4 issues (Issues #53, #65, #66, #75)
-- 🟢 PM (Prioridad Media): 15 issues (incluye Issues #63, #76, #77, #79, #80)
+- 🟢 PM (Prioridad Media): 15 issues (incluye Issues #63, #76, #77, #80)
 - ⚪ PB (Prioridad Baja): 3 issues
 - ⚫ PMB (Prioridad Muy Baja): 1 issue
 
@@ -43,7 +43,7 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 ## 📁 Estructura de Archivos
 
 - **[pendientes.md](./pendientes.md)** - Issues activos que requieren atención (24 issues)
-- **[corregidos.md](./corregidos.md)** - Issues resueltos y verificados (30 issues) - Histórico
+- **[corregidos.md](./corregidos.md)** - Issues resueltos y verificados (31 issues) - Histórico
 
 ---
 
@@ -52,7 +52,7 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 ### Issues Pendientes por Prioridad
 
 **🔴 Prioridad Muy Alta (PMA) - CRÍTICOS:**
-- [Issue #67: Turno de companion IA se repite al presionar "Pasar 1 Turno"](./pendientes.md#issue-67-turno-de-companion-ia-se-repite-al-presionar-pasar-1-turno-crítico) 🔴 **CRÍTICO** *[Detectado en testing - Sistema de turnos]*
+- _No hay issues críticos pendientes en este momento._ ✅
 
 **🟡 Prioridad Alta (PA):**
 - [Issue #53: Companions no usan hechizos disponibles en su ficha](./pendientes.md#issue-53-companions-no-usan-hechizos-disponibles-en-su-ficha-advertencia) *[Detectado en testing]*

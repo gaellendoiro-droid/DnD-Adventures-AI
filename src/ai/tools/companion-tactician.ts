@@ -52,6 +52,12 @@ const companionTacticianPrompt = ai.definePrompt({
 - **Your Party (Your allies):**
   {{#each party}}
   - **{{this.name}}** (ID: {{this.id}}, HP: {{this.hp.current}}/{{this.hp.max}}, AC: {{this.ac}}, Class: {{this.characterClass}})
+    {{#if this.abilityModifiers}}
+    - **Ability Modifiers:** FUE {{this.abilityModifiers.fuerza}}, DES {{this.abilityModifiers.destreza}}, CON {{this.abilityModifiers.constitución}}, INT {{this.abilityModifiers.inteligencia}}, SAB {{this.abilityModifiers.sabiduría}}, CAR {{this.abilityModifiers.carisma}}
+    {{/if}}
+    {{#if this.proficiencyBonus}}
+    - **Proficiency Bonus:** +{{this.proficiencyBonus}}
+    {{/if}}
   {{/each}}
 - **YOUR AVAILABLE SPELLS (CRITICAL - ONLY USE THESE):**
   {{#if availableSpells}}
@@ -103,18 +109,31 @@ For these, you MUST provide EXACTLY 2 dice rolls, IN THIS EXACT ORDER:
 **STEP 1 - ATTACK ROLL (ALWAYS FIRST):**
 {
   "roller": "{{{activeCombatant}}}",
-  "rollNotation": "1d20+X",  // Use 1d20 + your attack modifier
+  "rollNotation": "1d20+X",  // CRITICAL: X = your ability modifier (FUE or DES, whichever is higher) + your proficiency bonus
   "description": "Tirada de ataque con [weapon]" or "Tirada de ataque de [spell]",
   "attackType": "attack_roll"  // MANDATORY: Specify this is an attack roll
 }
 
+**HOW TO CALCULATE ATTACK MODIFIER:**
+- For melee weapons: Use FUE modifier + Proficiency Bonus
+- For ranged weapons or finesse weapons: Use DES modifier + Proficiency Bonus
+- For spells: Use your spellcasting ability modifier (INT for Wizards, SAB for Clerics) + Proficiency Bonus
+- Example: Merryl (Mago) with DES +3, INT +3, Proficiency Bonus +2 attacking with quarterstaff = FUE -1 + Proficiency +2 = 1d20+1 (or using DEX for finesse = DES +3 + Proficiency +2 = 1d20+5)
+- Example: Merryl casting Ray of Frost (spell attack) = INT +3 + Proficiency +2 = 1d20+5
+
 **STEP 2 - DAMAGE ROLL (ALWAYS SECOND):**
 {
   "roller": "{{{activeCombatant}}}",
-  "rollNotation": "XdY+Z",  // Use your weapon/spell damage dice
+  "rollNotation": "XdY+Z",  // Use your weapon/spell damage dice + ability modifier (ONLY ability modifier, NOT proficiency bonus)
   "description": "Tirada de daño con [weapon]" or "Tirada de daño de [spell]",
   "attackType": "attack_roll"  // MANDATORY: Same type as the attack
 }
+
+**HOW TO CALCULATE DAMAGE MODIFIER:**
+- Add the SAME ability modifier you used for the attack roll (FUE, DES, INT, or SAB)
+- Do NOT add proficiency bonus to damage (only to attack rolls)
+- Example: Merryl with quarterstaff using FUE -1 = 1d6-1 damage (or using DEX +3 = 1d6+3)
+- Example: Ray of Frost does not add ability modifier to damage (spell specific), so just 1d8
 
 **TYPE 2: SAVING THROW SPELLS (Sacred Flame, Fireball, etc.)**
 For these, the target makes a saving throw, so you ONLY provide the damage roll:
@@ -146,16 +165,22 @@ Only provide ONE roll:
 
 **MANDATORY EXAMPLES TO FOLLOW:**
 
-Ray of Frost attack (TYPE 1: attack roll):
+Ray of Frost attack by Merryl (Mago with INT +3, Proficiency +2):
 [
-  {"roller": "Merryl", "rollNotation": "1d20+5", "description": "Tirada de ataque de Rayo de Escarcha", "attackType": "attack_roll"},
-  {"roller": "Merryl", "rollNotation": "1d8", "description": "Tirada de daño de Rayo de Escarcha", "attackType": "attack_roll"}
+  {"roller": "Merryl", "rollNotation": "1d20+5", "description": "Tirada de ataque de Rayo de Escarcha", "attackType": "attack_roll"},  // INT +3 + Proficiency +2 = +5
+  {"roller": "Merryl", "rollNotation": "1d8", "description": "Tirada de daño de Rayo de Escarcha", "attackType": "attack_roll"}  // Ray of Frost doesn't add ability mod
 ]
 
-Mace attack (TYPE 1: attack roll):
+Mace attack by Elara (Clériga with FUE +2, Proficiency +2):
 [
-  {"roller": "Elara", "rollNotation": "1d20+4", "description": "Tirada de ataque con maza", "attackType": "attack_roll"},
-  {"roller": "Elara", "rollNotation": "1d6+2", "description": "Tirada de daño con maza", "attackType": "attack_roll"}
+  {"roller": "Elara", "rollNotation": "1d20+4", "description": "Tirada de ataque con maza", "attackType": "attack_roll"},  // FUE +2 + Proficiency +2 = +4
+  {"roller": "Elara", "rollNotation": "1d6+2", "description": "Tirada de daño con maza", "attackType": "attack_roll"}  // FUE +2 (no proficiency on damage)
+]
+
+Improvised weapon by Merryl (FUE -1, Proficiency +2):
+[
+  {"roller": "Merryl", "rollNotation": "1d20+1", "description": "Tirada de ataque con arma improvisada", "attackType": "attack_roll"},  // FUE -1 + Proficiency +2 = +1
+  {"roller": "Merryl", "rollNotation": "1d4-1", "description": "Tirada de daño con arma improvisada", "attackType": "attack_roll"}  // FUE -1 (no proficiency on damage)
 ]
 
 Healing spell:

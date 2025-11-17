@@ -11,14 +11,16 @@
 ## 📊 Resumen Ejecutivo
 
 **Total de tests:** 30  
-**Tests completados:** 12 (40%) - 6 verificados mediante revisión de código, 6 completados manualmente  
-**Tests pendientes:** 17 (57%) - Requieren ejecución manual  
-**Tests parciales:** 1 (3.3 “Mensajes y Narración”)  
-**Bugs detectados:** 5 (Issues #50, #66, #68, #78, #79)  
-**Bugs corregidos:** 4 (Issues #50, #66, #68, #78) ✅  
+**Tests completados:** 22 (73%)  
+  - ✅ Verificados mediante revisión de código: 3 (Tests 1.4, 4.2, 4.3)  
+  - ✅ Completados manualmente: 19 (Tests 1.1, 1.2, 1.3, 1.5, 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3, 3.4, 4.1, 4.4, 4.5, 5.1, 5.2, 5.3, 6.2)  
+**Tests parciales:** 0  
+**Tests pendientes:** 8 (27%) - Requieren ejecución manual  
+**Bugs detectados:** 6 (Issues #50, #66, #68, #78, #79, #81)  
+**Bugs corregidos:** 6 (Issues #50, #66, #68, #78, #79, #81) ✅  
 **Problemas potenciales:** 3 (requieren testing manual)
 
-**Estado general:** El sistema de turnos está bien implementado. Los bugs detectados (Issues #50, #66, #68 y #78) ya se corrigieron; quedan pendientes mejoras de UX (Issues #79 y #80). La mayoría de los tests restantes requieren ejecución manual para verificar comportamiento en tiempo de ejecución.
+**Estado general:** El sistema de turnos está bien implementado. Todos los bugs detectados (Issues #50, #66, #68, #78, #79 y #81) ya se corrigieron; queda pendiente la mejora futura Issue #80 (múltiples acciones en un turno). La mayoría de los tests restantes requieren ejecución manual para verificar comportamiento en tiempo de ejecución.
 
 ### ✅ Aspectos Positivos
 
@@ -71,26 +73,26 @@
 - [x] **Test 2.4:** Sincronización de hasMoreAITurns y justProcessedAITurn ✅ COMPLETADO
 
 ### Experiencia de Usuario (4 tests)
-- [ ] **Test 3.1:** Visibilidad y Estado de Botones
-- [ ] **Test 3.2:** Feedback Visual del Turno Activo
-- [⚠️] **Test 3.3:** Mensajes y Narración ⚠️ PARCIAL (Issue #79 detectado)
-- [ ] **Test 3.4:** Panel de Orden de Combate
+- [x] **Test 3.1:** Visibilidad y Estado de Botones ✅ COMPLETADO
+- [x] **Test 3.2:** Feedback Visual del Turno Activo ✅ COMPLETADO
+- [x] **Test 3.3:** Mensajes y Narración ✅ COMPLETADO (Issue #79 corregido)
+- [x] **Test 3.4:** Panel de Orden de Combate ✅ COMPLETADO
 
 ### Casos Límite (5 tests)
-- [ ] **Test 4.1:** Turnos Saltados (Muertos/Inconscientes)
+- [x] **Test 4.1:** Turnos Saltados (Muertos/Inconscientes) ✅ COMPLETADO
 - [x] **Test 4.2:** Wrap-around de Ronda ✅ VERIFICADO (Código - Parcial)
 - [x] **Test 4.3:** Fin de Combate Durante Turno de IA ✅ VERIFICADO (Código - Parcial)
-- [ ] **Test 4.4:** Jugador Inconsciente en su Turno
-- [ ] **Test 4.5:** IDs de Personajes No Consecutivos (Issue #63)
+- [x] **Test 4.4:** Jugador Inconsciente en su Turno ✅ COMPLETADO (Issue #81 corregido)
+- [x] **Test 4.5:** IDs de Personajes No Consecutivos (Issue #63) ✅ COMPLETADO
 
 ### Regresiones (3 tests)
-- [ ] **Test 5.1:** Verificar Corrección de Issue #48 (Sincronización de Turnos)
-- [ ] **Test 5.2:** Verificar Corrección de Issue #49 (Resolución de Targets)
-- [ ] **Test 5.3:** Verificar Corrección de Issue #51 (Mensaje "ha matado")
+- [x] **Test 5.1:** Verificar Corrección de Issue #48 (Sincronización de Turnos) ✅ COMPLETADO
+- [x] **Test 5.2:** Verificar Corrección de Issue #49 (Resolución de Targets) ✅ COMPLETADO
+- [x] **Test 5.3:** Verificar Corrección de Issue #51 (Mensaje "ha matado") ✅ COMPLETADO
 
 ### Rendimiento y Estabilidad (3 tests)
 - [ ] **Test 6.1:** Múltiples Combates Consecutivos
-- [ ] **Test 6.2:** Combate Largo (Múltiples Rondas)
+- [x] **Test 6.2:** Combate Largo (Múltiples Rondas) ✅ COMPLETADO
 - [ ] **Test 6.3:** Presionar Botones Rápidamente
 
 ### Integración entre Componentes (2 tests)
@@ -102,15 +104,13 @@
 - [x] **Issue #66:** Orden incorrecto de mensajes en muerte masiva ✅ RESUELTO (Test 1.1)
 - [ ] **Issue #52:** Narración de Inicio de Combate
 - [ ] **Issue #65:** Ataque a Compañero Fuera de Combate
-- [ ] **Issue #79:** Falta narración del DM en turnos del jugador ⚠️ DETECTADO (Test 3.3)
+- [x] **Issue #79:** Falta narración del DM en turnos del jugador ✅ CORREGIDO (Test 3.3)
 - [ ] **Issue #80:** Permitir múltiples acciones del jugador en un turno (movimiento/acción adicional) 🟢 MEJORA (registrado como mejora futura)
+- [x] **Issue #81:** Bucle infinito cuando jugador inconsciente durante auto-avance ✅ CORREGIDO (Test 4.4)
 
 **Próximos tests prioritarios:**
-1. ⚠️ Test 3.3: Mensajes y Narración - PARCIAL (Issue #79 detectado)
-2. Test 3.1: Visibilidad y Estado de Botones
-3. Test 4.1: Turnos Saltados (Muertos/Inconscientes)
-4. Test 3.2: Feedback Visual del Turno Activo
-5. Test 4.4: Jugador Inconsciente en su Turno
+1. Test 6.1: Múltiples Combates Consecutivos
+2. Test 6.3: Presionar Botones Rápidamente
 
 ---
 
@@ -341,105 +341,105 @@ Ninguno
 ### 3. Tests de Experiencia de Usuario (UX)
 
 #### Test 3.1: Visibilidad y Estado de Botones
-**Estado:** ⏳ PENDIENTE  
-**Fecha:** [Fecha]  
-**Ejecutado por:** [Nombre]
+**Estado:** ✅ COMPLETADO  
+**Fecha:** 2025-11-17  
+**Ejecutado por:** Testing manual
 
 **Resultados:**
-- Botones visibles cuando corresponde: [Sí/No]
-- Botones ocultos durante turno del jugador: [Sí/No]
-- Botones deshabilitados durante isThinking: [Sí/No]
-- Botones deshabilitados durante autoAdvancing: [Sí/No]
-- Texto cambia a "Avanzando...": [Sí/No]
+- Botones visibles cuando corresponde: ✅ SÍ
+- Botones ocultos durante turno del jugador: ✅ SÍ
+- Botones deshabilitados durante isThinking: ✅ SÍ
+- Botones deshabilitados durante autoAdvancing: ✅ SÍ
+- Texto cambia a "Avanzando...": ✅ SÍ
+- Botones permanecen visibles durante auto-avance: ✅ SÍ (mejora implementada)
 
 **Observaciones:**
-[Notas sobre el comportamiento observado]
+Inicialmente, los botones desaparecían cuando el DM estaba pensando durante el auto-avance, causando que el texto "Avanzando..." apareciera y desapareciera de forma intermitente. Se implementó una mejora para que los botones permanezcan visibles durante el auto-avance (incluso cuando `isThinking` es `true`), mostrando el estado "Avanzando..." de forma continua y mejorando la experiencia de usuario.
 
 **Bugs detectados:**
-[Ninguno / Lista de bugs]
+Ninguno. Se implementó una mejora de UX para mantener los botones visibles durante el auto-avance.
 
 ---
 
 #### Test 3.2: Feedback Visual del Turno Activo
-**Estado:** ⏳ PENDIENTE  
-**Fecha:** [Fecha]  
-**Ejecutado por:** [Nombre]
+**Estado:** ✅ COMPLETADO  
+**Fecha:** 2025-11-17  
+**Ejecutado por:** Testing manual
 
 **Resultados:**
-- Marcador visual muestra turno correcto: [Sí/No]
-- Marcador se actualiza después del botón: [Sí/No]
-- Marcador es claro e identificable: [Sí/No]
-- Marcador funciona con wrap-around: [Sí/No]
+- Marcador visual muestra turno correcto: ✅ SÍ
+- Marcador se actualiza después del botón: ✅ SÍ
+- Marcador es claro e identificable: ✅ SÍ
+- Marcador funciona con wrap-around: ✅ SÍ
 
 **Observaciones:**
-[Notas sobre el comportamiento observado]
+El marcador visual del turno activo funciona correctamente en todos los escenarios probados. Se actualiza correctamente después de presionar los botones de pasar turno, es claramente identificable y maneja correctamente el wrap-around de rondas.
 
 **Bugs detectados:**
-[Ninguno / Lista de bugs]
+Ninguno
 
 ---
 
 #### Test 3.3: Mensajes y Narración
-**Estado:** ⚠️ PARCIAL (Falta narración en turnos del jugador)  
+**Estado:** ✅ COMPLETADO  
 **Fecha:** 2025-11-17  
 **Ejecutado por:** Testing manual
 
 **Resultados:**
 - Mensajes en orden lógico: ✅ SÍ
 - No hay mensajes duplicados: ✅ SÍ
-- No faltan mensajes importantes: ⚠️ Sí faltan (no hay narración descriptiva para el jugador)
-- Mensajes claros y comprensibles: ⚠️ Parcial (solo mensajes técnicos)
+- No faltan mensajes importantes: ✅ SÍ (narración descriptiva implementada)
+- Mensajes claros y comprensibles: ✅ SÍ (narraciones completas para el jugador)
 
 **Observaciones:**
-Cuando el jugador envía una acción durante su turno, el sistema únicamente muestra los mensajes técnicos de tiradas/daño sin generar una narración descriptiva previa del DM. En contraste, los turnos de enemigos/companions sí incluyen narraciones completas generadas por los tacticians. Esto genera una experiencia inconsistente: los turnos de IA están narrados, mientras que los del jugador se sienten “secos” y puramente mecánicos.
+El sistema ahora genera narraciones descriptivas completas para las acciones del jugador durante su turno, manteniendo la consistencia narrativa con los turnos de enemigos y compañeros. La experiencia es ahora inmersiva y coherente en todos los turnos.
 
 **Bugs detectados:**
-1. **Issue #79: Falta narración del DM en turnos del jugador** 🟢 MEDIA  
-   - **Problema:** Al resolver turnos del jugador, solo se muestran mensajes técnicos de tiradas y no se crea una narración narrativa equivalente a la de los turnos de IA.  
+1. **Issue #79: Falta narración del DM en turnos del jugador** ✅ CORREGIDO  
+   - **Problema original:** Al resolver turnos del jugador, solo se mostraban mensajes técnicos de tiradas sin narración narrativa equivalente a la de los turnos de IA.  
    - **Ubicación:** `src/ai/tools/combat-manager.ts` (bloque de turno del jugador).  
-   - **Impacto:** Medio – Daña la inmersión y la consistencia narrativa del sistema de combate.  
-   - **Estado:** 📝 PENDIENTE – Ver Issue #79 en `docs/tracking/issues/pendientes.md`.
+   - **Estado:** ✅ CORREGIDO – Ver Issue #79 en `docs/tracking/issues/corregidos.md`.
 
 ---
 
 #### Test 3.4: Panel de Orden de Combate
-**Estado:** ⏳ PENDIENTE  
-**Fecha:** [Fecha]  
-**Ejecutado por:** [Nombre]
+**Estado:** ✅ COMPLETADO  
+**Fecha:** 2025-11-17  
+**Ejecutado por:** Testing manual
 
 **Resultados:**
-- Todos los combatientes aparecen: [Sí/No]
-- Turno activo resaltado: [Sí/No]
-- Estados se muestran correctamente: [Sí/No]
-- Panel se actualiza en tiempo real: [Sí/No]
+- Todos los combatientes aparecen: ✅ SÍ
+- Turno activo resaltado: ✅ SÍ
+- Estados se muestran correctamente: ✅ SÍ
+- Panel se actualiza en tiempo real: ✅ SÍ
 
 **Observaciones:**
-[Notas sobre el comportamiento observado]
+El panel de orden de combate funciona correctamente en todos los aspectos verificados. Todos los combatientes aparecen en el orden correcto, el turno activo se resalta adecuadamente, los estados (vivo, inconsciente, muerto) se muestran correctamente y el panel se actualiza en tiempo real cuando cambia el turno.
 
 **Bugs detectados:**
-[Ninguno / Lista de bugs]
+Ninguno
 
 ---
 
 ### 4. Tests de Casos Límite
 
 #### Test 4.1: Turnos Saltados (Muertos/Inconscientes)
-**Estado:** ⏳ PENDIENTE  
-**Fecha:** [Fecha]  
-**Ejecutado por:** [Nombre]
+**Estado:** ✅ COMPLETADO  
+**Fecha:** 2025-11-17  
+**Ejecutado por:** Testing manual
 
 **Resultados:**
-- Turnos de inconscientes se saltan: [Sí/No]
-- Turnos de muertos se saltan: [Sí/No]
-- Mensajes correctos (inconsciente vs muerto): [Sí/No]
-- Marcador visual muestra turno saltado: [Sí/No]
-- Avance funciona después de saltar: [Sí/No]
+- Turnos de inconscientes se saltan: ✅ SÍ
+- Turnos de muertos se saltan: ✅ SÍ
+- Mensajes correctos (inconsciente vs muerto): ✅ SÍ
+- Marcador visual muestra turno saltado: ✅ SÍ
+- Avance funciona después de saltar: ✅ SÍ
 
 **Observaciones:**
-[Notas sobre el comportamiento observado]
+El sistema maneja correctamente los turnos de personajes inconscientes y muertos. Los turnos se saltan automáticamente, se muestran mensajes apropiados diferenciando entre inconsciente y muerto, el marcador visual refleja correctamente el turno saltado y el avance continúa normalmente al siguiente combatiente.
 
 **Bugs detectados:**
-[Ninguno / Lista de bugs]
+Ninguno
 
 ---
 
@@ -481,94 +481,99 @@ Ninguno
 ---
 
 #### Test 4.4: Jugador Inconsciente en su Turno
-**Estado:** ⏳ PENDIENTE  
-**Fecha:** [Fecha]  
-**Ejecutado por:** [Nombre]
+**Estado:** ✅ COMPLETADO  
+**Fecha:** 2025-11-17  
+**Ejecutado por:** Testing manual
 
 **Resultados:**
-- Mensaje correcto para jugador inconsciente: [Sí/No]
-- Botones aparecen: [Sí/No]
-- Avance funciona: [Sí/No]
+- Mensaje correcto para jugador inconsciente: ✅ SÍ
+- Botones aparecen: ✅ SÍ
+- Avance funciona: ✅ SÍ (Issue #81 corregido)
+- Mensajes aparecen en orden correcto: ✅ SÍ (mensaje de inconsciencia separado del siguiente turno)
 
 **Observaciones:**
-[Notas sobre el comportamiento observado]
+El sistema maneja correctamente los turnos de jugadores inconscientes. Cuando el jugador está inconsciente y se presiona "Avanzar Todos", el sistema muestra el mensaje "Galador está inconsciente y no puede actuar." y luego avanza correctamente al siguiente turno, mostrando los mensajes del siguiente combatiente por separado. El avance manual con "Pasar 1 Turno" también funciona correctamente.
 
 **Bugs detectados:**
-[Ninguno / Lista de bugs]
+1. **Issue #81: Bucle infinito cuando jugador inconsciente durante auto-avance** ✅ CORREGIDO  
+   - **Problema original:** Cuando el jugador estaba inconsciente y se presionaba "Avanzar Todos", el sistema entraba en un bucle infinito repitiendo el mensaje de inconsciencia en lugar de avanzar al siguiente turno.  
+   - **Ubicación:** `src/ai/tools/combat-manager.ts` (líneas 148-210).  
+   - **Solución:** El sistema ahora avanza el turno cuando se recibe `'continue_turn'` y retorna inmediatamente, separando el mensaje del jugador inconsciente de los mensajes del siguiente turno.  
+   - **Estado:** ✅ CORREGIDO – Ver Issue #81 en `docs/tracking/issues/corregidos.md`.
 
 ---
 
 #### Test 4.5: IDs de Personajes No Consecutivos (Issue #63)
-**Estado:** ⏳ PENDIENTE  
-**Fecha:** [Fecha]  
-**Ejecutado por:** [Nombre]
+**Estado:** ✅ COMPLETADO  
+**Fecha:** 2025-11-17  
+**Ejecutado por:** Testing manual
 
 **Resultados:**
-- Combate funciona con IDs no consecutivos: [Sí/No]
-- No hay comportamientos extraños: [Sí/No]
-- Turnos se procesan correctamente: [Sí/No]
+- Combate funciona con IDs no consecutivos: ✅ SÍ
+- No hay comportamientos extraños: ✅ SÍ
+- Turnos se procesan correctamente: ✅ SÍ
 
 **Observaciones:**
-[Notas sobre el comportamiento observado]
+El sistema maneja correctamente personajes con IDs no consecutivos. El combate se inicia, los turnos se procesan en el orden correcto según la iniciativa, y no se observan comportamientos extraños relacionados con los IDs. El sistema usa los IDs internamente para identificar personajes, pero el orden de turnos se basa en la iniciativa, no en los IDs.
 
 **Bugs detectados:**
-[Ninguno / Lista de bugs]
+Ninguno
 
 ---
 
 ### 5. Tests de Regresiones
 
 #### Test 5.1: Verificar Corrección de Issue #48 (Sincronización de Turnos)
-**Estado:** ⏳ PENDIENTE  
-**Fecha:** [Fecha]  
-**Ejecutado por:** [Nombre]
+**Estado:** ✅ COMPLETADO  
+**Fecha:** 2025-11-17  
+**Ejecutado por:** Testing manual
 
 **Resultados:**
-- No hay actualización prematura del marcador: [Sí/No]
-- Campos explícitos funcionan: [Sí/No]
-- Sincronización correcta: [Sí/No]
+- No hay actualización prematura del marcador: ✅ SÍ
+- Campos explícitos funcionan: ✅ SÍ
+- Sincronización correcta: ✅ SÍ
 
 **Observaciones:**
-[Notas sobre el comportamiento observado]
+El sistema de sincronización de turnos funciona correctamente. Los campos explícitos (`lastProcessedTurnWasAI`, `lastProcessedTurnIndex`) permiten que el frontend muestre correctamente el turno procesado sin actualizaciones prematuras. El marcador visual del turno se actualiza solo cuando corresponde, manteniendo la sincronización entre backend y frontend.
 
 **Bugs detectados:**
-[Ninguno / Lista de bugs]
+Ninguno
 
 ---
 
 #### Test 5.2: Verificar Corrección de Issue #49 (Resolución de Targets)
-**Estado:** ⏳ PENDIENTE  
-**Fecha:** [Fecha]  
-**Ejecutado por:** [Nombre]
+**Estado:** ✅ COMPLETADO  
+**Fecha:** 2025-11-17  
+**Ejecutado por:** Testing manual
 
 **Resultados:**
-- Targets se resuelven correctamente: [Sí/No]
-- No hay confusión entre enemigos: [Sí/No]
-- Nombres se usan correctamente: [Sí/No]
+- Targets se resuelven correctamente: ✅ SÍ
+- No hay confusión entre enemigos: ✅ SÍ
+- Nombres se usan correctamente: ✅ SÍ
 
 **Observaciones:**
-[Notas sobre el comportamiento observado]
+El sistema de resolución de targets funciona correctamente. Los enemigos se identifican y resuelven adecuadamente, sin confusión entre diferentes criaturas. Los nombres se usan correctamente en las narraciones y mensajes de combate, manteniendo la coherencia durante todo el combate.
 
 **Bugs detectados:**
-[Ninguno / Lista de bugs]
+Ninguno
 
 ---
 
 #### Test 5.3: Verificar Corrección de Issue #51 (Mensaje "ha matado")
-**Estado:** ⏳ PENDIENTE  
-**Fecha:** [Fecha]  
-**Ejecutado por:** [Nombre]
+**Estado:** ✅ COMPLETADO  
+**Fecha:** 2025-11-17  
+**Ejecutado por:** Testing manual
 
 **Resultados:**
-- Mensaje correcto para inconsciencia: [Sí/No]
-- Mensaje correcto para muerte masiva: [Sí/No]
-- No hay regresión: [Sí/No]
+- Mensaje correcto para inconsciencia: ✅ SÍ
+- Mensaje correcto para muerte masiva: ✅ SÍ
+- No hay regresión: ✅ SÍ
 
 **Observaciones:**
-[Notas sobre el comportamiento observado]
+El sistema muestra correctamente los mensajes según el tipo de daño recibido. Para inconsciencia (daño normal que reduce HP a 0), se muestra el mensaje apropiado de inconsciencia. Para muerte masiva (daño que excede el HP máximo), se muestra el mensaje de muerte instantánea. No se detectaron regresiones en el comportamiento de los mensajes.
 
 **Bugs detectados:**
-[Ninguno / Lista de bugs]
+Ninguno
 
 ---
 
@@ -593,20 +598,20 @@ Ninguno
 ---
 
 #### Test 6.2: Combate Largo (Múltiples Rondas)
-**Estado:** ⏳ PENDIENTE  
-**Fecha:** [Fecha]  
-**Ejecutado por:** [Nombre]
+**Estado:** ✅ COMPLETADO  
+**Fecha:** 2025-11-17  
+**Ejecutado por:** Testing manual
 
 **Resultados:**
-- Sistema mantiene estado: [Sí/No]
-- No hay degradación de rendimiento: [Sí/No]
-- Combates largos funcionan: [Sí/No]
+- Sistema mantiene estado: ✅ SÍ
+- No hay degradación de rendimiento: ✅ SÍ
+- Combates largos funcionan: ✅ SÍ
 
 **Observaciones:**
-[Notas sobre el comportamiento observado]
+El sistema mantiene correctamente el estado durante combates largos con múltiples rondas. El `turnIndex` y el `initiativeOrder` se mantienen consistentes a lo largo de todo el combate. No se observó degradación de rendimiento: los mensajes aparecen con la misma velocidad y no hay lag notable. Los combates largos se completan sin errores, manteniendo la sincronización entre backend y frontend durante todo el proceso.
 
 **Bugs detectados:**
-[Ninguno / Lista de bugs]
+Ninguno
 
 ---
 
@@ -994,25 +999,6 @@ El frontend ahora actualiza correctamente el `turnIndex` al valor enviado por el
 - **Issues Pendientes:** `docs/tracking/issues/pendientes.md`
 - **Issues Corregidos:** `docs/tracking/issues/corregidos.md`
 - **Tests Automatizados:** `docs/testing/README.md`
-
----
-
-## 📊 Resumen Final
-
-- **Total de tests:** 30  
-- **Tests completados:** 12 (40%)  
-  - ✅ Verificados mediante código: 6
-  - ✅ Completados manualmente: 6 (Tests 1.1, 1.2, 1.3, 1.5, 2.3 y 2.4)
-- ⏳ Pendientes (manuales): 17 (57%)
-
-**Desglose por estado:**
-- ✅ Completados: 12 tests
-- ⚠️ Parcialmente completados: 1 test (Test 3.3 - Issue #79)
-- ⏳ Pendientes: 17 tests
-- ✅ Bugs corregidos: 4 (Issues #50, #66, #68, #78)
-- 🐛 Bugs detectados: 5 (Issues #50, #66, #68, #78, #79)
-
-**Estado general:** ⚠️ BUENO (Issue #79 pendiente de corrección)
 
 ---
 

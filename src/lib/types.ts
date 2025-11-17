@@ -19,12 +19,18 @@ export interface GameMessage {
 
 export type DiceRollOutcome = 'crit' | 'success' | 'fail' | 'pifia' | 'neutral' | 'initiative';
 
+export interface DiceRollModifier {
+  value: number;
+  label: string; // e.g., "FUE", "BC", "INT"
+}
+
 export interface DiceRoll {
   id: string;
   roller: string; // Character name or "DM"
   rollNotation: string; // e.g. "1d20", "2d6"
   individualRolls: number[];
   modifier?: number;
+  modifiers?: DiceRollModifier[]; // Breakdown of individual modifiers (e.g., [{value: 3, label: "INT"}, {value: 2, label: "BC"}])
   totalResult: number;
   outcome: DiceRollOutcome;
   timestamp: Date;

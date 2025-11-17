@@ -160,8 +160,19 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
             </p>
             {showBreakdown ? (
                 <p className="text-xs font-mono text-muted-foreground text-right leading-tight">
-                    ({roll.individualRolls.join('+')})
-                    {roll.modifier !== undefined ? (roll.modifier >= 0 ? `+${roll.modifier}`: `${roll.modifier}`) : ''}
+                    {roll.modifiers && roll.modifiers.length > 0 ? (
+                        // Show sum of dice result + modifiers without spaces or labels
+                        `${roll.individualRolls.reduce((sum, roll) => sum + roll, 0)}${roll.modifiers.map(mod => mod.value >= 0 ? `+${mod.value}` : `${mod.value}`).join('')}`
+                    ) : (
+                        // Fallback: use same format without spaces for consistency
+                        (() => {
+                            const diceSum = roll.individualRolls.reduce((sum, roll) => sum + roll, 0);
+                            const modifierStr = roll.modifier !== undefined 
+                                ? (roll.modifier >= 0 ? `+${roll.modifier}` : `${roll.modifier}`)
+                                : '';
+                            return `${diceSum}${modifierStr}`;
+                        })()
+                    )}
                 </p>
             ) : null}
         </div>

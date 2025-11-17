@@ -60,6 +60,59 @@ export function getCriticalDamageNotation(rollNotation: string, isCritical: bool
 }
 
 /**
+ * Updates a dice roll's notation to show individual modifiers instead of a single sum.
+ * This function works for player characters, companions, and enemies.
+ * 
+ * @param roll - The dice roll to update (will be modified in place)
+ * @param character - Character data with abilityModifiers and proficiencyBonus
+ * @param isAttackRoll - Whether this is an attack roll (includes proficiency bonus) or damage roll (doesn't)
+ */
+export function updateRollNotationWithModifiers(
+    roll: DiceRoll,
+    character: any,
+    isAttackRoll: boolean = false
+): void {
+    if (!character || !character.abilityModifiers || character.proficiencyBonus === undefined) {
+        return; // Can't update without character data
+    }
+    
+    const strMod = character.abilityModifiers.fuerza || 0;
+    const dexMod = character.abilityModifiers.destreza || 0;
+    const abilityMod = Math.max(strMod, dexMod);
+    const proficiencyBonus = character.proficiencyBonus ?? 2;
+    
+    // Parse the original rollNotation to extract base dice (e.g., "1d20" or "1d8")
+    const diceMatch = roll.rollNotation.match(/^(\d+d\d+)/);
+    if (!diceMatch) {
+        return; // Can't parse, return as-is
+    }
+    
+    const baseDice = diceMatch[1];
+    const modifiers: Array<{ value: number; label: string }> = [];
+    
+    if (isAttackRoll) {
+        // Attack roll: ability modifier + proficiency bonus
+        modifiers.push(
+            { value: abilityMod, label: abilityMod === strMod ? 'FUE' : 'DES' },
+            { value: proficiencyBonus, label: 'BC' }
+        );
+        
+        const abilityStr = abilityMod >= 0 ? `+${abilityMod}` : `${abilityMod}`;
+        const profStr = proficiencyBonus >= 0 ? `+${proficiencyBonus}` : `${proficiencyBonus}`;
+        roll.rollNotation = `${baseDice}${abilityStr}${profStr}`;
+    } else {
+        // Damage roll: only ability modifier (no proficiency)
+        if (abilityMod !== 0) {
+            modifiers.push({ value: abilityMod, label: abilityMod === strMod ? 'FUE' : 'DES' });
+            const abilityStr = abilityMod >= 0 ? `+${abilityMod}` : `${abilityMod}`;
+            roll.rollNotation = `${baseDice}${abilityStr}`;
+        }
+    }
+    
+    roll.modifiers = modifiers;
+}
+
+/**
  * Result of processing AI combatant rolls
  */
 export interface ProcessAICombatantRollsResult {
@@ -170,6 +223,17 @@ export async function processAICombatantRolls(
                     ? `${rollRequest.description} (crítico)`
                     : rollRequest.description,
             };
+            
+            // Try to find character data for companions to update notation with modifiers
+            const isAttackRoll = rollDescription.includes('attack') || rollDescription.includes('ataque');
+            const companionChar = initialParty.find(p => p.id === activeCombatant.id);
+            if (companionChar) {
+                // This is a companion, update notation with modifiers
+                updateRollNotationWithModifiers(roll, companionChar, isAttackRoll);
+            }
+            // Note: For enemies, we don't have structured character data with abilityModifiers/proficiencyBonus,
+            // so we can't break down modifiers. The AI should generate the correct notation, but if not, it will show as-is
+            
             diceRolls.push(roll);
 
             // Extract attackType from rollData (provided by AI tactician)

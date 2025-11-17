@@ -81,7 +81,54 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   **Solución:** Implementar un sistema para que la IA resuma y almacene los eventos y decisiones más importantes en una base de datos persistente. Este resumen se añadiría al contexto de la IA en futuras sesiones.
     *   **Impacto:** Aumentaría la coherencia y la continuidad de la narrativa a lo largo de una campaña.
 
-### 7. Refactorización del Módulo `combat-manager.ts` (Prioridad Alta) ⏸️ **PARCIALMENTE COMPLETADO**
+*   **Mejora Propuesta: Tool de Resumen de Contexto de Combate**
+    *   **Problema Actual:** Las narraciones de combate (especialmente las generadas por `combat-narration-expert`) no tienen contexto sobre el estado actual del combate, eventos recientes, o el estado de salud de los combatientes. Esto limita la capacidad de generar narraciones coherentes y contextualmente relevantes.
+    *   **Mejora Propuesta:**
+        *   **Crear `combat-context-summarizer.ts`:** Un nuevo tool especializado que analice el historial del combate y genere un resumen estructurado del contexto.
+        *   **Resumen Estructurado:** El tool generaría un resumen que incluya:
+            *   Estado actual de la batalla (ubicación, número de combatientes)
+            *   Estado de salud de aliados y enemigos (saludable, herido, gravemente herido)
+            *   Eventos recientes importantes (muertes, KOs, críticos, pifias)
+            *   Flujo narrativo del combate (quién ha atacado a quién, tendencias)
+        *   **Integración con Narración:** Este resumen se pasaría a `combat-narration-expert` como contexto, permitiendo generar narraciones que:
+            *   Referencien eventos recientes de forma coherente
+            *   Ajusten el tono según el estado del combate (urgente si aliados heridos, confiado si ganando)
+            *   Mantengan continuidad narrativa entre turnos
+        *   **Reutilizable:** El tool podría usarse también para otros sistemas que necesiten contexto de combate (tácticas de IA, reacciones de compañeros, etc.)
+    *   **Impacto:** Mejora significativa en la calidad y coherencia de las narraciones de combate, aumentando la inmersión y haciendo que cada acción se sienta parte de un flujo narrativo continuo.
+    *   **Relacionado con:** Issue #79 (Narraciones de combate para turnos del jugador)
+
+*   **Mejora Propuesta: Narración Unificada para Todos los Turnos**
+    *   **Problema Actual:** Solo el turno del jugador utiliza `combat-narration-expert`. Los tacticians (`enemyTacticianTool` y `companionTacticianTool`) generan narraciones de intención por su cuenta y no cuentan con narración de resolución, lo que produce diferencias de estilo y calidad narrativa entre turnos.
+    *   **Mejora Propuesta:**
+        *   **Extender `combat-narration-expert`:** Adaptar el tool para manejar tanto narraciones de intención (antes de las tiradas) como de resolución (después de aplicar resultados).
+        *   **Integración con Tacticians:** Los tacticians se enfocarían únicamente en decidir la acción táctica (target, tiradas necesarias), delegando toda narración en `combat-narration-expert`.
+        *   **Narrativa Consistente:** Garantizar que enemigos, compañeros y jugador compartan el mismo tono narrativo, reglas de estilo y uso del contexto (incluyendo el resumen generado por `combat-context-summarizer`).
+        *   **Hooks de Intención/Resolución:** Definir dos entradas claras para el tool (pre-roll / post-roll) para permitir que IA y jugador compartan narraciones cohesivas en ambos momentos del turno.
+    *   **Impacto:** Consistencia narrativa total en el combate, reducción de lógica duplicada en tacticians y posibilidad de aplicar mejoras de narración (como el contexto resumido) a todos los turnos por igual.
+    *   **Relacionado con:** Issue #79 (Narraciones de combate para turnos del jugador) y refactorización futura de `enemyTacticianTool` / `companionTacticianTool`.
+
+### 7. Separación de IDs de Fichas de Personajes
+*   **Problema Actual:** Las fichas de personajes (`new-game-data.ts`) incluyen IDs hardcodeados (ej: `id: "1"`, `id: "6"`, `id: "3"`). Esto mezcla datos de ficha (stats, habilidades, inventario) con metadatos del sistema (IDs para identificación interna). Las fichas deberían ser datos puros y portables, mientras que los IDs son una necesidad interna del procesamiento del juego.
+*   **Mejora Propuesta:**
+    *   **Separación de Responsabilidades:** Crear una distinción clara entre `CharacterSheet` (ficha pura sin IDs) y `Character` (personaje en juego con ID generado).
+    *   **Sistema de Generación Automática de IDs:** Implementar un sistema que genere IDs automáticamente al cargar/crear personajes desde fichas. Los IDs podrían ser:
+        *   UUIDs únicos para máxima garantía de unicidad
+        *   Hashes basados en nombre + timestamp para IDs determinísticos pero únicos
+        *   IDs secuenciales generados por el sistema al inicializar
+    *   **Fichas Portables:** Las fichas serían archivos JSON puros con solo datos del personaje, sin dependencias de IDs específicos del sistema.
+    *   **Compatibilidad Gradual:** Mantener soporte para fichas con IDs existentes durante la transición, generando IDs automáticamente si faltan.
+*   **Ventajas:**
+    *   **Fichas más puras:** Solo contienen datos del personaje (stats, habilidades, inventario)
+    *   **Portabilidad:** Las fichas son reutilizables sin depender de IDs específicos
+    *   **Menos errores:** Evita IDs duplicados o inconsistentes
+    *   **Mantenibilidad:** Los IDs se gestionan en un solo lugar
+    *   **Flexibilidad:** Permite cambiar el sistema de IDs sin tocar las fichas
+*   **Impacto:** Mejora significativa de la arquitectura del código, facilita el mantenimiento y la portabilidad de fichas, y reduce la posibilidad de errores relacionados con IDs inconsistentes.
+*   **Contexto:** Detectado durante Test 4.5 (IDs de Personajes No Consecutivos) al analizar la estructura de datos de personajes.
+*   **Estado:** 📝 Documentado como mejora futura - No implementado
+
+### 8. Refactorización del Módulo `combat-manager.ts` (Prioridad Alta) ⏸️ **PARCIALMENTE COMPLETADO**
 *   **Estado Actual:** Fases 1-2 completadas (54.6% de reducción), Fase 3 pausada (opcional)
 *   **Resultados Alcanzados:**
     *   ✅ Reducción de código: 2723 → 1235 líneas (54.6% de reducción)
@@ -100,7 +147,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   [Issues Tracker - Issue #21](../tracking/issues/pendientes.md#issue-21-código-duplicado-en-combat-managerts-para-procesamiento-de-rolls-deuda-técnica)
     *   [Issues Tracker - Issue #16](../tracking/issues/pendientes.md#issue-16-gestión-de-nombres-de-múltiples-monstruos-debería-estar-en-un-módulo-separado)
 
-### 8. Mejoras de Mecánicas de D&D 5e
+### 9. Mejoras de Mecánicas de D&D 5e
 *   **Estado Actual:** El sistema implementa las mecánicas básicas de D&D 5e, pero algunas reglas avanzadas están simplificadas o pendientes.
 *   **Mejoras Propuestas:**
     *   **Sistema Completo de Saving Throws:** Actualmente los hechizos con saving throws aplican daño automáticamente. Implementar cálculo de Spell Save DC, tirada de salvación del objetivo, y regla de mitad de daño si acierta.
@@ -129,7 +176,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   [Issues Tracker - Issue #22](../tracking/issues/pendientes.md#issue-22-sistema-completo-de-saving-throws-tiradas-de-salvación-del-objetivo-feature-incompleta)
     *   [Notas de Gael - #04, #10, #12, #13, #23, #24, #25, #26, #27, #36, #37, #38, #40, #45, #53, #68, #70, #71, #72](../notas/Notas%20de%20Gael.md)
 
-### 9. Convertidor de PDF a JSON - Aplicación Auxiliar
+### 10. Convertidor de PDF a JSON - Aplicación Auxiliar
 *   **Problema Actual:** Añadir nuevas aventuras al juego requiere crear manualmente archivos JSON con una estructura específica, lo cual es tedioso y propenso a errores. Los usuarios que tienen aventuras en formato PDF no pueden usarlas directamente.
 *   **Mejora Propuesta:**
     *   **Aplicación Auxiliar Independiente:** Crear una aplicación CLI (y futuramente web) que analice PDFs de aventuras de D&D y los convierta automáticamente en JSON compatible con el juego.
@@ -143,7 +190,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   **Accesibilidad:** Permite a usuarios usar aventuras oficiales o homebrew en formato PDF
 *   **Documentación:** Ver [Plan de Desarrollo: Convertidor de PDF a JSON](../planes-desarrollo/sin-comenzar/pdf-to-json-converter.md)
 
-### 10. Música y Sonido Dinámicos
+### 11. Música y Sonido Dinámicos
 *   **Problema Actual:** La experiencia de juego es silenciosa, careciendo de un fondo sonoro que ayude a la inmersión.
 *   **Mejora Propuesta:**
     *   Integrar un reproductor de audio que pueda cambiar la pista musical dinámicamente según el estado del juego (exploración, combate, localización específica).
@@ -156,7 +203,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 
 Mejoras de calidad de vida y características adicionales que mejoran la experiencia pero no son esenciales.
 
-### 11. Mejoras de Interfaz de Usuario
+### 12. Mejoras de Interfaz de Usuario
 *   **Mejoras Propuestas:**
     *   **Mejorar Input del Jugador Durante su Turno:** Cuando es el turno del jugador, el input debería mostrar "Es tu turno ¿Qué haces?" y posiblemente sugerir acciones disponibles (atacar, moverse, usar objeto, lanzar hechizo).
     *   **Mostrar Nombre de la Aventura:** La ventana del juego debería mostrar el nombre de la aventura que se está jugando en la barra superior/header.
@@ -171,7 +218,7 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
 *   **Impacto:** Mejoras de calidad de vida que mejoran la experiencia del usuario y la usabilidad de la interfaz.
 *   **Referencia:** [Notas de Gael - #08, #09, #14, #16, #57, #58, #59, #60, #61, #66](../notas/Notas%20de%20Gael.md)
 
-### 12. Mejoras de Sistema de Personajes y Compañeros
+### 13. Mejoras de Sistema de Personajes y Compañeros
 *   **Mejoras Propuestas:**
     *   **Editor de Party Inicial en Archivo JSON:** Mientras no hay editor y gestión de personajes, poder modificar la party inicial fácilmente en un archivo JSON. Facilitaría la configuración inicial de la partida sin necesidad de herramientas adicionales.
     *   **Sistema de Voces para Compañeros:** Mejorar el sistema de lectura para que los compañeros también pudiesen hablar y definir a cada uno una voz característica basada en su personalidad, sexo, raza, etc.
@@ -182,7 +229,7 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
 *   **Impacto:** Mejora la interacción con compañeros y la gestión de personajes.
 *   **Referencia:** [Notas de Gael - #39, #42, #54, #56, #67, #73](../notas/Notas%20de%20Gael.md)
 
-### 13. Mejoras de Sistema de Aventuras y Datos
+### 14. Mejoras de Sistema de Aventuras y Datos
 *   **Mejoras Propuestas:**
     *   **Mejorar Generación de Introducciones:** Revisar la creación de introducciones para aventuras cargadas desde JSON que no traen una intro definida. La IA debería generar una introducción contextual y atractiva.
     *   **Cache de Parseo de Aventuras JSON:** El parseo de aventuras de JSON_adventures debería guardarse en caché para cargas más rápidas. Implementar sistema de verificación de si el parseo está actualizado (comparar fecha de modificación del JSON).
@@ -192,7 +239,7 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
 *   **Impacto:** Mejora la gestión de aventuras y datos del juego.
 *   **Referencia:** [Notas de Gael - #07, #15, #43, #55, #74](../notas/Notas%20de%20Gael.md)
 
-### 14. Mejoras de Calidad y Pulido
+### 15. Mejoras de Calidad y Pulido
 *   **Mejoras Propuestas:**
     *   **Corrección Ortográfica de IA y Jugador:** Implementar corrección ortográfica para texto generado por las IAs y texto ingresado por el jugador (opcional, ayuda). Podría usar API de corrección o modelo de lenguaje.
     *   **Cambiar Nivel de Log para Fallos de API de D&D:** En los logs habría que cambiar que cuando falla el fetching de la API de D&D en vez de error sea un warning. Los fallos de API son esperables y no deberían tratarse como errores críticos si hay sistema de fallback.
@@ -201,11 +248,11 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
 *   **Impacto:** Mejoras de calidad y pulido que mejoran la experiencia general del juego.
 *   **Referencia:** [Notas de Gael - #11, #19, #41, #62](../notas/Notas%20de%20Gael.md)
 
-### 15. Comandos de Voz
+### 16. Comandos de Voz
 *   **Mejora Propuesta:** Integrar la API de Reconocimiento de Voz del navegador (`SpeechRecognition`) para añadir un botón de "dictar" en la interfaz.
 *   **Impacto:** Aumentaría la accesibilidad y ofrecería una forma más rápida e inmersiva de interactuar, acercándose a la experiencia de una partida de rol de mesa.
 
-### 16. Automatización del Versionado y Changelog
+### 17. Automatización del Versionado y Changelog
 *   **Estado Actual:** Se ha implementado un sistema manual para mantener un archivo `CHANGELOG.md`.
 *   **Objetivo Futuro:** Automatizar la actualización del `CHANGELOG.md` al cambiar la versión en `package.json`.
 *   **Impacto:** Es una mejora de calidad de vida para el desarrollador, sin impacto directo en la experiencia del jugador.

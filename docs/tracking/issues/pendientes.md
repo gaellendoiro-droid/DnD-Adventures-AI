@@ -3,15 +3,13 @@
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
 **Total:** 25 issues  
-**Última actualización:** 2025-11-17
+**Última actualización:** 2025-11-17 (Issue #82 agregado)
 
 ---
 
 ## 🔴 Prioridad Muy Alta (PMA) - Críticos
 
 _No hay issues críticos pendientes en este momento._
-
----
 
 ## 🟡 Prioridad Alta (PA) - Advertencias
 
@@ -118,23 +116,6 @@ _No hay issues críticos pendientes en este momento._
 
 ---
 
-### Issue #79: Falta narración del DM en turnos del jugador 🟢 MEJORA
-
-- **Fecha de creación:** 2025-11-17
-- **Ubicación:** `src/ai/tools/combat-manager.ts` (bloque de turno del jugador, líneas ~222-570); `docs/testeo-manual/testeo-sistema-turnos.md`
-- **Severidad:** 🟢 **MEDIA** (afecta consistencia narrativa y UX, pero no bloquea el combate)
-- **Descripción:** Cuando el jugador ejecuta una acción en su turno, el DM solo muestra mensajes técnicos de tiradas y daño (“Galador ataca…”, “Galador ha hecho X puntos…”) sin generar una narración descriptiva como la que sí se produce para turnos de IA (enemigos o companions). Esto rompe la inmersión y deja al jugador sin un relato coherente de sus propias acciones.
-- **Comportamiento esperado:** Después de procesar la acción del jugador, el sistema debería generar una narración (por ejemplo, invocando `narrativeExpert` con el contexto de la acción) antes o junto a los mensajes técnicos, manteniendo la misma calidad narrativa que los turnos de IA.
-- **Contexto:** Detectado durante Test 3.3 (Mensajes y Narración) mientras se ejecutaban acciones del jugador en combate.
-- **Causa raíz (sospechada):** En `combat-manager.ts`, el bloque de turno del jugador solo construye mensajes mecánicos y nunca llama a un generador de narración (a diferencia de los turnos de IA, que utilizan `enemyTacticianTool`/`companionTacticianTool`). Falta una llamada a `narrativeExpert` o un narrador dedicado para las acciones del jugador.
-- **Impacto:** Medio – El jugador percibe que sus acciones son “secas” y sin ambientación, mientras el resto del combate está narrado con detalles, generando inconsistencia y perdiendo valor de UX.
-- **Solución propuesta:**
-  - Tras resolver la tirada/daño del jugador, invocar `narrativeExpert` con los datos de la acción y anexar la narración resultante a los mensajes.
-  - Alternativamente, crear un generador específico para turnos del jugador que emita un resumen descriptivo basado en el resultado de las tiradas.
-- **Estado:** 📝 **PENDIENTE**
-- **Detección:** Testing manual – Test 3.3 (Mensajes y Narración).
-
----
 
 ### Issue #80: Permitir múltiples acciones del jugador en un turno (movimiento/acción adicional) 🟢 MEJORA
 
@@ -281,6 +262,32 @@ _No hay issues críticos pendientes en este momento._
 - **Estimación:** 4-6 horas (si se hace de forma aislada) o incluido en refactorización mayor (31-45 horas)
 - **Estado:** 📝 Pendiente (deuda técnica documentada, será resuelto en refactorización mayor)
 - **Referencia:** [Plan de Refactorización](../../planes-desarrollo/sin-comenzar/refactorizacion-combat-manager.md)
+
+### Issue #82: Unificar sistema de procesamiento de tiradas de dados (jugador, companions, enemigos) (DEUDA TÉCNICA)
+
+- **Fecha de creación:** 2025-11-17
+- **Ubicación:** `src/ai/tools/combat-manager.ts`, `src/ai/tools/combat/dice-roll-processor.ts`
+- **Severidad:** Media (deuda técnica)
+- **Descripción:** Actualmente el procesamiento de tiradas de dados está dividido en dos sistemas diferentes:
+  - **Jugador:** Las tiradas se procesan directamente en `combat-manager.ts` (líneas ~434-540), calculando modificadores manualmente y llamando a `diceRollerTool` directamente
+  - **Companions/Enemigos:** Las tiradas se generan por la IA (tacticians) y luego se procesan en `processAICombatantRolls` en `dice-roll-processor.ts`
+- **Problema:**
+  - Código duplicado para calcular modificadores y actualizar notaciones
+  - Lógica de actualización de `rollNotation` con modificadores desglosados está en dos lugares
+  - Diferencias en cómo se procesan las tiradas pueden llevar a inconsistencias
+  - Mantenimiento más difícil: cambios deben aplicarse en múltiples lugares
+- **Contexto:** 
+  - Se creó la función helper `updateRollNotationWithModifiers` para unificar la actualización de notaciones
+  - Sin embargo, el flujo de procesamiento sigue siendo diferente entre jugador y AI combatants
+- **Impacto:** Medio (afecta mantenibilidad y consistencia)
+- **Solución propuesta:**
+  - **Corto plazo:** Usar la función `updateRollNotationWithModifiers` en todos los casos (ya implementado parcialmente)
+  - **Largo plazo:** Refactorizar para que el jugador también use `processAICombatantRolls` o crear un sistema unificado que maneje los tres casos (jugador, companions, enemigos)
+  - Considerar crear una función `processCombatRoll` genérica que pueda manejar tanto tiradas del jugador como de AI combatants
+- **Prioridad:** Media
+- **Estimación:** 6-8 horas (refactorización completa)
+- **Estado:** 📝 Pendiente (deuda técnica documentada)
+- **Relacionado con:** Issue #21 (código duplicado en combat-manager.ts)
 
 ### Issue #22: Sistema completo de Saving Throws (tiradas de salvación del objetivo) 🟡 FEATURE INCOMPLETA
 

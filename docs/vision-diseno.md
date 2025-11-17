@@ -65,26 +65,13 @@ D&D Adventures AI es una aplicación web que permite jugar partidas de Dungeons 
 - **Sanitización HTML**: Protección contra XSS con DOMPurify
 - **Manejo de Errores**: Sistema robusto de try-catch con mensajes claros al usuario
 
-## 🚧 En Desarrollo / Mejoras Pendientes
+## 🚧 Estado de Desarrollo
 
-### Prioridad Alta
-- **Refactoring de `combat-manager.ts`**: Fases 1-2 completadas (54.6% de reducción), Fase 3 pausada (opcional) - **PARCIALMENTE COMPLETADO**
-- **Sistema de Turnos Paso a Paso**: ✅ **COMPLETADO** - El jugador ahora puede controlar manualmente cada turno con botones "Pasar 1 Turno" y "Avanzar Todos"
-- **Sistema de Progresión**: XP, subida de nivel, mejora de estadísticas
-- **Inicio de Combate Dinámico**: Evaluación automática de hostilidad para iniciar combate cuando las acciones del jugador lo provoquen
-- **Mejora de Fichas de Personaje**: Mejor organización, visualización de estados temporales, pestañas colapsables
+Para ver el estado detallado de planes en desarrollo, completados y pendientes, consulta el [Plan Maestro de Desarrollo](./planes-desarrollo/plan-maestro.md).
 
-### Prioridad Media
-- **Sistema Completo de Saving Throws**: Implementar tiradas de salvación del objetivo y cálculo de Spell Save DC (Issue #22)
-- **Compendio de D&D Local**: Base de datos local con información de monstruos, hechizos y reglas para consultas rápidas
-- **Sistema de Estados y Condiciones**: Gestión de estados temporales (aturdido, envenenado, etc.) y recursos gastados
-- **IA Conversacional Avanzada**: Streaming y reacciones en tiempo real
-- **Convertidor PDF a JSON**: Aplicación auxiliar para convertir aventuras en PDF a JSON
+Para ver las mejoras futuras planificadas organizadas por prioridad, consulta el [Roadmap](./roadmap.md).
 
-### Deuda Técnica Identificada
-- **Issue #21**: ~520 líneas de código duplicado en procesamiento de rolls
-- **Issue #16**: Gestión de nombres de enemigos debería estar en módulo separado
-- **Issue #14**: Mejorar prompts de enemigos para evitar turnos sin acción
+Para ver issues y bugs pendientes, consulta el [Issues Tracker](./tracking/issues/README.md).
 
 ## 🎨 Diseño e Interfaz
 

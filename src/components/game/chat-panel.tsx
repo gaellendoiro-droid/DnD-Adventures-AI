@@ -20,6 +20,8 @@ interface ChatPanelProps {
   hasMoreAITurns?: boolean;
   justProcessedAITurn?: boolean;
   autoAdvancing?: boolean;
+  playerActionCompleted?: boolean;
+  isPlayerTurn?: boolean;
   onPassTurn?: () => void;
   onAdvanceAll?: () => void;
 }
@@ -33,6 +35,8 @@ export function ChatPanel({
   hasMoreAITurns = false,
   justProcessedAITurn = false,
   autoAdvancing = false,
+  playerActionCompleted = false,
+  isPlayerTurn = false,
   onPassTurn,
   onAdvanceAll,
 }: ChatPanelProps) {
@@ -73,9 +77,9 @@ export function ChatPanel({
       <Separator />
       <div className="p-4 bg-background/50 rounded-b-lg space-y-3">
         {/* Step-by-step combat buttons */}
-        {/* Show button if there are more AI turns OR if we just processed an AI turn (even if next is player's turn) OR if auto-advancing */}
+        {/* Show button if there are more AI turns OR if we just processed an AI turn (even if next is player's turn) OR if auto-advancing OR if player has completed their action */}
         {/* Keep buttons visible during auto-advance to show "Avanzando..." continuously */}
-        {inCombat && (hasMoreAITurns || justProcessedAITurn || autoAdvancing) && onPassTurn && onAdvanceAll && (
+        {inCombat && (hasMoreAITurns || justProcessedAITurn || autoAdvancing || playerActionCompleted) && onPassTurn && onAdvanceAll && (
           <div className="flex gap-2">
             <Button 
               onClick={onPassTurn}
@@ -99,7 +103,13 @@ export function ChatPanel({
             </Button>
           </div>
         )}
-        <PlayerInput onSendMessage={onSendMessage} disabled={isThinking} onDiceRoll={onDiceRoll} />
+        <PlayerInput 
+          onSendMessage={onSendMessage} 
+          disabled={isThinking || (inCombat && playerActionCompleted) || (inCombat && !isPlayerTurn)} 
+          onDiceRoll={onDiceRoll}
+          isPlayerTurn={isPlayerTurn}
+          waitingForTurnAdvance={inCombat && !isThinking && !isPlayerTurn && (hasMoreAITurns || justProcessedAITurn || autoAdvancing || playerActionCompleted) && !!onPassTurn && !!onAdvanceAll}
+        />
       </div>
     </div>
   );

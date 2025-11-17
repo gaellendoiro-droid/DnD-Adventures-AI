@@ -120,136 +120,78 @@ Planes identificados pero aún no iniciados:
 
 #### [Sistema de Progresión y Gestión](roadmap.md#1-sistema-de-progresión-y-gestión-prioridad-alta)
 - **Estado:** Sin comenzar
-- **Objetivo:** Implementar sistema de XP, subida de nivel, gestión de inventario y economía, y persistencia de datos con base de datos
 - **Prioridad:** Alta
-- **Componentes:**
-  - Sistema de Experiencia (XP) y Subida de Nivel
-  - Gestión de Inventario y Economía
-  - Persistencia de Datos (Firestore o similar)
-- **Impacto:** Fundamental para crear una campaña duradera y gratificante
-- **Referencia:** [Roadmap - Sección 1](../roadmap.md#1-sistema-de-progresión-y-gestión-prioridad-alta)
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 1](../roadmap.md#1-sistema-de-progresión-y-gestión-prioridad-alta)
 
 #### [Sistema de Inicio de Combate Dinámico](roadmap.md#2-sistema-de-inicio-de-combate-dinámico-prioridad-alta)
 - **Estado:** Sin comenzar
-- **Objetivo:** Implementar evaluación automática de hostilidad que inicie combate cuando acciones del jugador provoquen hostilidad (robar, insultar, etc.)
 - **Prioridad:** Alta
-- **Componentes:**
-  - Paso de "Evaluación de Hostilidad" en `gameCoordinator`
-  - Cambio automático de disposición de PNJs a `hostil`
-  - Inicio automático de combate cuando sea apropiado
-- **Impacto:** Crítico para la credibilidad del mundo de juego, hace que el mundo se sienta vivo y reactivo
-- **Referencia:** [Roadmap - Sección 2](../roadmap.md#2-sistema-de-inicio-de-combate-dinámico-prioridad-alta)
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 2](../roadmap.md#2-sistema-de-inicio-de-combate-dinámico-prioridad-alta)
 
 
-#### [Mejora de Estructura de Fichas de Personajes](../notas/Notas de Gael.txt#sección-3-sistema-de-personajes)
+#### [Mejora de Estructura de Fichas de Personajes](roadmap.md#3-mejora-de-estructura-de-fichas-de-personajes-prioridad-alta)
 - **Estado:** Sin comenzar
-- **Objetivo:** Revisar y mejorar la estructura de fichas de personajes con mejor organización, más datos accesibles y mejor visualización de estados temporales
 - **Prioridad:** Alta
-- **Componentes:**
-  - Mejor organización de información
-  - Más datos accesibles (habilidades, rasgos)
-  - Mejor visualización de estados temporales
-  - Pestañas o secciones colapsables
-- **Referencia:** [Notas de Gael - #06](../../notas/Notas de Gael.txt#sección-3-sistema-de-personajes)
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 3](../roadmap.md#3-mejora-de-estructura-de-fichas-de-personajes-prioridad-alta)
 
 ### Prioridad Media
 
 #### [Compendio de D&D Local - Base de Datos Local](sin-comenzar/compendio-dnd-local.md)
 - **Estado:** Sin comenzar
-- **Objetivo:** Crear un sistema de base de datos local que almacene un compendio completo de conocimiento de D&D, buscando primero en la BD local y usando la API como fallback
 - **Prioridad:** Media-Alta
-- **Beneficios:** Mejora de rendimiento, disponibilidad offline, reducción de llamadas a API externa
-- **Referencia:** [Plan Detallado](sin-comenzar/compendio-dnd-local.md)
+- **Referencias:** 
+  - [Plan Detallado](sin-comenzar/compendio-dnd-local.md) - Plan completo de implementación
+  - [Roadmap - Sección 4](../roadmap.md#4-compendio-de-dd-local---base-de-datos-local-prioridad-media) - Visión general
 
 #### [Convertidor de PDF a JSON - Aplicación Auxiliar](sin-comenzar/pdf-to-json-converter.md)
 - **Estado:** Sin comenzar
-- **Objetivo:** Crear una aplicación auxiliar independiente que analice PDFs de aventuras de D&D y los convierta automáticamente en JSON compatible con el juego
 - **Prioridad:** Media
-- **Beneficios:** Automatización de conversión de aventuras, ahorro de tiempo, facilita añadir nuevas aventuras al juego
-- **Referencia:** [Plan Detallado](sin-comenzar/pdf-to-json-converter.md)
+- **Referencias:**
+  - [Plan Detallado](sin-comenzar/pdf-to-json-converter.md) - Plan completo de implementación
+  - [Roadmap - Sección 10](../roadmap.md#10-convertidor-de-pdf-a-json---aplicación-auxiliar-prioridad-media) - Visión general
 
-#### [IA Conversacional Avanzada - Streaming](roadmap.md#3-ia-conversacional-avanzada-prioridad-media)
+#### [IA Conversacional Avanzada - Streaming](roadmap.md#5-ia-conversacional-avanzada-prioridad-media)
 - **Estado:** Sin comenzar
-- **Objetivo:** Implementar arquitectura de streaming para que los compañeros de IA reaccionen de forma más orgánica, construyendo sobre las reacciones de los demás en tiempo real
 - **Prioridad:** Media
-- **Componentes:**
-  - Arquitectura de Streaming (WebSockets o Server-Sent Events)
-  - Flujo de Turno por Pasos
-  - Comunicación persistente cliente-servidor
-- **Impacto:** Dinámica de grupo más orgánica y creíble, mejor inmersión
-- **Referencia:** [Roadmap - Sección 3](../roadmap.md#3-ia-conversacional-avanzada-prioridad-media)
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 5](../roadmap.md#5-ia-conversacional-avanzada-prioridad-media)
 
-#### [Calidad y Profundidad de la IA - RAG](roadmap.md#4-calidad-y-profundidad-de-la-ia-prioridad-media)
+#### [Calidad y Profundidad de la IA - RAG](roadmap.md#6-calidad-y-profundidad-de-la-ia-prioridad-media)
 - **Estado:** Sin comenzar
-- **Objetivo:** Implementar RAG (Retrieval-Augmented Generation) para que la IA comprenda el contexto del mundo mediante base de datos vectorial
 - **Prioridad:** Media
-- **Componentes:**
-  - Sistema RAG con base de datos vectorial
-  - Búsqueda en lenguaje natural del lore
-  - Memoria a Largo Plazo para eventos clave entre sesiones
-- **Impacto:** Transformacional - DM verdadero conocedor del universo, capaz de improvisar detalles coherentes
-- **Referencia:** [Roadmap - Sección 4](../roadmap.md#4-calidad-y-profundidad-de-la-ia-prioridad-media)
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 6](../roadmap.md#6-calidad-y-profundidad-de-la-ia-prioridad-media)
 
 #### [Sistema de Death Saving Throws y Revivencia (D&D 5e)](sin-comenzar/sistema-death-saving-throws.md)
 - **Estado:** Sin comenzar
-- **Objetivo:** Implementar sistema completo de Death Saving Throws según reglas oficiales de D&D 5e, permitiendo estabilización, tracking de éxitos/fallos, y muerte permanente por 3 fallos
 - **Prioridad:** Media
-- **Componentes:**
-  - Tiradas de salvación de muerte automáticas cada turno
-  - Sistema de estabilización (acción de compañeros con tirada de Medicina DC 10)
-  - Tracking de éxitos y fallos (0-3 cada uno)
-  - UI para mostrar estado de death saves
 - **Estimación:** 15-20 horas
-- **Nota:** Extiende el sistema de inconsciencia y muerte masiva ya implementado
-- **Referencia:** [Plan Detallado](sin-comenzar/sistema-death-saving-throws.md)
+- **Referencia:** [Plan Detallado](sin-comenzar/sistema-death-saving-throws.md) - Plan completo de implementación
 
-#### [Sistema de Estados y Condiciones en Combate](../notas/Notas de Gael.txt#sección-2-sistema-de-combate)
+#### [Sistema de Estados y Condiciones en Combate](roadmap.md#9-mejoras-de-mecánicas-de-dd-5e-prioridad-media)
 - **Estado:** Sin comenzar
-- **Objetivo:** Implementar sistema para actualizar estadísticas temporales, estados de condición (aturdido, envenenado, etc.) y recursos gastados (slots de hechizo, usos de habilidades)
 - **Prioridad:** Media
-- **Componentes:**
-  - Actualización de estadísticas temporales (bonificadores, penalizaciones)
-  - Estados de condición (aturdido, envenenado, paralizado, etc.)
-  - Recursos gastados (slots de hechizo, usos de habilidades)
-- **Referencia:** [Notas de Gael - #04](../../notas/Notas de Gael.txt#sección-2-sistema-de-combate)
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 9](../roadmap.md#9-mejoras-de-mecánicas-de-dd-5e-prioridad-media) (subsección "Estados y Condiciones")
 
-#### [Sistema de Foco de Objetivo en Combate](../notas/Notas de Gael.txt#sección-2-sistema-de-combate)
+#### [Sistema de Foco de Objetivo en Combate](roadmap.md#9-mejoras-de-mecánicas-de-dd-5e-prioridad-media)
 - **Estado:** Sin comenzar
-- **Objetivo:** Implementar sistema de selección de objetivo que considere distancia, amenaza táctica, estado del objetivo y capacidades del atacante
 - **Prioridad:** Media
-- **Componentes:**
-  - Consideración de distancia (cuerpo a cuerpo vs a distancia)
-  - Evaluación de amenaza táctica
-  - Análisis de estado del objetivo (herido, vulnerable, etc.)
-  - Consideración de capacidades del atacante (alcance de armas/hechizos)
-- **Referencia:** [Notas de Gael - #26](../../notas/Notas de Gael.txt#sección-2-sistema-de-combate)
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 9](../roadmap.md#9-mejoras-de-mecánicas-de-dd-5e-prioridad-media) (subsección "Sistema de Foco de Objetivo")
 
-#### [Música y Sonido Dinámicos](roadmap.md#7-música-y-sonido-dinámicos-prioridad-media-baja)
+#### [Música y Sonido Dinámicos](roadmap.md#11-música-y-sonido-dinámicos-prioridad-media)
 - **Estado:** Sin comenzar
-- **Objetivo:** Integrar reproductor de audio que cambie la pista musical dinámicamente según el estado del juego (exploración, combate, localización específica)
 - **Prioridad:** Media-Baja
-- **Componentes:**
-  - Reproductor de audio integrado
-  - Sistema de eventos de cambio de estado
-  - Selección automática de pistas según contexto
-- **Impacto:** Muy alto en relación al esfuerzo - aumenta atmósfera y carga emocional
-- **Referencia:** [Roadmap - Sección 7](../roadmap.md#7-música-y-sonido-dinámicos-prioridad-media-baja)
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 11](../roadmap.md#11-música-y-sonido-dinámicos-prioridad-media)
 
 ### Prioridad Baja
 
-#### [Comandos de Voz](roadmap.md#8-comandos-de-voz-prioridad-baja)
+#### [Comandos de Voz](roadmap.md#16-comandos-de-voz-prioridad-baja)
 - **Estado:** Sin comenzar
-- **Objetivo:** Integrar API de Reconocimiento de Voz del navegador para añadir botón de "dictar" en la interfaz
 - **Prioridad:** Baja
-- **Impacto:** Aumenta accesibilidad y ofrece forma más rápida e inmersiva de interactuar
-- **Referencia:** [Roadmap - Sección 8](../roadmap.md#8-comandos-de-voz-prioridad-baja)
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 16](../roadmap.md#16-comandos-de-voz-prioridad-baja)
 
-#### [Automatización del Versionado y Changelog](roadmap.md#9-automatización-del-versionado-y-changelog-prioridad-baja)
+#### [Automatización del Versionado y Changelog](roadmap.md#17-automatización-del-versionado-y-changelog-prioridad-baja)
 - **Estado:** Sin comenzar
-- **Objetivo:** Automatizar la actualización del `CHANGELOG.md` al cambiar la versión en `package.json`
 - **Prioridad:** Baja
-- **Impacto:** Mejora de calidad de vida para el desarrollador, sin impacto directo en la experiencia del jugador
-- **Referencia:** [Roadmap - Sección 9](../roadmap.md#9-automatización-del-versionado-y-changelog-prioridad-baja)
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 17](../roadmap.md#17-automatización-del-versionado-y-changelog-prioridad-baja)
 
 ---
 

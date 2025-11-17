@@ -40,6 +40,7 @@ export const characterLookupTool = ai.defineTool(
       return character;
     }
 
-    return null;
+    // Return a message instead of null to avoid Genkit "output missing" error
+    return { error: `Character "${characterName}" not found in party.` };
   }
 );

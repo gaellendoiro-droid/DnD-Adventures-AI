@@ -45,6 +45,7 @@ export const CharacterSchema = z.object({
         sabiduría: z.number(),
         carisma: z.number(),
     }).optional(),
+    proficiencyBonus: z.number().optional().default(2), // Bono de competencia (default +2 para nivel 1)
     skills: z.array(z.object({ name: z.string(), proficient: z.boolean() })),
     hp: z.object({ current: z.number(), max: z.number() }),
     ac: z.number(),

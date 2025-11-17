@@ -2,6 +2,14 @@
 
 **Para desarrolladores que quieren empezar rápidamente**
 
+> 📚 **Para documentación completa y detallada**, consulta el [README.md](./README.md) que incluye:
+> - Configuración completa del sistema
+> - Estructura detallada de tests
+> - Mejores prácticas
+> - Cobertura de código
+> - Troubleshooting avanzado
+> - Ejemplos completos
+
 ---
 
 ## 🚀 Inicio Rápido
@@ -142,5 +150,18 @@ Para ver ejemplos reales, consulta:
 
 ---
 
-**¿Necesitas más detalles?** Consulta [README.md](./README.md) para documentación completa.
+---
+
+## 📚 Documentación Completa
+
+Esta es una guía rápida. Para información detallada sobre:
+
+- **Configuración completa** del sistema de testing
+- **Estructura detallada** de tests y organización
+- **Mejores prácticas** y patrones avanzados
+- **Cobertura de código** y métricas
+- **Troubleshooting avanzado** y soluciones
+- **Ejemplos completos** de todos los tipos de tests
+
+Consulta el [README.md](./README.md) - Documentación completa del sistema de testing.
 

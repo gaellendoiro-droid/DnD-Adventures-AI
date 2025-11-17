@@ -16,6 +16,61 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ## [Unreleased]
 
 ### Added
+- **✨ Sistema de Bono de Competencia (Proficiency Bonus) y Modificadores Desglosados en Tiradas:**
+  - Agregado campo `proficiencyBonus` al `CharacterSchema` para almacenar el bono de competencia del personaje
+  - Todos los personajes iniciales ahora incluyen `proficiencyBonus: 2` (nivel 1)
+  - Nuevo tipo `DiceRollModifier` y campo `modifiers` en `DiceRoll` para mostrar modificadores individuales
+  - Función helper `updateRollNotationWithModifiers` en `dice-roll-processor.ts` para unificar la actualización de notaciones
+  - **Archivos modificados:**
+    - `src/lib/schemas.ts` - Agregado `proficiencyBonus` al schema
+    - `src/lib/new-game-data.ts` - Agregado `proficiencyBonus: 2` a todos los personajes
+    - `src/lib/types.ts` - Agregado `DiceRollModifier` interface y campo `modifiers` a `DiceRoll`
+    - `src/ai/tools/combat/dice-roll-processor.ts` - Función `updateRollNotationWithModifiers`
+    - `src/components/game/dice-roll-result.tsx` - UI actualizada para mostrar modificadores desglosados
+  - **Impacto:** Alto - Las tiradas ahora muestran modificadores individuales (ej: `1d20+3+2` en lugar de `1d20+5`), mejorando la claridad y cumpliendo con las reglas de D&D 5e
+  - **Mejora de visualización:** El desglose debajo del resultado total ahora muestra solo la suma de valores finales sin espacios ni etiquetas (ej: `20+3+2` en lugar de `(20) + 3 (DES) + 2 (BC)`)
+  - **Consistencia de formato:** El formato compacto ahora se aplica también a enemigos (fallback), mostrando `18+4` en lugar de `(18) + 4` para mantener consistencia visual entre companions y enemigos
+  - **Referencia:** Issue #82 en `docs/tracking/issues/pendientes.md`
+- **✨ Combat Narration Expert - Narraciones descriptivas para turnos del jugador (Issue #79):**
+  - Nuevo tool `combat-narration-expert.ts` para generar narraciones descriptivas e inmersivas de acciones de combate
+  - Implementado para turnos del jugador: genera narración de resolución después de procesar ataques
+  - Características:
+    - Narraciones descriptivas basadas en resultados (acierto, fallo, crítico, pifia)
+    - Considera daño causado, estado del objetivo (HP, muerte, KO)
+    - Contexto de ubicación opcional
+    - Prompt optimizado para español de España
+    - Sistema de fallback robusto
+    - Retry logic con exponential backoff
+  - **Archivos creados:**
+    - `src/ai/tools/combat/combat-narration-expert.ts` - Tool especializado para narraciones de combate
+  - **Archivos modificados:**
+    - `src/ai/tools/combat-manager.ts` - Integración del narration-expert para turnos del jugador
+    - `src/components/game/game-view.tsx` - Corrección del nombre del emisor en combate
+    - `src/ai/tools/character-lookup.ts` - Corrección: devolver objeto en lugar de null para evitar errores de Genkit
+  - **Impacto:** Crítico - Los turnos del jugador ahora tienen narraciones descriptivas, mejorando significativamente la inmersión y consistencia narrativa
+  - **Futuro:** El tool está diseñado para ser reutilizado en turnos de IA (refactorización de tacticians)
+  - **Referencia:** Issue #79 en `docs/tracking/issues/corregidos.md`, Roadmap - Sección 6
+
+### Fixed
+- **🎯 Corrección del Cálculo de Ataque - Inclusión del Bono de Competencia:**
+  - **Problema:** Las tiradas de ataque del jugador solo mostraban el modificador de habilidad (FUE/DES) sin incluir el bono de competencia, resultando en valores incorrectos según las reglas de D&D 5e
+  - **Ejemplo:** Personaje con FUE +3 y BC +2 mostraba `1d20+3` cuando debería ser `1d20+5`
+  - **Solución implementada:** ✅
+    - Cálculo de ataque ahora incluye: `Modificador de Habilidad + Bono de Competencia`
+    - Cálculo de daño mantiene solo el modificador de habilidad (sin BC, según reglas D&D 5e)
+    - Sistema aplicado a jugador, companions y enemigos
+  - **Archivos modificados:**
+    - `src/ai/tools/combat-manager.ts` - Cálculo corregido para jugador (líneas ~404-442)
+    - `src/ai/tools/companion-tactician.ts` - Prompt actualizado con instrucciones claras sobre BC y ejemplos corregidos
+    - `src/ai/tools/enemy-tactician.ts` - Prompt actualizado con instrucciones sobre BC y ejemplos corregidos
+    - `src/ai/tools/combat/dice-roll-processor.ts` - Uso de función helper para companions
+  - **Mejoras adicionales:**
+    - Prompts de tacticians ahora incluyen modificadores de habilidad y BC en el contexto
+    - Ejemplos actualizados con cálculos explícitos (ej: Merryl con FUE -1, BC +2 = `1d20+1`)
+    - Sistema unificado usando función helper `updateRollNotationWithModifiers`
+  - **Impacto:** Crítico - Las tiradas de ataque ahora cumplen correctamente con las reglas de D&D 5e
+  - **Estado:** ✅ CORREGIDO
+  - **Referencia:** Issue #82 en `docs/tracking/issues/pendientes.md`
 - **📋 Plan de Mejora de Testabilidad y Refactorización (2025-11-15):**
   - Nuevo plan de desarrollo creado para mejorar la testabilidad del sistema
   - Objetivo: Implementar Inyección de Dependencias (DI) y separar lógica pura de efectos secundarios

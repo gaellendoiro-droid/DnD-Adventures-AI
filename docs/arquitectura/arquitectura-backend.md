@@ -32,7 +32,7 @@ Para mantener la modularidad y evitar dependencias circulares, se establecen las
 
 ---
 
-## Diagrama de Flujo de un Turno Típico
+## Diagrama de Flujo de un Turno Típico (Alto Nivel)
 
 ```mermaid
 graph TD
@@ -48,6 +48,13 @@ graph TD
     I --> J(Ensambla Mensajes);
     J --> K[Devuelve Respuesta al Usuario];
 ```
+
+> 📊 **Para diagramas detallados del flujo de datos**, consulta [Flujo de Datos](./flujo-datos.md) que incluye:
+> - Flujo general de una acción (con diagramas de secuencia)
+> - Flujo de exploración detallado
+> - Flujo de combate completo
+> - Flujo de guardado y carga
+> - Flujo de tiradas de dados
 
 ---
 

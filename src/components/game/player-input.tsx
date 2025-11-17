@@ -12,9 +12,11 @@ interface PlayerInputProps {
   onSendMessage: (content: string) => void;
   onDiceRoll: (roll: { result: number; sides: number }) => void;
   disabled?: boolean;
+  isPlayerTurn?: boolean;
+  waitingForTurnAdvance?: boolean;
 }
 
-export function PlayerInput({ onSendMessage, onDiceRoll, disabled = false }: PlayerInputProps) {
+export function PlayerInput({ onSendMessage, onDiceRoll, disabled = false, isPlayerTurn = false, waitingForTurnAdvance = false }: PlayerInputProps) {
   const [inputValue, setInputValue] = useState("");
   const { toast } = useToast();
   const [isDicePopoverOpen, setIsDicePopoverOpen] = useState(false);
@@ -55,7 +57,17 @@ export function PlayerInput({ onSendMessage, onDiceRoll, disabled = false }: Pla
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={disabled ? "El DM está pensando... pero puedes ir escribiendo." : "¿Qué quieres hacer?"}
+          placeholder={
+            disabled 
+              ? waitingForTurnAdvance
+                ? "No es tu turno. Pulsa un botón de avanzar turno para continuar."
+                : isPlayerTurn
+                  ? "Es tu turno! ¿Qué quieres hacer?"
+                  : "El DM está pensando... pero puedes ir escribiendo."
+              : isPlayerTurn 
+                ? "Es tu turno! ¿Qué quieres hacer?" 
+                : "¿Qué quieres hacer?"
+          }
           className="flex-1 resize-none"
           rows={1}
           disabled={isDicePopoverOpen}

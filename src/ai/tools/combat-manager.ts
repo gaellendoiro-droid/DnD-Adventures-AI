@@ -1,4 +1,3 @@
-
 /**
  * @fileOverview A Genkit tool that manages a full round or turn of combat.
  */
@@ -34,7 +33,8 @@ import {
     isUnconsciousOrDead,
     checkEndOfCombat,
 } from './combat/combat-validators';
-import { processAICombatantRolls } from './combat/dice-roll-processor';
+import { processAICombatantRolls, updateRollNotationWithModifiers } from './combat/dice-roll-processor';
+import { combatNarrationExpertTool } from './combat/combat-narration-expert';
 
 export const CombatManagerInputSchema = GameStateSchema.extend({
   interpretedAction: ActionInterpreterOutputSchema.optional(),
@@ -107,6 +107,7 @@ export const CombatManagerOutputSchema = z.object({
     // Nuevos campos para comunicación explícita de qué turno se procesó
     lastProcessedTurnWasAI: z.boolean().optional(), // true si el último turno procesado fue de IA/Enemy
     lastProcessedTurnIndex: z.number().optional(),  // índice del turno que se acaba de procesar
+    playerActionCompleted: z.boolean().optional(),  // true si el jugador ya completó su acción en este turno
 });
 
 
@@ -144,6 +145,7 @@ export const combatManagerTool = ai.defineTool(
             localLog(`[DEBUG] Initiative order: ${initiativeOrder.map((c, i) => `[${i}]${c.characterName}(${c.controlledBy})`).join(', ')}`);
             
             // Issue #54: If it's the player's turn and they're unconscious/dead, show message and pause
+            // Issue #81: If "continue_turn" is received, advance the turn to prevent infinite loop
             if (activeCombatant && activeCombatant.controlledBy === 'Player') {
                 const playerData = updatedParty.find(p => p.id === activeCombatant.id);
                 if (playerData && isUnconsciousOrDead(playerData)) {
@@ -164,6 +166,49 @@ export const combatManagerTool = ai.defineTool(
                         content: statusMessage
                     });
                     
+                    // Issue #81: If "continue_turn" action is received, advance the turn to prevent infinite loop
+                    // Otherwise, pause and wait for manual button press
+                    if (interpretedAction && interpretedAction.actionType === 'continue_turn') {
+                        localLog(`Player ${activeCombatant.characterName} is ${playerData.isDead ? 'dead' : 'unconscious'}. Advancing turn due to continue_turn action.`);
+                        
+                        // Advance to next turn
+                        const processedTurnIndex = currentTurnIndex;
+                        const previousCombatant = activeCombatant.characterName;
+                        currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
+                        activeCombatant = initiativeOrder[currentTurnIndex];
+                        
+                        log.info('Advanced from unconscious player turn to next turn', {
+                            module: 'CombatManager',
+                            fromIndex: processedTurnIndex,
+                            toIndex: currentTurnIndex,
+                            fromCombatant: previousCombatant,
+                            toCombatant: activeCombatant?.characterName || 'Unknown',
+                            toControlledBy: activeCombatant?.controlledBy,
+                        });
+                        
+                        // Issue #81: Return immediately after showing message to separate it from next turn's messages
+                        // The next turn will be processed in the next call (frontend will auto-send 'continuar turno' if hasMoreAITurns is true)
+                        const nextTurnPlayerData = activeCombatant?.controlledBy === 'Player' 
+                            ? updatedParty.find(p => p.id === activeCombatant.id) 
+                            : null;
+                        const hasMoreAITurns = activeCombatant && 
+                            (activeCombatant.controlledBy === 'AI' || 
+                            (activeCombatant.controlledBy === 'Player' && nextTurnPlayerData && isUnconsciousOrDead(nextTurnPlayerData)));
+                        
+                        return {
+                            messages,
+                            diceRolls,
+                            inCombat: true,
+                            debugLogs,
+                            turnIndex: currentTurnIndex, // Now pointing to next turn
+                            initiativeOrder,
+                            updatedParty,
+                            updatedEnemies,
+                            hasMoreAITurns, // Indicates if the next turn should auto-process
+                            lastProcessedTurnWasAI: true, // We just processed a skipped turn
+                            lastProcessedTurnIndex: processedTurnIndex, // The turn we just skipped
+                        };
+                    } else {
                     localLog(`Player ${activeCombatant.characterName} is ${playerData.isDead ? 'dead' : 'unconscious'}. Waiting for pass turn button.`);
                     
                     // Return immediately with hasMoreAITurns: true to show "Pasar turno" buttons
@@ -181,6 +226,7 @@ export const combatManagerTool = ai.defineTool(
                         lastProcessedTurnWasAI: true, // Treat like an AI turn (pause and wait)
                         lastProcessedTurnIndex: currentTurnIndex, // The turn we just "processed"
                     };
+                    }
                 }
             }
             
@@ -209,6 +255,9 @@ export const combatManagerTool = ai.defineTool(
                         toControlledBy: activeCombatant?.controlledBy,
                     });
                     localLog(`[DEBUG] Advancing from ${previousIndex} (${previousCombatant}) to ${currentTurnIndex} (${activeCombatant?.characterName})`);
+                    
+                    // After advancing, check if the next combatant is dead/unconscious
+                    // If so, we'll handle it in the regular flow below (showing message and pausing)
                 } else {
                     localLog(`[DEBUG] NOT advancing (combatant is ${activeCombatant?.controlledBy}, not Player). Will process this turn.`);
                 }
@@ -217,7 +266,7 @@ export const combatManagerTool = ai.defineTool(
             
             // If it's the player's turn, process their action first
             let playerTurnAdvanced = false;
-            if (activeCombatant && activeCombatant.controlledBy === 'Player' && interpretedAction) {
+            if (activeCombatant && activeCombatant.controlledBy === 'Player' && interpretedAction && interpretedAction.actionType !== 'continue_turn') {
                 localLog(`Processing player turn for ${activeCombatant.characterName} at index ${currentTurnIndex}...`);
                 
                 // Process player action (attack, spell, etc.)
@@ -354,13 +403,19 @@ export const combatManagerTool = ai.defineTool(
                             localLog(`ERROR: Player character not found in party: ${activeCombatant.id}`);
                         } else {
                             try {
+                                // Get proficiency bonus from character sheet (default to +2 if not set)
+                                const proficiencyBonus = playerChar.proficiencyBonus ?? 2;
+                                
                                 // Determine attack modifier (use Strength or Dexterity, whichever is higher)
                                 const strMod = playerChar.abilityModifiers?.fuerza || 0;
                                 const dexMod = playerChar.abilityModifiers?.destreza || 0;
-                                const attackMod = Math.max(strMod, dexMod);
+                                const abilityMod = Math.max(strMod, dexMod);
                                 
-                                // Determine damage modifier (same as attack, typically)
-                                const damageMod = attackMod;
+                                // Attack modifier = ability modifier + proficiency bonus
+                                const attackMod = abilityMod + proficiencyBonus;
+                                
+                                // Determine damage modifier (only ability mod, no proficiency bonus for damage)
+                                const damageMod = abilityMod;
                                 
                                 // Determine damage die (default to 1d8 for a standard weapon like a longsword)
                                 // TODO: In the future, read this from the player's equipped weapon
@@ -369,19 +424,24 @@ export const combatManagerTool = ai.defineTool(
                                 log.debug('Player attack modifiers', {
                                     module: 'CombatManager',
                                     player: activeCombatant.characterName,
+                                    proficiencyBonus,
                                     strMod,
                                     dexMod,
+                                    abilityMod,
                                     attackMod,
                                     damageMod,
                                     damageDie,
                                 });
                                 
-                                // Generate attack roll
+                                // Generate attack roll with breakdown of modifiers
                                 const attackRollResult = await diceRollerTool({
                                     rollNotation: `1d20+${attackMod}`,
                                     description: `Tirada de ataque de ${activeCombatant.characterName}`,
                                     roller: activeCombatant.characterName,
                                 });
+                                
+                                // Update roll notation with individual modifiers
+                                updateRollNotationWithModifiers(attackRollResult, playerChar, true);
                                 
                                 // Validate target AC
                                 let finalTargetAC: number;
@@ -408,6 +468,9 @@ export const combatManagerTool = ai.defineTool(
                                 }
                                 
                                 const attackHit = attackRollResult.totalResult >= finalTargetAC;
+                                
+                                // Declare damageRollResult outside the if block so it's accessible for narration generation
+                                let damageRollResult: any = null;
                                 
                                 // Update attack roll with combat information
                                 const updatedAttackRoll = {
@@ -448,11 +511,14 @@ export const combatManagerTool = ai.defineTool(
                                     // Generate damage roll (only if attack hit)
                                     // Use getCriticalDamageNotation to double dice on critical hits (Issue #50)
                                     const damageNotation = getCriticalDamageNotation(damageDie, damageMod, isCritical);
-                                    const damageRollResult = await diceRollerTool({
+                                    damageRollResult = await diceRollerTool({
                                         rollNotation: damageNotation,
                                         description: `Tirada de daño${isCritical ? ' (crítico)' : ''} de ${activeCombatant.characterName}`,
                                         roller: activeCombatant.characterName,
                                     });
+                                    
+                                    // Update roll notation with individual modifiers (damage doesn't include proficiency)
+                                    updateRollNotationWithModifiers(damageRollResult, playerChar, false);
                                     
                                     // Validate damage is positive
                                     if (damageRollResult.totalResult <= 0) {
@@ -616,6 +682,91 @@ export const combatManagerTool = ai.defineTool(
                                     });
                                 }
                                 
+                                // Issue #79: Generate descriptive combat narration for player's action
+                                try {
+                                    // Determine attack result for narration
+                                    let narrativeAttackResult: 'hit' | 'miss' | 'critical' | 'fumble';
+                                    if (attackRollResult.outcome === 'crit') {
+                                        narrativeAttackResult = 'critical';
+                                    } else if (attackRollResult.outcome === 'pifia') {
+                                        narrativeAttackResult = 'fumble';
+                                    } else if (attackHit) {
+                                        narrativeAttackResult = 'hit';
+                                    } else {
+                                        narrativeAttackResult = 'miss';
+                                    }
+                                    
+                                    // Prepare narration input
+                                    const narrationInput: any = {
+                                        narrationType: 'resolution',
+                                        attackerName: activeCombatant.characterName,
+                                        targetName: targetVisualName,
+                                        playerAction: playerAction,
+                                        attackResult: narrativeAttackResult,
+                                    };
+                                    
+                                    // Add damage and HP information if attack hit
+                                    if (attackHit && damageRollResult && damageRollResult.totalResult > 0) {
+                                        const targetIsEnemy = updatedEnemies.some(e => (e as any).uniqueId === (target as any).uniqueId);
+                                        const previousHP = targetIsEnemy
+                                            ? updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId)?.hp.current
+                                            : updatedParty.find(p => p.id === target.id)?.hp.current;
+                                        const newHP = targetIsEnemy
+                                            ? updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId)?.hp.current
+                                            : updatedParty.find(p => p.id === target.id)?.hp.current;
+                                        
+                                        narrationInput.damageDealt = damageRollResult.totalResult;
+                                        narrationInput.targetPreviousHP = previousHP;
+                                        narrationInput.targetNewHP = newHP;
+                                        
+                                        // Check if target was killed or knocked out
+                                        if (newHP !== undefined && newHP <= 0) {
+                                            const updatedTarget = targetIsEnemy
+                                                ? updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId)
+                                                : updatedParty.find(p => p.id === target.id);
+                                            
+                                            const targetIsDead = updatedTarget?.isDead === true;
+                                            
+                                            if (targetIsEnemy || targetIsDead) {
+                                                narrationInput.targetKilled = true;
+                                            } else {
+                                                narrationInput.targetKnockedOut = true;
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Add location context if available
+                                    if (locationContext && typeof locationContext === 'object') {
+                                        narrationInput.locationDescription = (locationContext as any).description || '';
+                                    }
+                                    
+                                    // Generate combat narration
+                                    localLog(`Generating combat narration for ${activeCombatant.characterName}'s action...`);
+                                    const narrationResult = await combatNarrationExpertTool(narrationInput);
+                                    
+                                    if (narrationResult.debugLogs) {
+                                        narrationResult.debugLogs.forEach(log => debugLogs.push(log));
+                                    }
+                                    
+                                    if (narrationResult.narration) {
+                                        // Add narration as a DM message
+                                        messages.push({
+                                            sender: 'DM',
+                                            content: narrationResult.narration
+                                        });
+                                        localLog(`Combat narration generated: ${narrationResult.narration.substring(0, 100)}...`);
+                                    }
+                                } catch (narrationError) {
+                                    // If narration generation fails, log it but don't break combat flow
+                                    log.warn('Failed to generate combat narration', {
+                                        module: 'CombatManager',
+                                        error: narrationError instanceof Error ? narrationError.message : String(narrationError),
+                                        player: activeCombatant.characterName,
+                                        target: targetVisualName,
+                                    });
+                                    localLog(`Warning: Combat narration generation failed: ${narrationError}`);
+                                }
+                                
                             } catch (error) {
                                 log.error('Error processing player attack', {
                                     module: 'CombatManager',
@@ -637,12 +788,25 @@ export const combatManagerTool = ai.defineTool(
                         });
                     }
                     
-                    // Issue #80: Advance to next turn after successful attack processing
-                    // to prevent multiple actions in one turn
-                    currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
-                    activeCombatant = initiativeOrder[currentTurnIndex];
-                    playerTurnAdvanced = true;
-                    localLog(`Player action completed. Auto-advancing to ${activeCombatant?.characterName || 'Unknown'}.`);
+                    // Issue #80: After processing player action, DO NOT advance turn yet
+                    // The turn will advance when user explicitly clicks "Pasar turno"
+                    // We return immediately to show messages and buttons
+                    localLog(`Player action completed. Waiting for user to advance turn.`);
+                    
+                    return {
+                        messages,
+                        diceRolls,
+                        inCombat: true,
+                        debugLogs,
+                        turnIndex: currentTurnIndex, // Still player's turn
+                        initiativeOrder,
+                        updatedParty,
+                        updatedEnemies,
+                        hasMoreAITurns: false, // Player's turn - buttons should appear but not auto-advance
+                        lastProcessedTurnWasAI: false, // Player action was processed
+                        lastProcessedTurnIndex: currentTurnIndex, // Current turn was just processed
+                        playerActionCompleted: true, // NEW: Signal that player has acted this turn
+                    };
                     }
                 }
             }
@@ -1184,10 +1348,11 @@ export const combatManagerTool = ai.defineTool(
             
             // Create enemy with validated HP
             // IMPORTANT: Use uniqueId as id to maintain consistency with initiativeOrder
-            // The original id from JSON is preserved in the enemy object but not used as the primary identifier
+            // The original id from JSON is preserved in adventureId for target resolution
             const newEnemy = {
                 uniqueId: enemy.uniqueId,
                 id: enemy.uniqueId, // Use uniqueId as id to match initiativeOrder
+                adventureId: enemy.id, // Preserve original adventure entity ID
                 name: enemy.name,
                 color: '#ef4444',
                 hp: { current: hpValue, max: hpMax },

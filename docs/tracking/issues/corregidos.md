@@ -2,12 +2,95 @@
 
 Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 30 issues  
-**Última actualización:** 2025-11-17 (Issue #78)
+**Total:** 32 issues  
+**Última actualización:** 2025-11-17 (Issue #81)
 
 ---
 
 ## 🔴 Prioridad Muy Alta (PMA) - Críticos
+
+### Issue #81: Bucle infinito cuando jugador inconsciente durante auto-avance ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-17
+- **Fecha de corrección:** 2025-11-17
+- **Ubicación:** `src/ai/tools/combat-manager.ts` (líneas 148-210)
+- **Severidad:** 🔴 **CRÍTICA** (causa bucle infinito que bloquea el juego)
+- **Descripción:** Cuando el jugador está inconsciente y se presiona el botón "Avanzar Todos", el sistema mostraba el mensaje "Galador está inconsciente y no puede actuar." pero entraba en un bucle infinito repitiendo el mismo mensaje una y otra vez en lugar de saltar el turno y continuar.
+- **Comportamiento esperado:** Cuando el jugador está inconsciente y se procesa su turno (ya sea manualmente o durante auto-avance), el sistema debe mostrar el mensaje y avanzar automáticamente al siguiente turno, no quedarse en el mismo turno.
+- **Contexto:** Detectado durante Test 4.4 (Jugador Inconsciente en su Turno) cuando se probó el botón "Avanzar Todos" con el jugador inconsciente.
+- **Causa raíz identificada:** ✅
+  - En `combat-manager.ts` líneas 148-185, cuando el jugador estaba inconsciente, el sistema retornaba con `turnIndex: currentTurnIndex` (mantenía el mismo turno) y `hasMoreAITurns: true`.
+  - El frontend detectaba `hasMoreAITurns: true` y automáticamente enviaba `'continuar turno'` después de 1.5 segundos.
+  - El backend volvía a procesar el mismo turno del jugador inconsciente (porque `turnIndex` no cambió) y volvía a retornar con `hasMoreAITurns: true`, creando un bucle infinito.
+- **Solución implementada:** ✅
+  - **Modificación en `combat-manager.ts`:**
+    - Cuando el jugador está inconsciente y se recibe la acción `'continue_turn'`, el sistema ahora avanza el turno ANTES de retornar.
+    - El sistema calcula `hasMoreAITurns` basado en el siguiente combatiente después de avanzar.
+    - Se retorna inmediatamente después de mostrar el mensaje, separando el mensaje del jugador inconsciente de los mensajes del siguiente turno.
+    - Esto permite que el frontend procese el mensaje del jugador inconsciente primero, y luego envíe automáticamente otra llamada `'continuar turno'` para procesar el siguiente turno.
+  - **Resultado:**
+    - El mensaje del jugador inconsciente se muestra primero.
+    - El turno avanza correctamente al siguiente combatiente.
+    - Los mensajes del siguiente turno se muestran por separado en la siguiente respuesta.
+    - No hay bucle infinito.
+- **Archivos modificados:**
+  - ✅ `src/ai/tools/combat-manager.ts` (líneas 148-210: lógica de avance de turno para jugador inconsciente)
+- **Impacto:** Crítico - El auto-avance ahora funciona correctamente cuando el jugador está inconsciente, evitando bucles infinitos que bloqueaban el juego.
+- **Estado:** ✅ RESUELTO - Implementación completada y verificada
+- **Detección:** Testing manual – Test 4.4 (Jugador Inconsciente en su Turno)
+
+---
+
+### Issue #79: Falta narración del DM en turnos del jugador ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-17
+- **Fecha de corrección:** 2025-11-17
+- **Ubicación:** `src/ai/tools/combat-manager.ts` (bloque de turno del jugador, líneas ~222-620); `src/ai/tools/combat/combat-narration-expert.ts`
+- **Severidad:** 🔴 **CRÍTICA** (afecta significativamente la experiencia del jugador y la inmersión en combate)
+- **Descripción:** Cuando el jugador ejecutaba una acción en su turno, el DM solo mostraba mensajes técnicos de tiradas y daño ("Galador ataca…", "Galador ha hecho X puntos…") sin generar una narración descriptiva como la que sí se produce para turnos de IA (enemigos o companions). Esto rompía la inmersión y dejaba al jugador sin un relato coherente de sus propias acciones.
+- **Comportamiento esperado:** Después de procesar la acción del jugador, el sistema debería generar una narración descriptiva de resolución basada en los resultados de las tiradas (ataque acertado/fallido, daño causado, crítico, etc.), manteniendo la misma calidad narrativa que los turnos de IA.
+- **Contexto:** Detectado durante Test 3.3 (Mensajes y Narración) mientras se ejecutaban acciones del jugador en combate.
+- **Causa raíz identificada:** ✅
+  - En `combat-manager.ts`, el bloque de turno del jugador solo construía mensajes mecánicos y nunca llamaba a un generador de narración (a diferencia de los turnos de IA, que utilizan `enemyTacticianTool`/`companionTacticianTool` para generar narración de intención).
+  - Faltaba un narrador dedicado para las acciones del jugador que generara narración de resolución.
+- **Solución implementada:** ✅
+  - **Creación de nuevo tool:** `combat-narration-expert.ts` - Tool especializado para generar narraciones descriptivas de combate basadas en resultados de acciones.
+  - **Implementación para turnos del jugador:**
+    - El tool se llama después de procesar las tiradas y daño del jugador.
+    - Genera **narración de resolución** descriptiva basada en:
+      - Resultado del ataque (acierto, fallo, crítico, pifia)
+      - Daño causado (si aplica)
+      - Estado del objetivo (HP anterior/nuevo, muerto, KO)
+      - Contexto de ubicación (opcional)
+    - La narración se añade como mensaje del DM después de los mensajes técnicos.
+  - **Características del tool:**
+    - Prompt optimizado para generar narraciones inmersivas en español
+    - Maneja diferentes resultados: crítico, acierto, fallo, pifia
+    - Sistema de fallback robusto en caso de error
+    - Retry logic con exponential backoff
+    - NO incluye números técnicos (dice rolls, HP) - solo descripción narrativa
+  - **Integración en combat-manager.ts:**
+    - Añadida llamada a `combatNarrationExpertTool` después de procesar el ataque del jugador
+    - La narración se genera solo si el ataque se procesó correctamente
+    - Sistema robusto: si falla la generación, el combate continúa normalmente
+  - **Correcciones adicionales:**
+    - Corregido problema de scope: `damageRollResult` ahora es accesible para la generación de narración
+    - Corregido nombre del emisor en mensajes del jugador: ahora usa el nombre del combatiente activo en combate
+- **Archivos creados/modificados:**
+  - ✅ Nuevo: `src/ai/tools/combat/combat-narration-expert.ts` (tool para generar narraciones de combate)
+  - ✅ Modificado: `src/ai/tools/combat-manager.ts` (integración del narration-expert para turnos del jugador)
+  - ✅ Modificado: `src/components/game/game-view.tsx` (corrección del nombre del emisor en combate)
+  - ✅ Modificado: `src/ai/tools/character-lookup.ts` (corrección: devolver objeto en lugar de null)
+- **Futuro (documentado en roadmap):**
+  - Refactorizar `enemyTacticianTool` y `companionTacticianTool` para usar `combat-narration-expert`
+  - Añadir soporte para narración de intención (antes de las tiradas) para turnos de IA
+  - Integrar con `combat-context-summarizer` (mejora futura) para contexto enriquecido
+- **Impacto:** Crítico - Los turnos del jugador ahora tienen narraciones descriptivas e inmersivas, mejorando significativamente la experiencia del jugador y la consistencia narrativa en combate.
+- **Estado:** ✅ RESUELTO - Implementación completada y verificada
+- **Detección:** Testing manual – Test 3.3 (Mensajes y Narración)
+- **Referencia:** Roadmap - Sección 6 (Calidad y Profundidad de la IA)
+
+---
 
 ### Issue #67: Turno de companion IA se repite al presionar "Pasar 1 Turno" ✅ RESUELTO
 

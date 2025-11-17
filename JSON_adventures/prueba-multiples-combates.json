@@ -1,0 +1,102 @@
+{
+  "adventureId": "test-6-1-multiples-combates",
+  "title": "Test 6.1 - Múltiples Combates Consecutivos",
+  "summary": "Una aventura de prueba para testear el sistema de múltiples combates consecutivos. Los aventureros aparecen en una habitación con dos goblins, y pueden pasar a otra habitación con otros dos goblins para verificar que los estados se limpian correctamente entre combates.",
+  "table_of_contents": {
+    "locations": [
+      {
+        "name": "Habitación del Este",
+        "id": "habitacion-este"
+      },
+      {
+        "name": "Habitación del Oeste",
+        "id": "habitacion-oeste"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Goblin",
+        "id": "goblin-1"
+      },
+      {
+        "name": "Goblin",
+        "id": "goblin-2"
+      },
+      {
+        "name": "Goblin",
+        "id": "goblin-3"
+      },
+      {
+        "name": "Goblin",
+        "id": "goblin-4"
+      }
+    ]
+  },
+  "locations": [
+    {
+      "id": "habitacion-este",
+      "title": "Habitación del Este",
+      "description": "Una habitación de piedra con paredes desgastadas. La luz de una antorcha parpadeante ilumina el espacio, revelando dos pequeñas figuras verdes que se agazapan en las esquinas. Dos goblins con cimitarras oxidadas te observan con ojos brillantes y sonrisas maliciosas. Una puerta de madera en la pared oeste parece llevar a otra habitación.",
+      "entitiesPresent": [
+        "goblin-1",
+        "goblin-2"
+      ],
+      "interactables": [],
+      "exits": [
+        {
+          "description": "Una puerta de madera que lleva a la habitación del oeste.",
+          "toLocationId": "habitacion-oeste"
+        }
+      ],
+      "dmNotes": "Esta es la primera habitación del test 6.1. Contiene dos goblins hostiles. Después de derrotarlos, los jugadores pueden pasar a la siguiente habitación para iniciar un segundo combate y verificar que los estados se limpian correctamente."
+    },
+    {
+      "id": "habitacion-oeste",
+      "title": "Habitación del Oeste",
+      "description": "Otra habitación de piedra similar a la anterior, pero más oscura. El olor a moho y humedad llena el aire. Dos goblins más emergen de las sombras, blandiendo sus armas con intención agresiva. Sus ojos amarillos brillan con malicia mientras se preparan para el combate. Una puerta en la pared este conecta con la habitación anterior.",
+      "entitiesPresent": [
+        "goblin-3",
+        "goblin-4"
+      ],
+      "interactables": [],
+      "exits": [
+        {
+          "description": "La puerta de madera que lleva de vuelta a la habitación del este.",
+          "toLocationId": "habitacion-este"
+        }
+      ],
+      "dmNotes": "Esta es la segunda habitación del test 6.1. Contiene otros dos goblins hostiles. Este combate debe iniciarse después de completar el primero para verificar que no hay estados residuales del combate anterior."
+    }
+  ],
+  "entities": [
+    {
+      "id": "goblin-1",
+      "name": "Goblin",
+      "type": "monster",
+      "description": "Un pequeño humanoide de piel verdosa con orejas puntiagudas y ojos amarillos brillantes. Viste harapos sucios y empuña una cimitarra oxidada. Su sonrisa revela dientes afilados y su actitud es claramente hostil.",
+      "dmNotes": "Un goblin común de D&D 5e. El sistema obtendrá automáticamente sus estadísticas (HP: 7, AC: 13) de la API de D&D 5e si no están especificadas aquí."
+    },
+    {
+      "id": "goblin-2",
+      "name": "Goblin",
+      "type": "monster",
+      "description": "Otro pequeño humanoide verde con características similares al primero. Lleva una armadura de cuero gastada y blande su cimitarra con intención agresiva. Sus ojos brillan con malicia mientras se prepara para el combate.",
+      "dmNotes": "Un goblin común de D&D 5e. El sistema obtendrá automáticamente sus estadísticas (HP: 7, AC: 13) de la API de D&D 5e si no están especificadas aquí."
+    },
+    {
+      "id": "goblin-3",
+      "name": "Goblin",
+      "type": "monster",
+      "description": "Un goblin de aspecto más desaliñado que los anteriores. Su piel verdosa está manchada y sus ropas están aún más rotas. Empuña una cimitarra oxidada y muestra una expresión de odio puro.",
+      "dmNotes": "Un goblin común de D&D 5e. El sistema obtendrá automáticamente sus estadísticas (HP: 7, AC: 13) de la API de D&D 5e si no están especificadas aquí."
+    },
+    {
+      "id": "goblin-4",
+      "name": "Goblin",
+      "type": "monster",
+      "description": "El último goblin de este grupo. Es ligeramente más grande que los demás y parece ser el líder. Viste trozos de armadura de cuero y blande su cimitarra con confianza, como si hubiera ganado muchas batallas antes.",
+      "dmNotes": "Un goblin común de D&D 5e. El sistema obtendrá automáticamente sus estadísticas (HP: 10, AC: 15) de la API de D&D 5e si no están especificadas aquí."
+    }
+  ]
+}
+

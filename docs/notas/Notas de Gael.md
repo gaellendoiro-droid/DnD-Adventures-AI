@@ -2,6 +2,37 @@
 
 **Última actualización:** [16/11/2025 16:00]
 
+## 📝 PROPÓSITO DE ESTE DOCUMENTO
+
+Este documento sirve como **punto de entrada rápida e informal** para el desarrollador. Es un área de **brainstorming general** donde se pueden anotar rápidamente:
+
+- **Issues detectados** (bugs, problemas)
+- **Nuevas funcionalidades** propuestas
+- **Revisiones** de funcionalidades existentes
+- **Ideas rápidas** de desarrollo
+- **Notas informales** de desarrollo
+
+### 🔄 Flujo de Información
+
+Este documento es **intencionalmente informal** y sirve como "borrador" antes de formalizar en el sistema oficial de documentación:
+
+1. **Detección/Idea** → Se anota aquí rápidamente (informal)
+2. **Formalización** → Se mueve al sistema oficial correspondiente:
+   - **Issues** → `docs/tracking/issues/pendientes.md` (documentación formal)
+   - **Nuevas funcionalidades** → `docs/roadmap.md` o `docs/planes-desarrollo/`
+   - **Revisiones** → `docs/roadmap.md` o issues tracker
+
+### ✅ Proceso Recomendado
+
+- **Anotar rápidamente** ideas, issues o funcionalidades aquí
+- **Revisar periódicamente** este documento
+- **Formalizar** items relevantes moviéndolos al sistema oficial correspondiente
+- **Mantener este documento** como área de trabajo temporal
+
+**Nota:** La información en este documento es informal. Para documentación oficial y formal, consulta el sistema de documentación correspondiente (issues tracker, roadmap, planes de desarrollo).
+
+---
+
 ## LEYENDA DE CLASIFICACIÓN
 
 ### TIPOS DE IDEA:
@@ -187,7 +218,37 @@ Al clasificar un item de esta sección, debe moverse a su sección correspondien
 
 3. En combate, a veces en un solo turno el DM puede llegar a mandar 5 mensajes: narración inicial, acción, daño, mensaje de "ha dejado inconsciente a X" y mensaje de "X cae inconsciente". Buscar la forma de minimizar esta cantidad de mensajes a lo mínimo. Quizás la mejor forma diferenciar entre mensajes narrativos y mensajes informativos y agrupar estos últimos en un solo mensaje del DM... (PA)
 
-4. Sería interesante tener la posibilidad de que al cambiar datos en los archivos JSON de las fichas de los personajes, el panel de fichas del juego se actualizase automáticamente. Esto sería especialmente para ciertos testeos manuales. (PA)
+4. Sería interesante tener la posibilidad de que al cambiar datos en los archivos JSON de las fichas de los personajes, el panel de fichas del juego se actualizase automáticamente. Esto sería especialmente para ciertos testeos manuales. He notado que en la consola del navegador sale un log cuando los datos iniciales de la party se han modificado y guardado, quizás podamos usar esto para forzar una actualización de las fichas de los personajes en la UI y en el server. (PA)
 
 5. ISSUE: en combate he detectado que la notación de las tiradasd de daño cuando el modificador es 0 no aparecen completas (1d4) depués del nombre del arma. Deberían aparecer completas incluso cuando el modifcador es 0 (1d4+0). Sin embargo debajo del número total de daño si que aparece completa (1d4+0). (PA)
+
+6. ISSUE: He detectado unas inconsistencias en las tiradas de ataque y de daño: Merryl ataca con su daga con 1d20+2 y hace daño con 1d4+2 (pero en otra partida el daño lo hizo con 1d4+0). Revisar esto. (PMA)
+
+7. ISSUE: La tirada de ataque crítica debería ser de color verde manteniendo el efecto de pulso y el texto de "¡CRITICO!" con la estrellita debería ser verde también. La tirada de daño crítica debería mantenerse amarilla (correcto) pero añadiendole el efecto pulso y la etiqueta de ¡CRITICO! con la estrellita en amarillo. (PA)
+
+8. Probando el combate, en mi turno he escrito "Con mis últimas fuerzas ataco al goblin que me acaba de dar un tajo." refiriendome al Goblin 2 que me acababa de atacar y acertar con su cimitarra. Sin embargo el DM narró que Galador (mi personaje) atacó al Goblin 1. (PM)
+
+9. Implementar un notón de configuración al lado del botó. para ir al menú inicial, para poder cosas como el modelo LLM en uso, la voz de DM, guardado automático, etc (PM)
+
+10. Implementar sistema de guardado automático. (PB)
+
+11. En combate, después de pulsar el botón de avanzar todos. Los turnos empiezan a correr mientras que los botones se desactivan y el botón de "avanzar todos" pone "Avanzando...". Aquí creo que lo ideal es que mientras el botón esté en "Avanzando..." el otro botón se convierta en un botón de pausa para deter el avance automático de turnos. Si se pulsa, el avance se detendrá después de terminar lo que estaba haciendo y los botones volverán a mostrarse como al principio (antes de pulsar el botón de "avanzar todos"). (PM)
+
+12. Hay que eliminar el botón de y supongo que su funcionalidad. Las tiradas ya se ejecutan en el server. No tiene sentido. O quizás si, ¿Y si hacemos que cuando sea el turno del jugador en combate o se le pida una tirada, la haga el mismo? No se si merece la pena. (PB)
+
+13. En combate, aparte de el tema de la música dinámica ya comentado en otro punto estaría genial que hubiese efectos de sonido para cada turno para ambientar un poco más la acción. Cada tipo de enemigo podría hacer gritos de ataque, quejidos si se les hace daño, etc. Choque de espadas, golpes de escudo, etc. (PB)
+
+14. El panel izquierdo necesita un rediseño. Hay que quitar los recuadros para el DebugLog (retirar todos los logs para este recuadro para limpiar código) y el botón de guardar partida hay que moverlo a la barra superior y ponerlo al lado del botón de ir a menú principal. Los recuadros de Tiradas y Orden de Combate debrían estar acoplados por defecto y solo maximizarse si hay información que necesite ser mostrada. El panel de orden de combate se tiene que ajustar en tamaño al número de participantes en la pelea dejando el resto del espacio al recuadro de tiradas. Revisar bien este planteamiento. (PM)
+
+16. Los botones de avanzar turnos deberían poner "Avanzar 1 turno" y "Avance automático". (PA)
+
+17. En combate, los turnos de los personajes muertos o inconscientes ya no deberían ni ejecutarse para no perder tiempo. El bucle debería ignorar a los personajes que están muertos o inconscientes. Ojo, si un personaje se recupera de la inconsciencia o revive habría que volver a tenerlo en cuenta en el bucle. Esto tiene que ir acompañado de alguna señal visual de qué personajes están fuera del combate (quizás tachando su nombre en el combat tracker o con algún tipo de simbolos para marcar su estado). (PA)
+
+18. Cerca del input de texto podíamos implementar botones para dar órdenes rápidas como "Atacamos", "Huímos", etc. (PB)
+
+19. Investigar sistemas de texto2voz más rápidos y configurables. (PM)
+
+20. Al finalizar un combate el panel de Tiradas podría mostrar un mensaje de victoria o derrota y que el combate ha finalizado. (PM)
+
+
 

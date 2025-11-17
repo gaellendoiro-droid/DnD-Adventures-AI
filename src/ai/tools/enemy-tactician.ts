@@ -74,18 +74,33 @@ For these, you MUST provide EXACTLY 2 dice rolls, IN THIS EXACT ORDER:
 **STEP 1 - ATTACK ROLL (ALWAYS FIRST):**
 {
   "roller": "{{{activeCombatant}}}",
-  "rollNotation": "1d20+X",  // Use 1d20 + your attack modifier
+  "rollNotation": "1d20+X",  // CRITICAL: X = ability modifier + proficiency bonus (use dndApiLookupTool to look up your stats if needed)
   "description": "Tirada de ataque con [weapon name]",  // or "Tirada de ataque de [spell name]"
   "attackType": "attack_roll"  // MANDATORY: Specify this is an attack roll
 }
 
+**HOW TO CALCULATE ATTACK MODIFIER:**
+- Use the dndApiLookupTool to look up your creature's stats and attacks
+- Attack bonus = ability modifier + proficiency bonus
+- Most creature stat blocks already include the calculated attack bonus (e.g., "Scimitar: +4 to hit")
+- Example: Goblin with Scimitar has +4 to hit = 1d20+4
+- Example: Orc with Greataxe has +5 to hit = 1d20+5
+- If you can't find exact stats, estimate based on creature CR: CR 1/4 to 1 typically has +3 to +5
+
 **STEP 2 - DAMAGE ROLL (ALWAYS SECOND):**
 {
   "roller": "{{{activeCombatant}}}",
-  "rollNotation": "XdY+Z",  // Use your weapon/spell damage dice
+  "rollNotation": "XdY+Z",  // Use your weapon/spell damage dice + ability modifier (look up in creature stats)
   "description": "Tirada de daño con [weapon name]",  // or "Tirada de daño de [spell name]"
   "attackType": "attack_roll"  // MANDATORY: Same type as the attack
 }
+
+**HOW TO CALCULATE DAMAGE:**
+- Use the damage dice from the creature's stat block
+- Add the ability modifier (NOT proficiency bonus)
+- Example: Goblin Scimitar does 1d6+2 slashing damage
+- Example: Orc Greataxe does 1d12+3 slashing damage
+- Most creature stat blocks include the full damage notation
 
 **TYPE 2: SAVING THROW SPELLS (Rare for basic enemies, common for spellcasters)**
 For these, the target makes a saving throw, so you ONLY provide the damage roll:
@@ -108,26 +123,28 @@ For these, the target makes a saving throw, so you ONLY provide the damage roll:
 
 **MANDATORY EXAMPLES TO FOLLOW:**
 
-Goblin with scimitar (TYPE 1: attack roll):
+Goblin with scimitar (Goblin stat block: DEX +2, Proficiency +2, Scimitar +4 to hit, 1d6+2 damage):
 [
-  {"roller": "Goblin 1", "rollNotation": "1d20+4", "description": "Tirada de ataque con cimitarra", "attackType": "attack_roll"},
-  {"roller": "Goblin 1", "rollNotation": "1d6+2", "description": "Tirada de daño con cimitarra", "attackType": "attack_roll"}
+  {"roller": "Goblin 1", "rollNotation": "1d20+4", "description": "Tirada de ataque con cimitarra", "attackType": "attack_roll"},  // DEX +2 + Proficiency +2 = +4
+  {"roller": "Goblin 1", "rollNotation": "1d6+2", "description": "Tirada de daño con cimitarra", "attackType": "attack_roll"}  // 1d6 + DEX +2
 ]
 
-Orc with greataxe (TYPE 1: attack roll):
+Orc with greataxe (Orc stat block: STR +3, Proficiency +2, Greataxe +5 to hit, 1d12+3 damage):
 [
-  {"roller": "Orco 1", "rollNotation": "1d20+5", "description": "Tirada de ataque de Gran Hacha", "attackType": "attack_roll"},
-  {"roller": "Orco 1", "rollNotation": "1d12+3", "description": "Tirada de daño (Gran Hacha)", "attackType": "attack_roll"}
+  {"roller": "Orco 1", "rollNotation": "1d20+5", "description": "Tirada de ataque de Gran Hacha", "attackType": "attack_roll"},  // STR +3 + Proficiency +2 = +5
+  {"roller": "Orco 1", "rollNotation": "1d12+3", "description": "Tirada de daño (Gran Hacha)", "attackType": "attack_roll"}  // 1d12 + STR +3
 ]
 
-Dragon with bite (TYPE 1: attack roll):
+Young White Dragon with bite (Dragon stat block: STR +4, Proficiency +3, Bite +7 to hit, 2d10+4 damage):
 [
-  {"roller": "Dragón", "rollNotation": "1d20+10", "description": "Tirada de ataque de mordisco", "attackType": "attack_roll"},
-  {"roller": "Dragón", "rollNotation": "2d10+6", "description": "Tirada de daño de mordisco", "attackType": "attack_roll"}
+  {"roller": "Dragón", "rollNotation": "1d20+7", "description": "Tirada de ataque de mordisco", "attackType": "attack_roll"},  // STR +4 + Proficiency +3 = +7
+  {"roller": "Dragón", "rollNotation": "2d10+4", "description": "Tirada de daño de mordisco", "attackType": "attack_roll"}  // 2d10 + STR +4
 ]
 
 **REMEMBER:**
-- Use the tools to look up your correct attack bonus and damage dice
+- Use dndApiLookupTool to look up your creature's correct attack bonus and damage dice
+- Attack bonus includes BOTH ability modifier AND proficiency bonus
+- Damage includes ONLY ability modifier (NOT proficiency bonus)
 - ALWAYS include BOTH rolls for any attack action
 - The attack roll MUST come first, damage roll second
 - This is not optional - missing the attack roll will cause your action to fail completely

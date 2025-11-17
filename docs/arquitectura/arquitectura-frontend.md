@@ -153,7 +153,7 @@ El sistema de guardado se gestiona en `app/page.tsx`:
 - Si existe, se carga automáticamente
 - Si no existe, se muestra el menú principal para crear una nueva
 
-## Flujo de Datos Completo
+## Flujo de Datos Completo (Alto Nivel)
 
 ### 1. Inicialización
 
@@ -181,6 +181,13 @@ Todos los componentes se actualizan automáticamente cuando cambia el estado en 
 - `CharacterSheet` se actualiza cuando cambia `party`
 - `InitiativeTracker` se actualiza cuando cambia `initiativeOrder` o `turnIndex`
 - `DiceLogPanel` se actualiza cuando cambia `diceRolls`
+
+> 📊 **Para diagramas detallados del flujo de datos**, consulta [Flujo de Datos](./flujo-datos.md) que incluye:
+> - Diagramas de secuencia completos
+> - Flujo de exploración detallado paso a paso
+> - Flujo de combate completo con todos los pasos
+> - Flujo de guardado y carga con ejemplos de código
+> - Flujo de tiradas de datos con validación
 
 ## Gestión de Estado Detallada
 

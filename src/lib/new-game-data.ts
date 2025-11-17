@@ -28,8 +28,9 @@ export const initialParty: Character[] = [
       sabiduría: 1,
       carisma: 2,
     },
-    hp: { current: 20, max: 20 },
-    ac: 10,
+    proficiencyBonus: 2, // Nivel 1: BC +2
+    hp: { current: 15, max: 15 },
+    ac: 30,
     isDead: false,
     skills: [
       { name: "Atletismo", proficient: true },
@@ -47,7 +48,7 @@ export const initialParty: Character[] = [
     spells: []
   },
   {
-    id: "2",
+    id: "6",
     name: "Merryl",
     race: "Mediano",
     characterClass: "Mago",
@@ -72,8 +73,9 @@ export const initialParty: Character[] = [
       sabiduría: 0,
       carisma: 0,
     },
-    hp: { current: 2, max: 4 },
-    ac: 10,
+    proficiencyBonus: 2, // Nivel 1: BC +2
+    hp: { current: 20, max: 20 },
+    ac: 18,
     isDead: false,
     skills: [
       { name: "Arcano", proficient: true },
@@ -123,8 +125,9 @@ export const initialParty: Character[] = [
       sabiduría: 3,
       carisma: 1,
     },
-    hp: { current: 2, max: 4 },
-    ac: 10,
+    proficiencyBonus: 2, // Nivel 1: BC +2
+    hp: { current: 20, max: 30 },
+    ac: 18,
     isDead: false,
     skills: [
       { name: "Medicina", proficient: true },

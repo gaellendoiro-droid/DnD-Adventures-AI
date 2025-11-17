@@ -41,10 +41,10 @@ export function resolveEnemyId(
     // Step 1: Check if targetId is already a uniqueId (contains '-' and ends with a number)
     const uniqueIdPattern = /^[^-]+-\d+$/;
     if (uniqueIdPattern.test(targetId)) {
-        // Search directly in enemies or party by uniqueId or id
+        // Search directly in enemies or party by uniqueId, id, or original adventureId
         const allCombatants = [...party, ...enemies];
         const found = allCombatants.find(
-            c => c.id === targetId || (c as any).uniqueId === targetId
+            c => c.id === targetId || (c as any).uniqueId === targetId || (c as any).adventureId === targetId
         );
         if (found) {
             return { uniqueId: found.id || (found as any).uniqueId, ambiguous: false, matches: [] };
