@@ -64,8 +64,9 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const isPlayerTurn = !isDMThinking && initiativeOrder[turnIndex]?.controlledBy === 'Player';
 
   // Refs for synchronous access in callbacks
+  // Note: turnIndexRef is NOT synced here - it's updated explicitly from backend responses
+  // to maintain the "next turn" index separate from the visual display index
   useEffect(() => {
-    turnIndexRef.current = turnIndex;
     initiativeOrderRef.current = initiativeOrder;
     enemiesRef.current = enemies;
     partyRef.current = party;
@@ -73,7 +74,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     inCombatRef.current = inCombat;
     messagesRef.current = messages;
     selectedCharacterRef.current = selectedCharacter;
-  }, [turnIndex, initiativeOrder, enemies, party, locationId, inCombat, messages, selectedCharacter]);
+  }, [initiativeOrder, enemies, party, locationId, inCombat, messages, selectedCharacter]);
 
   const addDebugMessages = useCallback((newLogs: string[] | undefined) => {
     if (!newLogs || newLogs.length === 0) return;
@@ -272,6 +273,22 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         initiativeOrder: initiativeOrderRef.current,
         enemies: enemiesRef.current,
       };
+
+      logClient.uiEvent('GameView', '[DEBUG] Sending action to backend', {
+        action: content,
+        turnIndex: turnIndexRef.current,
+        activeCombatant: turnIndexRef.current !== undefined 
+          ? initiativeOrderRef.current[turnIndexRef.current]?.characterName || 'Unknown'
+          : 'N/A',
+        inCombat: inCombatRef.current,
+        initiativeOrderLength: initiativeOrderRef.current.length,
+        initiativeOrder: initiativeOrderRef.current.map((c, i) => ({
+          index: i,
+          name: c.characterName,
+          controlledBy: c.controlledBy,
+          isCurrent: i === turnIndexRef.current,
+        })),
+      });
       
       // Debug: Log party HP to verify we're sending updated data
       if (inCombatRef.current) {
@@ -368,8 +385,25 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
             initiativeOrderRef.current = result.initiativeOrder;
           }
           if (result.turnIndex !== undefined) {
+            const oldTurnIndexRefValue = turnIndexRef.current;
             // Always update the ref to the next turn for internal logic
             turnIndexRef.current = result.turnIndex;
+
+            logClient.uiEvent('GameView', '[DEBUG] turnIndexRef updated', {
+              previousRefValue: oldTurnIndexRefValue,
+              newRefValue: turnIndexRef.current,
+              receivedFromBackend: result.turnIndex,
+              lastProcessedTurnIndex: result.lastProcessedTurnIndex,
+              lastProcessedTurnWasAI: result.lastProcessedTurnWasAI,
+              hasMoreAITurns: result.hasMoreAITurns,
+              initiativeOrder: initiativeOrderRef.current.map((c, i) => ({
+                index: i,
+                name: c.characterName,
+                controlledBy: c.controlledBy,
+                isRef: i === turnIndexRef.current,
+                isProcessed: i === result.lastProcessedTurnIndex,
+              })),
+            });
 
             // NEW SIMPLE LOGIC: The backend explicitly tells us if an AI turn was processed
             if (result.lastProcessedTurnWasAI) {
@@ -499,13 +533,27 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
             }
           }, 1500);
         } else if (!result.hasMoreAITurns) {
+          const shouldSnapToPlayerTurn = autoAdvancingRef.current && inCombatRef.current && turnIndexRef.current !== undefined;
+          
           // Combat reached player's turn or ended, exit auto-advance mode
           autoAdvancingRef.current = false;
           setAutoAdvancing(false);
-          // NOTE: We do NOT update turnIndex here.
-          // The turnIndex was already set earlier based on whether an AI turn was processed.
-          // This check using `justProcessedAITurn` would use the OLD value (before the update),
-          // so it would incorrectly overwrite the turnIndex we carefully calculated.
+
+          if (shouldSnapToPlayerTurn) {
+            const playerTurnIndex = turnIndexRef.current!;
+            const playerCombatant = initiativeOrderRef.current[playerTurnIndex];
+
+            logClient.uiEvent('GameView', 'Auto-advance finished on player turn', {
+              playerTurnIndex,
+              playerCombatant: playerCombatant?.characterName || 'Unknown',
+              lastProcessedTurnWasAI: result.lastProcessedTurnWasAI,
+              hasMoreAITurns: result.hasMoreAITurns,
+            });
+            
+            addDebugMessages([`Auto-avance completado. Turno del jugador: ${playerCombatant?.characterName ?? 'Desconocido'}.`]);
+            setTurnIndex(playerTurnIndex);
+            setJustProcessedAITurn(false);
+          }
         } else {
           // There are more AI turns
           // The turnIndex visual should already be updated if isContinuation is true

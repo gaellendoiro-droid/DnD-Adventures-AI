@@ -3,28 +3,28 @@
 Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras identificados durante el desarrollo del proyecto.
 
 **Fecha de inicio:** Durante el saneamiento general de la aplicación (2025-11-10)  
-**Última actualización:** 2025-11-15
+**Última actualización:** 2025-11-17 (Issue #78 marcado como resuelto; Issue #80 agregado)
 
 ---
 
 ## 📊 Resumen Estadístico
 
-- **Total de issues:** 39
-- **Issues corregidos:** 20 (51%)
-- **Issues pendientes:** 19 (49%)
+- **Total de issues:** 55
+- **Issues corregidos:** 30 (55%)
+- **Issues pendientes:** 25 (45%)
 
 ### Por Prioridad
 
 **Issues Corregidos:**
 - 🔴 PMA (Prioridad Muy Alta): 8 issues
-- 🟡 PA (Prioridad Alta): 2 issues
+- 🟡 PA (Prioridad Alta): 6 issues (Issues #34, #35, #36, #37, #51, #68)
 - 🟢 PM (Prioridad Media): 9 issues
 - ⚪ PB (Prioridad Baja): 1 issue
 
 **Issues Pendientes:**
-- 🔴 PMA (Prioridad Muy Alta): 0 issues
-- 🟡 PA (Prioridad Alta): 4 issues (Issue #50, #51, #35, #36, #37)
-- 🟢 PM (Prioridad Media): 9 issues
+- 🔴 PMA (Prioridad Muy Alta): 1 issue (Issue #67) ⚠️ **CRÍTICO**
+- 🟡 PA (Prioridad Alta): 4 issues (Issues #53, #65, #66, #75)
+- 🟢 PM (Prioridad Media): 15 issues (incluye Issues #63, #76, #77, #79, #80)
 - ⚪ PB (Prioridad Baja): 3 issues
 - ⚫ PMB (Prioridad Muy Baja): 1 issue
 
@@ -42,8 +42,8 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 
 ## 📁 Estructura de Archivos
 
-- **[pendientes.md](./pendientes.md)** - Issues activos que requieren atención (20 issues)
-- **[corregidos.md](./corregidos.md)** - Issues resueltos y verificados (18 issues) - Histórico
+- **[pendientes.md](./pendientes.md)** - Issues activos que requieren atención (24 issues)
+- **[corregidos.md](./corregidos.md)** - Issues resueltos y verificados (30 issues) - Histórico
 
 ---
 
@@ -51,12 +51,14 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 
 ### Issues Pendientes por Prioridad
 
+**🔴 Prioridad Muy Alta (PMA) - CRÍTICOS:**
+- [Issue #67: Turno de companion IA se repite al presionar "Pasar 1 Turno"](./pendientes.md#issue-67-turno-de-companion-ia-se-repite-al-presionar-pasar-1-turno-crítico) 🔴 **CRÍTICO** *[Detectado en testing - Sistema de turnos]*
+
 **🟡 Prioridad Alta (PA):**
-- [Issue #50: Daño de crítico no se duplica correctamente](./pendientes.md#issue-50-daño-de-crítico-no-se-duplica-correctamente-advertencia) *[Detectado en testing]*
-- [Issue #51: Mensaje "ha matado" incorrecto cuando personaje ya estaba inconsciente](./pendientes.md#issue-51-mensaje-ha-matado-incorrecto-cuando-personaje-ya-estaba-inconsciente-advertencia) *[Detectado en testing]*
-- [Issue #35: Orden incorrecto de mensajes cuando personaje cae a 0 HP](./pendientes.md#issue-35-orden-incorrecto-de-mensajes-cuando-personaje-cae-a-0-hp-advertencia) *[Detectado en testing]*
-- [Issue #36: Mensaje "ha matado" cuando personaje está inconsciente](./pendientes.md#issue-36-mensaje-ha-matado-cuando-personaje-está-inconsciente-no-muerto-advertencia) *[Detectado en testing]*
-- [Issue #37: Mensaje "está muerto" cuando personaje está inconsciente](./pendientes.md#issue-37-mensaje-está-muerto-cuando-personaje-está-inconsciente-advertencia) *[Detectado en testing]*
+- [Issue #53: Companions no usan hechizos disponibles en su ficha](./pendientes.md#issue-53-companions-no-usan-hechizos-disponibles-en-su-ficha-advertencia) *[Detectado en testing]*
+- [Issue #65: Ataque a compañero fuera de combate no inicia combate](./pendientes.md#issue-65-ataque-a-compañero-fuera-de-combate-no-inicia-combate-advertencia) *[Detectado en testing]*
+- [Issue #66: Orden incorrecto de mensajes en muerte masiva](./pendientes.md#issue-66-orden-incorrecto-de-mensajes-en-muerte-masiva-advertencia) *[Detectado en testing - Test 1.1]*
+- [Issue #75: DM inventa armas en narración de ataques sin consultar inventario](./pendientes.md#issue-75-dm-inventa-armas-en-narración-de-ataques-sin-consultar-inventario-advertencia) *[Detectado en testing]*
 
 **🟢 Prioridad Media (PM):**
 - [Issue #38: Auto-redirección de ataque a enemigo diferente cuando target está muerto](./pendientes.md#issue-38-auto-redirección-de-ataque-a-enemigo-diferente-cuando-target-está-muerto-mejora--decisión-de-diseño) *[Detectado en testing - Decisión de diseño pendiente]*
@@ -70,6 +72,11 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 - [Issue #28: Visualización de barra de vida en panel Grupo](./pendientes.md#issue-28-visualización-de-barra-de-vida-en-panel-grupo-advertencia)
 - [Issue #29: Stats de enemigos incorrectos en combate](./pendientes.md#issue-29-stats-de-enemigos-incorrectos-en-combate-advertencia)
 - [Issue #30: Errores de conexión a APIs con logs verbosos](./pendientes.md#issue-30-errores-de-conexión-a-apis-con-logs-verbosos-advertencia)
+- [Issue #63: Combate con IDs de personajes no consecutivos](./pendientes.md#issue-63-combate-con-ids-de-personajes-no-consecutivos-mejora)
+- [Issue #76: Input debe deshabilitarse cuando el DM está “pensando”](./pendientes.md#issue-76-input-debe-deshabilitarse-cuando-el-dm-está-pensando-mejora)
+- [Issue #77: Mensajes lentos al avanzar turno cuando el siguiente personaje está muerto o inconsciente](./pendientes.md#issue-77-mensajes-lentos-al-avanzar-turno-cuando-el-siguiente-personaje-está-muerto-o-inconsciente-mejora)
+- [Issue #79: Falta narración del DM en turnos del jugador](./pendientes.md#issue-79-falta-narración-del-dm-en-turnos-del-jugador-mejora)
+- [Issue #80: Permitir múltiples acciones del jugador en un turno](./pendientes.md#issue-80-permitir-múltiples-acciones-del-jugador-en-un-turno-movimientoacción-adicional-mejora)
 
 **⚪ Prioridad Baja (PB):**
 - [Issue #25: Logs del navegador colapsados por defecto](./pendientes.md#issue-25-logs-del-navegador-colapsados-por-defecto-advertencia)

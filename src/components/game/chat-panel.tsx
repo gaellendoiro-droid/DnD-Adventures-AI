@@ -73,8 +73,9 @@ export function ChatPanel({
       <Separator />
       <div className="p-4 bg-background/50 rounded-b-lg space-y-3">
         {/* Step-by-step combat buttons */}
-        {/* Show button if there are more AI turns OR if we just processed an AI turn (even if next is player's turn) */}
-        {inCombat && (hasMoreAITurns || justProcessedAITurn) && !isThinking && onPassTurn && onAdvanceAll && (
+        {/* Show button if there are more AI turns OR if we just processed an AI turn (even if next is player's turn) OR if auto-advancing */}
+        {/* Keep buttons visible during auto-advance to show "Avanzando..." continuously */}
+        {inCombat && (hasMoreAITurns || justProcessedAITurn || autoAdvancing) && onPassTurn && onAdvanceAll && (
           <div className="flex gap-2">
             <Button 
               onClick={onPassTurn}

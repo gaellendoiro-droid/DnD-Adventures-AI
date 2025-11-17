@@ -19,6 +19,47 @@ import {
 } from './combat-validators';
 
 /**
+ * Duplicates damage dice for critical hits according to D&D 5e rules.
+ * In D&D 5e, a critical hit doubles the damage dice, but not the modifier.
+ * 
+ * @param rollNotation - The damage roll notation (e.g., "1d8+2", "2d6+3")
+ * @param isCritical - Whether this is a critical hit
+ * @returns The modified damage roll notation (e.g., "2d8+2" for a critical with 1d8+2)
+ * 
+ * @example
+ * getCriticalDamageNotation("1d8+3", true) // Returns "2d8+3"
+ * getCriticalDamageNotation("1d8+3", false) // Returns "1d8+3"
+ * getCriticalDamageNotation("2d6+2", true) // Returns "4d6+2"
+ */
+export function getCriticalDamageNotation(rollNotation: string, isCritical: boolean): string {
+    if (!isCritical) {
+        return rollNotation;
+    }
+    
+    // Parse the damage roll notation (e.g., "1d8+2" -> {numDice: 1, dieType: 8, modifier: 2})
+    // Also supports notation without modifier (e.g., "1d8" -> {numDice: 1, dieType: 8, modifier: 0})
+    const diceMatch = rollNotation.match(/^(\d+)d(\d+)([+-]\d+)?$/);
+    
+    if (!diceMatch) {
+        log.warn('Invalid damage roll notation for critical, using as-is', {
+            module: 'DiceRollProcessor',
+            rollNotation,
+        });
+        // Fallback: return original notation
+        return rollNotation;
+    }
+    
+    const numDice = parseInt(diceMatch[1], 10);
+    const dieType = diceMatch[2];
+    const modifier = diceMatch[3] || '';
+    
+    // In D&D 5e, critical hits double the number of dice, not the modifier
+    const finalNumDice = numDice * 2;
+    
+    return `${finalNumDice}d${dieType}${modifier}`;
+}
+
+/**
  * Result of processing AI combatant rolls
  */
 export interface ProcessAICombatantRollsResult {
@@ -85,6 +126,7 @@ export async function processAICombatantRolls(
     // Track attack result to ensure damage only applies if attack hits
     let attackHit = false;
     let attackRoll: any = null;
+    let wasCritical = false;
 
     // Log what rolls the tactician requested
     log.debug('Processing rolls for AI combatant', {
@@ -97,22 +139,39 @@ export async function processAICombatantRolls(
     // Process rolls in order: attack first, then damage/healing
     for (const rollRequest of requestedRolls) {
         try {
+            // Check if this is a damage roll and if previous attack was critical
+            const rollDescription = (rollRequest.description || '').toLowerCase();
+            const isDamageRoll = rollDescription.includes('damage') || rollDescription.includes('daño');
+            
+            // Adjust damage dice for critical hits (Issue #50)
+            let adjustedRollNotation = rollRequest.rollNotation;
+            if (isDamageRoll && wasCritical) {
+                adjustedRollNotation = getCriticalDamageNotation(rollRequest.rollNotation, true);
+                log.debug('Adjusted damage roll for critical hit', {
+                    module: 'DiceRollProcessor',
+                    original: rollRequest.rollNotation,
+                    adjusted: adjustedRollNotation,
+                });
+            }
+            
             // Make the actual dice roll using the injected roller
             const rollResult = await diceRoller({
                 roller: rollRequest.roller,
-                rollNotation: rollRequest.rollNotation,
+                rollNotation: adjustedRollNotation,
                 description: rollRequest.description,
             });
             
+            // Store the adjusted notation if it was modified for critical
             const roll: DiceRoll = {
                 ...rollResult,
                 roller: rollRequest.roller,
-                rollNotation: rollRequest.rollNotation,
-                description: rollRequest.description,
+                rollNotation: adjustedRollNotation,
+                description: isDamageRoll && wasCritical 
+                    ? `${rollRequest.description} (crítico)`
+                    : rollRequest.description,
             };
             diceRolls.push(roll);
 
-            const rollDescription = (roll.description || '').toLowerCase();
             // Extract attackType from rollData (provided by AI tactician)
             const attackType = (rollRequest as any).attackType;
 
@@ -171,6 +230,9 @@ export async function processAICombatantRolls(
                 }
 
                 attackHit = roll.totalResult >= finalTargetAC;
+                
+                // Check for critical hit (Issue #50)
+                wasCritical = attackHit && roll.outcome === 'crit';
 
                 // Update roll with combat information
                 const rollIndex = diceRolls.length - 1;
@@ -197,11 +259,12 @@ export async function processAICombatantRolls(
                     attackHit: attackHit,
                     outcome: updatedRoll.outcome,
                     rollTotal: roll.totalResult,
+                    wasCritical: wasCritical,
                 });
 
                 if (attackHit) {
                     // Check for crit
-                    if (roll.outcome === 'crit') {
+                    if (wasCritical) {
                         messages.push({
                             sender: 'DM',
                             content: `¡${activeCombatant.characterName} ataca a ${targetVisualName} con un golpe crítico!`,
@@ -309,6 +372,9 @@ export async function processAICombatantRolls(
 
                 const damage = roll.totalResult;
 
+                // Flag to track massive damage death for message ordering
+                let massiveDamageDeath = false;
+
                 if (targetIsPlayer) {
                     // Para jugador/compañeros: aplicar regla de muerte masiva D&D 5e
                     updatedParty = updatedParty.map((p) => {
@@ -321,11 +387,8 @@ export async function processAICombatantRolls(
                             const remainingDamage = damage - targetHP;
 
                             if (remainingDamage >= targetHPMax) {
-                                // Muerte instantánea
-                                messages.push({
-                                    sender: 'DM',
-                                    content: `${p.name} ha recibido un golpe devastador y muere instantáneamente.`,
-                                });
+                                // Muerte instantánea - guardamos flag para mensaje posterior
+                                massiveDamageDeath = true;
                                 const updated = {
                                     ...p,
                                     hp: { current: 0, max: targetHPMax },
@@ -402,6 +465,13 @@ export async function processAICombatantRolls(
                         // For players/companions: distinguish between death and unconsciousness
                         // Players/companions can fall unconscious (isDead = false) or die (isDead = true via massive damage)
                         if (targetIsDead) {
+                            // Add massive damage death message if applicable (AFTER damage message, BEFORE kill message)
+                            if (massiveDamageDeath) {
+                                messages.push({
+                                    sender: 'DM',
+                                    content: `${targetVisualName} ha recibido un golpe devastador y muere instantáneamente.`,
+                                });
+                            }
                             messages.push({
                                 sender: 'DM',
                                 content: `¡${activeCombatant.characterName} ha matado a ${targetVisualName}!`,

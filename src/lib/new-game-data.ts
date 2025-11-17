@@ -28,7 +28,7 @@ export const initialParty: Character[] = [
       sabiduría: 1,
       carisma: 2,
     },
-    hp: { current: 2, max: 4 },
+    hp: { current: 20, max: 20 },
     ac: 10,
     isDead: false,
     skills: [

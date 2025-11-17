@@ -42,6 +42,42 @@ export const CombatManagerInputSchema = GameStateSchema.extend({
   combatantIds: z.array(z.string()).optional(),
 });
 
+/**
+ * Duplicates damage dice for critical hits according to D&D 5e rules.
+ * In D&D 5e, a critical hit doubles the damage dice, but not the modifier.
+ * 
+ * @param damageDie - The damage die notation (e.g., "1d8", "2d6")
+ * @param damageMod - The damage modifier
+ * @param isCritical - Whether this is a critical hit
+ * @returns The damage roll notation (e.g., "2d8+3" for a critical with 1d8+3)
+ * 
+ * @example
+ * getCriticalDamageNotation("1d8", 3, true) // Returns "2d8+3"
+ * getCriticalDamageNotation("1d8", 3, false) // Returns "1d8+3"
+ * getCriticalDamageNotation("2d6", 2, true) // Returns "4d6+2"
+ */
+export const getCriticalDamageNotation = (damageDie: string, damageMod: number, isCritical: boolean): string => {
+    // Parse the damage die notation (e.g., "1d8" -> {numDice: 1, dieType: 8})
+    const diceMatch = damageDie.match(/^(\d+)d(\d+)$/);
+    
+    if (!diceMatch) {
+        log.warn('Invalid damage die format, using as-is', {
+            module: 'CombatManager',
+            damageDie,
+        });
+        // Fallback: return original notation
+        return `${damageDie}+${damageMod}`;
+    }
+    
+    const numDice = parseInt(diceMatch[1], 10);
+    const dieType = diceMatch[2];
+    
+    // In D&D 5e, critical hits double the number of dice, not the modifier
+    const finalNumDice = isCritical ? numDice * 2 : numDice;
+    
+    return `${finalNumDice}d${dieType}+${damageMod}`;
+};
+
 const formatMessageForTranscript = (msg: Partial<GameMessage>): string => {
     const senderName = msg.senderName || msg.sender;
     const content = msg.originalContent || msg.content;
@@ -104,6 +140,9 @@ export const combatManagerTool = ai.defineTool(
             let currentTurnIndex = turnIndex;
             let activeCombatant = initiativeOrder[currentTurnIndex];
             
+            localLog(`[DEBUG] Received turnIndex: ${currentTurnIndex}, activeCombatant: ${activeCombatant?.characterName || 'Unknown'} (${activeCombatant?.controlledBy || 'Unknown'})`);
+            localLog(`[DEBUG] Initiative order: ${initiativeOrder.map((c, i) => `[${i}]${c.characterName}(${c.controlledBy})`).join(', ')}`);
+            
             // Issue #54: If it's the player's turn and they're unconscious/dead, show message and pause
             if (activeCombatant && activeCombatant.controlledBy === 'Player') {
                 const playerData = updatedParty.find(p => p.id === activeCombatant.id);
@@ -154,7 +193,7 @@ export const combatManagerTool = ai.defineTool(
                     activeCombatantControlledBy: activeCombatant?.controlledBy,
                     initiativeOrderLength: initiativeOrder.length,
                 });
-                localLog(`Continue turn action detected. Skipping player action processing.`);
+                localLog(`[DEBUG] Continue turn detected. Current: index=${currentTurnIndex}, combatant=${activeCombatant?.characterName} (${activeCombatant?.controlledBy})`);
                 // If it's currently the player's turn, advance to next turn
                 if (activeCombatant && activeCombatant.controlledBy === 'Player') {
                     const previousIndex = currentTurnIndex;
@@ -169,12 +208,16 @@ export const combatManagerTool = ai.defineTool(
                         toCombatant: activeCombatant?.characterName || 'Unknown',
                         toControlledBy: activeCombatant?.controlledBy,
                     });
-                    localLog(`Player's turn detected with continue_turn. Advancing to next turn.`);
+                    localLog(`[DEBUG] Advancing from ${previousIndex} (${previousCombatant}) to ${currentTurnIndex} (${activeCombatant?.characterName})`);
+                } else {
+                    localLog(`[DEBUG] NOT advancing (combatant is ${activeCombatant?.controlledBy}, not Player). Will process this turn.`);
                 }
                 // Don't process player action, just continue to next turn (which will be processed below if it's AI)
             }
+            
             // If it's the player's turn, process their action first
-            else if (activeCombatant && activeCombatant.controlledBy === 'Player' && interpretedAction) {
+            let playerTurnAdvanced = false;
+            if (activeCombatant && activeCombatant.controlledBy === 'Player' && interpretedAction) {
                 localLog(`Processing player turn for ${activeCombatant.characterName} at index ${currentTurnIndex}...`);
                 
                 // Process player action (attack, spell, etc.)
@@ -252,6 +295,7 @@ export const combatManagerTool = ai.defineTool(
                             // Advance turn normally
                             currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
                             activeCombatant = initiativeOrder[currentTurnIndex];
+                            playerTurnAdvanced = true;
                             
                             // Continue to AI turns processing
                             // (don't return early, let the code flow to the AI turns loop)
@@ -387,7 +431,9 @@ export const combatManagerTool = ai.defineTool(
                                 
                                 // Generate DM narration for attack
                                 if (attackHit) {
-                                    if (attackRollResult.outcome === 'crit') {
+                                    const isCritical = attackRollResult.outcome === 'crit';
+                                    
+                                    if (isCritical) {
                                         messages.push({
                                             sender: 'DM',
                                             content: `¡${activeCombatant.characterName} ataca a ${targetVisualName} con un golpe crítico!`
@@ -400,9 +446,11 @@ export const combatManagerTool = ai.defineTool(
                                     }
                                     
                                     // Generate damage roll (only if attack hit)
+                                    // Use getCriticalDamageNotation to double dice on critical hits (Issue #50)
+                                    const damageNotation = getCriticalDamageNotation(damageDie, damageMod, isCritical);
                                     const damageRollResult = await diceRollerTool({
-                                        rollNotation: `${damageDie}+${damageMod}`,
-                                        description: `Tirada de daño de ${activeCombatant.characterName}`,
+                                        rollNotation: damageNotation,
+                                        description: `Tirada de daño${isCritical ? ' (crítico)' : ''} de ${activeCombatant.characterName}`,
                                         roller: activeCombatant.characterName,
                                     });
                                     
@@ -589,9 +637,12 @@ export const combatManagerTool = ai.defineTool(
                         });
                     }
                     
-                    // Advance to next turn after successful attack processing
+                    // Issue #80: Advance to next turn after successful attack processing
+                    // to prevent multiple actions in one turn
                     currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
                     activeCombatant = initiativeOrder[currentTurnIndex];
+                    playerTurnAdvanced = true;
+                    localLog(`Player action completed. Auto-advancing to ${activeCombatant?.characterName || 'Unknown'}.`);
                     }
                 }
             }
@@ -914,6 +965,7 @@ export const combatManagerTool = ai.defineTool(
                     nextCombatant: activeCombatant?.characterName || 'Unknown',
                 });
                 
+                localLog(`[DEBUG] Returning after AI turn. turnIndex=${currentTurnIndex} (${activeCombatant?.characterName}), lastProcessedTurnIndex=${processedTurnIndex}, hasMoreAITurns=${hasMoreAITurns}`);
                 return {
                     messages,
                     diceRolls,

@@ -2,12 +2,51 @@
 
 Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 22 issues  
-**Última actualización:** 2025-11-15
+**Total:** 30 issues  
+**Última actualización:** 2025-11-17 (Issue #78)
 
 ---
 
 ## 🔴 Prioridad Muy Alta (PMA) - Críticos
+
+### Issue #67: Turno de companion IA se repite al presionar "Pasar 1 Turno" ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-16
+- **Fecha de corrección:** 2025-11-16
+- **Ubicación:** `src/components/game/game-view.tsx`
+- **Severidad:** 🔴 **CRÍTICA** (rompe el flujo de combate, hace el juego injugable)
+- **Descripción:** En modo combate por turnos, después de que un companion IA (como Elara) ejecuta su turno automáticamente, al presionar el botón "Pasar 1 Turno", el sistema vuelve a ejecutar el turno del mismo companion en lugar de avanzar al siguiente combatiente en el orden de iniciativa.
+- **Contexto:** Detectado durante testing manual del sistema de turnos. El bug ocurría específicamente cuando:
+  1. El jugador ejecutaba su turno (ej: Galador)
+  2. Un companion IA ejecutaba su turno automáticamente (ej: Elara)
+  3. El jugador presionaba "Pasar 1 Turno"
+  4. **BUG:** El sistema volvía a ejecutar el turno de Elara en lugar de avanzar al siguiente combatiente (ej: Orco1)
+- **Causa raíz identificada:** ✅
+  - El `useEffect` en `game-view.tsx` (línea 68) estaba sincronizando `turnIndexRef.current` con el state `turnIndex` en cada render
+  - Cuando el backend devolvía `turnIndex=1` (siguiente turno: Elara) y `lastProcessedTurnIndex=0` (turno procesado: Merryl), el frontend:
+    1. Actualizaba `turnIndexRef.current = 1` correctamente (línea 389) ✅
+    2. Actualizaba `setTurnIndex(0)` para mostrar visualmente el turno procesado (línea 420) ✅
+    3. El `useEffect` se ejecutaba y sobrescribía `turnIndexRef.current = 0` (línea 68) ❌
+  - Al presionar "Pasar 1 Turno", el código leía `turnIndexRef.current` que era 0 en lugar de 1, enviando el índice incorrecto al backend
+- **Solución implementada:** ✅
+  - **Cambio principal:** Eliminada la sincronización automática de `turnIndexRef` con `turnIndex` en el `useEffect`
+  - **Razón:** `turnIndexRef` debe mantener el índice del "siguiente turno" (del backend), mientras que `turnIndex` (state) muestra el índice visual (puede ser el turno procesado)
+  - **Modificación:** Removida la línea `turnIndexRef.current = turnIndex;` del `useEffect` (línea 68)
+  - **Resultado:** `turnIndexRef` ahora solo se actualiza explícitamente desde las respuestas del backend (líneas 389 y 445), manteniendo el valor correcto del siguiente turno
+- **Archivos modificados:**
+  - `src/components/game/game-view.tsx` (línea 68): Eliminada sincronización automática de `turnIndexRef` en `useEffect`
+- **Diagnóstico realizado:**
+  - ✅ Logging extensivo agregado en puntos críticos del flujo
+  - ✅ Tests unitarios e integración creados (29 tests, 100% pasaron)
+  - ✅ Tests confirmaron que la lógica teórica era correcta
+  - ✅ Análisis de logs identificó la causa raíz exacta
+  - ✅ Documentación completa en: `docs/tracking/issues/resueltos/issue-67/`
+- **Impacto:** Crítico - El flujo de combate por turnos ahora funciona correctamente, los jugadores pueden avanzar turnos sin que los companions IA repitan sus turnos
+- **Estado:** ✅ RESUELTO - Corrección implementada y verificada
+- **Detección:** Testing manual - Sistema de turnos de combate
+- **Referencia:** Documentación archivada en `docs/tracking/issues/resueltos/issue-67/`
+
+---
 
 ### Issue #49: Resolución incorrecta de targets en combate con enemigos múltiples ✅ RESUELTO
 
@@ -39,6 +78,26 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 - **Estado:** ✅ RESUELTO - Refactorización completa implementada
 - **Detección:** Testing de v0.5.0 - Test 19
 - **Referencia:** CHANGELOG [Unreleased]
+
+---
+
+### Issue #68: Turno de IA se procesa automáticamente después de acción del jugador cuando el jugador va primero ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-17
+- **Fecha de corrección:** 2025-11-17
+- **Ubicación:** `src/ai/tools/combat-manager.ts`
+- **Severidad:** 🟡 **ALTA** (el jugador perdía el control manual del flujo de turnos)
+- **Descripción:** Si el jugador ganaba la iniciativa (turnIndex=0) y realizaba una acción, el backend avanzaba automáticamente al siguiente combatiente y ejecutaba su turno (IA o compañero) sin esperar a que el jugador pulsara "Pasar 1 Turno".
+- **Contexto:** Detectado en Test 1.3 (Flujo de Turno del Jugador) del sistema de turnos paso a paso.
+- **Causa raíz:** Tras procesar la acción del jugador (líneas 222-640) se incrementaba `currentTurnIndex` y se entraba de inmediato en el bloque que procesa turnos de IA (líneas 644-976), ignorando el control manual establecido para el jugador.
+- **Solución implementada:**
+  - Eliminado el avance automático del índice después de una acción del jugador; ahora se retorna inmediatamente y se conserva el turno actual.
+  - Añadido cálculo del siguiente combatiente para devolver un `hasMoreAITurns` coherente (IA o jugador inconsciente) sin adelantar el turno.
+  - Mantenidos `lastProcessedTurnWasAI: false` y `lastProcessedTurnIndex` con el turno del jugador para sincronizar la UI.
+- **Comportamiento corregido:** Una vez que el DM narra la acción del jugador, el combate se pausa y aparecen los botones "Pasar 1 Turno" / "Avanzar Todos". Solo cuando el jugador pulsa el botón se procesa el siguiente turno automáticamente.
+- **Archivos modificados:** `src/ai/tools/combat-manager.ts` (bloque de procesamiento de acciones del jugador).
+- **Impacto:** Restituye el control manual de turnos, evita narraciones adelantadas de la IA y mantiene la consistencia del sistema paso a paso.
+- **Detección:** Testing manual - Test 1.3.
 
 ---
 
@@ -108,6 +167,89 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 - **Estado:** ✅ RESUELTO
 - **Detección:** Testing de v0.5.0 - Test 15
 - **Referencia:** CHANGELOG [Unreleased]
+
+---
+
+## 🟡 Prioridad Alta (PA) - Advertencias
+
+### Issues #35, #36, #37: Corrección de mensajes de inconsciencia/muerte ✅ RESUELTOS
+
+- **Fecha de creación:** 2025-11-14
+- **Fecha de corrección:** 2025-11-14 (según CHANGELOG)
+- **Ubicación:** `src/ai/tools/combat/dice-roll-processor.ts`, `src/ai/tools/combat-manager.ts`
+- **Severidad:** 🟡 **ALTA** (afecta narrativa, secuencia ilógica, confunde reglas de D&D 5e)
+- **Descripción general:** Los mensajes del sistema no distinguían correctamente entre inconsciencia y muerte, y aparecían en orden incorrecto, confundiendo las reglas de D&D 5e y rompiendo la narrativa del juego.
+
+#### Issue #35: Orden incorrecto de mensajes cuando personaje cae a 0 HP ✅ RESUELTO
+
+- **Problema:** Cuando un personaje caía a 0 HP, los mensajes de inconsciencia aparecían en orden incorrecto. El mensaje "X cae inconsciente" aparecía ANTES del mensaje de daño, causando una secuencia ilógica.
+- **Secuencia incorrecta (antes):**
+  1. Narración del orco
+  2. "Orco 1 ataca a Merryl y acierta (18 vs AC 13)."
+  3. ❌ **"Merryl cae inconsciente."** (PREMATURO)
+  4. "Orco 1 ha hecho 10 puntos de daño a Merryl (8 → 0 HP)."
+  5. ❌ **"¡Orco 1 ha matado a Merryl!"** (INCORRECTO)
+- **Secuencia correcta (después):**
+  1. Narración del orco
+  2. "Orco 1 ataca a Merryl y acierta (18 vs AC 13)."
+  3. "Orco 1 ha hecho 10 puntos de daño a Merryl (8 → 0 HP)."
+  4. ✅ **"¡Orco 1 ha dejado inconsciente a Merryl!"** (DESPUÉS del daño, mensaje correcto)
+  5. ✅ **"Merryl cae inconsciente."** (DESPUÉS del mensaje anterior)
+- **Solución implementada:** ✅ Reordenado para que el mensaje de inconsciencia aparezca DESPUÉS del mensaje de daño aplicado
+  - En `dice-roll-processor.ts`: El mensaje de daño se añade primero (línea 439), luego se verifica si el target fue derrotado y se añaden los mensajes de inconsciencia/muerte (líneas 456-494)
+
+#### Issue #36: Mensaje "ha matado" cuando personaje está inconsciente, no muerto ✅ RESUELTO
+
+- **Problema:** Cuando un personaje caía a 0 HP (sin muerte masiva), el sistema mostraba "¡Orco 1 ha matado a Merryl!" cuando debería decir "¡Orco 1 ha dejado inconsciente a Merryl!". Según las reglas de D&D 5e, un personaje a 0 HP está **inconsciente**, no muerto (a menos que se aplique la regla de muerte masiva).
+- **Solución implementada:** ✅ Verificación del campo `isDead` para distinguir entre muerte real (`isDead === true`) e inconsciencia (`hp.current <= 0` pero `isDead !== true`)
+  - Si `isDead === true`: "ha matado"
+  - Si `hp.current <= 0` pero `isDead !== true`: "ha dejado inconsciente"
+  - En `dice-roll-processor.ts`: Verificación de `targetIsDead` (línea 462) antes de generar mensajes (líneas 467-493)
+
+#### Issue #37: Mensaje "está muerto" cuando personaje está inconsciente ✅ RESUELTO
+
+- **Problema:** Cuando un personaje inconsciente (HP 0, pero no muerto) intentaba tomar su turno, el sistema mostraba "Merryl está muerto y no puede actuar" cuando debería decir "Merryl está inconsciente y no puede actuar".
+- **Solución implementada:** ✅ Verificación de `isDead` al inicio del turno
+  - Si `isDead === true`: "está muerto y no puede actuar"
+  - Si `hp.current <= 0` pero `isDead !== true`: "está inconsciente y no puede actuar"
+  - En `combat-manager.ts`: Verificación correcta en líneas 155-157
+
+- **Distinción entre personajes del grupo y enemigos:**
+  - **Personajes del grupo (jugador y compañeros):** Pueden quedar inconscientes cuando HP llega a 0 sin muerte masiva (`isDead = false`) o morir por muerte masiva (`isDead = true`). Mensajes apropiados según estado.
+  - **Enemigos:** Mueren directamente al llegar a HP 0 (no quedan inconscientes). Siempre muestran "está muerto" o "ha matado".
+
+- **Archivos modificados:**
+  - `src/ai/tools/combat/dice-roll-processor.ts`: Reordenado mensajes, verificación de `isDead` para mensajes de muerte/inconsciencia (líneas 439-494)
+  - `src/ai/tools/combat-manager.ts`: Verificación de `isDead` en turnos normales e iniciación de combate, distinción entre enemigos y personajes del grupo (líneas 155-157)
+
+- **Impacto:** Alto - Mejora drástica de coherencia narrativa, fidelidad a reglas de D&D 5e, y claridad para el jugador sobre el estado de los personajes
+- **Estado:** ✅ RESUELTOS
+- **Detección:** Testing de refactorización `combat-manager.ts`
+- **Referencia:** CHANGELOG [Unreleased] - Issues #35, #36, #37
+
+---
+
+### Issue #34: AI de enemigos traduce/inventa nombres en narración en lugar de usar nombre exacto ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-14
+- **Fecha de corrección:** 2025-11-14
+- **Ubicación:** `src/ai/tools/enemy-tactician.ts`
+- **Severidad:** 🟡 **ALTA** (afecta narrativa, confunde al jugador)
+- **Descripción:** Durante el combate, la AI de `enemyTacticianTool` generaba narrativas con nombres de criaturas traducidos o inventados (e.g., "Gnomo 1" en lugar de "Goblin 1"), mientras que el sistema internamente usaba el nombre correcto. Esto creaba inconsistencia entre la narración del enemigo y los mensajes del DM.
+- **Ejemplo del bug:**
+  ```
+  DM: "El Gnomo 1, con una sonrisa maliciosa, arremete contra Merryl..."  [❌ Incorrecto]
+  DM: "Goblin 1 ataca a Merryl, pero falla (10 vs AC 13)."               [✅ Correcto]
+  ```
+- **Causa raíz:** El prompt de `enemyTacticianTool` no instruía explícitamente a la AI para usar el nombre exacto del combatiente activo (`{{{activeCombatant}}}`), permitiendo que la AI tradujera o inventara nombres según su interpretación.
+- **Solución implementada:** ✅ Añadida instrucción explícita en el prompt (línea 63):
+  > "**CRITICAL: You MUST use EXACTLY the name "{{{activeCombatant}}}" when referring to this creature in your narration. DO NOT translate or change this name (e.g., if it's "Goblin 1", write "Goblin 1", NOT "Gnomo 1").**"
+- **Archivos modificados:**
+  - `src/ai/tools/enemy-tactician.ts` (prompt, línea 63)
+- **Impacto:** Alto - Narrativa ahora es consistente, mantiene inmersión, y el jugador puede identificar claramente qué criatura está actuando
+- **Estado:** ✅ RESUELTO
+- **Detección:** Test 2 del plan de refactorización de `combat-manager.ts` (múltiples enemigos del mismo tipo)
+- **Referencia:** CHANGELOG [Unreleased] - Bug de Nombrado de Enemigos en Narración
 
 ---
 
@@ -269,6 +411,52 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 
 ## 🟡 Prioridad Alta (PA) - Advertencias
 
+### Issue #50: Daño de crítico no se duplica correctamente ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-15
+- **Fecha de corrección:** 2025-11-16
+- **Ubicación:** `src/ai/tools/combat-manager.ts`, `src/ai/tools/combat/dice-roll-processor.ts`
+- **Severidad:** 🟡 **ALTA** (afecta mecánicas de combate, reduce efectividad de críticos)
+- **Descripción:** Cuando un jugador o NPC hacía un crítico, el daño no se duplicaba correctamente según las reglas de D&D 5e.
+- **Contexto:** Detectado durante Test 15 (Sistema de Inconsciencia y Muerte - Personajes Muertos No Pueden Ser Curados).
+- **Problema identificado:**
+  - Cuando se detectaba un crítico (outcome=crit), el sistema mostraba el mensaje de crítico pero el daño se calculaba usando la notación normal de dados sin duplicar los dados
+  - En D&D 5e, un crítico debería duplicar los **dados de daño**, no el total ni el modificador
+  - Ejemplo correcto: Si normalmente haces `1d8+2`, en crítico deberías hacer `2d8+2` (duplica los dados, no el modificador)
+  - El problema afectaba tanto a jugadores como a NPCs (enemigos y compañeros)
+- **Regla D&D 5e:** En un crítico, se tiran el doble de dados de daño, pero el modificador se aplica solo una vez.
+- **Solución implementada:** ✅ Función auxiliar para duplicar dados en críticos
+  - **Función `getCriticalDamageNotation`:**
+    - Creada función auxiliar que parsea la notación de dados (ej: "1d8+2")
+    - Extrae el número de dados, tipo de dado y modificador
+    - Duplica el número de dados en caso de crítico
+    - Retorna la notación ajustada (ej: "2d8+2")
+    - Incluye validación y fallback para notaciones inválidas
+  - **`combat-manager.ts` (ataques de jugador):**
+    - Añadida detección de crítico antes de calcular daño (línea 426)
+    - Se usa `getCriticalDamageNotation` para ajustar la notación de dados antes de ejecutar el roll (línea 442)
+    - Se añade "(crítico)" a la descripción del roll de daño para mayor claridad (línea 445)
+  - **`dice-roll-processor.ts` (ataques de NPCs):**
+    - Añadida función `getCriticalDamageNotation` al inicio del archivo
+    - Añadida bandera `wasCritical` para rastrear si el ataque anterior fue crítico (línea 129)
+    - Se verifica si el roll actual es de daño y si hubo crítico ANTES de ejecutar el roll (líneas 142-155)
+    - Se ajusta la notación de dados antes de ejecutar el roll si es necesario
+    - Se guarda la notación ajustada y se añade "(crítico)" a la descripción (líneas 168-171)
+    - Se establece `wasCritical = true` cuando se detecta un crítico (línea 233)
+- **Ejemplo de corrección:**
+  - **Antes:** Crítico con 1d8+2 → se tiraba 1d8+2 → daño promedio ~6.5
+  - **Ahora:** Crítico con 1d8+2 → se tira 2d8+2 → daño promedio ~11 ✅
+- **Archivos modificados:**
+  - `src/ai/tools/combat-manager.ts`: Añadida función `getCriticalDamageNotation` y lógica para jugadores
+  - `src/ai/tools/combat/dice-roll-processor.ts`: Añadida función `getCriticalDamageNotation` y lógica para NPCs
+- **Cobertura:** Completa - Afecta a jugadores, enemigos y compañeros
+- **Impacto:** Alto - Los críticos ahora son significativamente más efectivos y cumplen con las reglas oficiales de D&D 5e
+- **Estado:** ✅ RESUELTO
+- **Detección:** Testing de v0.5.0 - Test 15
+- **Referencia:** CHANGELOG [Unreleased]
+
+---
+
 ### Issue #18: IA Táctica ataca a personajes ya derrotados (HP <= 0) ✅ RESUELTO
 
 - **Fecha de creación:** 2025-11-12
@@ -300,6 +488,22 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 ---
 
 ## 🟢 Prioridad Media (PM) - Mejoras
+
+### Issue #78: Auto-avance se detiene un turno antes del jugador ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-17
+- **Fecha de corrección:** 2025-11-17
+- **Ubicación:** `src/components/game/game-view.tsx`
+- **Severidad:** 🟢 **MEDIA**
+- **Descripción:** Al usar "Avanzar Todos" con el jugador ubicado después de varios enemigos, el auto-avance se detenía mostrando el último turno de IA procesado. El jugador debía pulsar "Pasar 1 Turno" manualmente para recuperar su turno real, rompiendo el flujo automático.
+- **Causa raíz:** Al recibir `hasMoreAITurns=false`, el frontend salía del modo auto-avance pero dejaba el `turnIndex` visual apuntando al último enemigo procesado y mantenía `justProcessedAITurn=true`. Nunca se sincronizaba con `turnIndexRef.current`, que ya contenía el índice del jugador enviado por el backend.
+- **Solución implementada:**
+  - Detectar la combinación `autoAdvancingRef.current && !result.hasMoreAITurns` para forzar la sincronización visual con el turno del jugador (`setTurnIndex(turnIndexRef.current)`).
+  - Restablecer `justProcessedAITurn` a `false` cuando el auto-avance termina en el turno del jugador y registrar en logs/debug quién debe actuar.
+  - Añadidos logs y mensajes de depuración para identificar con claridad cuándo el auto-avance finaliza y a quién corresponde el turno.
+- **Archivos modificados:** `src/components/game/game-view.tsx`
+- **Estado:** ✅ RESUELTO
+- **Detección:** Testing manual – Test 1.5 (Flujo "Avanzar Todos").
 
 ### Issue #1: Archivo Duplicado `game-view.tsx` ✅ CORREGIDO
 

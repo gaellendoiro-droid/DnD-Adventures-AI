@@ -38,13 +38,14 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - `src/components/game/initiative-tracker.tsx` - Añadidos props `isPlayerTurn` e `isProcessing`, badges de estado, animaciones
     - `src/components/game/game-view.tsx` - Lógica para determinar turno del jugador y pasar props al tracker
   - **Estado:** Plan "Sistema de Turnos Paso a Paso en Combate" ahora 100% completado
-- **🧪 Sistema de Testing Implementado (2025-11-15):**
+- **🧪 Sistema de Testing Implementado (2025-11-15, actualizado 2025-11-16):**
   - Configuración completa de Vitest para unit tests y integration tests
-  - 106 tests implementados (36 backend + 32 frontend + 38 integration)
+  - 145 tests implementados (75 backend + 32 frontend + 38 integration)
   - Tests de integración para sistema de turnos paso a paso:
     - `turn-system.test.ts` (24 tests) - Sincronización de estado, procesamiento de turnos
     - `turn-system-flow.test.ts` (14 tests) - Flujos completos de turnos, wrap-around, fin de combate
   - Tests para módulos críticos:
+    - `critical-damage.ts` (39 tests) - Cálculo de daño crítico según reglas D&D 5e (Issue #50) ✨ NUEVO
     - `combat-validators.ts` (26 tests) - Validación de HP, estados de combate, fin de combate
     - `retry-utils.ts` (10 tests) - Lógica de retry con exponential backoff
     - `monster-name-manager.ts` (17 tests) - Generación y normalización de nombres
@@ -73,6 +74,24 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
   - **Impacto:** Alto - Los ataques ahora se dirigen correctamente al target especificado, código más simple y robusto
   - **Estado:** ✅ CORREGIDO - Refactorización completa implementada
   - **Referencia:** Issue #49 en `docs/tracking/issues/corregidos.md`
+- **🟡 Issue #50: Daño de crítico no se duplica correctamente:**
+  - **Problema:** Cuando un jugador o NPC hacía un crítico, el daño no se duplicaba correctamente según las reglas de D&D 5e. El sistema mostraba el mensaje de crítico pero calculaba el daño usando la notación normal de dados sin duplicar los dados.
+  - **Regla D&D 5e:** En un crítico, se tiran el doble de dados de daño, pero el modificador se aplica solo una vez. Ejemplo: `1d8+2` normal → `2d8+2` en crítico.
+  - **Solución implementada:** ✅ Función auxiliar `getCriticalDamageNotation` para duplicar dados en críticos
+    - **Implementación:**
+      - Creada función que parsea la notación de dados (ej: "1d8+2"), extrae número de dados, tipo y modificador, duplica los dados en críticos, y retorna la notación ajustada (ej: "2d8+2")
+      - En `combat-manager.ts`: Se detecta crítico antes de calcular daño, se ajusta la notación usando `getCriticalDamageNotation`, y se añade "(crítico)" a la descripción del roll
+      - En `dice-roll-processor.ts`: Se añade bandera `wasCritical` para rastrear críticos, se verifica si el roll es de daño después de crítico ANTES de ejecutarlo, y se ajusta la notación si es necesario
+    - **Cobertura completa:** Afecta a jugadores, enemigos y compañeros
+    - **Ejemplo de corrección:**
+      - **Antes:** Crítico con 1d8+2 → se tiraba 1d8+2 → daño promedio ~6.5
+      - **Ahora:** Crítico con 1d8+2 → se tira 2d8+2 → daño promedio ~11 ✅
+  - **Archivos modificados:**
+    - `src/ai/tools/combat-manager.ts`: Añadida función `getCriticalDamageNotation` y lógica para jugadores (líneas 45-79, 426-447)
+    - `src/ai/tools/combat/dice-roll-processor.ts`: Añadida función `getCriticalDamageNotation` y lógica para NPCs (líneas 21-60, 129, 142-173, 233)
+  - **Impacto:** Alto - Los críticos ahora son significativamente más efectivos y cumplen con las reglas oficiales de D&D 5e
+  - **Estado:** ✅ CORREGIDO
+  - **Referencia:** Issue #50 en `docs/tracking/issues/corregidos.md`
 - **🔴 Sistema de Sincronización de Turnos - Solución Definitiva (CRÍTICO):**
   - **Problema:** El sistema de turnos paso a paso tenía múltiples problemas de sincronización entre backend y frontend:
     - El marcador visual del turno (`turnIndex`) se actualizaba prematuramente, mostrando el siguiente turno antes de que el jugador presionara "Pasar 1 Turno"
@@ -140,6 +159,13 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
   - **Impacto:** Crítico - Permite que el combate continúe cuando el jugador cae, lo cual es esencial para la jugabilidad y las reglas de D&D 5e
   - **Estado:** ✅ RESUELTO
   - **Referencia:** Issue #54 en `docs/tracking/issues/corregidos.md`
+- **🟢 Issue #78: Auto-avance se detiene un turno antes del jugador (MEJORA):**
+  - **Problema:** Al pulsar "Avanzar Todos" con el jugador ubicado después de varios enemigos, el auto-avance finalizaba mostrando el último turno de IA procesado. El usuario debía pulsar "Pasar 1 Turno" manualmente para recuperar su turno real, rompiendo el flujo automatizado.
+  - **Causa raíz:** Cuando `hasMoreAITurns` pasaba a `false`, el frontend deshabilitaba el modo auto-avance sin sincronizar `turnIndex` con el valor más reciente enviado por el backend (`turnIndexRef.current`). También mantenía `justProcessedAITurn=true`, por lo que el botón seguía visible aun cuando ya era turno del jugador.
+  - **Solución implementada:** Ahora, al detectar `autoAdvancingRef.current && !result.hasMoreAITurns`, se fuerza el `setTurnIndex(turnIndexRef.current)`, se limpia `justProcessedAITurn`, y se añaden logs/debug para dejar rastro del combatiente que debe actuar.
+  - **Archivos modificados:** `src/components/game/game-view.tsx`
+  - **Impacto:** Medio - "Avanzar Todos" se detiene exactamente en el turno del jugador sin pasos adicionales, eliminando confusiones y manteniendo la promesa de flujo completamente automático.
+  - **Referencia:** Issue #78 en `docs/tracking/issues/corregidos.md`
 - **🟡 Issue #51: Mensaje "ha matado" incorrecto cuando personaje ya estaba inconsciente:**
   - **Problema:** Cuando un personaje del grupo (companion o jugador) ya estaba inconsciente (HP 0, `isDead: false`) y recibía daño adicional del jugador, el sistema mostraba "¡ha matado!" incluso cuando el daño no era suficiente para muerte masiva y el personaje podía ser curado después.
   - **Causa Raíz:** En `combat-manager.ts` líneas 513-519 (versión anterior), había código simplificado que siempre mostraba "ha matado" cuando `newHP <= 0`, sin distinguir entre:

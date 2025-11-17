@@ -2,38 +2,33 @@
 
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 23 issues  
-**Última actualización:** 2025-11-15
+**Total:** 25 issues  
+**Última actualización:** 2025-11-17
 
 ---
 
 ## 🔴 Prioridad Muy Alta (PMA) - Críticos
 
-*(Ningún issue crítico pendiente actualmente)*
+_No hay issues críticos pendientes en este momento._
 
 ---
 
 ## 🟡 Prioridad Alta (PA) - Advertencias
 
-### Issue #50: Daño de crítico no se duplica correctamente 🟡 ADVERTENCIA
+### Issue #75: DM inventa armas en narración de ataques sin consultar inventario 🟡 ADVERTENCIA
 
-- **Fecha de creación:** 2025-11-15
-- **Ubicación:** `src/ai/tools/combat-manager.ts`
-- **Severidad:** 🟡 **ALTA** (afecta mecánicas de combate, reduce efectividad de críticos)
-- **Descripción:** Cuando un jugador hace un crítico, el daño no se duplica correctamente según las reglas de D&D 5e.
-- **Contexto:** Detectado durante Test 15 (Sistema de Inconsciencia y Muerte - Personajes Muertos No Pueden Ser Curados).
-- **Problema:**
-  - El jugador hace un crítico (rollTotal=22, outcome=crit)
-  - El daño aplicado es solo 5 puntos (1d8+2 = 5)
-  - En D&D 5e, un crítico debería duplicar los **dados de daño**, no el total
-  - Ejemplo correcto: Si normalmente haces `1d8+2`, en crítico deberías hacer `2d8+2`
-- **Regla D&D 5e:** En un crítico, se tiran el doble de dados de daño, pero el modificador se aplica solo una vez.
-- **Archivos involucrados:**
-  - `src/ai/tools/combat-manager.ts`: Líneas 362-366 (generación de daño de jugador)
-- **Impacto:** Alto - Los críticos no son tan efectivos como deberían, reduciendo la emoción y efectividad del combate
+- **Fecha de creación:** 2025-11-17
+- **Ubicación:** `src/ai/flows/game-coordinator.ts`, `src/ai/tools/companion-tactician.ts`
+- **Severidad:** 🟡 **ALTA** (narración inconsistente con la ficha y reglas de combate)
+- **Descripción:** Durante la narración de ataques realizados por companions (y ocasionalmente por el jugador), el DM inventa el arma utilizada sin validar el inventario real. Se describen acciones con armas inexistentes o incompatibles con la ficha y se ignoran hechizos disponibles.
+- **Comportamiento esperado:** Antes de narrar, el sistema debe validar arma/hechizo contra el inventario real del personaje o solicitar aclaración si la acción es ambigua.
+- **Impacto:** Alto – Contradice la información mostrada al jugador, afecta decisiones tácticas y rompe la inmersión.
+- **Solución propuesta:**
+  - Forzar que el narrador consulte el inventario/equipo activo antes de describir la acción.
+  - Ajustar prompts de companions para que siempre indiquen qué arma/hechizo usan.
+  - Añadir fallback que pida aclaración al jugador si no se puede determinar el arma.
 - **Estado:** 📝 **PENDIENTE**
-- **Prioridad de corrección:** Alta
-- **Detección:** Testing de v0.5.0 - Test 15
+- **Detección:** Testing manual en combates recientes.
 
 ---
 
@@ -61,112 +56,8 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
 - **Prioridad de corrección:** Alta
 - **Detección:** Testing de v0.5.0 - Observación directa durante combate
 
-### Issue #35: Orden incorrecto de mensajes cuando personaje cae a 0 HP 🟡 ADVERTENCIA
-
-- **Fecha de creación:** 2025-11-14
-- **Ubicación:** `src/ai/tools/combat/dice-roll-processor.ts`, `src/ai/tools/combat-manager.ts`
-- **Severidad:** 🟡 ALTA (afecta narrativa, secuencia ilógica)
-- **Descripción:** Cuando un personaje cae a 0 HP, los mensajes de inconsciencia aparecen en orden incorrecto, y además el mensaje "ha matado" es incorrecto (debería ser "ha dejado inconsciente").
-- **Secuencia actual (incorrecta):**
-  1. Narración del orco
-  2. "Orco 1 ataca a Merryl y acierta (18 vs AC 13)."
-  3. ❌ **"Merryl cae inconsciente."** (PREMATURO)
-  4. "Orco 1 ha hecho 10 puntos de daño a Merryl (8 → 0 HP)."
-  5. ❌ **"¡Orco 1 ha matado a Merryl!"** (INCORRECTO - debería ser "ha dejado inconsciente")
-- **Secuencia esperada (correcta):**
-  1. Narración del orco
-  2. "Orco 1 ataca a Merryl y acierta (18 vs AC 13)."
-  3. "Orco 1 ha hecho 10 puntos de daño a Merryl (8 → 0 HP)."
-  4. ✅ **"¡Orco 1 ha dejado inconsciente a Merryl!"** (DESPUÉS del daño, mensaje correcto)
-  5. ✅ **"Merryl cae inconsciente."** (DESPUÉS del mensaje anterior)
-- **Impacto:** Alto (rompe inmersión, confunde al jugador sobre qué pasó primero, mensaje incorrecto confunde reglas de D&D 5e)
-- **Solución propuesta:**
-  - Mover los mensajes de inconsciencia para que se generen DESPUÉS del mensaje de daño
-  - Corregir el mensaje "ha matado" a "ha dejado inconsciente" cuando `isDead !== true`
-  - Ajustar el orden de generación de mensajes en `dice-roll-processor.ts`
-- **Archivos afectados:**
-  - `src/ai/tools/combat/dice-roll-processor.ts`
-  - `src/ai/tools/combat-manager.ts`
-- **Estado:** 📝 **PENDIENTE**
-- **Relacionado con:** Issue #36 (mensaje "ha matado" incorrecto)
-- **Detección:** Testing de refactorización `combat-manager.ts`
-
 ---
 
-### Issue #36: Mensaje "ha matado" cuando personaje está inconsciente, no muerto 🟡 ADVERTENCIA
-
-- **Fecha de creación:** 2025-11-14
-- **Ubicación:** `src/ai/tools/combat/dice-roll-processor.ts`
-- **Severidad:** 🟡 ALTA (narrativa incorrecta, confunde reglas de D&D 5e)
-- **Descripción:** Cuando un personaje cae a 0 HP (sin muerte masiva), el sistema muestra "¡Orco 1 ha matado a Merryl!" cuando debería decir "¡Orco 1 ha dejado inconsciente a Merryl!". Según las reglas de D&D 5e, un personaje a 0 HP está **inconsciente**, no muerto (a menos que se aplique la regla de muerte masiva).
-- **Ejemplo del bug:**
-  ```
-  DM: "Orco 1 ha hecho 10 puntos de daño a Merryl (8 → 0 HP)."
-  DM: "¡Orco 1 ha matado a Merryl!" ❌ INCORRECTO (Merryl está inconsciente, no muerto)
-  ```
-- **Causa raíz:** El código en `dice-roll-processor.ts` (línea ~487) muestra el mensaje "ha matado" cuando `targetKilled = true`, pero no distingue entre muerte real (`isDead === true`) e inconsciencia (`hp.current <= 0`).
-- **Solución propuesta:**
-  - Verificar el campo `isDead` del personaje después de aplicar daño
-  - Si `isDead === true`: "ha matado"
-  - Si `hp.current <= 0` pero `isDead !== true`: "ha dejado inconsciente"
-- **Impacto:** Alto (confunde las reglas de D&D 5e, narrativa incorrecta)
-- **Archivos afectados:**
-  - `src/ai/tools/combat/dice-roll-processor.ts`
-- **Estado:** 📝 **PENDIENTE**
-- **Relacionado con:** Sistema de inconsciencia y muerte masiva (Issue #27)
-- **Detección:** Testing de refactorización `combat-manager.ts`
-
----
-
-### Issue #37: Mensaje "está muerto" cuando personaje está inconsciente 🟡 ADVERTENCIA
-
-- **Fecha de creación:** 2025-11-14
-- **Ubicación:** `src/ai/tools/combat-manager.ts`
-- **Severidad:** 🟡 ALTA (narrativa incorrecta, confunde reglas de D&D 5e)
-- **Descripción:** Cuando un personaje inconsciente (HP 0, pero no muerto) intenta tomar su turno, el sistema muestra "Merryl está muerto y no puede actuar" cuando debería decir "Merryl está inconsciente y no puede actuar".
-- **Ejemplo del bug:**
-  ```
-  DM: "Merryl está muerto y no puede actuar." ❌ INCORRECTO (Merryl está inconsciente)
-  ```
-- **Causa raíz:** El código que verifica si un combatiente puede tomar su turno no distingue entre muerte real (`isDead === true`) e inconsciencia (`hp.current <= 0`).
-- **Solución propuesta:**
-  - Verificar el campo `isDead` al inicio del turno
-  - Si `isDead === true`: "está muerto y no puede actuar"
-  - Si `hp.current <= 0` pero `isDead !== true`: "está inconsciente y no puede actuar"
-- **Impacto:** Alto (confunde las reglas de D&D 5e, narrativa incorrecta)
-- **Archivos afectados:**
-  - `src/ai/tools/combat-manager.ts` (verificación de turno de combatiente muerto)
-- **Estado:** 📝 **PENDIENTE**
-- **Relacionado con:** Sistema de inconsciencia y muerte masiva (Issue #27), Issue #36
-- **Detección:** Testing de refactorización `combat-manager.ts`
-
----
-
-### Issue #34: AI de enemigos traduce/inventa nombres en narración en lugar de usar nombre exacto 🟡 ADVERTENCIA
-
-- **Fecha de creación:** 2025-11-14
-- **Fecha de corrección:** 2025-11-14
-- **Ubicación:** `src/ai/tools/enemy-tactician.ts`
-- **Severidad:** 🟡 ALTA (afecta narrativa, confunde al jugador)
-- **Descripción:** Durante el combate, la AI de `enemyTacticianTool` generaba narrativas con nombres de criaturas traducidos o inventados (e.g., "Gnomo 1" en lugar de "Goblin 1"), mientras que el sistema internamente usaba el nombre correcto. Esto creaba inconsistencia entre la narración del enemigo y los mensajes del DM.
-- **Ejemplo del bug:**
-  ```
-  DM: "El Gnomo 1, con una sonrisa maliciosa, arremete contra Merryl..."  [❌ Incorrecto]
-  DM: "Goblin 1 ataca a Merryl, pero falla (10 vs AC 13)."               [✅ Correcto]
-  ```
-- **Causa raíz:** El prompt de `enemyTacticianTool` no instruía explícitamente a la AI para usar el nombre exacto del combatiente activo (`{{{activeCombatant}}}`), permitiendo que la AI tradujera o inventara nombres según su interpretación.
-- **Solución implementada:**
-  - Añadida instrucción explícita en el prompt (línea 62):  
-    > "**CRITICAL: You MUST use EXACTLY the name "{{{activeCombatant}}}" when referring to this creature in your narration. DO NOT translate or change this name (e.g., if it's "Goblin 1", write "Goblin 1", NOT "Gnomo 1").**"
-- **Detección:** Test 2 del plan de refactorización de `combat-manager.ts` (múltiples enemigos del mismo tipo)
-- **Impacto:** Alto (narrativa inconsistente, rompe inmersión, confunde al jugador sobre qué criatura está actuando)
-- **Archivos modificados:**
-  - `src/ai/tools/enemy-tactician.ts` (prompt)
-- **Estado:** ✅ **CORREGIDO** - Pendiente de re-test en Test 2
-- **Relacionado con:** Plan de refactorización de `combat-manager.ts`
-- **Referencia:** CHANGELOG [Unreleased]
-
----
 
 ### Issue #14: AI Tacticians (enemigos y companions) a veces devuelven output inválido/null en combate
 
@@ -192,6 +83,75 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
 ---
 
 ## 🟢 Prioridad Media (PM) - Mejoras
+
+### Issue #76: Input debe deshabilitarse cuando el DM está “pensando” 🟢 MEJORA
+
+- **Fecha de creación:** 2025-11-17
+- **Ubicación:** `src/components/game/player-input.tsx`, `src/app/game-state-actions.ts`
+- **Severidad:** 🟢 **MEDIA** (posible pérdida de acciones y UX confusa)
+- **Descripción:** Mientras el DM está procesando (estado “El DM está pensando”), el cuadro de texto sigue habilitado, permitiendo que el jugador envíe nuevas órdenes que se pierden o quedan en cola sin feedback.
+- **Comportamiento esperado:** El input debe deshabilitarse automáticamente y mostrar un indicador visual hasta que el sistema termine de procesar y vuelva a aceptar comandos.
+- **Impacto:** Medio – Evita confusiones y asegura que las acciones se registren en el orden correcto.
+- **Solución propuesta:**
+  - Propagar un flag `isDmThinking` al estado global y usarlo para deshabilitar `player-input`.
+  - Mostrar un mensaje contextual (“El DM está pensando...”) mientras el flag esté activo.
+  - Rehabilitar el input al recibir la respuesta del backend o tras un timeout seguro.
+- **Estado:** 📝 **PENDIENTE**
+- **Detección:** Testing manual en la UI de combate.
+
+---
+
+### Issue #77: Mensajes lentos al avanzar turno cuando el siguiente personaje está muerto o inconsciente 🟢 MEJORA
+
+- **Fecha de creación:** 2025-11-17
+- **Ubicación:** `src/app/game-state-actions.ts`, `src/components/game/initiative-tracker.tsx`
+- **Severidad:** 🟢 **MEDIA** (ralentiza el flujo de combate sin aportar información)
+- **Descripción:** Al presionar “Avanzar turno”, si el siguiente combatiente está muerto o inconsciente, el mensaje que indica el salto de turno tarda demasiado en mostrarse, creando la sensación de que la UI se congeló.
+- **Comportamiento esperado:** La transición debe ser instantánea, con un mensaje breve que indique que el combatiente está fuera de combate y que el turno se salta automáticamente.
+- **Impacto:** Medio – Reduce fricción durante combates largos con múltiples personajes KO.
+- **Solución propuesta:**
+  - Detectar combatientes sin acciones disponibles y saltarlos sin delays ni narraciones largas.
+  - Mostrar inmediatamente un mensaje corto (“Elara está inconsciente, se salta su turno”).
+  - Revisar timers/awaits ligados al avance de turnos para eliminar esperas innecesarias.
+- **Estado:** 📝 **PENDIENTE**
+- **Detección:** Testing manual del sistema de turnos.
+
+---
+
+### Issue #79: Falta narración del DM en turnos del jugador 🟢 MEJORA
+
+- **Fecha de creación:** 2025-11-17
+- **Ubicación:** `src/ai/tools/combat-manager.ts` (bloque de turno del jugador, líneas ~222-570); `docs/testeo-manual/testeo-sistema-turnos.md`
+- **Severidad:** 🟢 **MEDIA** (afecta consistencia narrativa y UX, pero no bloquea el combate)
+- **Descripción:** Cuando el jugador ejecuta una acción en su turno, el DM solo muestra mensajes técnicos de tiradas y daño (“Galador ataca…”, “Galador ha hecho X puntos…”) sin generar una narración descriptiva como la que sí se produce para turnos de IA (enemigos o companions). Esto rompe la inmersión y deja al jugador sin un relato coherente de sus propias acciones.
+- **Comportamiento esperado:** Después de procesar la acción del jugador, el sistema debería generar una narración (por ejemplo, invocando `narrativeExpert` con el contexto de la acción) antes o junto a los mensajes técnicos, manteniendo la misma calidad narrativa que los turnos de IA.
+- **Contexto:** Detectado durante Test 3.3 (Mensajes y Narración) mientras se ejecutaban acciones del jugador en combate.
+- **Causa raíz (sospechada):** En `combat-manager.ts`, el bloque de turno del jugador solo construye mensajes mecánicos y nunca llama a un generador de narración (a diferencia de los turnos de IA, que utilizan `enemyTacticianTool`/`companionTacticianTool`). Falta una llamada a `narrativeExpert` o un narrador dedicado para las acciones del jugador.
+- **Impacto:** Medio – El jugador percibe que sus acciones son “secas” y sin ambientación, mientras el resto del combate está narrado con detalles, generando inconsistencia y perdiendo valor de UX.
+- **Solución propuesta:**
+  - Tras resolver la tirada/daño del jugador, invocar `narrativeExpert` con los datos de la acción y anexar la narración resultante a los mensajes.
+  - Alternativamente, crear un generador específico para turnos del jugador que emita un resumen descriptivo basado en el resultado de las tiradas.
+- **Estado:** 📝 **PENDIENTE**
+- **Detección:** Testing manual – Test 3.3 (Mensajes y Narración).
+
+---
+
+### Issue #80: Permitir múltiples acciones del jugador en un turno (movimiento/acción adicional) 🟢 MEJORA
+
+- **Fecha de creación:** 2025-11-17
+- **Ubicación:** `src/ai/tools/combat-manager.ts`, `src/components/game/game-view.tsx`
+- **Severidad:** 🟢 **MEDIA** (mejora UX; actualmente el turno se consume automáticamente tras una acción)
+- **Descripción:** Tras implementar el auto-avance del turno del jugador (Issue #78), cualquier acción consume el turno inmediatamente. A futuro se necesitará permitir que el jugador realice acciones adicionales (movimiento, acción adicional, interacción) antes de pasar turno.
+- **Comportamiento esperado:** El jugador debería poder realizar su acción principal, luego decidir si quiere moverse o usar una acción adicional, y finalmente pulsar “Pasar 1 Turno” para entregar el turno. El sistema debe llevar un registro claro de si la acción principal ya se consumió y qué acciones secundarias quedan disponibles.
+- **Impacto:** Medio – No bloquea el gameplay actual, pero limita la profundidad táctica y futuras mecánicas.
+- **Solución propuesta:**
+  - Añadir flags de “acción principal consumida”, “movimiento disponible”, etc.
+  - Solo auto-avanzar si el jugador ya marcó explícitamente que terminó (botón “Pasar 1 Turno”) o si consumió todas las acciones disponibles.
+  - Adaptar la UI para mostrar el estado de acciones restante.
+- **Estado:** 📝 **PENDIENTE (Mejora futura)**
+- **Detección:** Discusión tras corregir el Issue #78 (2025-11-17).
+
+---
 
 ### Issue #38: Auto-redirección de ataque a enemigo diferente cuando target está muerto 🟢 MEJORA / DECISIÓN DE DISEÑO
 
@@ -491,6 +451,108 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
   - `src/lib/logger.ts` (función `gameCoordinator`)
   - Llamadas a `log.gameCoordinator` que pasan `turnIndex` cuando `inCombat` es `false`
 - **Estado:** 📝 **PENDIENTE** - Mejora menor de logging pendiente de implementación
+
+---
+
+### Issue #63: Combate con IDs de personajes no consecutivos 🟢 MEJORA
+
+- **Fecha de creación:** 2025-11-16
+- **Ubicación:** `src/ai/tools/combat-manager.ts`, sistema de inicialización de combate
+- **Severidad:** 🟢 **MEDIA** (afecta casos edge, no crítico)
+- **Descripción:** Cuando en la initial party los id de los personajes no son consecutivos o no están en orden, el combate se desarrolla con normalidad pero puede haber comportamientos inesperados.
+- **Contexto:** Detectado durante testing con una party que tenía solo 2 personajes con ids 1 y 3, el combate por turnos parecía hacer cosas raras.
+- **Problema:**
+  - El sistema de turnos puede depender de IDs consecutivos o en orden
+  - Puede haber problemas con la inicialización del orden de combate
+  - Los índices de turnos pueden no corresponder correctamente con los personajes
+- **Impacto:** Medio (afecta casos edge, no es común pero puede causar confusión)
+- **Solución propuesta:**
+  - Verificar que el sistema de turnos no dependa de IDs consecutivos
+  - Asegurar que el orden de combate se inicializa correctamente independientemente de los IDs
+  - Añadir validación o normalización de IDs si es necesario
+- **Archivos afectados:**
+  - `src/ai/tools/combat-manager.ts` (inicialización de combate y orden de turnos)
+  - Sistema de gestión de party inicial
+- **Estado:** 📝 **PENDIENTE** - Mejora pendiente de investigación y corrección
+
+---
+
+### Issue #65: Ataque a compañero fuera de combate no inicia combate 🟡 ADVERTENCIA
+
+- **Fecha de creación:** 2025-11-16
+- **Ubicación:** `src/ai/flows/action-interpreter.ts`, `src/ai/flows/game-coordinator.ts`
+- **Severidad:** 🟡 **ALTA** (afecta lógica del juego, rompe inmersión)
+- **Descripción:** Estando fuera de combate, si el jugador ataca a uno de sus compañeros, el sistema no entra en modo combate. El DM responde como si el ataque no fuera real.
+- **Ejemplo del bug:**
+  ```
+  Jugador: "Ataco a Merryl"
+  DM: "Atacas fervientemente al aire, pero no parece haber ninguna amenaza real a la vista." ❌ INCORRECTO
+  ```
+- **Problema:**
+  - El sistema no detecta que un ataque a un compañero debería iniciar combate o al menos reconocer la acción como un ataque real
+  - El `action-interpreter` o `game-coordinator` no está procesando correctamente los ataques a compañeros fuera de combate
+  - Puede estar relacionado con el sistema de inicio de combate dinámico (pendiente de implementar)
+- **Impacto:** Alto (rompe la inmersión, el jugador no puede atacar a compañeros fuera de combate)
+- **Solución propuesta:**
+  - Detectar ataques a compañeros en `action-interpreter`
+  - Iniciar combate automáticamente cuando se detecta un ataque a un compañero
+  - O al menos reconocer la acción como un ataque real y mostrar un mensaje apropiado
+  - Relacionado con: [Sistema de Inicio de Combate Dinámico](../roadmap.md#2-sistema-de-inicio-de-combate-dinámico-prioridad-alta)
+- **Archivos afectados:**
+  - `src/ai/flows/action-interpreter.ts` (detección de ataques)
+  - `src/ai/flows/game-coordinator.ts` (inicio de combate)
+- **Estado:** 📝 **PENDIENTE** - Bug pendiente de corrección
+
+---
+
+### Issue #66: Orden incorrecto de mensajes en muerte masiva 🟡 ADVERTENCIA
+
+- **Fecha de creación:** 2025-11-16
+- **Ubicación:** `src/ai/tools/combat/dice-roll-processor.ts`
+- **Severidad:** 🟡 **ALTA** (afecta narrativa, secuencia ilógica, confunde al jugador)
+- **Descripción:** Cuando un personaje recibe muerte masiva (daño restante >= HP máximo), el mensaje "ha recibido un golpe devastador y muere instantáneamente" aparece ANTES del mensaje de daño, causando una secuencia ilógica.
+- **Contexto:** Detectado durante Test 1.1 (Flujo Completo de Inicio de Combate). Este bug es similar al Issue #35, pero afecta específicamente al caso de muerte masiva, que no fue corregido cuando se resolvió el Issue #35.
+- **Secuencia incorrecta (actual):**
+  1. Narración del enemigo
+  2. "Goblin 2 ataca a Merryl y acierta (12 vs AC 10)."
+  3. ❌ **"Merryl ha recibido un golpe devastador y muere instantáneamente."** (PREMATURO)
+  4. "Goblin 2 ha hecho 7 puntos de daño a Merryl (2 → 0 HP)."
+  5. "¡Goblin 2 ha matado a Merryl!"
+- **Secuencia esperada (correcta):**
+  1. Narración del enemigo
+  2. "Goblin 2 ataca a Merryl y acierta (12 vs AC 10)."
+  3. "Goblin 2 ha hecho 7 puntos de daño a Merryl (2 → 0 HP)."
+  4. ✅ **"Merryl ha recibido un golpe devastador y muere instantáneamente."** (DESPUÉS del daño)
+  5. ✅ **"¡Goblin 2 ha matado a Merryl!"** (DESPUÉS del mensaje anterior)
+- **Causa raíz:** En `dice-roll-processor.ts`, el mensaje de muerte masiva se añade dentro del `map()` que actualiza el HP (líneas 388-390), mientras que el mensaje de daño se añade después del `map()` (líneas 439-444). Esto causa que el mensaje de muerte masiva aparezca antes del mensaje de daño.
+- **Código problemático:**
+  ```typescript
+  // Líneas 386-391: Mensaje de muerte masiva se añade DENTRO del map()
+  if (remainingDamage >= targetHPMax) {
+      messages.push({
+          sender: 'DM',
+          content: `${p.name} ha recibido un golpe devastador y muere instantáneamente.`,
+      });
+      // ...
+  }
+  
+  // Línea 439-444: Mensaje de daño se añade DESPUÉS del map()
+  messages.push({
+      sender: 'DM',
+      content: `${activeCombatant.characterName} ha hecho ${roll.totalResult} puntos de daño...`,
+  });
+  ```
+- **Solución propuesta:**
+  - Mover el mensaje de muerte masiva para que se añada DESPUÉS del mensaje de daño
+  - Usar un flag o variable temporal para indicar que hubo muerte masiva
+  - Añadir el mensaje de muerte masiva junto con los otros mensajes de derrota (líneas 467-493)
+  - Mantener la misma estructura que se usó para corregir el Issue #35 (mensajes de inconsciencia)
+- **Impacto:** Alto - Rompe la narrativa, confunde al jugador sobre qué pasó primero, secuencia ilógica
+- **Archivos afectados:**
+  - `src/ai/tools/combat/dice-roll-processor.ts` (líneas 375-494)
+- **Relacionado con:** Issue #35 (orden incorrecto de mensajes - corregido para inconsciencia, pero no para muerte masiva)
+- **Estado:** 📝 **PENDIENTE** - Bug detectado en Test 1.1
+- **Detección:** Testing manual - Test 1.1 (Flujo Completo de Inicio de Combate)
 
 ---
 

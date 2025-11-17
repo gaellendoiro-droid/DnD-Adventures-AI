@@ -119,6 +119,7 @@ tests/
 ├── unit/
 │   ├── backend/
 │   │   ├── tools/
+│   │   │   ├── critical-damage.test.ts        # Tests de daño crítico (Issue #50)
 │   │   │   └── combat/
 │   │   │       └── combat-validators.test.ts
 │   │   └── flows/
@@ -141,6 +142,32 @@ tests/
 ---
 
 ## ✅ Tests Implementados
+
+### Unit Tests - Backend (75 tests)
+
+#### `critical-damage.test.ts` (39 tests) ✨ NUEVO
+
+**Módulo:** Cálculo de Daño Crítico (Issue #50)
+
+**Funciones testeadas:**
+- `getCriticalDamageNotation` (combat-manager.ts) - Para ataques de jugadores
+- `getCriticalDamageNotation` (dice-roll-processor.ts) - Para ataques de NPCs
+
+**Cobertura:**
+- ✅ Golpes no críticos (notación sin cambios)
+- ✅ Golpes críticos con un dado (1d8+3 → 2d8+3)
+- ✅ Golpes críticos con múltiples dados (2d6+2 → 4d6+2)
+- ✅ Modificadores positivos, negativos y cero
+- ✅ Diferentes tipos de dados (d4, d6, d8, d10, d12, d20, d100)
+- ✅ Notaciones sin modificador (1d8 → 2d8)
+- ✅ Manejo de notaciones inválidas (fallback seguro)
+- ✅ Cumplimiento de reglas D&D 5e (duplica dados, no modificador)
+- ✅ Consistencia entre ambas implementaciones (jugadores y NPCs)
+
+**Reglas D&D 5e Verificadas:**
+- Los dados de daño se duplican en críticos
+- El modificador NO se duplica
+- Ejemplo: 1d8+2 normal → 2d8+2 en crítico (NO 2d8+4)
 
 ### Integration Tests (38 tests)
 
@@ -523,8 +550,8 @@ await promise.catch(() => {}); // Manejar rechazo explícitamente
 
 ## 📝 Notas
 
-- **Última actualización**: 2025-11-15
-- **Tests totales**: 106 (36 backend + 32 frontend + 38 integration)
+- **Última actualización**: 2025-11-16
+- **Tests totales**: 145 (75 backend + 32 frontend + 38 integration)
 - **Estado**: ✅ Todos los tests pasando
 - **Framework**: Vitest v4.0.9
 - **Tests de integración**: 38 tests para el sistema de turnos paso a paso
