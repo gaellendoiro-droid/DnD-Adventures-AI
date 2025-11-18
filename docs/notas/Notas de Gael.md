@@ -343,4 +343,27 @@ Esta sección es para apuntar ideas rápidas, fallos detectados y notas informal
 
 Al clasificar un item de esta sección, debe moverse a su sección correspondiente y eliminarse de aquí, manteniendo esta sección como un área de trabajo temporal.
 
-*(Todos los items de esta sección han sido clasificados y movidos a sus secciones correspondientes.)*
+1. Revisar la forma en que las IA formatean el texto al mostrarlo en los mensajes del chat. Habría que sistematizar esto para que sea consistente. (PM)
+
+2. Revisar la velocidad a la que el DM genera sus respuestas. Hay que optimizar esto al máximo para que la partida sea más fluída. (PMA)
+
+3. En combate. Mejorar la sincronización entre el DM y el combat tracker. Actualmente cuando se pasa 1 turno mientras en el chat sale "el DM está pensando..." el combat tracker aún está en el turno anterior. (PM)
+
+4. En combate. Cuando el jugador mata a un enemigo en la tirada de daño no aparece el mensaje como si lo hace en las de enemigos o compañeros:"💀 ¡Elara ha matado a Goblin 2!". (PM)
+
+5. Optimización de prompts en general urgente! En común con otros issues ya documentados. (PMA)
+
+6. En combate y supongo que en exploración e interacción también, cuando escribo que ataco con un arma o uso un objeto que no tengo en mi invventario el DM lo narra igualmente sin comprobarlo. (PA)
+
+7. Issue: La tirada de ataque del jugador no especifica con que arma la está haciendo. (PMA)
+
+8. Issue: La información de los dados de daño de cada arma debería estar incluída en la ficha de cada personaje. EL DM debería usar la API de D&D solo para recuperar esa información, si no está incluída en las fichas. El panel de la UI de las fichas debería mostrar la información de los dados de cada arma si está disponible en los datos de las fichas de los personajes. (PA)
+
+9. Las fichas de los personajes deberían incluir en la parte de equipamiento que elementos están equipados o no. Los elementos equipados deberían seguir un esquema del que no se pueden salir, por ejemplo: 2 anillos máximo, 1 botas máximo, 2 armas máximo, etc. Tener en cuenta armas a 2 manos y versátiles, etc (PMB)
+
+
+
+
+
+
+

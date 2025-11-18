@@ -15,6 +15,57 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+### Added
+- **✅ Fichas de Personajes Completas - COMPLETADO:**
+  - **Schema actualizado (`src/lib/schemas.ts`):** Añadidos campos opcionales para fichas completas de D&D 5e:
+    - `alignment`: Alineamiento del personaje
+    - `speed`: Velocidad en pies por turno
+    - `initiative`: Bonificador de iniciativa
+    - `savingThrows`: Bonificadores de salvación por característica
+    - `attacks`: Array de ataques con estadísticas completas (bonificador, daño, tipo, alcance, propiedades)
+    - `racialTraits`: Rasgos raciales del personaje
+    - `classFeatures`: Características de clase
+    - `spellSlots`: Ranuras de conjuro disponibles por nivel
+    - `spellSaveDC`: CD de salvación de conjuros
+    - `spellAttackBonus`: Bonificador de ataque con conjuros
+    - `appearance`: Descripción física
+    - `ideals`, `bonds`, `flaws`: Ideales, vínculos y defectos del personaje
+    - `experience`: Puntos de experiencia actuales
+    - `deathSaves`: Tiradas de salvación contra la muerte (éxitos/fallos)
+  - **Fichas de personajes iniciales completadas (`src/lib/new-game-data.ts`):**
+    - **Galador (Paladín):** Ficha completa con todas las 18 habilidades, ataques, salvaciones, rasgos raciales y características de clase
+    - **Merryl (Mago):** Ficha completa con todas las 18 habilidades, ataques, salvaciones, rasgos raciales, características de clase e información completa de conjuros
+    - **Elara (Clériga):** Ficha completa con todas las 18 habilidades, ataques, salvaciones, rasgos raciales, características de clase e información completa de conjuros
+    - **Inventario mejorado:** Descripciones de armas ahora incluyen información de ataque (bonificador, daño, tipo, alcance, propiedades)
+
+### Fixed
+- **Issue #91: Colores y efectos de tiradas críticas:**
+  - Corregidos los colores y efectos visuales de las tiradas críticas según el diseño esperado
+  - Tiradas de ataque críticas: Verde con efecto pulso y etiqueta "¡CRÍTICO!" verde
+  - Tiradas de daño críticas: Amarillo con efecto pulso y etiqueta "¡CRÍTICO!" amarilla
+  - Corregida la detección de tiradas de daño críticas que aparecían como normales (tenían `outcome: 'neutral'` en lugar de `outcome: 'crit'`)
+  - Cambios en `src/components/game/dice-roll-result.tsx`: Función `getCriticalStyles()` para diferenciar críticos de ataque (verde) y daño (amarillo)
+  - Cambios en `src/ai/tools/combat/dice-roll-processor.ts` y `src/ai/tools/combat-manager.ts`: Establecimiento correcto de `outcome: 'crit'` para tiradas de daño críticas
+  - Funciona correctamente para jugador, compañeros y enemigos
+- **Issue #94: Mensaje de muerte de enemigo faltante en ataques del jugador:**
+  - Corregido el problema donde los ataques del jugador no mostraban el mensaje "¡[Jugador] ha matado a [Enemigo]!" cuando mataban a un enemigo
+  - El mensaje ahora se muestra correctamente, igual que para compañeros y enemigos
+  - Cambio en `src/ai/tools/combat-manager.ts`: Mejorada la condición para detectar cuando el jugador mata a un enemigo
+- **Issue #95: Componente visual de tirada de daño del jugador no muestra mensaje de muerte:**
+  - Corregido el problema donde el componente visual de la tirada de daño del jugador (panel izquierdo) no mostraba el mensaje "¡[Jugador] ha matado a [Enemigo]!" cuando mataba a un enemigo, aunque el mensaje sí aparecía en el chat
+  - El objeto `DiceRoll` se creaba antes de determinar si el enemigo había muerto, por lo que no incluía la propiedad `targetKilled`
+  - Solución: Refactorizada la lógica para determinar primero si el objetivo murió, y luego crear el objeto `DiceRoll` con la propiedad `targetKilled` correctamente establecida
+  - Cambio en `src/ai/tools/combat-manager.ts`: Reordenamiento de la lógica de procesamiento de daño del jugador para incluir `targetKilled` en el objeto `DiceRoll`
+  - Ahora el comportamiento es idéntico al de compañeros y enemigos: el mensaje de muerte aparece tanto en el chat como en el componente visual de la tirada
+- **Corrección de valores incorrectos en fichas:**
+  - **Galador:** CA corregida de 30 → 18 (armadura de placas sin escudo)
+  - **Merryl:** HP corregido de 20 → 8 (correcto para nivel 1 de Mago con CON +2), CA corregida de 18 → 13 (sin armadura con DES mod)
+  - **Elara:** HP corregido de 30 → 10 (correcto para nivel 1 de Clériga con CON +2), CA corregida de 18 → 13 (armadura de escamas con DES mod negativo)
+
+### Changed
+- **Habilidades completadas:** Todas las fichas ahora incluyen las 18 habilidades oficiales de D&D 5e con sus estados de competencia correctos
+- **Información de armas:** Las descripciones de armas en el inventario ahora incluyen estadísticas de ataque completas para mejor referencia durante el juego
+
 ---
 
 ## [0.5.1] - 2025-11-18

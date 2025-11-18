@@ -114,7 +114,11 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
         *   **Narrativa Consistente:** Garantizar que enemigos, compañeros y jugador compartan el mismo tono narrativo, reglas de estilo y uso del contexto (incluyendo el resumen generado por `combat-context-summarizer`).
         *   **Hooks de Intención/Resolución:** Definir dos entradas claras para el tool (pre-roll / post-roll) para permitir que IA y jugador compartan narraciones cohesivas en ambos momentos del turno.
     *   **Impacto:** Consistencia narrativa total en el combate, reducción de lógica duplicada en tacticians y posibilidad de aplicar mejoras de narración (como el contexto resumido) a todos los turnos por igual.
-    *   **Relacionado con:** Issue #79 (Narraciones de combate para turnos del jugador) y refactorización futura de `enemyTacticianTool` / `companionTacticianTool`.
+    *   **Relacionado con:** 
+        - Issue #79 (Narraciones de combate para turnos del jugador) ✅ RESUELTO
+        - Issue #14 (AI Tacticians output inválido/null) - La Fase 4 de este issue incluye esta refactorización
+        - Issue #94 (Refactorización de Prompts de Tacticians) - Issue dedicado a esta mejora
+        - Refactorización futura de `enemyTacticianTool` / `companionTacticianTool`
 
 ### 8. Separación de IDs de Fichas de Personajes
 *   **Problema Actual:** Las fichas de personajes (`new-game-data.ts`) incluyen IDs hardcodeados (ej: `id: "1"`, `id: "6"`, `id: "3"`). Esto mezcla datos de ficha (stats, habilidades, inventario) con metadatos del sistema (IDs para identificación interna). Las fichas deberían ser datos puros y portables, mientras que los IDs son una necesidad interna del procesamiento del juego.

@@ -176,8 +176,9 @@ export const enemyTacticianTool = ai.defineTool(
         });
         
         let output;
+        let response: any = null;
         try {
-          const response = await retryWithExponentialBackoff(
+          response = await retryWithExponentialBackoff(
             () => enemyTacticianPrompt(input),
             3,
             1000,
@@ -193,6 +194,10 @@ export const enemyTacticianTool = ai.defineTool(
               module: 'AITool',
               tool: 'enemyTacticianTool',
               activeCombatant: input.activeCombatant,
+              errorMessage: promptError.message,
+              errorCode: promptError.code,
+              errorDetails: promptError.details || promptError.cause || 'No details available',
+              errorStack: promptError.stack?.substring(0, 500), // Primeros 500 chars del stack
             });
             return {
               narration: `${input.activeCombatant} ruge con frustración, pero no hace nada.`,
@@ -209,6 +214,8 @@ export const enemyTacticianTool = ai.defineTool(
             module: 'AITool',
             tool: 'enemyTacticianTool',
             activeCombatant: input.activeCombatant,
+            responseReceived: !!response,
+            responseKeys: response ? Object.keys(response) : [],
           });
           return {
             narration: `${input.activeCombatant} ruge con frustración, pero no hace nada.`,

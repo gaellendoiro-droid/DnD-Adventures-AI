@@ -222,6 +222,8 @@ export async function processAICombatantRolls(
                 description: isDamageRoll && wasCritical 
                     ? `${rollRequest.description} (crítico)`
                     : rollRequest.description,
+                // Set outcome to 'crit' for critical damage rolls
+                outcome: isDamageRoll && wasCritical ? 'crit' : rollResult.outcome,
             };
             
             // Try to find character data for companions to update notation with modifiers

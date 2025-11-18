@@ -417,10 +417,21 @@ export const combatManagerTool = ai.defineTool(
                                 // Determine damage modifier (only ability mod, no proficiency bonus for damage)
                                 const damageMod = abilityMod;
                                 
-                                // Determine damage die (default to 1d8 for a standard weapon like a longsword)
                                 // TODO: In the future, read this from the player's equipped weapon
-                                const damageDie = '1d8';
-                                
+                                // For now, find the first weapon in the inventory
+                                const weapon = playerChar.inventory.find(item => 
+                                    item.description?.toLowerCase().includes('daño') || 
+                                    item.name.toLowerCase().includes('espada') ||
+                                    item.name.toLowerCase().includes('mandoble') ||
+                                    item.name.toLowerCase().includes('maza') ||
+                                    item.name.toLowerCase().includes('daga') ||
+                                    item.name.toLowerCase().includes('bastón') ||
+                                    item.name.toLowerCase().includes('arco')
+                                );
+
+                                const weaponName = weapon?.name || 'su arma';
+                                const damageDie = weapon?.description?.match(/(\d+d\d+)/)?.[0] || '1d8';
+
                                 log.debug('Player attack modifiers', {
                                     module: 'CombatManager',
                                     player: activeCombatant.characterName,
@@ -436,7 +447,7 @@ export const combatManagerTool = ai.defineTool(
                                 // Generate attack roll with breakdown of modifiers
                                 const attackRollResult = await diceRollerTool({
                                     rollNotation: `1d20+${attackMod}`,
-                                    description: `Tirada de ataque de ${activeCombatant.characterName}`,
+                                    description: `Tirada de ataque con ${weaponName}`,
                                     roller: activeCombatant.characterName,
                                 });
                                 
@@ -513,7 +524,7 @@ export const combatManagerTool = ai.defineTool(
                                     const damageNotation = getCriticalDamageNotation(damageDie, damageMod, isCritical);
                                     damageRollResult = await diceRollerTool({
                                         rollNotation: damageNotation,
-                                        description: `Tirada de daño${isCritical ? ' (crítico)' : ''} de ${activeCombatant.characterName}`,
+                                        description: `Tirada de daño con ${weaponName}${isCritical ? ' (crítico)' : ''}`,
                                         roller: activeCombatant.characterName,
                                     });
                                     
@@ -600,20 +611,8 @@ export const combatManagerTool = ai.defineTool(
                                             ? updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId)?.hp.current
                                             : updatedParty.find(p => p.id === target.id)?.hp.current;
                                         
-                                        // Update damage roll with combat information
-                                        const updatedDamageRoll = {
-                                            ...damageRollResult,
-                                            targetName: targetVisualName,
-                                            damageDealt: damageRollResult.totalResult,
-                                        };
-                                        diceRolls.push(updatedDamageRoll);
-                                        
                                         // Generate damage message
                                         const damageMessage = `${activeCombatant.characterName} ha hecho ${damageRollResult.totalResult} puntos de daño a ${targetVisualName}${previousHP !== undefined && newHP !== undefined ? ` (${previousHP} → ${newHP} HP)` : ''}.`;
-                                        messages.push({
-                                            sender: 'DM',
-                                            content: damageMessage
-                                        });
                                         
                                         log.debug('Player damage applied', {
                                             module: 'CombatManager',
@@ -623,6 +622,8 @@ export const combatManagerTool = ai.defineTool(
                                             newHP,
                                         });
                                         
+                                        let targetWasKilled = false;
+
                                         // Issue #51: Check if target was defeated or knocked unconscious
                                         if (newHP !== undefined && newHP <= 0) {
                                             // Get updated target to check isDead status
@@ -636,11 +637,11 @@ export const combatManagerTool = ai.defineTool(
                                                 // For players/companions: distinguish between death and unconsciousness
                                                 if (targetIsDead) {
                                                     // Target died (massive damage)
-                                            messages.push({
-                                                sender: 'DM',
-                                                content: `¡${activeCombatant.characterName} ha matado a ${targetVisualName}!`
-                                            });
-                                            localLog(`${activeCombatant.characterName} killed ${targetVisualName}!`);
+                                                    messages.push({
+                                                        sender: 'DM',
+                                                        content: `¡${activeCombatant.characterName} ha matado a ${targetVisualName}!`
+                                                    });
+                                                    localLog(`${activeCombatant.characterName} killed ${targetVisualName}!`);
                                                 } else if (newHP === 0 && previousHP !== undefined && previousHP > 0) {
                                                     // Target just fell unconscious (not dead)
                                                     messages.push({
@@ -651,7 +652,8 @@ export const combatManagerTool = ai.defineTool(
                                                 }
                                                 // If previousHP === 0 and targetIsDead === false, target was already unconscious
                                                 // and didn't die from massive damage - no additional message needed
-                                            } else {
+                                            } else if (targetIsEnemy) {
+                                                targetWasKilled = true;
                                                 // For enemies: they die directly at HP 0 (no unconsciousness concept)
                                                 messages.push({
                                                     sender: 'DM',
@@ -660,6 +662,22 @@ export const combatManagerTool = ai.defineTool(
                                                 localLog(`${activeCombatant.characterName} killed ${targetVisualName}!`);
                                             }
                                         }
+
+                                        // If the target was not killed, push the standard damage message.
+                                        // If they were killed, the kill message is already pushed.
+                                        if (!targetWasKilled) {
+                                            messages.push({ sender: 'DM', content: damageMessage });
+                                        }
+
+                                        // Update damage roll with combat information, including whether the target was killed
+                                        const updatedDamageRoll = {
+                                            ...damageRollResult,
+                                            targetName: targetVisualName,
+                                            damageDealt: damageRollResult.totalResult,
+                                            targetKilled: targetWasKilled,
+                                            outcome: isCritical ? 'crit' : damageRollResult.outcome,
+                                        };
+                                        diceRolls.push(updatedDamageRoll);
                                     }
                                 } else {
                                     // Attack missed
@@ -938,6 +956,11 @@ export const combatManagerTool = ai.defineTool(
                     aliveEnemies: aliveEnemies.length,
                 });
 
+                // Get full character data for companions to access their inventory and spells
+                const activeCombatantFullData = isCompanion 
+                    ? aliveParty.find(p => p.id === activeCombatant.id)
+                    : null;
+
                 const baseTacticianInput = {
                     activeCombatant: activeCombatant.characterName,
                     party: aliveParty,
@@ -948,7 +971,8 @@ export const combatManagerTool = ai.defineTool(
                     })),
                     locationDescription: locationContext?.description || "An unknown battlefield",
                     conversationHistory: conversationHistory.map(formatMessageForTranscript).join('\n'),
-                    availableSpells: isCompanion ? (activeCombatant.spells || []) : []
+                    availableSpells: activeCombatantFullData?.spells || [],
+                    inventory: activeCombatantFullData?.inventory || []
                 };
 
                 if (isCompanion) {
@@ -1641,6 +1665,11 @@ export const combatManagerTool = ai.defineTool(
                 aliveEnemies: aliveEnemiesInit.length,
             });
             
+            // Get full character data for companions to access their inventory and spells
+            const activeCombatantFullData = isCompanion 
+                ? alivePartyInit.find(p => p.id === activeCombatant.id)
+                : null;
+
             const baseTacticianInput = {
                 activeCombatant: activeCombatant.characterName,
                 party: alivePartyInit,
@@ -1651,7 +1680,8 @@ export const combatManagerTool = ai.defineTool(
                 })),
                 locationDescription: locationContext?.description || "An unknown battlefield",
                 conversationHistory: conversationHistory.map(formatMessageForTranscript).join('\n'),
-                availableSpells: isCompanion ? (activeCombatant.spells || []) : []
+                availableSpells: activeCombatantFullData?.spells || [],
+                inventory: activeCombatantFullData?.inventory || []
             };
 
             if (isCompanion) {

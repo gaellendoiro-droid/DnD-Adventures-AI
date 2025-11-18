@@ -56,7 +56,61 @@ CharacterSchema = z.object({
     name: string,
     level: number,
     description: string | null
-  }>
+  }>,
+  isDead?: boolean,             // Sistema de muerte masiva D&D 5e
+  
+  // Campos adicionales para ficha completa de D&D 5e (todos opcionales)
+  alignment?: string,          // Alineamiento (ej: "Legal Bueno", "Caótico Neutral")
+  speed?: number,              // Velocidad en pies por turno
+  initiative?: number,         // Bonificador de iniciativa (normalmente = modificador de Destreza)
+  savingThrows?: {             // Bonificadores de salvación por característica
+    fuerza: number,
+    destreza: number,
+    constitución: number,
+    inteligencia: number,
+    sabiduría: number,
+    carisma: number
+  },
+  attacks?: Array<{            // Ataques con estadísticas completas
+    id: string,
+    name: string,
+    attackBonus: number,       // Bonificador de ataque
+    damage: string,            // Notación de daño (ej: "1d10+2")
+    damageType: string,        // Tipo de daño (ej: "Cortante", "Contundente")
+    range?: string,            // Alcance (ej: "5 pies", "30/120 pies")
+    properties?: Array<string> // Propiedades (ej: ["Versátil", "Dos manos"])
+  }>,
+  racialTraits?: Array<{       // Rasgos raciales
+    name: string,
+    description: string
+  }>,
+  classFeatures?: Array<{       // Características de clase
+    name: string,
+    description: string
+  }>,
+  spellSlots?: {               // Ranuras de conjuro disponibles
+    level0?: number,           // Trucos (ilimitados)
+    level1?: number,
+    level2?: number,
+    level3?: number,
+    level4?: number,
+    level5?: number,
+    level6?: number,
+    level7?: number,
+    level8?: number,
+    level9?: number
+  },
+  spellSaveDC?: number,        // CD de salvación de conjuros
+  spellAttackBonus?: number,   // Bonificador de ataque con conjuros
+  appearance?: string,          // Descripción física
+  ideals?: string,             // Ideales del personaje
+  bonds?: string,              // Vínculos del personaje
+  flaws?: string,             // Defectos del personaje
+  experience?: number,         // Puntos de experiencia actuales
+  deathSaves?: {               // Tiradas de salvación contra la muerte
+    successes: number,
+    failures: number
+  }
 })
 ```
 
@@ -568,6 +622,30 @@ Si la validación falla:
 - **Outputs:** Terminan en `Output` (ej: `ActionInterpreterOutput`)
 
 ## Actualizaciones Recientes
+
+### v0.5.x - Fichas de Personajes Completas
+
+**Añadido:**
+- **Campos adicionales en `CharacterSchema`** para fichas completas de D&D 5e (todos opcionales):
+  - `alignment`, `speed`, `initiative`: Información básica de movimiento e iniciativa
+  - `savingThrows`: Bonificadores de salvación por característica
+  - `attacks`: Array de ataques con estadísticas completas (bonificador, daño, tipo, alcance, propiedades)
+  - `racialTraits`: Rasgos raciales del personaje
+  - `classFeatures`: Características de clase
+  - `spellSlots`, `spellSaveDC`, `spellAttackBonus`: Información completa de conjuros
+  - `appearance`, `ideals`, `bonds`, `flaws`: Información narrativa del personaje
+  - `experience`, `deathSaves`: Sistema de progresión y muerte
+- **Fichas de personajes iniciales completadas**: Galador, Merryl y Elara ahora tienen fichas completas con todas las 18 habilidades, ataques, salvaciones, rasgos y características
+
+**Mejorado:**
+- **Inventario**: Descripciones de armas ahora incluyen información de ataque completa
+- **Habilidades**: Todas las fichas incluyen las 18 habilidades oficiales de D&D 5e con estados de competencia correctos
+
+**Corregido:**
+- Valores incorrectos de HP y CA en las fichas iniciales corregidos según reglas de D&D 5e
+
+**Referencias:**
+- [CHANGELOG.md](../CHANGELOG.md) - Historial completo de cambios
 
 ### v0.5.x - Sistema de Combate Mejorado
 

@@ -34,15 +34,24 @@ export async function retryWithExponentialBackoff<T>(
         } catch (error: any) {
             lastError = error;
             
-            // Check if it's a timeout/network error that we should retry
+            // Check if it's a timeout/network error or server error that we should retry
             const isRetryableError = 
                 error.message?.includes('timeout') ||
                 error.message?.includes('fetch failed') ||
                 error.message?.includes('ECONNRESET') ||
+                error.message?.includes('Service Unavailable') ||
+                error.message?.includes('overloaded') ||
+                error.message?.includes('503') ||
                 error.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+                error.status === 503 ||
+                error.statusCode === 503 ||
                 (error.cause && (
                     error.cause.code === 'UND_ERR_CONNECT_TIMEOUT' ||
-                    error.cause.message?.includes('Connect Timeout')
+                    error.cause.message?.includes('Connect Timeout') ||
+                    error.cause.message?.includes('Service Unavailable') ||
+                    error.cause.message?.includes('overloaded') ||
+                    error.cause.status === 503 ||
+                    error.cause.statusCode === 503
                 ));
             
             if (!isRetryableError || attempt === maxRetries) {

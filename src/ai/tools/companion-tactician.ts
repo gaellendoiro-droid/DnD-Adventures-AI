@@ -22,6 +22,12 @@ const CompanionTacticianInputSchema = z.object({
     level: z.number(),
     description: z.string().nullable(),
   })).describe("The list of spells available to the active combatant. This is CRITICAL - only use spells from this list."),
+  inventory: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    quantity: z.number(),
+    description: z.string().optional().nullable(),
+  })).optional().describe("The inventory items of the active combatant. This is CRITICAL - only use weapons/items from this list."),
 });
 export type CompanionTacticianInput = z.infer<typeof CompanionTacticianInputSchema>;
 
@@ -59,6 +65,14 @@ const companionTacticianPrompt = ai.definePrompt({
     - **Proficiency Bonus:** +{{this.proficiencyBonus}}
     {{/if}}
   {{/each}}
+- **YOUR INVENTORY (CRITICAL - ONLY USE ITEMS YOU HAVE):**
+  {{#if inventory}}
+    {{#each inventory}}
+    - **{{this.name}}** (Qty: {{this.quantity}}){{#if this.description}}: {{this.description}}{{/if}}
+    {{/each}}
+  {{else}}
+    - No items available
+  {{/if}}
 - **YOUR AVAILABLE SPELLS (CRITICAL - ONLY USE THESE):**
   {{#if availableSpells}}
     {{#each availableSpells}}
@@ -81,18 +95,22 @@ It is **your** turn. As a loyal companion, you must act decisively. Follow this 
 
 1.  **Analyze the Battlefield:**
     *   First, check if any of your allies are **significantly wounded** (HP below 50% of their maximum).
-    *   **CRITICAL - USE YOUR CHARACTER SHEET FIRST:** Check your **YOUR AVAILABLE SPELLS** list above to see what spells you have. **This is your PRIMARY source of information. ONLY use spells that are explicitly listed in YOUR AVAILABLE SPELLS.**
-    *   **ONLY if you need additional information** about a spell's mechanics (damage dice, range, etc.) that is not in the description, you may use the \`dndApiLookupTool\` to look it up. **But DO NOT use tools to determine what spells you have - that information is already in YOUR AVAILABLE SPELLS list.**
+    *   **CRITICAL - USE YOUR CHARACTER SHEET FIRST:** 
+        - Check your **YOUR AVAILABLE SPELLS** list above to see what spells you have. **This is your PRIMARY source of information. ONLY use spells that are explicitly listed in YOUR AVAILABLE SPELLS.**
+        - Check your **YOUR INVENTORY** list to see what weapons and items you have. **ONLY use weapons from your inventory.**
+    *   **ONLY if you need additional information** about a spell's mechanics (damage dice, range, etc.) that is not in the description, you may use the \`dndApiLookupTool\` to look it up. **But DO NOT use tools to determine what spells or weapons you have - that information is already in YOUR AVAILABLE SPELLS and YOUR INVENTORY lists.**
     *   **DO NOT assume you have healing spells just because you are a Cleric. If the YOUR AVAILABLE SPELLS list says "No spells available" or doesn't include healing spells, you CANNOT use healing spells.**
+    *   **DO NOT assume you have weapons like daggers or swords if they are not in YOUR INVENTORY. Use what you actually have.**
     *   Identify the most dangerous enemy.
 
 2.  **Choose Your Action (Conditional Logic):**
     *   **IF** you have healing spells in your **YOUR AVAILABLE SPELLS** list **AND** an ally is **significantly wounded (HP < 50% max)**, your action is to **HEAL** the most injured ally using one of your available healing spells.
     *   **IF** an ally is **critically wounded (HP < 25% max)** **AND** you have healing spells in your **YOUR AVAILABLE SPELLS** list, healing takes priority over attacking.
     *   **IF** you do **NOT** have any healing spells in your **YOUR AVAILABLE SPELLS** list (or the list says "No spells available"), you **MUST ATTACK** an enemy instead, even if allies are wounded.
-    *   **OTHERWISE**, your action is to **ATTACK** an enemy. Choose the most logical target (lowest HP, most dangerous, or closest) and use your best offensive spell from your **YOUR AVAILABLE SPELLS** list, or your weapon if you have no offensive spells.
+    *   **OTHERWISE**, your action is to **ATTACK** an enemy. Choose the most logical target (lowest HP, most dangerous, or closest) and use your best offensive spell from your **YOUR AVAILABLE SPELLS** list, or a weapon from your **YOUR INVENTORY** if you have no offensive spells.
     *   **NEVER waste healing on allies who are at full HP or only slightly wounded (HP > 75% max)**.
     *   **NEVER use spells that are NOT in your YOUR AVAILABLE SPELLS list.**
+    *   **NEVER use weapons that are NOT in your YOUR INVENTORY list.**
 
 3.  **Format Your Response:**
     *   **narration:** Provide a short, exciting narration for your chosen action (in Spanish from Spain).
@@ -116,10 +134,12 @@ For these, you MUST provide EXACTLY 2 dice rolls, IN THIS EXACT ORDER:
 
 **HOW TO CALCULATE ATTACK MODIFIER:**
 - For melee weapons: Use FUE modifier + Proficiency Bonus
-- For ranged weapons or finesse weapons: Use DES modifier + Proficiency Bonus
+- For ranged weapons or finesse weapons (versatile weapons like quarterstaffs): Use DES modifier + Proficiency Bonus
 - For spells: Use your spellcasting ability modifier (INT for Wizards, SAB for Clerics) + Proficiency Bonus
-- Example: Merryl (Mago) with DES +3, INT +3, Proficiency Bonus +2 attacking with quarterstaff = FUE -1 + Proficiency +2 = 1d20+1 (or using DEX for finesse = DES +3 + Proficiency +2 = 1d20+5)
-- Example: Merryl casting Ray of Frost (spell attack) = INT +3 + Proficiency +2 = 1d20+5
+- **CRITICAL:** Check your inventory first to see what weapons you actually have
+- Example: Merryl (Mago) with DES +3, INT +3, Proficiency Bonus +2:
+  - Attacking with his Bastón (quarterstaff, versatile/finesse): Use DES +3 + Proficiency +2 = 1d20+5
+  - Casting Ray of Frost (spell attack): INT +3 + Proficiency +2 = 1d20+5
 
 **STEP 2 - DAMAGE ROLL (ALWAYS SECOND):**
 {
@@ -132,7 +152,7 @@ For these, you MUST provide EXACTLY 2 dice rolls, IN THIS EXACT ORDER:
 **HOW TO CALCULATE DAMAGE MODIFIER:**
 - Add the SAME ability modifier you used for the attack roll (FUE, DES, INT, or SAB)
 - Do NOT add proficiency bonus to damage (only to attack rolls)
-- Example: Merryl with quarterstaff using FUE -1 = 1d6-1 damage (or using DEX +3 = 1d6+3)
+- Example: Merryl with Bastón (quarterstaff) using DES +3 = 1d6+3 damage (versatile weapon allows DEX)
 - Example: Ray of Frost does not add ability modifier to damage (spell specific), so just 1d8
 
 **TYPE 2: SAVING THROW SPELLS (Sacred Flame, Fireball, etc.)**
@@ -171,16 +191,16 @@ Ray of Frost attack by Merryl (Mago with INT +3, Proficiency +2):
   {"roller": "Merryl", "rollNotation": "1d8", "description": "Tirada de daño de Rayo de Escarcha", "attackType": "attack_roll"}  // Ray of Frost doesn't add ability mod
 ]
 
-Mace attack by Elara (Clériga with FUE +2, Proficiency +2):
+Mace attack by Elara (Clériga with FUE +2, Proficiency +2, has Maza in inventory):
 [
   {"roller": "Elara", "rollNotation": "1d20+4", "description": "Tirada de ataque con maza", "attackType": "attack_roll"},  // FUE +2 + Proficiency +2 = +4
   {"roller": "Elara", "rollNotation": "1d6+2", "description": "Tirada de daño con maza", "attackType": "attack_roll"}  // FUE +2 (no proficiency on damage)
 ]
 
-Improvised weapon by Merryl (FUE -1, Proficiency +2):
+Quarterstaff (Bastón) attack by Merryl (Mago with DES +3, Proficiency +2, has Bastón in inventory):
 [
-  {"roller": "Merryl", "rollNotation": "1d20+1", "description": "Tirada de ataque con arma improvisada", "attackType": "attack_roll"},  // FUE -1 + Proficiency +2 = +1
-  {"roller": "Merryl", "rollNotation": "1d4-1", "description": "Tirada de daño con arma improvisada", "attackType": "attack_roll"}  // FUE -1 (no proficiency on damage)
+  {"roller": "Merryl", "rollNotation": "1d20+5", "description": "Tirada de ataque con bastón", "attackType": "attack_roll"},  // DES +3 + Proficiency +2 = +5 (versatile weapon)
+  {"roller": "Merryl", "rollNotation": "1d6+3", "description": "Tirada de daño con bastón", "attackType": "attack_roll"}  // DES +3 (versatile allows DEX)
 ]
 
 Healing spell:
@@ -198,9 +218,10 @@ Sacred Flame (TYPE 2: saving throw - no attack roll):
 - For attacks: BOTH attack and damage rolls are mandatory
 - For healing: Only the healing roll
 - **PRIORITY ORDER FOR INFORMATION:**
-  1. **FIRST:** Use information from your character sheet (YOUR AVAILABLE SPELLS list, party member stats, etc.)
+  1. **FIRST:** Use information from your character sheet (YOUR AVAILABLE SPELLS list, YOUR INVENTORY list, party member stats, etc.)
   2. **SECOND:** Only use tools (\`dndApiLookupTool\`) if you need additional mechanics information (e.g., exact damage dice for a spell, attack modifiers) that is not in your character sheet
-  3. **NEVER:** Use tools to determine what spells or abilities you have - that information comes from YOUR AVAILABLE SPELLS list
+  3. **NEVER:** Use tools to determine what spells or weapons you have - that information comes from YOUR AVAILABLE SPELLS and YOUR INVENTORY lists
+- **YOU MUST ONLY USE WEAPONS FROM YOUR INVENTORY. DO NOT invent weapons like daggers or improvised weapons if they are not in your inventory.**
 - This is not optional - missing the attack roll will cause your action to fail
 
 **DO NOT:**

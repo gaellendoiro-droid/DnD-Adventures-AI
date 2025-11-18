@@ -28,6 +28,31 @@ const outcomeTextStyles: { [key in DiceRoll['outcome'] | 'damage']?: string } = 
     damage: "text-yellow-300",
 }
 
+// Helper function to get critical styles based on roll type
+const getCriticalStyles = (isAttackRoll: boolean, isDamageRoll: boolean) => {
+  if (isAttackRoll) {
+    // Attack critical: green with pulse
+    return {
+      container: "border-4 border-green-400 bg-gradient-to-br from-green-500/20 via-green-500/15 to-green-500/20 shadow-lg shadow-green-500/50 animate-pulse",
+      text: "text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]",
+      label: "text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]",
+    };
+  } else if (isDamageRoll) {
+    // Damage critical: yellow with pulse
+    return {
+      container: "border-4 border-yellow-400 bg-gradient-to-br from-yellow-500/20 via-yellow-500/15 to-yellow-500/20 shadow-lg shadow-yellow-500/50 animate-pulse",
+      text: "text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]",
+      label: "text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]",
+    };
+  }
+  // Fallback to default yellow for other criticals
+  return {
+    container: "border-4 border-yellow-400 bg-gradient-to-br from-yellow-500/20 via-green-500/15 to-yellow-500/20 shadow-lg shadow-yellow-500/50 animate-pulse",
+    text: "text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]",
+    label: "text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]",
+  };
+}
+
 const outcomeLabels: { [key in DiceRoll['outcome'] | 'damage']?: string } = {
     crit: "⭐ ¡CRÍTICO!",
     pifia: "☠️ ¡PIFIA!",
@@ -60,8 +85,19 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
 
   if (roll.description.toLowerCase().includes('iniciativa')) {
     finalOutcome = 'initiative';
-  } else if (isDamageRoll && roll.outcome === 'neutral') {
+  } else if (isDamageRoll) {
+    // For damage rolls, check if it's critical (either by outcome or description)
+    const isCriticalDamage = roll.outcome === 'crit' || 
+                             roll.description?.toLowerCase().includes('(crítico)') ||
+                             roll.description?.toLowerCase().includes('(critico)');
+    if (isCriticalDamage) {
+      finalOutcome = 'crit';
+    } else if (roll.outcome === 'neutral') {
     finalOutcome = 'damage';
+    } else {
+      // Use the outcome from the roll (could be success, fail, etc.)
+      finalOutcome = roll.outcome;
+    }
   } else if (isAttackRoll && roll.attackHit !== undefined) {
     // For attack rolls, use attackHit to determine outcome if available
     finalOutcome = roll.attackHit ? (roll.outcome === 'crit' ? 'crit' : 'success') : (roll.outcome === 'pifia' ? 'pifia' : 'fail');
@@ -70,11 +106,15 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
     finalOutcome = roll.outcome;
   }
 
+  // Get critical styles if this is a critical roll
+  const criticalStyles = finalOutcome === 'crit' ? getCriticalStyles(isAttackRoll, isDamageRoll) : null;
+  const containerStyle = criticalStyles ? criticalStyles.container : outcomeStyles[finalOutcome];
+
   return (
     <div
       className={cn(
         "flex items-start gap-2 p-2 rounded-lg border text-sm",
-        outcomeStyles[finalOutcome]
+        containerStyle
       )}
     >
       <div className="flex-shrink-0 font-mono text-xs h-5 w-5 flex items-center justify-center rounded-full bg-muted-foreground/20 text-muted-foreground font-bold mt-0.5">
@@ -95,7 +135,9 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
             {outcomeLabels[finalOutcome] && (
               <p className={cn(
                 "text-sm font-black tracking-wide mt-1",
-                finalOutcome === 'crit' ? "text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]" : "text-red-500 drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]"
+                finalOutcome === 'crit' 
+                  ? (criticalStyles ? criticalStyles.label : "text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]")
+                  : "text-red-500 drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]"
               )}>
                 {outcomeLabels[finalOutcome]}
               </p>
@@ -154,23 +196,28 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
         <div className="text-right">
             <p className={cn(
                 "text-2xl font-bold font-mono leading-none",
-                outcomeTextStyles[finalOutcome]
+                finalOutcome === 'crit' && criticalStyles 
+                  ? criticalStyles.text 
+                  : outcomeTextStyles[finalOutcome]
             )}>
                 {totalResult}
             </p>
             {showBreakdown ? (
                 <p className="text-xs font-mono text-muted-foreground text-right leading-tight">
                     {roll.modifiers && roll.modifiers.length > 0 ? (
-                        // Show sum of dice result + modifiers without spaces or labels
-                        `${roll.individualRolls.reduce((sum, roll) => sum + roll, 0)}${roll.modifiers.map(mod => mod.value >= 0 ? `+${mod.value}` : `${mod.value}`).join('')}`
+                        // Show individual dice rolls + modifiers (e.g., "1+2+3" for 2d4+3 with rolls [1,2] and modifier 3)
+                        `${roll.individualRolls.join('+')}${roll.modifiers.map(mod => mod.value >= 0 ? `+${mod.value}` : `${mod.value}`).join('')}`
                     ) : (
                         // Fallback: use same format without spaces for consistency
                         (() => {
-                            const diceSum = roll.individualRolls.reduce((sum, roll) => sum + roll, 0);
+                            // Show individual dice rolls if multiple, or just the sum if single die
+                            const diceDisplay = roll.individualRolls.length > 1 
+                                ? roll.individualRolls.join('+')
+                                : roll.individualRolls[0]?.toString() || '0';
                             const modifierStr = roll.modifier !== undefined 
                                 ? (roll.modifier >= 0 ? `+${roll.modifier}` : `${roll.modifier}`)
                                 : '';
-                            return `${diceSum}${modifierStr}`;
+                            return `${diceDisplay}${modifierStr}`;
                         })()
                     )}
                 </p>

@@ -2,8 +2,8 @@
 
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 26 issues  
-**Última actualización:** 2025-11-18 (Issues #91, #92 añadidos)
+**Total:** 25 issues  
+**Última actualización:** 2025-11-18 (Issue #75 movido a corregidos)
 
 ---
 
@@ -13,71 +13,9 @@ _No hay issues críticos pendientes en este momento._
 
 ## 🟡 Prioridad Alta (PA) - Advertencias
 
-### Issue #75: DM inventa armas en narración de ataques sin consultar inventario 🟡 ADVERTENCIA
-
-- **Fecha de creación:** 2025-11-17
-- **Ubicación:** `src/ai/flows/game-coordinator.ts`, `src/ai/tools/companion-tactician.ts`
-- **Severidad:** 🟡 **ALTA** (narración inconsistente con la ficha y reglas de combate)
-- **Descripción:** Durante la narración de ataques realizados por companions (y ocasionalmente por el jugador), el DM inventa el arma utilizada sin validar el inventario real. Se describen acciones con armas inexistentes o incompatibles con la ficha y se ignoran hechizos disponibles.
-- **Comportamiento esperado:** Antes de narrar, el sistema debe validar arma/hechizo contra el inventario real del personaje o solicitar aclaración si la acción es ambigua.
-- **Impacto:** Alto – Contradice la información mostrada al jugador, afecta decisiones tácticas y rompe la inmersión.
-- **Solución propuesta:**
-  - Forzar que el narrador consulte el inventario/equipo activo antes de describir la acción.
-  - Ajustar prompts de companions para que siempre indiquen qué arma/hechizo usan.
-  - Añadir fallback que pida aclaración al jugador si no se puede determinar el arma.
-- **Estado:** 📝 **PENDIENTE**
-- **Detección:** Testing manual en combates recientes.
-
----
-
-### Issue #53: Companions no usan hechizos disponibles en su ficha 🟡 ADVERTENCIA
-
-- **Fecha de creación:** 2025-11-15
-- **Ubicación:** `src/ai/tools/companion-tactician.ts`, `src/ai/tools/combat-manager.ts`
-- **Severidad:** 🟡 **ALTA** (afecta gameplay, los companions no usan sus hechizos disponibles)
-- **Descripción:** Después de implementar la verificación de conjuros disponibles desde la ficha del personaje, los companions (Merryl, Elara) no están usando los hechizos que tienen disponibles en su ficha, prefiriendo usar armas básicas en su lugar.
-- **Contexto:** Detectado durante testing de v0.5.0 después de implementar el sistema de verificación de conjuros disponibles.
-- **Problema:**
-  - Merryl tiene hechizos disponibles (Rayo de escarcha, Dardo mágico, etc.) pero el sistema dice "Sin hechizos a mano" y usa su bastón
-  - Elara tiene hechizos disponibles (Llama sagrada, Escudo de fe, etc.) pero no los está usando
-  - El sistema está pasando correctamente los conjuros en `availableSpells`, pero la IA no los está utilizando
-- **Posibles causas:**
-  1. El prompt puede estar siendo demasiado restrictivo o confuso sobre cuándo usar hechizos
-  2. La lista de conjuros puede no estar mostrándose correctamente en el prompt
-  3. La IA puede estar interpretando incorrectamente las instrucciones sobre priorizar la ficha
-  4. Puede haber un problema con cómo se están pasando los conjuros desde `combat-manager.ts`
-- **Archivos involucrados:**
-  - `src/ai/tools/companion-tactician.ts`: Prompt y lógica de decisión de acciones
-  - `src/ai/tools/combat-manager.ts`: Paso de `availableSpells` al tool
-- **Impacto:** Alto - Los companions no utilizan sus capacidades mágicas, reduciendo su efectividad en combate y la variedad de acciones
-- **Estado:** 📝 **PENDIENTE**
-- **Prioridad de corrección:** Alta
-- **Detección:** Testing de v0.5.0 - Observación directa durante combate
-
----
 
 
-### Issue #91: Colores y efectos de tiradas críticas 🟡 ADVERTENCIA
 
-- **Fecha de creación:** 2025-11-16
-- **Ubicación:** `src/components/game/` (componente de panel de Tiradas)
-- **Severidad:** 🟡 **ALTA** (afecta feedback visual y claridad de información)
-- **Descripción:** Los colores y efectos visuales de las tiradas críticas no están completamente implementados según el diseño esperado.
-- **Problema:**
-  - La tirada de ataque crítica debería ser de color verde manteniendo el efecto de pulso y el texto de "¡CRITICO!" con la estrellita debería ser verde también.
-  - La tirada de daño crítica debería mantenerse amarilla (correcto) pero añadiéndole el efecto pulso y la etiqueta de ¡CRITICO! con la estrellita en amarillo.
-- **Comportamiento esperado:** 
-  - Tiradas de ataque críticas: Verde con efecto pulso y etiqueta "¡CRITICO!" verde
-  - Tiradas de daño críticas: Amarillo con efecto pulso y etiqueta "¡CRITICO!" amarilla
-- **Impacto:** Medio – Afecta la claridad visual y el feedback al jugador sobre tiradas críticas
-- **Solución propuesta:**
-  - Revisar estilos CSS del componente de panel de Tiradas
-  - Aplicar colores correctos según tipo de tirada crítica
-  - Asegurar que el efecto de pulso esté presente en ambos casos
-- **Estado:** 📝 **PENDIENTE**
-- **Detección:** Testing manual durante combate
-
----
 
 ### Issue #14: AI Tacticians (enemigos y companions) a veces devuelven output inválido/null en combate
 
@@ -90,15 +28,112 @@ _No hay issues críticos pendientes en este momento._
   - Posibles causas: AI no encuentra información en D&D API, prompts muy largos/complejos, filtros de seguridad
 - **Mejoras implementadas (Fase 1):**
   - ✅ Añadido logging detallado en `companion-tactician.ts` para capturar input, respuesta y errores
+  - ✅ Añadido logging detallado en `enemy-tactician.ts` para capturar errores de validación
 - **Solución propuesta (Multi-fase):**
   - **Fase 2 (PENDIENTE):** Mejorar prompts (simplificar, hacer reglas más explícitas, añadir ejemplos)
   - **Fase 3 (PENDIENTE):** Validación y fallback inteligente (completar campos faltantes, generar acción básica válida)
   - **Fase 4 (PENDIENTE - OPCIONAL):** Refactoring de prompts (prompt chaining)
+  - **Ver Issue #94:** Refactorización de Prompts de Tacticians - Separación de Narración y Decisión Táctica
+  - Esta refactorización simplificará los prompts de los tacticians, reduciendo la complejidad y la probabilidad de errores de validación
 - **Archivos afectados:**
   - `src/ai/tools/enemy-tactician.ts`
   - `src/ai/tools/companion-tactician.ts`
   - `src/ai/tools/combat-manager.ts`
 - **Estado:** 🔴 **EN INVESTIGACIÓN** - Logging implementado, esperando datos de diagnóstico para siguiente fase
+- **Relacionado con:** 
+  - Issue #79 (Narraciones de combate para turnos del jugador) ✅ RESUELTO
+  - Issue #94 (Refactorización de Prompts de Tacticians) - La Fase 4 de este issue incluye esta refactorización
+  - Roadmap - Sección 7 "Narración Unificada para Todos los Turnos" (refactorización futura de tacticians)
+
+---
+
+### Issue #94: Refactorización de Prompts de Tacticians - Separación de Narración y Decisión Táctica 🟡 ADVERTENCIA
+
+- **Fecha de creación:** 2025-11-18
+- **Ubicación:** `src/ai/tools/enemy-tactician.ts`, `src/ai/tools/companion-tactician.ts`, `src/ai/tools/combat/combat-narration-expert.ts`
+- **Severidad:** 🟡 **ALTA** (mejora arquitectura, consistencia narrativa y reduce complejidad de prompts)
+- **Descripción:** Los tacticians (`enemyTacticianTool` y `companionTacticianTool`) actualmente generan tanto la decisión táctica (qué hacer, a quién atacar) como la narración de intención. Esto hace que los prompts sean complejos y propensos a errores, además de crear inconsistencias narrativas con el `combat-narration-expert` usado para turnos del jugador.
+- **Problema actual:**
+  - Los tacticians tienen responsabilidades mezcladas: decisión táctica + narración
+  - Prompts complejos que aumentan probabilidad de errores de validación (Issue #14)
+  - Inconsistencia narrativa: turnos de IA vs turnos del jugador tienen diferentes estilos
+  - Difícil mantener y mejorar la calidad narrativa de forma centralizada
+- **Comportamiento esperado:**
+  - **Tacticians:** Solo deciden acción táctica (target, tiradas necesarias, tipo de acción)
+  - **Combat Narration Expert:** Maneja TODA la narración (intención pre-roll + resolución post-roll)
+  - Consistencia narrativa total entre jugador, companions y enemigos
+  - Prompts de tacticians más simples = menos errores de validación
+- **Solución propuesta:**
+  - **Fase 1:** Extender `combat-narration-expert` para manejar narraciones de intención (pre-roll)
+  - **Fase 2:** Modificar tacticians para que NO generen narración, solo decisión táctica
+  - **Fase 3:** Integrar `combat-narration-expert` en flujo de turnos de IA (antes y después de tiradas)
+  - **Fase 4:** Actualizar prompts de tacticians para enfocarse solo en decisión táctica
+  - **Fase 5:** Testing y validación de consistencia narrativa
+- **Beneficios esperados:**
+  - ✅ Prompts más simples = menos errores de validación (relacionado con Issue #14)
+  - ✅ Consistencia narrativa total en combate
+  - ✅ Mejoras de narración aplicables a todos los turnos por igual
+  - ✅ Base para futuras mejoras (combat-context-summarizer, etc.)
+- **Archivos afectados:**
+  - `src/ai/tools/enemy-tactician.ts` (simplificar prompt, eliminar narración)
+  - `src/ai/tools/companion-tactician.ts` (simplificar prompt, eliminar narración)
+  - `src/ai/tools/combat/combat-narration-expert.ts` (extender para narraciones de intención)
+  - `src/ai/tools/combat-manager.ts` (integrar narration-expert en turnos de IA)
+- **Impacto:** Alto - Mejora arquitectura, reduce errores, mejora consistencia narrativa
+- **Estado:** 📝 **PENDIENTE**
+- **Prioridad:** Alta (mejora calidad y robustez del sistema)
+- **Relacionado con:**
+  - Issue #14 (Fase 4 menciona esta refactorización)
+  - Issue #79 (Narraciones de combate para turnos del jugador) ✅ RESUELTO
+  - Roadmap - Sección 7 "Narración Unificada para Todos los Turnos"
+- **Estimación:** 12-16 horas
+- **Referencia:** [Roadmap - Narración Unificada](../roadmap.md#7-calidad-y-profundidad-de-la-ia)
+
+---
+
+### Issue #93: Manejo de errores cuando se agotan los reintentos (especialmente errores 503 de sobrecarga) 🟡 ADVERTENCIA
+
+- **Fecha de creación:** 2025-11-18
+- **Ubicación:** `src/ai/flows/retry-utils.ts`, `src/ai/tools/enemy-tactician.ts`, `src/ai/tools/companion-tactician.ts`
+- **Severidad:** 🟡 **ALTA** (afecta experiencia del usuario cuando el servicio está sobrecargado)
+- **Descripción:** Cuando la API de Gemini devuelve errores 503 (Service Unavailable / "The model is overloaded") y se agotan los 4 intentos de reintento, el sistema no diferencia estos errores de otros errores críticos, mostrando el mismo mensaje genérico de fallo.
+- **Problema:**
+  - Los errores 503 después de agotar reintentos se tratan igual que cualquier otro error crítico
+  - El usuario no recibe información clara sobre si el problema es temporal (sobrecarga del servicio) o permanente
+  - Los logs no distinguen entre errores de sobrecarga y otros tipos de errores
+  - El mensaje de fallo es genérico ("ruge con frustración, pero no hace nada") sin contexto del error real
+- **Comportamiento actual:**
+  1. `retryWithExponentialBackoff` intenta 4 veces (1 inicial + 3 reintentos)
+  2. Si todos fallan con 503, lanza el error
+  3. `enemyTacticianTool` / `companionTacticianTool` capturan el error en el catch externo
+  4. Devuelven acción por defecto genérica sin diferenciar el tipo de error
+- **Comportamiento esperado:**
+  - Detectar específicamente errores 503 después de agotar reintentos
+  - Registrar estos errores con información detallada (tipo de error, número de intentos, etc.)
+  - Mostrar un mensaje más claro al usuario indicando que el servicio está sobrecargado
+  - Considerar si se debe mostrar un mensaje diferente en la UI para errores de sobrecarga
+- **Mejoras implementadas:**
+  - ✅ Añadida detección de errores 503 en `retry-utils.ts` para reintentar automáticamente
+  - ✅ Añadido logging detallado en `enemy-tactician.ts` para errores de validación
+- **Solución propuesta:**
+  - **Fase 1 (PENDIENTE):** Mejorar detección y logging de errores 503 después de agotar reintentos
+    - Detectar específicamente errores 503 en el catch de `enemyTacticianTool` / `companionTacticianTool`
+    - Registrar información detallada: tipo de error, número de intentos, mensaje del servicio
+  - **Fase 2 (PENDIENTE):** Mejorar mensajes al usuario
+    - Mensaje diferente para errores de sobrecarga vs otros errores
+    - Considerar mostrar mensaje en la UI cuando el servicio está sobrecargado
+  - **Fase 3 (OPCIONAL):** Estrategias avanzadas
+    - Considerar aumentar el número de reintentos para errores 503 específicamente
+    - Implementar circuit breaker para evitar spam de requests cuando el servicio está sobrecargado
+- **Archivos afectados:**
+  - `src/ai/flows/retry-utils.ts` (detección de errores reintentables)
+  - `src/ai/tools/enemy-tactician.ts` (manejo de errores después de reintentos)
+  - `src/ai/tools/companion-tactician.ts` (manejo de errores después de reintentos)
+- **Impacto:** Alto - Mejora la experiencia del usuario y facilita el diagnóstico cuando el servicio está sobrecargado
+- **Estado:** 📝 **PENDIENTE**
+- **Prioridad de corrección:** Alta
+- **Detección:** Observado durante testing cuando Gemini API devolvió error 503
+- **Relacionado con:** Issue #14 (output inválido/null), Issue #30 (logs verbosos de errores de API)
 
 ---
 

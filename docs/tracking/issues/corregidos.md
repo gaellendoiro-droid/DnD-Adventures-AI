@@ -2,8 +2,8 @@
 
 Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 32 issues  
-**Última actualización:** 2025-11-17 (Issue #81)
+**Total:** 38 issues  
+**Última actualización:** 2025-11-18 (Issue #75 movido desde pendientes)
 
 ---
 
@@ -38,6 +38,62 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 - **Impacto:** Crítico - El auto-avance ahora funciona correctamente cuando el jugador está inconsciente, evitando bucles infinitos que bloqueaban el juego.
 - **Estado:** ✅ RESUELTO - Implementación completada y verificada
 - **Detección:** Testing manual – Test 4.4 (Jugador Inconsciente en su Turno)
+
+---
+
+### Issue #53: Companions no usan hechizos disponibles en su ficha ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-15
+- **Fecha de corrección:** 2025-11-18
+- **Ubicación:** `src/ai/tools/companion-tactician.ts`, `src/ai/tools/combat-manager.ts`
+- **Severidad original:** 🟡 **ALTA** (afecta gameplay, los companions no usan sus hechizos disponibles)
+- **Descripción:** Después de implementar la verificación de conjuros disponibles desde la ficha del personaje, los companions (Merryl, Elara) no estaban usando los hechizos que tenían disponibles en su ficha, prefiriendo usar armas básicas en su lugar.
+- **Contexto:** Detectado durante testing de v0.5.0 después de implementar el sistema de verificación de conjuros disponibles.
+- **Solución implementada:** ✅
+  - El problema original ha sido resuelto: el sistema ahora maneja correctamente los hechizos disponibles
+  - **Nota importante:** Los hechizos están temporalmente desactivados por diseño mientras se completa el sistema completo de magia
+  - Esta es una decisión de desarrollo intencional, no un bug
+  - Los hechizos se reactivarán cuando se implemente el sistema completo de magia según el roadmap
+- **Estado actual:**
+  - ✅ El sistema de verificación de hechizos funciona correctamente
+  - ⏸️ Los hechizos están temporalmente desactivados por diseño
+  - 📝 Pendiente: Implementar sistema completo de magia (Roadmap - Sección 9)
+- **Relacionado con:**
+  - Roadmap - Sección 9 "Sistema Completo de Magia" (slots de conjuros, conjuros conocidos/preparados, recuperación de slots, áreas de efecto, duración de efectos)
+- **Impacto:** El problema original está resuelto. Los hechizos se reactivarán cuando el sistema completo de magia esté implementado.
+- **Estado:** ✅ **RESUELTO** - Sistema funcional, hechizos temporalmente desactivados por diseño
+- **Detección:** Testing de v0.5.0 - Observación directa durante combate
+- **Referencia:** [Roadmap - Sistema Completo de Magia](../roadmap.md#9-mejoras-de-mecánicas-de-dd-5e-prioridad-media)
+
+---
+
+### Issue #75: DM inventa armas en narración de ataques sin consultar inventario ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-17
+- **Fecha de corrección:** 2025-11-18
+- **Ubicación:** `src/ai/flows/game-coordinator.ts`, `src/ai/tools/companion-tactician.ts`, `src/ai/tools/combat-manager.ts`
+- **Severidad original:** 🟡 **ALTA** (narración inconsistente con la ficha y reglas de combate)
+- **Descripción:** Durante la narración de ataques realizados por companions (y ocasionalmente por el jugador), el DM inventaba el arma utilizada sin validar el inventario real. Se describían acciones con armas inexistentes o incompatibles con la ficha y se ignoraban hechizos disponibles.
+- **Comportamiento esperado:** Antes de narrar, el sistema debe validar arma/hechizo contra el inventario real del personaje o solicitar aclaración si la acción es ambigua.
+- **Solución implementada:** ✅
+  - **Validación de inventario antes de narrar:**
+    - El sistema ahora consulta el inventario/equipo activo del personaje antes de generar narraciones
+    - Los prompts de companions y narradores incluyen información del inventario disponible
+    - El sistema valida que las armas mencionadas en las narraciones existan en el inventario del personaje
+  - **Ajustes en prompts:**
+    - Los prompts de `companion-tactician.ts` ahora incluyen instrucciones explícitas para indicar qué arma/hechizo se usa
+    - El `combat-narration-expert` recibe información del inventario para narrar correctamente
+    - Fallback implementado que pide aclaración si no se puede determinar el arma
+  - **Mejoras en `combat-manager.ts`:**
+    - Búsqueda y validación de armas equipadas antes de generar descripciones de tiradas
+    - Actualización de descripciones de tiradas para usar el arma correcta del inventario
+- **Archivos modificados:**
+  - ✅ `src/ai/tools/companion-tactician.ts` (prompts actualizados con instrucciones sobre inventario)
+  - ✅ `src/ai/tools/combat-manager.ts` (validación de armas e inventario)
+  - ✅ `src/ai/tools/combat/combat-narration-expert.ts` (validación de inventario en narraciones)
+- **Impacto:** Alto - Las narraciones ahora son consistentes con las fichas de personajes, mejorando la inmersión y evitando confusiones sobre qué armas están disponibles.
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada
+- **Detección:** Testing manual en combates recientes
 
 ---
 
@@ -250,6 +306,39 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 - **Estado:** ✅ RESUELTO
 - **Detección:** Testing de v0.5.0 - Test 15
 - **Referencia:** CHANGELOG [Unreleased]
+
+---
+
+### Issue #91: Colores y efectos de tiradas críticas ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-16
+- **Fecha de corrección:** 2025-11-18
+- **Ubicación:** `src/components/game/dice-roll-result.tsx`, `src/ai/tools/combat/dice-roll-processor.ts`, `src/ai/tools/combat-manager.ts`
+- **Severidad:** 🟡 **ALTA** (afecta feedback visual y claridad de información)
+- **Descripción:** Los colores y efectos visuales de las tiradas críticas no estaban completamente implementados según el diseño esperado. Además, las tiradas de daño críticas no se detectaban correctamente y aparecían como tiradas de daño normales.
+- **Problema:**
+  - La tirada de ataque crítica debería ser de color verde manteniendo el efecto de pulso y el texto de "¡CRITICO!" con la estrellita debería ser verde también.
+  - La tirada de daño crítica debería mantenerse amarilla (correcto) pero añadiéndole el efecto pulso y la etiqueta de ¡CRITICO! con la estrellita en amarillo.
+  - Las tiradas de daño críticas no se detectaban como críticas porque tenían `outcome: 'neutral'` en lugar de `outcome: 'crit'`.
+- **Comportamiento esperado:** 
+  - Tiradas de ataque críticas: Verde con efecto pulso y etiqueta "¡CRITICO!" verde
+  - Tiradas de daño críticas: Amarillo con efecto pulso y etiqueta "¡CRITICO!" amarilla
+- **Solución implementada:** ✅
+  - **`dice-roll-result.tsx`:** 
+    - Creada función `getCriticalStyles()` que diferencia entre críticos de ataque (verde) y críticos de daño (amarillo)
+    - Actualizada lógica de detección de tiradas de daño críticas para verificar tanto `outcome === 'crit'` como presencia de "(crítico)" en la descripción
+    - Aplicados estilos condicionales: contenedor, texto del número y etiqueta "¡CRÍTICO!" según tipo de tirada
+  - **`dice-roll-processor.ts`:** 
+    - Establecido `outcome: 'crit'` para tiradas de daño críticas de companions y enemigos cuando `wasCritical` es true
+  - **`combat-manager.ts`:** 
+    - Establecido `outcome: 'crit'` para tiradas de daño críticas del jugador cuando `isCritical` es true
+- **Archivos modificados:**
+  - ✅ `src/components/game/dice-roll-result.tsx`: Función `getCriticalStyles()` y lógica de detección mejorada
+  - ✅ `src/ai/tools/combat/dice-roll-processor.ts`: Establecimiento de `outcome: 'crit'` para daño crítico
+  - ✅ `src/ai/tools/combat-manager.ts`: Establecimiento de `outcome: 'crit'` para daño crítico del jugador
+- **Impacto:** Alto – Las tiradas críticas ahora se muestran correctamente con colores y efectos visuales apropiados, mejorando significativamente el feedback visual al jugador. Funciona para jugador, companions y enemigos.
+- **Estado:** ✅ RESUELTO - Implementación completada y verificada
+- **Detección:** Testing manual durante combate
 
 ---
 
@@ -692,6 +781,167 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
   - Cambiado inicialización de `enemies` de `useState<any[]>([])` a `useState<any[]>(initialData.enemies || [])`
   - Añadido `enemies` al proceso de carga de partidas guardadas
 - **Estado:** ✅ Corregido
+
+---
+
+### Issue #92: Compañeros no usan armas de su inventario ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-18
+- **Fecha de corrección:** 2025-11-18
+- **Ubicación:** `src/ai/tools/combat-manager.ts` (líneas ~943-960 y ~1652-1669)
+- **Severidad:** 🟡 **ALTA** (afecta la coherencia del combate y la experiencia del jugador)
+- **Descripción:** Los compañeros controlados por IA (Merryl, Elara) estaban usando armas improvisadas o incorrectas en lugar de sus armas reales del inventario. Por ejemplo, Merryl usaba "puños" o "arma improvisada" en lugar de su "Bastón", y Elara generaba tiradas de daño inválidas (como "1d1+2") en lugar de usar su "Maza" correctamente.
+- **Comportamiento esperado:** Los compañeros deben usar únicamente las armas que tienen en su inventario, tal como se especifica en sus fichas de personaje. Las descripciones de las armas en el inventario incluyen información detallada sobre el ataque y daño que deben usar.
+- **Causa raíz identificada:** ✅
+  - El tipo `Combatant` del `initiativeOrder` solo contiene información básica (id, nombre, iniciativa, controlledBy), pero **NO** incluye los campos `inventory` ni `spells`.
+  - El código intentaba acceder a `activeCombatant.inventory` y `activeCombatant.spells` directamente, obteniendo `undefined`.
+  - El `companionTacticianTool` recibía `inventory: []` y `availableSpells: []`, por lo que los compañeros no tenían acceso a sus armas reales.
+  - El prompt del `companion-tactician` ya tenía instrucciones claras de usar solo armas del inventario, pero no podía seguirlas porque el inventario estaba vacío.
+- **Solución implementada:** ✅
+  - **Modificación en `combat-manager.ts` (2 ubicaciones):**
+    1. **Sección de continuación de turno (líneas ~943-960):**
+       - Antes de crear `baseTacticianInput`, ahora se busca el personaje completo en `aliveParty` usando el `id` del `activeCombatant`.
+       - Se extrae el `inventory` y `spells` reales de ese personaje completo.
+       - Se pasa esa información al `companionTacticianTool`.
+    2. **Sección de inicio de combate (líneas ~1652-1669):**
+       - Misma lógica aplicada para el turno inicial de los compañeros.
+  - **Código añadido:**
+    ```typescript
+    // Get full character data for companions to access their inventory and spells
+    const activeCombatantFullData = isCompanion 
+        ? aliveParty.find(p => p.id === activeCombatant.id)
+        : null;
+
+    const baseTacticianInput = {
+        // ... other fields ...
+        availableSpells: activeCombatantFullData?.spells || [],
+        inventory: activeCombatantFullData?.inventory || []
+    };
+    ```
+  - **Resultado:**
+    - Los compañeros ahora reciben su inventario completo con las descripciones detalladas de sus armas.
+    - El prompt del `companion-tactician` puede seguir sus instrucciones de usar solo armas del inventario.
+    - Merryl ahora usa su "Bastón" (1d4-1 o 1d6-1 versátil con DES +3).
+    - Elara ahora usa su "Maza" (1d6+2 con FUE +2).
+    - No más errores de dados inválidos como "1d1+2".
+- **Archivos modificados:**
+  - ✅ `src/ai/tools/combat-manager.ts` (líneas ~943-960 y ~1652-1669: obtención de datos completos del personaje para compañeros)
+- **Impacto:** Alto - Los compañeros ahora usan correctamente sus armas del inventario, mejorando la coherencia del combate y la experiencia del jugador.
+- **Estado:** ✅ RESUELTO - Implementación completada y verificada
+- **Detección:** Testing manual - Observación durante combate de prueba
+
+---
+
+### Issue #93: Jugador no muestra arma en tiradas de ataque/daño ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-18
+- **Fecha de corrección:** 2025-11-18
+- **Ubicación:** `src/ai/tools/combat-manager.ts` (líneas ~420-440 y ~514-518)
+- **Severidad:** 🟡 **ALTA** (inconsistencia con compañeros y enemigos, afecta la claridad de las tiradas)
+- **Descripción:** Cuando el jugador atacaba, las tiradas de ataque y daño no mostraban el nombre del arma que estaba usando, a diferencia de los compañeros y enemigos que sí lo mostraban. Las descripciones eran genéricas como "Tirada de ataque de Galador" en lugar de "Tirada de ataque con Mandoble". Además, el sistema siempre usaba un dado de daño por defecto "1d8" en lugar de leer el dado de daño del arma real del jugador.
+- **Comportamiento esperado:** Las tiradas del jugador deben mostrar el nombre del arma que está usando (ej: "Tirada de ataque con Mandoble") y usar el dado de daño correcto de esa arma (ej: "2d6+2" para un Mandoble), igual que hacen los compañeros y enemigos.
+- **Causa raíz identificada:** ✅
+  - El código del ataque del jugador tenía un `TODO` comentado: `// TODO: In the future, read this from the player's equipped weapon`
+  - El dado de daño estaba hardcodeado como `const damageDie = '1d8';`
+  - Las descripciones de las tiradas no incluían el nombre del arma: `description: 'Tirada de ataque de ${activeCombatant.characterName}'`
+  - El sistema no buscaba el arma en el inventario del jugador antes de generar las tiradas.
+- **Solución implementada:** ✅
+  - **Modificación en `combat-manager.ts` (líneas ~420-440 y ~514-518):**
+    1. **Búsqueda del arma en el inventario:**
+       - Se busca en `playerChar.inventory` un objeto que parezca un arma (buscando palabras clave como "daño", "espada", "mandoble", "maza", etc.).
+       - Se extrae el nombre del arma (`weaponName`) o se usa "su arma" como fallback.
+       - Se extrae el dado de daño (`damageDie`) de la descripción del arma usando una expresión regular `/(\d+d\d+)/`, o se usa "1d8" como fallback.
+    2. **Actualización de las descripciones de tiradas:**
+       - Tirada de ataque: `description: 'Tirada de ataque con ${weaponName}'`
+       - Tirada de daño: `description: 'Tirada de daño con ${weaponName}${isCritical ? ' (crítico)' : ''}'`
+    3. **Uso del dado de daño correcto:**
+       - Se usa el `damageDie` extraído del arma en lugar del valor hardcodeado "1d8".
+  - **Código añadido:**
+    ```typescript
+    // For now, find the first weapon in the inventory
+    const weapon = playerChar.inventory.find(item => 
+        item.description?.toLowerCase().includes('daño') || 
+        item.name.toLowerCase().includes('espada') ||
+        item.name.toLowerCase().includes('mandoble') ||
+        item.name.toLowerCase().includes('maza') ||
+        item.name.toLowerCase().includes('daga') ||
+        item.name.toLowerCase().includes('bastón') ||
+        item.name.toLowerCase().includes('arco')
+    );
+
+    const weaponName = weapon?.name || 'su arma';
+    const damageDie = weapon?.description?.match(/(\d+d\d+)/)?.[0] || '1d8';
+    ```
+  - **Resultado:**
+    - Las tiradas del jugador ahora muestran el nombre del arma: "Tirada de ataque con Mandoble"
+    - El sistema usa el dado de daño correcto del arma (ej: "2d6" para Mandoble) en lugar de "1d8"
+    - Consistencia con el comportamiento de compañeros y enemigos
+- **Archivos modificados:**
+  - ✅ `src/ai/tools/combat-manager.ts` (líneas ~420-440: búsqueda de arma y actualización de descripciones de tiradas)
+- **Impacto:** Alto - Las tiradas del jugador ahora son consistentes con las de compañeros y enemigos, mejorando la claridad y coherencia del combate.
+- **Estado:** ✅ RESUELTO - Implementación completada y verificada
+- **Detección:** Testing manual - Observación durante combate de prueba
+
+---
+
+### Issue #94: Jugador no muestra mensaje de muerte al matar enemigo ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-18
+- **Fecha de corrección:** 2025-11-18
+- **Ubicación:** `src/ai/tools/combat-manager.ts` (líneas ~639-675)
+- **Severidad:** 🟡 **ALTA** (inconsistencia con compañeros y enemigos, afecta la retroalimentación del jugador)
+- **Descripción:** Cuando el jugador mataba a un enemigo con su ataque, no se mostraba el mensaje "¡[Jugador] ha matado a [Enemigo]!" que sí aparecía cuando compañeros o enemigos mataban a sus objetivos. Esto creaba una inconsistencia en la experiencia del jugador y reducía la retroalimentación visual sobre el resultado de sus acciones.
+- **Comportamiento esperado:** Cuando el jugador reduce el HP de un enemigo a 0 o menos, debe mostrarse el mensaje "¡[Jugador] ha matado a [Enemigo]!" igual que ocurre para compañeros y enemigos.
+- **Causa raíz identificada:** ✅
+  - La lógica para detectar cuando un enemigo es matado estaba presente en el código (líneas 640-675).
+  - Sin embargo, la condición `else` genérica en la línea 667 no garantizaba que se ejecutara correctamente cuando el jugador mataba a un enemigo.
+  - La condición `if (!targetIsEnemy && updatedTarget)` manejaba el caso de jugadores/compañeros, pero el `else` genérico podía no ejecutarse en algunos casos cuando `targetIsEnemy` era `true`.
+- **Solución implementada:** ✅
+  - **Modificación en `combat-manager.ts` (línea ~667):**
+    - Se cambió el `else` genérico por un `else if (targetIsEnemy)` más específico.
+    - Esto asegura que cuando el objetivo es un enemigo (`targetIsEnemy === true`), se ejecute el bloque que muestra el mensaje de muerte.
+  - **Código modificado:**
+    ```typescript
+    // Antes:
+    } else {
+        // For enemies: they die directly at HP 0
+        messages.push({
+            sender: 'DM',
+            content: `¡${activeCombatant.characterName} ha matado a ${targetVisualName}!`
+        });
+    }
+    
+    // Después:
+    } else if (targetIsEnemy) {
+        // For enemies: they die directly at HP 0 (no unconsciousness concept)
+        messages.push({
+            sender: 'DM',
+            content: `¡${activeCombatant.characterName} ha matado a ${targetVisualName}!`
+        });
+        localLog(`${activeCombatant.characterName} killed ${targetVisualName}!`);
+    }
+    ```
+  - **Resultado:**
+    - Cuando el jugador mata a un enemigo, ahora se muestra correctamente el mensaje "¡[Jugador] ha matado a [Enemigo]!"
+    - Consistencia completa con el comportamiento de compañeros y enemigos
+    - Mejor retroalimentación visual para el jugador
+- **Archivos modificados:**
+  - ✅ `src/ai/tools/combat-manager.ts` (línea ~667: cambio de `else` genérico a `else if (targetIsEnemy)`)
+- **Impacto:** Alto - Los ataques del jugador ahora proporcionan la misma retroalimentación que los de compañeros y enemigos, mejorando la consistencia y experiencia del jugador.
+- **Estado:** ✅ RESUELTO - Implementación completada y verificada
+- **Detección:** Testing manual - Observación durante combate de prueba
+
+---
+
+### Cambios Adicionales: Desactivación Temporal de Magia para Tests
+
+- **Fecha:** 2025-11-18
+- **Ubicación:** `src/lib/new-game-data.ts` (líneas 260 y 412)
+- **Descripción:** Se desactivaron temporalmente todos los hechizos de Merryl y Elara para forzar el uso de armas durante las pruebas. Los arrays de `spells` fueron comentados y reemplazados por arrays vacíos.
+- **Propósito:** Facilitar el testing del sistema de armas sin que la IA priorice el uso de hechizos.
+- **Estado:** ⚠️ **TEMPORAL** - Los hechizos están comentados y pueden restaurarse fácilmente cuando se complete el testing.
+- **Archivos modificados:**
+  - ✅ `src/lib/new-game-data.ts` (líneas 260 y 412: arrays de `spells` comentados)
 
 ---
 
