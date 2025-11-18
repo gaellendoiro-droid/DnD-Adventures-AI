@@ -15,7 +15,42 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+---
+
+## [0.5.1] - 2025-11-18
+
 ### Added
+- **✅ Plan de Testeo Completo del Sistema de Turnos - COMPLETADO (2025-11-18):**
+  - Testeo exhaustivo del sistema de turnos paso a paso implementado
+  - **Resultados:**
+    - ✅ 30/30 tests completados (100%)
+    - ✅ 7 bugs detectados y corregidos (Issues #50, #52, #66, #68, #78, #79, #81)
+    - ✅ 0 problemas potenciales pendientes
+    - ✅ 2 mejoras futuras documentadas (Issues #65, #80)
+  - **Tests ejecutados:**
+    - Flujo de ejecución (5 tests): Inicio de combate, orden de turnos, avance manual/automático
+    - Sincronización de estado (4 tests): Frontend-backend, turnIndex, iniciativa, logs
+    - UX y controles (4 tests): Botones de avance, visibilidad, estados, placeholders
+    - Casos edge (5 tests): Personajes inconscientes, muertos, múltiples combates, IDs no consecutivos
+    - Validación de reglas (3 tests): Daño crítico, muerte masiva, orden de mensajes
+    - Combates múltiples (3 tests): Múltiples salas, resolución de objetivos, fin de combate
+    - Integración (2 tests): Frontend-backend, UI-state
+    - Issues conocidos (5 tests): Issues #50, #52, #63, #65, #66, #68, #78, #79, #81
+  - **Bugs corregidos durante el testeo:**
+    - Issue #66: Orden incorrecto de mensajes en muerte masiva
+    - Issue #68: Avance automático de turnos cuando jugador inicia combate
+    - Issue #78: Botón "Avanzar Todos" se detiene un turno antes del jugador
+    - Issue #79: Falta narración del DM en turnos del jugador
+    - Issue #81: Bucle infinito cuando jugador inconsciente durante auto-avance
+    - Issue #52: Narración de inicio de combate adelantada
+    - Issue #63: Combate con IDs de personajes no consecutivos
+  - **Mejoras futuras documentadas:**
+    - Issue #65: Sistema para atacar compañeros fuera de combate (mejora futura)
+    - Issue #80: Sistema para múltiples acciones del jugador en un turno (mejora futura)
+  - **Archivos:**
+    - `docs/planes-desarrollo/completados/testeo-sistema-turnos.md` - Documentación completa del testeo
+  - **Estado:** ✅ PLAN COMPLETADO Y ARCHIVADO
+  - **Referencia:** Plan de testeo completo en `docs/planes-desarrollo/completados/testeo-sistema-turnos.md`
 - **✨ Sistema de Bono de Competencia (Proficiency Bonus) y Modificadores Desglosados en Tiradas:**
   - Agregado campo `proficiencyBonus` al `CharacterSchema` para almacenar el bono de competencia del personaje
   - Todos los personajes iniciales ahora incluyen `proficiencyBonus: 2` (nivel 1)

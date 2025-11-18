@@ -1,6 +1,6 @@
 # NOTAS DE DESARROLLO - D&D ADVENTURES AI
 
-**Última actualización:** [16/11/2025 16:00]
+**Última actualización:** [18/11/2025] - Todos los items clasificados y documentados en el sistema oficial
 
 ## 📝 PROPÓSITO DE ESTE DOCUMENTO
 
@@ -65,31 +65,38 @@ Este documento es **intencionalmente informal** y sirve como "borrador" antes de
 
 ## ISSUES (Bugs/Problemas)
 
-*(Ninguna en esta sección - todos los issues activos se documentan en `docs/tracking/issues/`)* 
+### PRIORIDAD MUY ALTA
+
+### PRIORIDAD ALTA
+
+#### [#91] `[ISSUE]` `[PA]` `[INTERFAZ DE USUARIO]` `[EN ROADMAP]`
+**Colores y efectos de tiradas críticas**
+
+- La tirada de ataque crítica debería ser de color verde manteniendo el efecto de pulso y el texto de "¡CRITICO!" con la estrellita debería ser verde también.
+- La tirada de daño crítica debería mantenerse amarilla (correcto) pero añadiéndole el efecto pulso y la etiqueta de ¡CRITICO! con la estrellita en amarillo.
+
+### PRIORIDAD MEDIA
+
+#### [#92] `[ISSUE]` `[PM]` `[SISTEMA DE COMBATE]` `[EN ROADMAP]`
+**Identificación incorrecta de enemigo en combate**
+
+- En combate, al escribir "Con mis últimas fuerzas ataco al goblin que me acaba de dar un tajo" refiriéndose al Goblin 2 que acababa de atacar y acertar con su cimitarra, el DM narró que el personaje atacó al Goblin 1.
+- Revisar la identificación de enemigos cuando se hace referencia a acciones recientes. 
 
 ---
 
 ## NUEVAS FUNCIONALIDADES
 
-### PRIORIDAD MEDIA
-
-#### [#78] `[NUEVA FUNCIONALIDAD]` `[PM]` `[SISTEMA DE AVENTURAS Y DATOS]` `[SIN DOCUMENTAR]`
-**Sistema de detección automática de pruebas de característica en interacciones**
-
-- Implementar un sistema para que la IA sepa cuándo una interacción requiere una prueba de característica (como Carisma, Persuasión o Engaño) para resolver la situación con un elemento de suerte.
-- El sistema debe identificar automáticamente situaciones que requieren tiradas de habilidad.
-- Debe funcionar en modo exploración e interacción social.
-
 ### PRIORIDAD ALTA
 
-#### [#79] `[NUEVA FUNCIONALIDAD]` `[PA]` `[SISTEMA DE AVENTURAS Y DATOS]` `[SIN DOCUMENTAR]`
+#### [#79] `[NUEVA FUNCIONALIDAD]` `[PA]` `[SISTEMA DE AVENTURAS Y DATOS]` `[EN ROADMAP]`
 **Sistema de modos de juego diferenciados**
 
 - Diferenciar claramente entre Modo exploración, Modo combate y Modo social o interacción.
 - Cada modo debe tener sus propias reglas, acciones disponibles y mecánicas específicas.
 - La interfaz y el comportamiento del sistema deben adaptarse según el modo activo.
 
-#### [#80] `[NUEVA FUNCIONALIDAD]` `[PA]` `[SISTEMA DE AVENTURAS Y DATOS]` `[SIN DOCUMENTAR]`
+#### [#80] `[NUEVA FUNCIONALIDAD]` `[PA]` `[SISTEMA DE AVENTURAS Y DATOS]` `[EN ROADMAP]`
 **Acciones de movimiento en modo exploración**
 
 - En modo exploración implementar las acciones de movimiento:
@@ -100,28 +107,28 @@ Este documento es **intencionalmente informal** y sirve como "borrador" antes de
   - Arrastrarse
 - Cada acción debe tener sus propias reglas y posibles pruebas de característica asociadas.
 
-#### [#81] `[NUEVA FUNCIONALIDAD]` `[PA]` `[SISTEMA DE AVENTURAS Y DATOS]` `[SIN DOCUMENTAR]`
+#### [#81] `[NUEVA FUNCIONALIDAD]` `[PA]` `[SISTEMA DE AVENTURAS Y DATOS]` `[EN ROADMAP]`
 **Pruebas de características en modos de exploración e interacción**
 
 - Implementar las pruebas de características en los modos de exploración e interacción.
 - El sistema debe permitir realizar tiradas de habilidades cuando sea apropiado según el contexto.
 - Debe integrarse con el sistema de detección automática de pruebas (#78).
 
-#### [#82] `[NUEVA FUNCIONALIDAD]` `[PA]` `[SISTEMA DE COMBATE]` `[SIN DOCUMENTAR]`
+#### [#82] `[NUEVA FUNCIONALIDAD]` `[PA]` `[SISTEMA DE COMBATE]` `[EN ROADMAP]`
 **Sistema de ventaja y desventaja en todos los modos**
 
 - Implementar las tiradas de ventaja y desventaja para los modos de combate, exploración e interacción.
 - El sistema debe aplicar correctamente las reglas de D&D 5e para ventaja/desventaja.
 - Debe considerar todas las fuentes posibles de ventaja/desventaja (condiciones, hechizos, habilidades, etc.).
 
-#### [#83] `[NUEVA FUNCIONALIDAD]` `[PA]` `[SISTEMA DE COMBATE]` `[SIN DOCUMENTAR]`
+#### [#83] `[NUEVA FUNCIONALIDAD]` `[PA]` `[SISTEMA DE COMBATE]` `[EN ROADMAP]`
 **Movimiento y acción adicional en combate**
 
 - Implementar el movimiento y la acción adicional en el combate según las reglas de D&D 5e.
 - Los personajes deben poder moverse y realizar acciones en su turno.
 - Debe respetar las limitaciones de movimiento (velocidad, terreno difícil, etc.).
 
-#### [#84] `[NUEVA FUNCIONALIDAD]` `[PA]` `[SISTEMA DE COMBATE]` `[SIN DOCUMENTAR]`
+#### [#84] `[NUEVA FUNCIONALIDAD]` `[PA]` `[SISTEMA DE COMBATE]` `[EN ROADMAP]`
 **Acciones completas en combate**
 
 - Implementar todas las acciones disponibles en combate según D&D 5e:
@@ -139,38 +146,162 @@ Este documento es **intencionalmente informal** y sirve como "borrador" antes de
 - Cada acción debe tener sus propias reglas y validaciones.
 - Relacionado con #23 (Sistema de gestión de acciones) y #70 (Aceptar más acciones en turno del jugador).
 
+#### [#99] `[NUEVA FUNCIONALIDAD]` `[PA]` `[SISTEMA DE PERSONAJES]` `[EN ROADMAP]`
+**Actualización automática de fichas desde archivos JSON**
+
+- Sería interesante tener la posibilidad de que al cambiar datos en los archivos JSON de las fichas de los personajes, el panel de fichas del juego se actualizase automáticamente.
+- Esto sería especialmente útil para ciertos testeos manuales.
+- Se ha notado que en la consola del navegador sale un log cuando los datos iniciales de la party se han modificado y guardado, quizás podamos usar esto para forzar una actualización de las fichas de los personajes en la UI y en el server.
+
+### PRIORIDAD MEDIA
+
+#### [#78] `[NUEVA FUNCIONALIDAD]` `[PM]` `[SISTEMA DE AVENTURAS Y DATOS]` `[EN ROADMAP]`
+**Sistema de detección automática de pruebas de característica en interacciones**
+
+- Implementar un sistema para que la IA sepa cuándo una interacción requiere una prueba de característica (como Carisma, Persuasión o Engaño) para resolver la situación con un elemento de suerte.
+- El sistema debe identificar automáticamente situaciones que requieren tiradas de habilidad.
+- Debe funcionar en modo exploración e interacción social.
+
+#### [#100] `[NUEVA FUNCIONALIDAD]` `[PM]` `[INTERFAZ DE USUARIO]` `[EN ROADMAP]`
+**Botón de configuración**
+
+- Implementar un botón de configuración al lado del botón para ir al menú inicial.
+- Permitir configurar cosas como el modelo LLM en uso, la voz de DM, guardado automático, etc.
+
+#### [#101] `[NUEVA FUNCIONALIDAD]` `[PM]` `[INTERFAZ DE USUARIO]` `[EN ROADMAP]`
+**Mensaje de victoria/derrota al finalizar combate**
+
+- Al finalizar un combate el panel de Tiradas podría mostrar un mensaje de victoria o derrota y que el combate ha finalizado.
+- Mejorar el feedback visual al concluir un encuentro.
+
 ### PRIORIDAD BAJA
 
-#### [#85] `[NUEVA FUNCIONALIDAD]` `[PB]` `[SISTEMA DE PERSONAJES]` `[SIN DOCUMENTAR]`
+#### [#85] `[NUEVA FUNCIONALIDAD]` `[PB]` `[SISTEMA DE PERSONAJES]` `[EN ROADMAP]`
 **Rasgos de clase**
 
 - Implementar los rasgos de clase (como Furia del Bárbaro, Ataque Furtivo del Pícaro o Inspiración Bárdica).
 - Cada clase debe tener sus rasgos específicos implementados según las reglas de D&D 5e.
 - Los rasgos deben activarse automáticamente cuando corresponda o permitir su uso manual.
 
-#### [#86] `[NUEVA FUNCIONALIDAD]` `[PB]` `[SISTEMA DE AVENTURAS Y DATOS]` `[SIN DOCUMENTAR]`
+#### [#86] `[NUEVA FUNCIONALIDAD]` `[PB]` `[SISTEMA DE AVENTURAS Y DATOS]` `[EN ROADMAP]`
 **Sistema de influencia de PNJs**
 
 - La IA debe mantener el estado de actitud del PNJ (amistosa, indiferente u hostil).
 - Permitir que los resultados de las tiradas y la interpretación del jugador influyan en esa actitud.
 - El sistema debe rastrear cambios en las relaciones y reflejarlos en las interacciones futuras.
 
-#### [#87] `[NUEVA FUNCIONALIDAD]` `[PB]` `[SISTEMA DE PERSONAJES]` `[SIN DOCUMENTAR]`
+#### [#87] `[NUEVA FUNCIONALIDAD]` `[PB]` `[SISTEMA DE PERSONAJES]` `[EN ROADMAP]`
 **Sistema de inspiración**
 
 - La IA debe reconocer cuándo la interpretación del jugador es fiel a los rasgos de personalidad, ideales o defectos (establecidos en la creación del personaje).
 - Otorgar el beneficio de Inspiración cuando corresponda (que permite obtener Ventaja en tiradas).
 - El sistema debe rastrear cuándo se usa la inspiración y cuándo se puede otorgar de nuevo.
 
+#### [#93] `[NUEVA FUNCIONALIDAD]` `[PB]` `[SISTEMA DE PERSONAJES]` `[EN ROADMAP]`
+**Sistema de detección de fichas sospechosas o corruptas**
+
+- Implementar un sistema por el que el DM avise de fichas sospechosas o corruptas.
+- El sistema debe validar la integridad de los datos de las fichas de personajes.
+
+#### [#94] `[NUEVA FUNCIONALIDAD]` `[PB]` `[SISTEMA DE AVENTURAS Y DATOS]` `[EN ROADMAP]`
+**Sistema de guardado automático**
+
+- Implementar sistema de guardado automático de partidas.
+- Debe guardar periódicamente el estado del juego sin intervención del usuario.
+
+#### [#95] `[NUEVA FUNCIONALIDAD]` `[PB]` `[INTERFAZ DE USUARIO]` `[EN ROADMAP]`
+**Efectos de sonido en combate**
+
+- En combate, aparte del tema de la música dinámica ya comentado en otro punto, estaría genial que hubiese efectos de sonido para cada turno para ambientar un poco más la acción.
+- Cada tipo de enemigo podría hacer gritos de ataque, quejidos si se les hace daño, etc.
+- Choque de espadas, golpes de escudo, etc.
+
+#### [#96] `[NUEVA FUNCIONALIDAD]` `[PB]` `[INTERFAZ DE USUARIO]` `[EN ROADMAP]`
+**Botones de órdenes rápidas**
+
+- Cerca del input de texto implementar botones para dar órdenes rápidas como "Atacamos", "Huímos", etc.
+- Facilitar acciones comunes sin necesidad de escribir texto completo.
+
+#### [#97] `[NUEVA FUNCIONALIDAD]` `[PB]` `[SISTEMA DE AVENTURAS Y DATOS]` `[EN ROADMAP]`
+**Sistema de conversación fuera de personaje mejorado**
+
+- Revisar el sistema de conversación fuera de personaje.
+- Hacer que funcione durante el combate.
+- Poder hacer preguntas sobre las reglas o sobre monstruos.
+
 ### PRIORIDAD MUY BAJA
 
-*(Ninguna en esta sección - los items de esta prioridad están documentados en `docs/roadmap.md`.)*
+#### [#98] `[NUEVA FUNCIONALIDAD]` `[PMB]` `[SISTEMA DE PERSONAJES]` `[EN ROADMAP]`
+**Ventana especial para equipar/desequipar objetos**
+
+- En el inventario estaría genial tener una ventana especial para equipar o desequipar objetos.
+- Mejorar la gestión del equipamiento de los personajes.
 
 ---
 
 ## REVISIONES (Mejoras/Análisis)
 
-*(Ninguna en esta sección - todas las revisiones listadas en este documento ya están cubiertas en `docs/roadmap.md`.)*
+### PRIORIDAD ALTA
+
+#### [#102] `[REVISION]` `[PA]` `[SISTEMA DE COMBATE]` `[EN ROADMAP]`
+**Minimizar mensajes del DM en combate**
+
+- En combate, a veces en un solo turno el DM puede llegar a mandar 5 mensajes: narración inicial, acción, daño, mensaje de "ha dejado inconsciente a X" y mensaje de "X cae inconsciente".
+- Buscar la forma de minimizar esta cantidad de mensajes a lo mínimo.
+- Quizás la mejor forma es diferenciar entre mensajes narrativos y mensajes informativos y agrupar estos últimos en un solo mensaje del DM.
+
+#### [#103] `[REVISION]` `[PA]` `[INTERFAZ DE USUARIO]` `[EN ROADMAP]`
+**Cambiar texto de botones de avanzar turnos**
+
+- Los botones de avanzar turnos deberían poner "Avanzar 1 turno" y "Avance automático".
+- Mejorar la claridad de las acciones disponibles.
+
+#### [#104] `[REVISION]` `[PA]` `[SISTEMA DE COMBATE]` `[EN ROADMAP]`
+**Ignorar turnos de personajes muertos o inconscientes**
+
+- En combate, los turnos de los personajes muertos o inconscientes ya no deberían ni ejecutarse para no perder tiempo.
+- El bucle debería ignorar a los personajes que están muertos o inconscientes.
+- Ojo, si un personaje se recupera de la inconsciencia o revive habría que volver a tenerlo en cuenta en el bucle.
+- Esto tiene que ir acompañado de alguna señal visual de qué personajes están fuera del combate (quizás tachando su nombre en el combat tracker o con algún tipo de símbolos para marcar su estado).
+
+### PRIORIDAD MEDIA
+
+#### [#105] `[REVISION]` `[PM]` `[INTERFAZ DE USUARIO]` `[EN ROADMAP]`
+**Botón de pausa en avance automático de turnos**
+
+- En combate, después de pulsar el botón de avanzar todos, los turnos empiezan a correr mientras que los botones se desactivan y el botón de "avanzar todos" pone "Avanzando...".
+- Lo ideal es que mientras el botón esté en "Avanzando..." el otro botón se convierta en un botón de pausa para detener el avance automático de turnos.
+- Si se pulsa, el avance se detendrá después de terminar lo que estaba haciendo y los botones volverán a mostrarse como al principio (antes de pulsar el botón de "avanzar todos").
+
+#### [#106] `[REVISION]` `[PM]` `[INTERFAZ DE USUARIO]` `[EN ROADMAP]`
+**Rediseño del panel izquierdo**
+
+- El panel izquierdo necesita un rediseño.
+- Hay que quitar los recuadros para el DebugLog (retirar todos los logs para este recuadro para limpiar código).
+- El botón de guardar partida hay que moverlo a la barra superior y ponerlo al lado del botón de ir a menú principal.
+- Los recuadros de Tiradas y Orden de Combate deberían estar acoplados por defecto y solo maximizarse si hay información que necesite ser mostrada.
+- El panel de orden de combate se tiene que ajustar en tamaño al número de participantes en la pelea dejando el resto del espacio al recuadro de tiradas.
+- Revisar bien este planteamiento.
+
+#### [#107] `[REVISION]` `[PM]` `[INTERFAZ DE USUARIO]` `[EN ROADMAP]`
+**Investigación de sistemas de texto2voz**
+
+- Investigar sistemas de texto2voz más rápidos y configurables.
+- Mejorar la experiencia de audio del DM.
+
+#### [#108] `[REVISION]` `[PM]` `[INTERFAZ DE USUARIO]` `[EN ROADMAP]`
+**Adaptación de la UI a dispositivos móviles**
+
+- Hay que trabajar en la adaptación de la UI a dispositivos móviles.
+- Asegurar que la aplicación sea funcional y usable en pantallas pequeñas.
+
+### PRIORIDAD BAJA
+
+#### [#109] `[REVISION]` `[PB]` `[SISTEMA DE COMBATE]` `[EN ROADMAP]`
+**Revisar o eliminar botón de tiradas**
+
+- Hay que eliminar el botón de tiradas y su funcionalidad. Las tiradas ya se ejecutan en el server. No tiene sentido.
+- O quizás sí: ¿Y si hacemos que cuando sea el turno del jugador en combate o se le pida una tirada, la haga el mismo? No se si merece la pena.
 
 ---
 
@@ -212,43 +343,4 @@ Esta sección es para apuntar ideas rápidas, fallos detectados y notas informal
 
 Al clasificar un item de esta sección, debe moverse a su sección correspondiente y eliminarse de aquí, manteniendo esta sección como un área de trabajo temporal.
 
-1. ISSUE: Aunque la ficha de mi personaje tiene 30 de DES y +10 de modificador, la iniciativa se calcula con 1d20+8. Revisar esto. (PA)
-
-2. Implementar un sistema por el que DM avise de fichas sospechoas o corruptas. (PB)
-
-3. En combate, a veces en un solo turno el DM puede llegar a mandar 5 mensajes: narración inicial, acción, daño, mensaje de "ha dejado inconsciente a X" y mensaje de "X cae inconsciente". Buscar la forma de minimizar esta cantidad de mensajes a lo mínimo. Quizás la mejor forma diferenciar entre mensajes narrativos y mensajes informativos y agrupar estos últimos en un solo mensaje del DM... (PA)
-
-4. Sería interesante tener la posibilidad de que al cambiar datos en los archivos JSON de las fichas de los personajes, el panel de fichas del juego se actualizase automáticamente. Esto sería especialmente para ciertos testeos manuales. He notado que en la consola del navegador sale un log cuando los datos iniciales de la party se han modificado y guardado, quizás podamos usar esto para forzar una actualización de las fichas de los personajes en la UI y en el server. (PA)
-
-5. ISSUE: en combate he detectado que la notación de las tiradasd de daño cuando el modificador es 0 no aparecen completas (1d4) depués del nombre del arma. Deberían aparecer completas incluso cuando el modifcador es 0 (1d4+0). Sin embargo debajo del número total de daño si que aparece completa (1d4+0). (PA)
-
-6. ISSUE: He detectado unas inconsistencias en las tiradas de ataque y de daño: Merryl ataca con su daga con 1d20+2 y hace daño con 1d4+2 (pero en otra partida el daño lo hizo con 1d4+0). Revisar esto. (PMA)
-
-7. ISSUE: La tirada de ataque crítica debería ser de color verde manteniendo el efecto de pulso y el texto de "¡CRITICO!" con la estrellita debería ser verde también. La tirada de daño crítica debería mantenerse amarilla (correcto) pero añadiendole el efecto pulso y la etiqueta de ¡CRITICO! con la estrellita en amarillo. (PA)
-
-8. Probando el combate, en mi turno he escrito "Con mis últimas fuerzas ataco al goblin que me acaba de dar un tajo." refiriendome al Goblin 2 que me acababa de atacar y acertar con su cimitarra. Sin embargo el DM narró que Galador (mi personaje) atacó al Goblin 1. (PM)
-
-9. Implementar un notón de configuración al lado del botó. para ir al menú inicial, para poder cosas como el modelo LLM en uso, la voz de DM, guardado automático, etc (PM)
-
-10. Implementar sistema de guardado automático. (PB)
-
-11. En combate, después de pulsar el botón de avanzar todos. Los turnos empiezan a correr mientras que los botones se desactivan y el botón de "avanzar todos" pone "Avanzando...". Aquí creo que lo ideal es que mientras el botón esté en "Avanzando..." el otro botón se convierta en un botón de pausa para deter el avance automático de turnos. Si se pulsa, el avance se detendrá después de terminar lo que estaba haciendo y los botones volverán a mostrarse como al principio (antes de pulsar el botón de "avanzar todos"). (PM)
-
-12. Hay que eliminar el botón de y supongo que su funcionalidad. Las tiradas ya se ejecutan en el server. No tiene sentido. O quizás si, ¿Y si hacemos que cuando sea el turno del jugador en combate o se le pida una tirada, la haga el mismo? No se si merece la pena. (PB)
-
-13. En combate, aparte de el tema de la música dinámica ya comentado en otro punto estaría genial que hubiese efectos de sonido para cada turno para ambientar un poco más la acción. Cada tipo de enemigo podría hacer gritos de ataque, quejidos si se les hace daño, etc. Choque de espadas, golpes de escudo, etc. (PB)
-
-14. El panel izquierdo necesita un rediseño. Hay que quitar los recuadros para el DebugLog (retirar todos los logs para este recuadro para limpiar código) y el botón de guardar partida hay que moverlo a la barra superior y ponerlo al lado del botón de ir a menú principal. Los recuadros de Tiradas y Orden de Combate debrían estar acoplados por defecto y solo maximizarse si hay información que necesite ser mostrada. El panel de orden de combate se tiene que ajustar en tamaño al número de participantes en la pelea dejando el resto del espacio al recuadro de tiradas. Revisar bien este planteamiento. (PM)
-
-16. Los botones de avanzar turnos deberían poner "Avanzar 1 turno" y "Avance automático". (PA)
-
-17. En combate, los turnos de los personajes muertos o inconscientes ya no deberían ni ejecutarse para no perder tiempo. El bucle debería ignorar a los personajes que están muertos o inconscientes. Ojo, si un personaje se recupera de la inconsciencia o revive habría que volver a tenerlo en cuenta en el bucle. Esto tiene que ir acompañado de alguna señal visual de qué personajes están fuera del combate (quizás tachando su nombre en el combat tracker o con algún tipo de simbolos para marcar su estado). (PA)
-
-18. Cerca del input de texto podíamos implementar botones para dar órdenes rápidas como "Atacamos", "Huímos", etc. (PB)
-
-19. Investigar sistemas de texto2voz más rápidos y configurables. (PM)
-
-20. Al finalizar un combate el panel de Tiradas podría mostrar un mensaje de victoria o derrota y que el combate ha finalizado. (PM)
-
-
-
+*(Todos los items de esta sección han sido clasificados y movidos a sus secciones correspondientes.)*

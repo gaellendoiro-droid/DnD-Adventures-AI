@@ -30,6 +30,8 @@ export const NarrativeExpertInputSchema = z.object({
   locationContext: z.string().describe('A JSON string with the full data of the current location, including its description, exits, and interactable objects.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
   interpretedAction: z.string().describe("A JSON string of the structured interpretation of the player's action, provided by the actionInterpreter."),
+  phase: z.enum(['normal', 'combat_initiation']).optional().describe("The narrative phase. Use 'combat_initiation' for the initial combat narration before any turns are processed."),
+  combatContext: z.string().optional().describe("A JSON string with combat-specific information (initiative order, combatants list) for combat_initiation phase."),
 });
 export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
 

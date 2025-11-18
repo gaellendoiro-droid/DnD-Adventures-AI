@@ -351,21 +351,33 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 - **Estado:** ✅ RESUELTO
 - **Nota adicional (2025-11-15):** La función de retry fue extraída a `src/ai/flows/retry-utils.ts` como módulo compartido y también se aplicó a `narrativeExpertFlow` para manejar timeouts durante la iniciación de combate y generación de narración.
 
-### Issue #52: Timeouts de conexión en `companionTacticianTool` y `enemyTacticianTool` ✅ RESUELTO
+### Issue #52: Narración de Inicio de Combate adelantada ✅ RESUELTO
 
-- **Fecha de creación:** 2025-11-15
-- **Fecha de corrección:** 2025-11-15
-- **Ubicación:** `src/ai/tools/companion-tactician.ts`, `src/ai/tools/enemy-tactician.ts`
-- **Severidad:** 🔴 **CRÍTICO** (cuando ocurre, impide que los personajes de la IA actúen)
-- **Descripción:** Se detectó un `ConnectTimeoutError` al llamar a la API de Gemini desde `companionTacticianTool`. Ni este tool ni `enemyTacticianTool` tenían implementada una lógica de reintentos.
-- **Solución implementada:** ✅ Se añadió lógica de reintentos con backoff exponencial a ambos tools utilizando el módulo compartido `retry-utils.ts`.
-  - Se importó `retryWithExponentialBackoff` en ambos archivos.
-  - Se envolvieron las llamadas a `companionTacticianPrompt` y `enemyTacticianPrompt` con la función de reintentos.
-- **Archivos modificados:**
-  - `src/ai/tools/companion-tactician.ts`
-  - `src/ai/tools/enemy-tactician.ts`
-- **Estado:** ✅ RESUELTO
-- **Impacto:** Crítico - Asegura que los errores transitorios de red no impidan que la IA actúe en combate, mejorando significativamente la robustez del sistema.
+- **Fecha de creación:** 2025-11-16
+- **Fecha de corrección:** 2025-11-18
+- **Ubicación:** `src/ai/tools/combat-manager.ts`, `src/ai/flows/narrative-expert.ts`, `src/ai/flows/schemas.ts`
+- **Severidad:** 🟡 **MEDIA** (afectaba la inmersión y podía confundir al jugador)
+- **Descripción:** Al iniciar un combate, la narración generada describía ataques o resultados antes de que se procesara ningún turno. El `narrativeExpert` no diferenciaba entre una acción normal y el arranque del combate, por lo que adelantaba acontecimientos y arruinaba el suspense inicial.
+- **Solución implementada:**
+  1. ✅ Se extendió el schema `NarrativeExpertInput` con los campos `phase` y `combatContext`.
+  2. ✅ En `combat-manager.ts` se limita el historial a los últimos 5 mensajes y se envía un `combatContext` con orden de iniciativa, aliados y enemigos.
+  3. ✅ El prompt de `narrativeExpert` ahora tiene un modo especial de “COMBAT INITIATION” que sólo describe tensión, posiciones y orden de iniciativa, explícitamente prohibiendo narrar tiradas/daños.
+- **Impacto:** La narración inicial ahora se comporta como lo haría un DM de mesa: prepara la escena, menciona el orden de iniciativa y espera la primera acción real. Mejora la inmersión y evita contradicciones con el flujo paso a paso.
+- **Detección:** Test 6.1 / Issue reportado durante el plan `testeo-sistema-turnos`.
+
+### Issue #63: Combate con IDs de personajes no consecutivos ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-16
+- **Fecha de corrección:** 2025-11-18
+- **Ubicación:** `src/ai/tools/combat-manager.ts`, `src/lib/combat/target-resolver.ts`
+- **Severidad:** 🟢 **MEDIA**
+- **Descripción:** Se sospechaba que el sistema de turnos asumía IDs consecutivos (1,2,3) en la party, lo que podía causar comportamientos extraños cuando los IDs reales eran 1,6,3, etc.
+- **Verificación:** Test 4.5 y partidas reales con la party `Galador (1)`, `Merryl (6)`, `Elara (3)` confirmaron que:
+  - El orden de iniciativa usa coincidencias exactas por ID.
+  - El `turnIndex` se mantiene estable aunque los IDs no estén en secuencia.
+  - `target-resolver` y los prompts del DM utilizan los nombres correctos sin depender del orden numérico.
+- **Estado:** ✅ Validado; no se requieren cambios adicionales.
+- **Detección:** Test 4.5 del plan `testeo-sistema-turnos`.
 
 ### Issue #48: Sistema de Sincronización de Turnos - Problemas de Sincronización UI ✅ RESUELTO
 

@@ -788,6 +788,30 @@ export const combatManagerTool = ai.defineTool(
                         });
                     }
                     
+                    // Check if combat has ended after player action
+                    const endOfCombatCheck = checkEndOfCombat(updatedParty, updatedEnemies);
+                    if (endOfCombatCheck.combatEnded) {
+                        localLog(`Combat ended after player action: ${endOfCombatCheck.reason}`);
+                        messages.push({
+                            sender: 'DM',
+                            content: endOfCombatCheck.reason || 'El combate ha terminado.'
+                        });
+                        return {
+                            messages,
+                            diceRolls,
+                            inCombat: false,
+                            debugLogs,
+                            turnIndex: 0,
+                            initiativeOrder: [],
+                            enemies: [],
+                            updatedParty,
+                            updatedEnemies,
+                            hasMoreAITurns: false,
+                            lastProcessedTurnWasAI: false,
+                            lastProcessedTurnIndex: currentTurnIndex,
+                        };
+                    }
+                    
                     // Issue #80: After processing player action, DO NOT advance turn yet
                     // The turn will advance when user explicitly clicks "Pasar turno"
                     // We return immediately to show messages and buttons
@@ -1068,6 +1092,21 @@ export const combatManagerTool = ai.defineTool(
                         updatedParty = rollsResult.updatedParty;
                         updatedEnemies = rollsResult.updatedEnemies;
                         combatHasEnded = rollsResult.combatEnded;
+                        
+                        // Double-check combat end status after updating enemies
+                        if (!combatHasEnded) {
+                            const endOfCombatCheck = checkEndOfCombat(updatedParty, updatedEnemies);
+                            if (endOfCombatCheck.combatEnded) {
+                                localLog(`Combat ended detected after AI turn: ${endOfCombatCheck.reason}`);
+                                combatHasEnded = true;
+                                if (!messages.some(m => m.content?.includes('Victoria') || m.content?.includes('derrotados'))) {
+                                    messages.push({
+                                        sender: 'DM',
+                                        content: endOfCombatCheck.reason || 'El combate ha terminado.'
+                                    });
+                                }
+                            }
+                        }
                     } else { localLog(`Could not find target combatant with id: "${targetId}"`); }
                 } else if (!targetId) { localLog('Action had no targetId.'); }
                 
@@ -1365,8 +1404,42 @@ export const combatManagerTool = ai.defineTool(
         }
         
         // Generate narrative BEFORE processing combat turns (so it appears first in the chat)
-        const historyTranscript = conversationHistory.map(formatMessageForTranscript).join('\n');
-        const narrativeResult = await narrativeExpert({ playerAction, locationId, locationContext: JSON.stringify(locationContext), conversationHistory: historyTranscript, interpretedAction: JSON.stringify(interpretedAction) });
+        // Limit conversation history to last 5 messages for combat initiation context
+        const recentHistory = conversationHistory.slice(-5);
+        const historyTranscript = recentHistory.map(formatMessageForTranscript).join('\n');
+        
+        // Build combat context for narrative expert
+        const combatContext = {
+            initiativeOrder: newInitiativeOrder.map((c, idx) => ({
+                position: idx + 1,
+                name: c.characterName,
+                controlledBy: c.controlledBy,
+                type: c.type
+            })),
+            allies: updatedParty.map(p => ({
+                name: p.name,
+                hp: `${p.hp.current}/${p.hp.max}`,
+                controlledBy: p.controlledBy || 'Player'
+            })),
+            enemies: updatedEnemies.map(e => {
+                const visualName = differentiatedNames.get(e.uniqueId) || e.name;
+                return {
+                    name: visualName,
+                    hp: `${e.hp.current}/${e.hp.max}`,
+                    controlledBy: 'AI'
+                };
+            })
+        };
+        
+        const narrativeResult = await narrativeExpert({ 
+            playerAction, 
+            locationId, 
+            locationContext: JSON.stringify(locationContext), 
+            conversationHistory: historyTranscript, 
+            interpretedAction: JSON.stringify(interpretedAction),
+            phase: 'combat_initiation',
+            combatContext: JSON.stringify(combatContext)
+        });
         if (narrativeResult.debugLogs) narrativeResult.debugLogs.forEach(log => debugLogs.push(log));
         if (narrativeResult.dmNarration) {
             // Post-process narration to replace enemy IDs/names with visual names
@@ -1701,6 +1774,21 @@ export const combatManagerTool = ai.defineTool(
                     updatedParty = rollsResult.updatedParty;
                     updatedEnemies = rollsResult.updatedEnemies;
                     combatHasEnded = rollsResult.combatEnded;
+                    
+                    // Double-check combat end status after updating enemies
+                    if (!combatHasEnded) {
+                        const endOfCombatCheck = checkEndOfCombat(updatedParty, updatedEnemies);
+                        if (endOfCombatCheck.combatEnded) {
+                            localLog(`Combat ended detected after initial AI turn: ${endOfCombatCheck.reason}`);
+                            combatHasEnded = true;
+                            if (!messages.some(m => m.content?.includes('Victoria') || m.content?.includes('derrotados'))) {
+                                messages.push({
+                                    sender: 'DM',
+                                    content: endOfCombatCheck.reason || 'El combate ha terminado.'
+                                });
+                            }
+                        }
+                    }
                 } else { localLog(`Could not find target combatant with id: "${targetId}"`); }
             } else if (!targetId) { localLog('Action had no targetId.'); }
             

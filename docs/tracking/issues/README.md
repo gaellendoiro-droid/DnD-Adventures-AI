@@ -3,28 +3,28 @@
 Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras identificados durante el desarrollo del proyecto.
 
 **Fecha de inicio:** Durante el saneamiento general de la aplicación (2025-11-10)  
-**Última actualización:** 2025-11-17 (Issue #81 marcado como resuelto)
+**Última actualización:** 2025-11-18 (Issue #63 marcado como resuelto)
 
 ---
 
 ## 📊 Resumen Estadístico
 
 - **Total de issues:** 56
-- **Issues corregidos:** 32 (57%)
-- **Issues pendientes:** 24 (43%)
+- **Issues corregidos:** 34 (61%)
+- **Issues pendientes:** 22 (39%)
 
 ### Por Prioridad
 
 **Issues Corregidos:**
 - 🔴 PMA (Prioridad Muy Alta): 10 issues (Issues #67, #79, #81)
 - 🟡 PA (Prioridad Alta): 6 issues (Issues #34, #35, #36, #37, #51, #68)
-- 🟢 PM (Prioridad Media): 9 issues
+- 🟢 PM (Prioridad Media): 10 issues
 - ⚪ PB (Prioridad Baja): 1 issue
 
 **Issues Pendientes:**
 - 🔴 PMA (Prioridad Muy Alta): 0 issues ✅
-- 🟡 PA (Prioridad Alta): 4 issues (Issues #53, #65, #66, #75)
-- 🟢 PM (Prioridad Media): 15 issues (incluye Issues #63, #76, #77, #80)
+- 🟡 PA (Prioridad Alta): 3 issues (Issues #53, #66, #75)
+- 🟢 PM (Prioridad Media): 15 issues (incluye Issues #63, #65, #76, #77, #80)
 - ⚪ PB (Prioridad Baja): 3 issues
 - ⚫ PMB (Prioridad Muy Baja): 1 issue
 
@@ -56,12 +56,12 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 
 **🟡 Prioridad Alta (PA):**
 - [Issue #53: Companions no usan hechizos disponibles en su ficha](./pendientes.md#issue-53-companions-no-usan-hechizos-disponibles-en-su-ficha-advertencia) *[Detectado en testing]*
-- [Issue #65: Ataque a compañero fuera de combate no inicia combate](./pendientes.md#issue-65-ataque-a-compañero-fuera-de-combate-no-inicia-combate-advertencia) *[Detectado en testing]*
 - [Issue #66: Orden incorrecto de mensajes en muerte masiva](./pendientes.md#issue-66-orden-incorrecto-de-mensajes-en-muerte-masiva-advertencia) *[Detectado en testing - Test 1.1]*
 - [Issue #75: DM inventa armas en narración de ataques sin consultar inventario](./pendientes.md#issue-75-dm-inventa-armas-en-narración-de-ataques-sin-consultar-inventario-advertencia) *[Detectado en testing]*
 
 **🟢 Prioridad Media (PM):**
 - [Issue #38: Auto-redirección de ataque a enemigo diferente cuando target está muerto](./pendientes.md#issue-38-auto-redirección-de-ataque-a-enemigo-diferente-cuando-target-está-muerto-mejora--decisión-de-diseño) *[Detectado en testing - Decisión de diseño pendiente]*
+- [Issue #65: Ataque a compañero fuera de combate no inicia combate](./pendientes.md#issue-65-ataque-a-compañero-fuera-de-combate-no-inicia-combate-mejora) *[Detectado en testing - Mejora futura]*
 - [Issue #6: Manejo de errores en `handleLoadAdventure`](./pendientes.md#issue-6-manejo-de-errores-en-handleloadadventure)
 - [Issue #7: Advertencia de Content Security Policy](./pendientes.md#issue-7-advertencia-de-content-security-policy-sobre-eval)
 - [Issue #8: Fallos al cargar aventura desde JSON](./pendientes.md#issue-8-fallos-al-cargar-aventura-desde-json)
@@ -72,7 +72,6 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 - [Issue #28: Visualización de barra de vida en panel Grupo](./pendientes.md#issue-28-visualización-de-barra-de-vida-en-panel-grupo-advertencia)
 - [Issue #29: Stats de enemigos incorrectos en combate](./pendientes.md#issue-29-stats-de-enemigos-incorrectos-en-combate-advertencia)
 - [Issue #30: Errores de conexión a APIs con logs verbosos](./pendientes.md#issue-30-errores-de-conexión-a-apis-con-logs-verbosos-advertencia)
-- [Issue #63: Combate con IDs de personajes no consecutivos](./pendientes.md#issue-63-combate-con-ids-de-personajes-no-consecutivos-mejora)
 - [Issue #76: Input debe deshabilitarse cuando el DM está “pensando”](./pendientes.md#issue-76-input-debe-deshabilitarse-cuando-el-dm-está-pensando-mejora)
 - [Issue #77: Mensajes lentos al avanzar turno cuando el siguiente personaje está muerto o inconsciente](./pendientes.md#issue-77-mensajes-lentos-al-avanzar-turno-cuando-el-siguiente-personaje-está-muerto-o-inconsciente-mejora)
 - [Issue #79: Falta narración del DM en turnos del jugador](./pendientes.md#issue-79-falta-narración-del-dm-en-turnos-del-jugador-mejora)

@@ -8,15 +8,34 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** Ninguno activo | **Última implementación:** Sistema de Turnos Paso a Paso - Pulido y Optimización (2025-11-15)
+**Estado:** Ninguno activo | **Última implementación:** Testeo Completo del Sistema de Turnos (2025-11-18)
 
 ---
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 6 planes
+**Estado:** Finalizados | **Cantidad:** 7 planes
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Testeo Completo del Sistema de Turnos](completados/testeo-sistema-turnos.md) ✅ **COMPLETADO**
+- **Estado:** 30/30 tests completados (100%)
+- **Objetivo:** Realizar un testeo exhaustivo del sistema de turnos paso a paso para identificar fallos, inconsistencias, bugs o áreas de mejora, con especial énfasis en el flujo de ejecución y la experiencia del usuario
+- **Prioridad:** Alta
+- **Resultados:**
+  - ✅ Flujo de ejecución verificado (Tests 1.1-1.5): Inicio de combate, orden de turnos, avance manual/automático
+  - ✅ Sincronización de estado verificado (Tests 2.1-2.4): Frontend-backend, turnIndex, iniciativa, logs
+  - ✅ UX y controles verificado (Tests 3.1-3.4): Botones de avance, visibilidad, estados, placeholders
+  - ✅ Casos edge verificado (Tests 4.1-4.5): Personajes inconscientes, muertos, múltiples combates, IDs no consecutivos
+  - ✅ Validación de reglas verificado (Tests 5.1-5.3): Daño crítico, muerte masiva, orden de mensajes
+  - ✅ Combates múltiples verificado (Tests 6.1-6.3): Múltiples salas, resolución de objetivos, fin de combate
+  - ✅ Integración verificado (Tests 7.1-7.2): Frontend-backend, UI-state
+  - ✅ Issues conocidos verificados (Issues #50, #52, #63, #65, #66, #68, #78, #79, #81)
+- **Bugs detectados:** 7 (Issues #50, #52, #66, #68, #78, #79, #81)
+- **Bugs corregidos:** 7 (Issues #50, #52, #66, #68, #78, #79, #81) ✅
+- **Mejoras futuras documentadas:** 2 (Issues #65, #80)
+- **Fecha de finalización:** 2025-11-18
+- **Referencia:** [Plan Detallado](completados/testeo-sistema-turnos.md)
 
 ### [Plan de Testeo v0.5.0](completados/plan-testeo-v0.5.0.md) ✅ **COMPLETADO**
 - **Estado:** 20/20 tests completados (100%)

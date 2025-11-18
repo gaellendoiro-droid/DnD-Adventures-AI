@@ -6,13 +6,10 @@ Este directorio contiene documentación de análisis de código, revisiones est�
 
 ### Documentos de Testeo del Sistema de Turnos
 
-**`testeo-sistema-turnos.md`** - Documento único consolidado con todo el testeo
-   - 📊 Resumen ejecutivo (métricas y estado general)
-   - ✅ Checklist rápido (para ver qué falta)
-   - 📋 Resultados detallados de todos los tests (30 tests)
-   - 🔍 Análisis de código (revisión estática)
-   - 🐛 Issues conocidos verificados
-   - 📝 Recomendaciones y próximos pasos
+**`testeo-sistema-turnos.md`** - ✅ **COMPLETADO Y ARCHIVADO**
+   - Este documento ha sido completado y movido a `docs/planes-desarrollo/completados/testeo-sistema-turnos.md`
+   - **Resultados:** 30/30 tests completados (100%), 7 bugs detectados y corregidos
+   - **Estado:** Plan archivado el 2025-11-18
 
 ## 🎯 Propósito
 
@@ -34,5 +31,5 @@ Esta carpeta es para:
 
 ---
 
-**Última actualización:** 2025-11-16
+**Última actualización:** 2025-11-18 (Plan de testeo del sistema de turnos completado y archivado)
 

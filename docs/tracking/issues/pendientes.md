@@ -2,8 +2,8 @@
 
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 25 issues  
-**Última actualización:** 2025-11-17 (Issue #82 agregado)
+**Total:** 26 issues  
+**Última actualización:** 2025-11-18 (Issues #91, #92 añadidos)
 
 ---
 
@@ -57,6 +57,28 @@ _No hay issues críticos pendientes en este momento._
 ---
 
 
+### Issue #91: Colores y efectos de tiradas críticas 🟡 ADVERTENCIA
+
+- **Fecha de creación:** 2025-11-16
+- **Ubicación:** `src/components/game/` (componente de panel de Tiradas)
+- **Severidad:** 🟡 **ALTA** (afecta feedback visual y claridad de información)
+- **Descripción:** Los colores y efectos visuales de las tiradas críticas no están completamente implementados según el diseño esperado.
+- **Problema:**
+  - La tirada de ataque crítica debería ser de color verde manteniendo el efecto de pulso y el texto de "¡CRITICO!" con la estrellita debería ser verde también.
+  - La tirada de daño crítica debería mantenerse amarilla (correcto) pero añadiéndole el efecto pulso y la etiqueta de ¡CRITICO! con la estrellita en amarillo.
+- **Comportamiento esperado:** 
+  - Tiradas de ataque críticas: Verde con efecto pulso y etiqueta "¡CRITICO!" verde
+  - Tiradas de daño críticas: Amarillo con efecto pulso y etiqueta "¡CRITICO!" amarilla
+- **Impacto:** Medio – Afecta la claridad visual y el feedback al jugador sobre tiradas críticas
+- **Solución propuesta:**
+  - Revisar estilos CSS del componente de panel de Tiradas
+  - Aplicar colores correctos según tipo de tirada crítica
+  - Asegurar que el efecto de pulso esté presente en ambos casos
+- **Estado:** 📝 **PENDIENTE**
+- **Detección:** Testing manual durante combate
+
+---
+
 ### Issue #14: AI Tacticians (enemigos y companions) a veces devuelven output inválido/null en combate
 
 - **Fecha de creación:** 2025-11-12
@@ -96,6 +118,30 @@ _No hay issues críticos pendientes en este momento._
   - Rehabilitar el input al recibir la respuesta del backend o tras un timeout seguro.
 - **Estado:** 📝 **PENDIENTE**
 - **Detección:** Testing manual en la UI de combate.
+
+---
+
+### Issue #92: Identificación incorrecta de enemigo en combate 🟢 MEJORA
+
+- **Fecha de creación:** 2025-11-16
+- **Ubicación:** `src/ai/flows/action-interpreter.ts`, `src/lib/combat/target-resolver.ts`
+- **Severidad:** 🟢 **MEDIA** (afecta precisión de acciones del jugador)
+- **Descripción:** Cuando el jugador hace referencia a un enemigo por acciones recientes (ej: "el goblin que me acaba de atacar"), el sistema a veces identifica incorrectamente al enemigo objetivo.
+- **Ejemplo del problema:**
+  - Jugador: "Con mis últimas fuerzas ataco al goblin que me acaba de dar un tajo" (refiriéndose al Goblin 2 que acababa de atacar y acertar)
+  - Sistema: El DM narró que el personaje atacó al Goblin 1 (incorrecto)
+- **Problema:** El sistema no está rastreando correctamente las acciones recientes de los enemigos para identificar referencias contextuales.
+- **Comportamiento esperado:** El sistema debe identificar correctamente al enemigo cuando se hace referencia a acciones recientes (último ataque, último que hizo daño, etc.).
+- **Impacto:** Medio – Puede causar que el jugador ataque al enemigo incorrecto, afectando decisiones tácticas
+- **Solución propuesta:**
+  - Mejorar el sistema de resolución de targets para considerar acciones recientes
+  - Rastrear el historial de acciones de cada enemigo en el combate actual
+  - Mejorar la interpretación de referencias contextuales ("el que me atacó", "el que está herido", etc.)
+- **Archivos afectados:**
+  - `src/ai/flows/action-interpreter.ts` (interpretación de acciones)
+  - `src/lib/combat/target-resolver.ts` (resolución de targets)
+- **Estado:** 📝 **PENDIENTE**
+- **Detección:** Testing manual durante combate
 
 ---
 
@@ -461,45 +507,22 @@ _No hay issues críticos pendientes en este momento._
 
 ---
 
-### Issue #63: Combate con IDs de personajes no consecutivos 🟢 MEJORA
-
-- **Fecha de creación:** 2025-11-16
-- **Ubicación:** `src/ai/tools/combat-manager.ts`, sistema de inicialización de combate
-- **Severidad:** 🟢 **MEDIA** (afecta casos edge, no crítico)
-- **Descripción:** Cuando en la initial party los id de los personajes no son consecutivos o no están en orden, el combate se desarrolla con normalidad pero puede haber comportamientos inesperados.
-- **Contexto:** Detectado durante testing con una party que tenía solo 2 personajes con ids 1 y 3, el combate por turnos parecía hacer cosas raras.
-- **Problema:**
-  - El sistema de turnos puede depender de IDs consecutivos o en orden
-  - Puede haber problemas con la inicialización del orden de combate
-  - Los índices de turnos pueden no corresponder correctamente con los personajes
-- **Impacto:** Medio (afecta casos edge, no es común pero puede causar confusión)
-- **Solución propuesta:**
-  - Verificar que el sistema de turnos no dependa de IDs consecutivos
-  - Asegurar que el orden de combate se inicializa correctamente independientemente de los IDs
-  - Añadir validación o normalización de IDs si es necesario
-- **Archivos afectados:**
-  - `src/ai/tools/combat-manager.ts` (inicialización de combate y orden de turnos)
-  - Sistema de gestión de party inicial
-- **Estado:** 📝 **PENDIENTE** - Mejora pendiente de investigación y corrección
-
----
-
-### Issue #65: Ataque a compañero fuera de combate no inicia combate 🟡 ADVERTENCIA
+### Issue #65: Ataque a compañero fuera de combate no inicia combate 🟢 MEJORA
 
 - **Fecha de creación:** 2025-11-16
 - **Ubicación:** `src/ai/flows/action-interpreter.ts`, `src/ai/flows/game-coordinator.ts`
-- **Severidad:** 🟡 **ALTA** (afecta lógica del juego, rompe inmersión)
-- **Descripción:** Estando fuera de combate, si el jugador ataca a uno de sus compañeros, el sistema no entra en modo combate. El DM responde como si el ataque no fuera real.
-- **Ejemplo del bug:**
+- **Severidad:** 🟢 **MEDIA** (mejora de funcionalidad, no crítica)
+- **Descripción:** Estando fuera de combate, si el jugador ataca a uno de sus compañeros, el sistema no entra en modo combate. El DM responde como si el ataque no fuera real, ignorando completamente la acción.
+- **Ejemplo del comportamiento actual:**
   ```
-  Jugador: "Ataco a Merryl"
-  DM: "Atacas fervientemente al aire, pero no parece haber ninguna amenaza real a la vista." ❌ INCORRECTO
+  Jugador: "Ataco a Elara!"
+  DM: "Atacas fervientemente al aire, pero no parece haber ninguna amenaza real a la vista." ❌ IGNORA LA ACCIÓN
   ```
 - **Problema:**
   - El sistema no detecta que un ataque a un compañero debería iniciar combate o al menos reconocer la acción como un ataque real
   - El `action-interpreter` o `game-coordinator` no está procesando correctamente los ataques a compañeros fuera de combate
   - Puede estar relacionado con el sistema de inicio de combate dinámico (pendiente de implementar)
-- **Impacto:** Alto (rompe la inmersión, el jugador no puede atacar a compañeros fuera de combate)
+- **Impacto:** Medio (limita funcionalidad, pero no bloquea el gameplay principal)
 - **Solución propuesta:**
   - Detectar ataques a compañeros en `action-interpreter`
   - Iniciar combate automáticamente cuando se detecta un ataque a un compañero
@@ -508,7 +531,7 @@ _No hay issues críticos pendientes en este momento._
 - **Archivos afectados:**
   - `src/ai/flows/action-interpreter.ts` (detección de ataques)
   - `src/ai/flows/game-coordinator.ts` (inicio de combate)
-- **Estado:** 📝 **PENDIENTE** - Bug pendiente de corrección
+- **Estado:** 📝 **PENDIENTE (Mejora futura)** - Funcionalidad no crítica, marcada para implementación futura
 
 ---
 

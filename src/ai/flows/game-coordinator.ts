@@ -367,10 +367,29 @@ export const gameCoordinatorFlow = ai.defineFlow(
     const historyForNarrator = [...conversationHistory, ...messages]; 
     const narrativeHistoryTranscript = historyForNarrator.map(formatMessageForTranscript).join('\n');
 
+    // Filter out dead enemies from entitiesPresent before passing to narrative expert
+    // This ensures the DM doesn't mention dead enemies when describing the location
+    const filteredLocationData = { ...finalLocationData };
+    if (filteredLocationData.entitiesPresent && input.enemies) {
+        filteredLocationData.entitiesPresent = filteredLocationData.entitiesPresent.filter((entityId: string) => {
+            const enemy = input.enemies?.find((e: any) => 
+                e.id === entityId || 
+                (e as any).uniqueId === entityId ||
+                (e as any).adventureId === entityId
+            );
+            // Include entity if it's not an enemy, or if it's an enemy that's still alive
+            return !enemy || (enemy.hp && enemy.hp.current > 0);
+        });
+        log.gameCoordinator('Filtered dead enemies from location context', {
+            originalCount: finalLocationData.entitiesPresent?.length || 0,
+            filteredCount: filteredLocationData.entitiesPresent.length,
+        });
+    }
+
     const narrativeInput = {
         playerAction,
         locationId,
-        locationContext: JSON.stringify(finalLocationData),
+        locationContext: JSON.stringify(filteredLocationData),
         conversationHistory: narrativeHistoryTranscript,
         interpretedAction: JSON.stringify(interpretation),
     };
