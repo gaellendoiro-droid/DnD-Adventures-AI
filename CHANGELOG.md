@@ -65,6 +65,11 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ### Changed
 - **Habilidades completadas:** Todas las fichas ahora incluyen las 18 habilidades oficiales de D&D 5e con sus estados de competencia correctos
 - **Información de armas:** Las descripciones de armas en el inventario ahora incluyen estadísticas de ataque completas para mejor referencia durante el juego
+- **Mejora de layout en panel de tiradas de ataque:**
+  - El resultado del ataque ("✓ Acierta" o "✗ Fallo") ahora se muestra en una línea separada de la información del objetivo ("Contra: Goblin 2 (AC 15)")
+  - Mejora la legibilidad y claridad visual de las tiradas de ataque
+  - Aplicado a todas las tiradas de ataque (jugador, compañeros y enemigos)
+  - Cambio en `src/components/game/dice-roll-result.tsx`: Separación del resultado del ataque en un párrafo independiente
 
 ---
 

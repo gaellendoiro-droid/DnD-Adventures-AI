@@ -116,7 +116,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   **Impacto:** Consistencia narrativa total en el combate, reducción de lógica duplicada en tacticians y posibilidad de aplicar mejoras de narración (como el contexto resumido) a todos los turnos por igual.
     *   **Relacionado con:** 
         - Issue #79 (Narraciones de combate para turnos del jugador) ✅ RESUELTO
-        - Issue #14 (AI Tacticians output inválido/null) - La Fase 4 de este issue incluye esta refactorización
+        - Issue #14 (AI Tacticians output inválido/null) ✅ RESUELTO - La refactorización futura podría simplificar aún más los prompts
         - Issue #94 (Refactorización de Prompts de Tacticians) - Issue dedicado a esta mejora
         - Refactorización futura de `enemyTacticianTool` / `companionTacticianTool`
 
@@ -213,6 +213,15 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Impacto:** Muy útil para testeos manuales y desarrollo, permitiendo ver cambios en tiempo real sin recargar.
 *   **Referencia:** [Notas de Gael - #99](../notas/Notas%20de%20Gael.md)
 
+### 11.1. Información de Dados de Daño de Armas en Fichas
+*   **Problema Actual:** La información de los dados de daño de cada arma no está incluida en las fichas de personajes, requiriendo que el DM consulte la API de D&D cada vez que se necesita esta información.
+*   **Mejora Propuesta:**
+    *   Incluir la información de los dados de daño de cada arma en la ficha de cada personaje.
+    *   El DM debería usar la API de D&D solo para recuperar esa información si no está incluida en las fichas (sistema de fallback).
+    *   El panel de la UI de las fichas debería mostrar la información de los dados de cada arma si está disponible en los datos de las fichas de los personajes.
+*   **Impacto:** Reduce la dependencia de la API externa, mejora el rendimiento y facilita el acceso a información de armas.
+*   **Referencia:** [Notas de Gael - #117](../notas/Notas%20de%20Gael.md)
+
 ### 12. Convertidor de PDF a JSON - Aplicación Auxiliar
 *   **Problema Actual:** Añadir nuevas aventuras al juego requiere crear manualmente archivos JSON con una estructura específica, lo cual es tedioso y propenso a errores. Los usuarios que tienen aventuras en formato PDF no pueden usarlas directamente.
 *   **Mejora Propuesta:**
@@ -250,7 +259,7 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
     *   **Integrar Botones de Avance de Turnos:** En el combate turno a turno, los botones de "avanzar 1 turno" y "avanzar todos" quizás deberían estar integrados en el panel de Orden de combate. Mejoraría la organización visual y la accesibilidad de estas funciones.
     *   **Resaltar Turno del Jugador:** En el combate turno a turno, cuando llega el turno del jugador, hay que hacer un resalte de alguna forma para avisar de que es el turno del jugador. Mejoraría la claridad y evitaría que el jugador se pierda en el orden de turnos.
     *   **Mejorar Colores en Panel de Tiradas:** En el panel de Tiradas hay que darle un nuevo color a las tiradas de curación. Buscar otros colores para otros tipos de tiradas para mejorar la diferenciación visual.
-    *   **Revisar Formateo de Texto en Mensajes:** Revisar el formateo del texto en los mensajes del DM y de los Compañeros. Mejorar la presentación visual y legibilidad de los mensajes.
+    *   **Revisar Formateo de Texto en Mensajes:** Revisar el formateo del texto en los mensajes del DM y de los Compañeros. Mejorar la presentación visual y legibilidad de los mensajes. Sistematizar el formateo para que sea consistente en todos los mensajes.
     *   **Revisión Completa de la UI:** Hacer una revisión completa de la UI. Evaluar consistencia, usabilidad y mejoras generales de la interfaz.
     *   **Botón de Configuración:** Implementar un botón de configuración al lado del botón para ir al menú inicial, permitiendo configurar cosas como el modelo LLM en uso, la voz de DM, guardado automático, etc.
     *   **Mensaje de Victoria/Derrota al Finalizar Combate:** Al finalizar un combate, el panel de Tiradas podría mostrar un mensaje de victoria o derrota y que el combate ha finalizado, mejorando el feedback visual al concluir un encuentro.
@@ -262,7 +271,7 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
     *   **Botones de Órdenes Rápidas:** Cerca del input de texto implementar botones para dar órdenes rápidas como "Atacamos", "Huímos", etc., facilitando acciones comunes sin necesidad de escribir texto completo.
     *   **Efectos de Sonido en Combate:** En combate, aparte de la música dinámica, implementar efectos de sonido para cada turno (gritos de ataque, quejidos si se les hace daño, choque de espadas, golpes de escudo, etc.) para ambientar más la acción.
 *   **Impacto:** Mejoras de calidad de vida que mejoran la experiencia del usuario y la usabilidad de la interfaz.
-*   **Referencia:** [Notas de Gael - #08, #09, #14, #16, #57, #58, #59, #60, #61, #66, #100, #101, #103, #105, #106, #107, #108, #96, #95](../notas/Notas%20de%20Gael.md)
+*   **Referencia:** [Notas de Gael - #08, #09, #14, #16, #57, #58, #59, #60, #61, #66, #100, #101, #103, #105, #106, #107, #108, #96, #95, #110](../notas/Notas%20de%20Gael.md)
 
 ### 15. Mejoras de Sistema de Personajes y Compañeros
 *   **Mejoras Propuestas:**
@@ -276,8 +285,9 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
     *   **Sistema de Inspiración:** La IA debe reconocer cuándo la interpretación del jugador es fiel a los rasgos de personalidad, ideales o defectos (establecidos en la creación del personaje), otorgando el beneficio de Inspiración cuando corresponda (que permite obtener Ventaja en tiradas). El sistema debe rastrear cuándo se usa la inspiración y cuándo se puede otorgar de nuevo.
     *   **Sistema de Detección de Fichas Sospechosas o Corruptas:** Implementar un sistema por el que el DM avise de fichas sospechosas o corruptas, validando la integridad de los datos de las fichas de personajes.
     *   **Ventana Especial para Equipar/Desequipar Objetos:** En el inventario, implementar una ventana especial para equipar o desequipar objetos, mejorando la gestión del equipamiento de los personajes.
+    *   **Sistema de Equipamiento con Límites y Validación:** Las fichas de los personajes deberían incluir en la parte de equipamiento qué elementos están equipados o no. Los elementos equipados deberían seguir un esquema del que no se pueden salir, por ejemplo: 2 anillos máximo, 1 botas máximo, 2 armas máximo, etc. Tener en cuenta armas a 2 manos y versátiles, etc.
 *   **Impacto:** Mejora la interacción con compañeros y la gestión de personajes.
-*   **Referencia:** [Notas de Gael - #39, #42, #54, #56, #67, #73, #85, #87, #93, #98](../notas/Notas%20de%20Gael.md)
+*   **Referencia:** [Notas de Gael - #39, #42, #54, #56, #67, #73, #85, #87, #93, #98, #118](../notas/Notas%20de%20Gael.md)
 
 ### 16. Mejoras de Sistema de Aventuras y Datos
 *   **Mejoras Propuestas:**
@@ -298,8 +308,10 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
     *   **Cambiar Nivel de Log para Fallos de API de D&D:** En los logs habría que cambiar que cuando falla el fetching de la API de D&D en vez de error sea un warning. Los fallos de API son esperables y no deberían tratarse como errores críticos si hay sistema de fallback.
     *   **Revisar Asignación de IDs en Combate:** Los compañeros y el jugador actualmente tienen IDs simples (números). Los enemigos tienen IDs más completos (ej: "goblin-0"). Evaluar si se necesita estandarizar o mejorar este sistema.
     *   **Expandir Funciones de Resolución de IDs:** Actualmente hay una función resolveEnemyId. ¿Deberíamos implementar más funciones similares para identificar mejor localizaciones o PNJs?
-*   **Impacto:** Mejoras de calidad y pulido que mejoran la experiencia general del juego.
-*   **Referencia:** [Notas de Gael - #11, #19, #41, #62](../notas/Notas%20de%20Gael.md)
+    *   **Optimización de Velocidad de Respuestas del DM:** Revisar la velocidad a la que el DM genera sus respuestas. Hay que optimizar esto al máximo para que la partida sea más fluida. Relacionado con la optimización de prompts.
+    *   **Optimización General de Prompts:** Optimización de prompts en general urgente. En común con otros issues ya documentados. Mejorar la eficiencia y velocidad de respuesta del sistema.
+*   **Impacto:** Mejoras de calidad y pulido que mejoran la experiencia general del juego, especialmente la fluidez y velocidad de respuesta.
+*   **Referencia:** [Notas de Gael - #11, #19, #41, #62, #111, #114](../notas/Notas%20de%20Gael.md)
 
 ### 18. Comandos de Voz
 *   **Mejora Propuesta:** Integrar la API de Reconocimiento de Voz del navegador (`SpeechRecognition`) para añadir un botón de "dictar" en la interfaz.

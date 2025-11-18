@@ -2,12 +2,31 @@
 
 Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 38 issues  
-**Última actualización:** 2025-11-18 (Issue #75 movido desde pendientes)
+**Total:** 41 issues  
+**Última actualización:** 2025-11-18 (Issue #14 movido desde pendientes - no reproducido desde mejoras)
 
 ---
 
 ## 🔴 Prioridad Muy Alta (PMA) - Críticos
+
+### Issue #116: Tirada de ataque del jugador no especifica arma utilizada ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-18
+- **Fecha de corrección:** 2025-11-18
+- **Ubicación:** `src/ai/tools/combat-manager.ts`, sistema de procesamiento de tiradas del jugador
+- **Severidad:** 🔴 **MUY ALTA** (afecta claridad y precisión de las acciones del jugador)
+- **Descripción:** La tirada de ataque del jugador no especificaba con qué arma la estaba haciendo, lo que reducía la claridad narrativa y la precisión de las acciones.
+- **Comportamiento esperado:** El sistema debe mostrar qué arma se está usando en la tirada de ataque del jugador, similar a como se hace con enemigos y compañeros. Si el jugador no especifica arma, el DM debería preguntarle qué arma usa.
+- **Solución implementada:** ✅
+  - Incluida información del arma en el mensaje de tirada de ataque del jugador
+  - Mejorada la claridad narrativa y la precisión de las acciones
+- **Archivos modificados:**
+  - ✅ `src/ai/tools/combat-manager.ts` (procesamiento de tiradas del jugador)
+- **Impacto:** Muy alto - Mejora la claridad de las acciones del jugador y la inmersión del juego.
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada
+- **Referencia:** [Notas de Gael - #116](../notas/Notas%20de%20Gael.md)
+
+---
 
 ### Issue #81: Bucle infinito cuando jugador inconsciente durante auto-avance ✅ RESUELTO
 
@@ -344,6 +363,49 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 
 ## 🟡 Prioridad Alta (PA) - Advertencias
 
+### Issue #14: AI Tacticians (enemigos y companions) a veces devuelven output inválido/null en combate ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-12
+- **Fecha de corrección:** 2025-11-18
+- **Ubicación:** `src/ai/tools/enemy-tactician.ts`, `src/ai/tools/companion-tactician.ts`, `src/ai/tools/combat-manager.ts`
+- **Severidad:** 🔴 **ALTA** (bloquea turnos completos de combatientes)
+- **Descripción:** Durante el combate, tanto enemigos como companions a veces devuelven output nulo o inválido que falla la validación del schema de Genkit, causando que no realicen ninguna acción en su turno.
+- **Problema identificado:**
+  - Fallo de schema validation: El AI de Gemini devuelve output que no cumple con el schema
+  - Posibles causas: AI no encuentra información en D&D API, prompts muy largos/complejos, filtros de seguridad, timeouts de conexión
+- **Mejoras implementadas que resolvieron el problema:** ✅
+  - **Fase 1 - Logging detallado:**
+    - ✅ Añadido logging detallado en `companion-tactician.ts` para capturar input, respuesta y errores
+    - ✅ Añadido logging detallado en `enemy-tactician.ts` para capturar errores de validación
+  - **Retry logic con exponential backoff:**
+    - ✅ Añadido `retryWithExponentialBackoff` a `companionTacticianTool` y `enemyTacticianTool` para manejar timeouts y errores transitorios
+    - Esto resuelve problemas de conexión que causaban outputs nulos
+  - **Prompts mejorados:**
+    - ✅ Prompts actualizados con instrucciones más claras y explícitas sobre cómo generar rolls
+    - ✅ Añadidos ejemplos detallados y obligatorios para cada tipo de acción
+    - ✅ Instrucciones más específicas sobre el formato de `diceRolls` y `attackType`
+  - **Schemas actualizados:**
+    - ✅ Especificación explícita del tipo de cada roll (`attackType: 'attack_roll' | 'saving_throw' | 'healing'`)
+    - ✅ Mejora en la validación del schema, reduciendo errores de validación
+  - **Filtrado de personajes muertos:**
+    - ✅ Modificado `combat-manager.ts` para filtrar personajes muertos antes de pasarlos a los AI tacticians
+    - Reduce casos edge que podrían causar errores
+- **Verificación:**
+  - ✅ **No reproducido desde las mejoras:** Después de implementar las mejoras (retry logic, prompts mejorados, schemas actualizados), el problema no se ha vuelto a reproducir en todas las pruebas realizadas
+  - Las mejoras implementadas (especialmente el retry logic y los prompts mejorados) han resuelto efectivamente el problema
+- **Archivos modificados:**
+  - ✅ `src/ai/tools/enemy-tactician.ts` (retry logic, logging, prompts mejorados)
+  - ✅ `src/ai/tools/companion-tactician.ts` (retry logic, logging, prompts mejorados)
+  - ✅ `src/ai/tools/combat-manager.ts` (filtrado de personajes muertos)
+- **Relacionado con:** 
+  - Issue #79 (Narraciones de combate para turnos del jugador) ✅ RESUELTO
+  - Issue #94 (Refactorización de Prompts de Tacticians) - La refactorización futura podría simplificar aún más los prompts
+  - Roadmap - Sección 7 "Narración Unificada para Todos los Turnos" (refactorización futura de tacticians)
+- **Impacto:** Alto - El sistema ahora es más robusto y maneja correctamente los turnos de enemigos y companions, evitando que se queden sin acción por errores de validación o timeouts.
+- **Estado:** ✅ **RESUELTO** - No reproducido desde las mejoras implementadas. El problema ha sido efectivamente resuelto por las mejoras en retry logic, prompts y schemas.
+
+---
+
 ### Issues #35, #36, #37: Corrección de mensajes de inconsciencia/muerte ✅ RESUELTOS
 
 - **Fecha de creación:** 2025-11-14
@@ -672,6 +734,27 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 ---
 
 ## 🟢 Prioridad Media (PM) - Mejoras
+
+### Issue #113: Mensaje de muerte faltante cuando el jugador mata a un enemigo ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-18
+- **Fecha de corrección:** 2025-11-18
+- **Ubicación:** `src/ai/tools/combat/dice-roll-processor.ts`, `src/ai/tools/combat-manager.ts`
+- **Severidad:** 🟢 **MEDIA** (afecta consistencia de mensajes y feedback visual)
+- **Descripción:** En combate, cuando el jugador mataba a un enemigo en la tirada de daño no aparecía el mensaje como sí lo hacía en las de enemigos o compañeros: "💀 ¡Elara ha matado a Goblin 2!".
+- **Problema:** Falta de consistencia en los mensajes de confirmación de muerte. Los enemigos y compañeros mostraban este mensaje, pero el jugador no.
+- **Solución implementada:** ✅
+  - Añadido el mensaje de confirmación de muerte cuando el jugador mata a un enemigo
+  - Mantenido el mismo formato que se usa para enemigos y compañeros
+  - Asegurado que el mensaje se muestra en el momento correcto (después del daño)
+- **Archivos modificados:**
+  - ✅ `src/ai/tools/combat/dice-roll-processor.ts` (procesamiento de tiradas de daño)
+  - ✅ `src/ai/tools/combat-manager.ts` (procesamiento de acciones del jugador)
+- **Impacto:** Medio – Mejora la consistencia de feedback y la claridad de las acciones del jugador
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada
+- **Referencia:** [Notas de Gael - #113](../notas/Notas%20de%20Gael.md)
+
+---
 
 ### Issue #78: Auto-avance se detiene un turno antes del jugador ✅ RESUELTO
 

@@ -144,26 +144,30 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
             )}
             {/* Show target information for attack rolls */}
             {isAttackRoll && (
-              <p className="text-xs text-muted-foreground/80 leading-tight mt-0.5">
+              <>
                 {roll.targetName ? (
                   <>
-                    Contra: <span className="font-semibold">{roll.targetName}</span>
-                    {roll.targetAC !== undefined && (
-                      <span className="ml-1">(AC {roll.targetAC})</span>
-                    )}
+                    <p className="text-xs text-muted-foreground/80 leading-tight mt-0.5">
+                      Contra: <span className="font-semibold">{roll.targetName}</span>
+                      {roll.targetAC !== undefined && (
+                        <span className="ml-1">(AC {roll.targetAC})</span>
+                      )}
+                    </p>
                     {roll.attackHit !== undefined && (
-                      <span className={cn(
-                        "ml-2 font-semibold",
+                      <p className={cn(
+                        "text-xs font-semibold leading-tight mt-0.5",
                         roll.attackHit ? "text-green-400" : "text-red-400"
                       )}>
                         {roll.attackHit ? "✓ Acierta" : "✗ Fallo"}
-                      </span>
+                      </p>
                     )}
                   </>
                 ) : (
-                  <span className="text-muted-foreground/60 italic">(Información de combate no disponible)</span>
+                  <p className="text-xs text-muted-foreground/60 italic leading-tight mt-0.5">
+                    (Información de combate no disponible)
+                  </p>
                 )}
-              </p>
+              </>
             )}
             {/* Show target information for damage rolls */}
             {isDamageRoll && roll.targetName && roll.damageDealt !== undefined && (

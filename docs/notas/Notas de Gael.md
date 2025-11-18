@@ -1,6 +1,6 @@
 # NOTAS DE DESARROLLO - D&D ADVENTURES AI
 
-**Última actualización:** [18/11/2025] - Todos los items clasificados y documentados en el sistema oficial
+**Última actualización:** [18/11/2025] - Issues #116, #113 y funcionalidad #117 marcados como resueltos/completados
 
 ## 📝 PROPÓSITO DE ESTE DOCUMENTO
 
@@ -67,6 +67,13 @@ Este documento es **intencionalmente informal** y sirve como "borrador" antes de
 
 ### PRIORIDAD MUY ALTA
 
+#### [#116] `[ISSUE]` `[PMA]` `[SISTEMA DE COMBATE]` `[RESUELTO]`
+**Tirada de ataque del jugador no especifica arma utilizada** ✅
+
+- ~~La tirada de ataque del jugador no especifica con qué arma la está haciendo.~~
+- ✅ **RESUELTO:** El sistema ahora muestra qué arma se está usando en la tirada de ataque del jugador.
+- Si el jugador no especifica arma, el DM debería preguntarle qué arma usa.
+
 ### PRIORIDAD ALTA
 
 #### [#91] `[ISSUE]` `[PA]` `[INTERFAZ DE USUARIO]` `[EN ROADMAP]`
@@ -75,13 +82,31 @@ Este documento es **intencionalmente informal** y sirve como "borrador" antes de
 - La tirada de ataque crítica debería ser de color verde manteniendo el efecto de pulso y el texto de "¡CRITICO!" con la estrellita debería ser verde también.
 - La tirada de daño crítica debería mantenerse amarilla (correcto) pero añadiéndole el efecto pulso y la etiqueta de ¡CRITICO! con la estrellita en amarillo.
 
+#### [#115] `[ISSUE]` `[PA]` `[SISTEMA DE COMBATE]` `[EN ROADMAP]`
+**Validación de inventario al usar armas u objetos**
+
+- En combate y supongo que en exploración e interacción también, cuando escribo que ataco con un arma o uso un objeto que no tengo en mi inventario el DM lo narra igualmente sin comprobarlo.
+- El sistema debe validar que el personaje tiene el arma u objeto en su inventario antes de permitir su uso.
+
 ### PRIORIDAD MEDIA
 
 #### [#92] `[ISSUE]` `[PM]` `[SISTEMA DE COMBATE]` `[EN ROADMAP]`
 **Identificación incorrecta de enemigo en combate**
 
 - En combate, al escribir "Con mis últimas fuerzas ataco al goblin que me acaba de dar un tajo" refiriéndose al Goblin 2 que acababa de atacar y acertar con su cimitarra, el DM narró que el personaje atacó al Goblin 1.
-- Revisar la identificación de enemigos cuando se hace referencia a acciones recientes. 
+- Revisar la identificación de enemigos cuando se hace referencia a acciones recientes.
+
+#### [#112] `[ISSUE]` `[PM]` `[SISTEMA DE COMBATE]` `[EN ROADMAP]`
+**Sincronización entre DM y combat tracker**
+
+- En combate, cuando se pasa 1 turno mientras en el chat sale "el DM está pensando..." el combat tracker aún está en el turno anterior.
+- Mejorar la sincronización entre el estado del DM y el combat tracker para que ambos reflejen el mismo estado del combate.
+
+#### [#113] `[ISSUE]` `[PM]` `[SISTEMA DE COMBATE]` `[RESUELTO]`
+**Mensaje de muerte faltante cuando el jugador mata a un enemigo** ✅
+
+- ~~En combate, cuando el jugador mata a un enemigo en la tirada de daño no aparece el mensaje como si lo hace en las de enemigos o compañeros: "💀 ¡Elara ha matado a Goblin 2!".~~
+- ✅ **RESUELTO:** El sistema ahora muestra el mismo mensaje de confirmación de muerte cuando el jugador mata a un enemigo. 
 
 ---
 
@@ -152,6 +177,13 @@ Este documento es **intencionalmente informal** y sirve como "borrador" antes de
 - Sería interesante tener la posibilidad de que al cambiar datos en los archivos JSON de las fichas de los personajes, el panel de fichas del juego se actualizase automáticamente.
 - Esto sería especialmente útil para ciertos testeos manuales.
 - Se ha notado que en la consola del navegador sale un log cuando los datos iniciales de la party se han modificado y guardado, quizás podamos usar esto para forzar una actualización de las fichas de los personajes en la UI y en el server.
+
+#### [#117] `[NUEVA FUNCIONALIDAD]` `[PA]` `[SISTEMA DE PERSONAJES]` `[COMPLETADO]`
+**Información de dados de daño de armas en fichas** ✅
+
+- ✅ **COMPLETADO:** La información de los dados de daño de cada arma está incluida en la ficha de cada personaje.
+- El DM usa la API de D&D solo para recuperar esa información, si no está incluida en las fichas.
+- El panel de la UI de las fichas muestra la información de los dados de cada arma si está disponible en los datos de las fichas de los personajes.
 
 ### PRIORIDAD MEDIA
 
@@ -237,9 +269,32 @@ Este documento es **intencionalmente informal** y sirve como "borrador" antes de
 - En el inventario estaría genial tener una ventana especial para equipar o desequipar objetos.
 - Mejorar la gestión del equipamiento de los personajes.
 
+#### [#118] `[NUEVA FUNCIONALIDAD]` `[PMB]` `[SISTEMA DE PERSONAJES]` `[EN ROADMAP]`
+**Sistema de equipamiento con límites y validación**
+
+- Las fichas de los personajes deberían incluir en la parte de equipamiento qué elementos están equipados o no.
+- Los elementos equipados deberían seguir un esquema del que no se pueden salir, por ejemplo: 2 anillos máximo, 1 botas máximo, 2 armas máximo, etc.
+- Tener en cuenta armas a 2 manos y versátiles, etc.
+
 ---
 
 ## REVISIONES (Mejoras/Análisis)
+
+### PRIORIDAD MUY ALTA
+
+#### [#111] `[REVISION]` `[PMA]` `[SISTEMA DE AVENTURAS Y DATOS]` `[EN ROADMAP]`
+**Optimización de velocidad de respuestas del DM**
+
+- Revisar la velocidad a la que el DM genera sus respuestas.
+- Hay que optimizar esto al máximo para que la partida sea más fluida.
+- Relacionado con la optimización de prompts.
+
+#### [#114] `[REVISION]` `[PMA]` `[SISTEMA DE AVENTURAS Y DATOS]` `[EN ROADMAP]`
+**Optimización general de prompts**
+
+- Optimización de prompts en general urgente.
+- En común con otros issues ya documentados.
+- Mejorar la eficiencia y velocidad de respuesta del sistema.
 
 ### PRIORIDAD ALTA
 
@@ -272,6 +327,13 @@ Este documento es **intencionalmente informal** y sirve como "borrador" antes de
 - En combate, después de pulsar el botón de avanzar todos, los turnos empiezan a correr mientras que los botones se desactivan y el botón de "avanzar todos" pone "Avanzando...".
 - Lo ideal es que mientras el botón esté en "Avanzando..." el otro botón se convierta en un botón de pausa para detener el avance automático de turnos.
 - Si se pulsa, el avance se detendrá después de terminar lo que estaba haciendo y los botones volverán a mostrarse como al principio (antes de pulsar el botón de "avanzar todos").
+
+#### [#110] `[REVISION]` `[PM]` `[INTERFAZ DE USUARIO]` `[EN ROADMAP]`
+**Sistematización del formateo de texto en mensajes del chat**
+
+- Revisar la forma en que las IA formatean el texto al mostrarlo en los mensajes del chat.
+- Habría que sistematizar esto para que sea consistente.
+- Mejorar la presentación visual y legibilidad de los mensajes del DM y compañeros.
 
 #### [#106] `[REVISION]` `[PM]` `[INTERFAZ DE USUARIO]` `[EN ROADMAP]`
 **Rediseño del panel izquierdo**
@@ -343,23 +405,7 @@ Esta sección es para apuntar ideas rápidas, fallos detectados y notas informal
 
 Al clasificar un item de esta sección, debe moverse a su sección correspondiente y eliminarse de aquí, manteniendo esta sección como un área de trabajo temporal.
 
-1. Revisar la forma en que las IA formatean el texto al mostrarlo en los mensajes del chat. Habría que sistematizar esto para que sea consistente. (PM)
-
-2. Revisar la velocidad a la que el DM genera sus respuestas. Hay que optimizar esto al máximo para que la partida sea más fluída. (PMA)
-
-3. En combate. Mejorar la sincronización entre el DM y el combat tracker. Actualmente cuando se pasa 1 turno mientras en el chat sale "el DM está pensando..." el combat tracker aún está en el turno anterior. (PM)
-
-4. En combate. Cuando el jugador mata a un enemigo en la tirada de daño no aparece el mensaje como si lo hace en las de enemigos o compañeros:"💀 ¡Elara ha matado a Goblin 2!". (PM)
-
-5. Optimización de prompts en general urgente! En común con otros issues ya documentados. (PMA)
-
-6. En combate y supongo que en exploración e interacción también, cuando escribo que ataco con un arma o uso un objeto que no tengo en mi invventario el DM lo narra igualmente sin comprobarlo. (PA)
-
-7. Issue: La tirada de ataque del jugador no especifica con que arma la está haciendo. (PMA)
-
-8. Issue: La información de los dados de daño de cada arma debería estar incluída en la ficha de cada personaje. EL DM debería usar la API de D&D solo para recuperar esa información, si no está incluída en las fichas. El panel de la UI de las fichas debería mostrar la información de los dados de cada arma si está disponible en los datos de las fichas de los personajes. (PA)
-
-9. Las fichas de los personajes deberían incluir en la parte de equipamiento que elementos están equipados o no. Los elementos equipados deberían seguir un esquema del que no se pueden salir, por ejemplo: 2 anillos máximo, 1 botas máximo, 2 armas máximo, etc. Tener en cuenta armas a 2 manos y versátiles, etc (PMB)
+*(Todos los items de esta sección han sido formalizados y movidos a sus secciones correspondientes)*
 
 
 

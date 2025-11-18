@@ -2,8 +2,8 @@
 
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 25 issues  
-**Última actualización:** 2025-11-18 (Issue #75 movido a corregidos)
+**Total:** 26 issues  
+**Última actualización:** 2025-11-18 (Issue #14 movido a corregidos - no reproducido desde mejoras)
 
 ---
 
@@ -13,37 +13,28 @@ _No hay issues críticos pendientes en este momento._
 
 ## 🟡 Prioridad Alta (PA) - Advertencias
 
+### Issue #115: Validación de inventario al usar armas u objetos 🟡 ADVERTENCIA
 
-
-
-
-### Issue #14: AI Tacticians (enemigos y companions) a veces devuelven output inválido/null en combate
-
-- **Fecha de creación:** 2025-11-12
-- **Ubicación:** `src/ai/tools/enemy-tactician.ts`, `src/ai/tools/companion-tactician.ts`, `src/ai/tools/combat-manager.ts`
-- **Severidad:** 🔴 ALTA (bloquea turnos completos de combatientes)
-- **Descripción:** Durante el combate, tanto enemigos como companions a veces devuelven output nulo o inválido que falla la validación del schema de Genkit, causando que no realicen ninguna acción en su turno.
-- **Problema identificado:**
-  - Fallo de schema validation: El AI de Gemini devuelve output que no cumple con el schema
-  - Posibles causas: AI no encuentra información en D&D API, prompts muy largos/complejos, filtros de seguridad
-- **Mejoras implementadas (Fase 1):**
-  - ✅ Añadido logging detallado en `companion-tactician.ts` para capturar input, respuesta y errores
-  - ✅ Añadido logging detallado en `enemy-tactician.ts` para capturar errores de validación
-- **Solución propuesta (Multi-fase):**
-  - **Fase 2 (PENDIENTE):** Mejorar prompts (simplificar, hacer reglas más explícitas, añadir ejemplos)
-  - **Fase 3 (PENDIENTE):** Validación y fallback inteligente (completar campos faltantes, generar acción básica válida)
-  - **Fase 4 (PENDIENTE - OPCIONAL):** Refactoring de prompts (prompt chaining)
-  - **Ver Issue #94:** Refactorización de Prompts de Tacticians - Separación de Narración y Decisión Táctica
-  - Esta refactorización simplificará los prompts de los tacticians, reduciendo la complejidad y la probabilidad de errores de validación
+- **Fecha de creación:** 2025-11-18
+- **Ubicación:** `src/ai/flows/action-interpreter.ts`, `src/ai/tools/combat-manager.ts`, sistema de validación de inventario
+- **Severidad:** 🟡 **ALTA** (afecta la coherencia del juego y permite acciones imposibles)
+- **Descripción:** En combate y supongo que en exploración e interacción también, cuando escribo que ataco con un arma o uso un objeto que no tengo en mi inventario el DM lo narra igualmente sin comprobarlo.
+- **Problema:** El sistema no valida que el personaje tiene el arma u objeto en su inventario antes de permitir su uso, lo que permite acciones imposibles y rompe la inmersión.
+- **Comportamiento esperado:** El sistema debe validar que el personaje tiene el arma u objeto en su inventario antes de permitir su uso. Si no lo tiene, el DM debería informar al jugador.
+- **Impacto:** Alto - Afecta la coherencia del juego y permite acciones que no deberían ser posibles
+- **Solución propuesta:**
+  - Añadir validación de inventario antes de procesar acciones que requieren armas u objetos
+  - Verificar que el arma/objeto está en el inventario del personaje
+  - Si no está disponible, informar al jugador y no procesar la acción
 - **Archivos afectados:**
-  - `src/ai/tools/enemy-tactician.ts`
-  - `src/ai/tools/companion-tactician.ts`
-  - `src/ai/tools/combat-manager.ts`
-- **Estado:** 🔴 **EN INVESTIGACIÓN** - Logging implementado, esperando datos de diagnóstico para siguiente fase
-- **Relacionado con:** 
-  - Issue #79 (Narraciones de combate para turnos del jugador) ✅ RESUELTO
-  - Issue #94 (Refactorización de Prompts de Tacticians) - La Fase 4 de este issue incluye esta refactorización
-  - Roadmap - Sección 7 "Narración Unificada para Todos los Turnos" (refactorización futura de tacticians)
+  - `src/ai/flows/action-interpreter.ts` (interpretación de acciones)
+  - `src/ai/tools/combat-manager.ts` (procesamiento de acciones en combate)
+  - Sistema de validación de inventario (a crear o mejorar)
+- **Estado:** 📝 **PENDIENTE** - Plan creado
+- **Referencia:** [Notas de Gael - #115](../notas/Notas%20de%20Gael.md)
+- **Plan de implementación:** [Issue #115 - Validación de Inventario](../../planes-desarrollo/planes-en-curso/issue-115-validacion-inventario.md)
+
+
 
 ---
 
@@ -177,6 +168,27 @@ _No hay issues críticos pendientes en este momento._
   - `src/lib/combat/target-resolver.ts` (resolución de targets)
 - **Estado:** 📝 **PENDIENTE**
 - **Detección:** Testing manual durante combate
+
+### Issue #112: Sincronización entre DM y combat tracker 🟢 MEJORA
+
+- **Fecha de creación:** 2025-11-18
+- **Ubicación:** `src/components/game/game-view.tsx`, `src/components/game/initiative-tracker.tsx`, `src/ai/tools/combat-manager.ts`
+- **Severidad:** 🟢 **MEDIA** (afecta sincronización visual del estado del combate)
+- **Descripción:** En combate, cuando se pasa 1 turno mientras en el chat sale "el DM está pensando..." el combat tracker aún está en el turno anterior.
+- **Problema:** Hay un desfase entre el estado del DM (procesando) y el estado visual del combat tracker, lo que puede confundir al jugador sobre qué turno está activo.
+- **Comportamiento esperado:** El combat tracker debe actualizarse inmediatamente cuando se avanza un turno, reflejando el mismo estado que el DM está procesando.
+- **Impacto:** Medio – Puede confundir al jugador sobre el estado actual del combate
+- **Solución propuesta:**
+  - Mejorar la sincronización entre el estado del DM y el combat tracker
+  - Actualizar el `turnIndex` en el frontend inmediatamente cuando se inicia el procesamiento de un turno
+  - Asegurar que ambos reflejen el mismo estado del combate
+- **Archivos afectados:**
+  - `src/components/game/game-view.tsx` (gestión de estado de combate)
+  - `src/components/game/initiative-tracker.tsx` (visualización del orden de combate)
+  - `src/ai/tools/combat-manager.ts` (procesamiento de turnos)
+- **Estado:** 📝 **PENDIENTE**
+- **Referencia:** [Notas de Gael - #112](../notas/Notas%20de%20Gael.md)
+
 
 ---
 
