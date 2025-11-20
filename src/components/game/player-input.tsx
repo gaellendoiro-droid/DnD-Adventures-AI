@@ -50,7 +50,7 @@ export function PlayerInput({ onSendMessage, onDiceRoll, disabled = false, isPla
   return (
     <div className="space-y-2">
       <form onSubmit={handleSubmit} className="flex items-start gap-2">
-        <DiceRoller onRoll={onDiceRoll} onPopoverOpenChange={setIsDicePopoverOpen}/>
+        <DiceRoller onRoll={onDiceRoll} onPopoverOpenChange={setIsDicePopoverOpen} />
         <Textarea
           id="player-action-input"
           name="player-action"
@@ -58,14 +58,14 @@ export function PlayerInput({ onSendMessage, onDiceRoll, disabled = false, isPla
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={
-            disabled 
+            disabled
               ? waitingForTurnAdvance
                 ? "No es tu turno. Pulsa un botón de avanzar turno para continuar."
                 : isPlayerTurn
                   ? "Es tu turno! ¿Qué quieres hacer?"
                   : "El DM está pensando... pero puedes ir escribiendo."
-              : isPlayerTurn 
-                ? "Es tu turno! ¿Qué quieres hacer?" 
+              : isPlayerTurn
+                ? "Es tu turno! ¿Qué quieres hacer?"
                 : "¿Qué quieres hacer?"
           }
           className="flex-1 resize-none"

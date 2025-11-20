@@ -2,8 +2,8 @@
 
 Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 41 issues  
-**Última actualización:** 2025-11-18 (Issue #14 movido desde pendientes - no reproducido desde mejoras)
+**Total:** 42 issues  
+**Última actualización:** 2025-11-18 (Issue #66 movido desde pendientes - corregido en código)
 
 ---
 
@@ -700,6 +700,41 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 - **Estado:** ✅ RESUELTO
 - **Detección:** Testing de v0.5.0 - Test 15
 - **Referencia:** CHANGELOG [Unreleased]
+
+### Issue #66: Orden incorrecto de mensajes en muerte masiva ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-16
+- **Fecha de corrección:** 2025-11-18
+- **Ubicación:** `src/ai/tools/combat/dice-roll-processor.ts`
+- **Severidad:** 🟡 **ALTA** (afecta narrativa, secuencia ilógica, confunde al jugador)
+- **Descripción:** Cuando un personaje recibe muerte masiva (daño restante >= HP máximo), el mensaje "ha recibido un golpe devastador y muere instantáneamente" aparecía ANTES del mensaje de daño, causando una secuencia ilógica.
+- **Contexto:** Detectado durante Test 1.1 (Flujo Completo de Inicio de Combate). Este bug es similar al Issue #35, pero afecta específicamente al caso de muerte masiva, que no fue corregido cuando se resolvió el Issue #35.
+- **Secuencia incorrecta (antes):**
+  1. Narración del enemigo
+  2. "Goblin 2 ataca a Merryl y acierta (12 vs AC 10)."
+  3. ❌ **"Merryl ha recibido un golpe devastador y muere instantáneamente."** (PREMATURO)
+  4. "Goblin 2 ha hecho 7 puntos de daño a Merryl (2 → 0 HP)."
+  5. "¡Goblin 2 ha matado a Merryl!"
+- **Secuencia correcta (después):**
+  1. Narración del enemigo
+  2. "Goblin 2 ataca a Merryl y acierta (12 vs AC 10)."
+  3. "Goblin 2 ha hecho 7 puntos de daño a Merryl (2 → 0 HP)."
+  4. ✅ **"Merryl ha recibido un golpe devastador y muere instantáneamente."** (DESPUÉS del daño)
+  5. ✅ **"¡Goblin 2 ha matado a Merryl!"** (DESPUÉS del mensaje anterior)
+- **Causa raíz:** En `dice-roll-processor.ts`, el mensaje de muerte masiva se añadía dentro del `map()` que actualizaba el HP, mientras que el mensaje de daño se añadía después del `map()`. Esto causaba que el mensaje de muerte masiva apareciera antes del mensaje de daño.
+- **Solución implementada:** ✅
+  - Añadido flag `massiveDamageDeath` para rastrear cuando ocurre muerte masiva (línea 442)
+  - El flag se establece durante el cálculo de daño cuando se detecta muerte masiva (línea 457)
+  - El mensaje de daño se añade primero (líneas 505-510)
+  - El mensaje de muerte masiva se añade DESPUÉS del mensaje de daño, solo si el flag está activo (líneas 535-539)
+  - El mensaje "ha matado" se añade después del mensaje de muerte masiva (líneas 541-544)
+  - Mantiene la misma estructura que se usó para corregir el Issue #35 (mensajes de inconsciencia)
+- **Archivos modificados:**
+  - ✅ `src/ai/tools/combat/dice-roll-processor.ts` (líneas 441-540: flag de muerte masiva y orden correcto de mensajes)
+- **Impacto:** Alto - La narrativa ahora es coherente, los mensajes aparecen en el orden lógico correcto, mejorando la experiencia del jugador
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada
+- **Relacionado con:** Issue #35 (orden incorrecto de mensajes - corregido para inconsciencia, ahora también corregido para muerte masiva)
+- **Detección:** Testing manual - Test 1.1 (Flujo Completo de Inicio de Combate)
 
 ---
 

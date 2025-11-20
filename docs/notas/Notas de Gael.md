@@ -1,6 +1,6 @@
 # NOTAS DE DESARROLLO - D&D ADVENTURES AI
 
-**Última actualización:** [18/11/2025] - Issues #116, #113 y funcionalidad #117 marcados como resueltos/completados
+**Última actualización:** [18/11/2025] - Issues resueltos eliminados (verificados en docs/tracking/issues/corregidos.md)
 
 ## 📝 PROPÓSITO DE ESTE DOCUMENTO
 
@@ -67,20 +67,9 @@ Este documento es **intencionalmente informal** y sirve como "borrador" antes de
 
 ### PRIORIDAD MUY ALTA
 
-#### [#116] `[ISSUE]` `[PMA]` `[SISTEMA DE COMBATE]` `[RESUELTO]`
-**Tirada de ataque del jugador no especifica arma utilizada** ✅
-
-- ~~La tirada de ataque del jugador no especifica con qué arma la está haciendo.~~
-- ✅ **RESUELTO:** El sistema ahora muestra qué arma se está usando en la tirada de ataque del jugador.
-- Si el jugador no especifica arma, el DM debería preguntarle qué arma usa.
+_(No hay issues críticos pendientes en este momento)_
 
 ### PRIORIDAD ALTA
-
-#### [#91] `[ISSUE]` `[PA]` `[INTERFAZ DE USUARIO]` `[EN ROADMAP]`
-**Colores y efectos de tiradas críticas**
-
-- La tirada de ataque crítica debería ser de color verde manteniendo el efecto de pulso y el texto de "¡CRITICO!" con la estrellita debería ser verde también.
-- La tirada de daño crítica debería mantenerse amarilla (correcto) pero añadiéndole el efecto pulso y la etiqueta de ¡CRITICO! con la estrellita en amarillo.
 
 #### [#115] `[ISSUE]` `[PA]` `[SISTEMA DE COMBATE]` `[EN ROADMAP]`
 **Validación de inventario al usar armas u objetos**
@@ -101,12 +90,6 @@ Este documento es **intencionalmente informal** y sirve como "borrador" antes de
 
 - En combate, cuando se pasa 1 turno mientras en el chat sale "el DM está pensando..." el combat tracker aún está en el turno anterior.
 - Mejorar la sincronización entre el estado del DM y el combat tracker para que ambos reflejen el mismo estado del combate.
-
-#### [#113] `[ISSUE]` `[PM]` `[SISTEMA DE COMBATE]` `[RESUELTO]`
-**Mensaje de muerte faltante cuando el jugador mata a un enemigo** ✅
-
-- ~~En combate, cuando el jugador mata a un enemigo en la tirada de daño no aparece el mensaje como si lo hace en las de enemigos o compañeros: "💀 ¡Elara ha matado a Goblin 2!".~~
-- ✅ **RESUELTO:** El sistema ahora muestra el mismo mensaje de confirmación de muerte cuando el jugador mata a un enemigo. 
 
 ---
 
@@ -177,13 +160,6 @@ Este documento es **intencionalmente informal** y sirve como "borrador" antes de
 - Sería interesante tener la posibilidad de que al cambiar datos en los archivos JSON de las fichas de los personajes, el panel de fichas del juego se actualizase automáticamente.
 - Esto sería especialmente útil para ciertos testeos manuales.
 - Se ha notado que en la consola del navegador sale un log cuando los datos iniciales de la party se han modificado y guardado, quizás podamos usar esto para forzar una actualización de las fichas de los personajes en la UI y en el server.
-
-#### [#117] `[NUEVA FUNCIONALIDAD]` `[PA]` `[SISTEMA DE PERSONAJES]` `[COMPLETADO]`
-**Información de dados de daño de armas en fichas** ✅
-
-- ✅ **COMPLETADO:** La información de los dados de daño de cada arma está incluida en la ficha de cada personaje.
-- El DM usa la API de D&D solo para recuperar esa información, si no está incluida en las fichas.
-- El panel de la UI de las fichas muestra la información de los dados de cada arma si está disponible en los datos de las fichas de los personajes.
 
 ### PRIORIDAD MEDIA
 
@@ -405,7 +381,7 @@ Esta sección es para apuntar ideas rápidas, fallos detectados y notas informal
 
 Al clasificar un item de esta sección, debe moverse a su sección correspondiente y eliminarse de aquí, manteniendo esta sección como un área de trabajo temporal.
 
-*(Todos los items de esta sección han sido formalizados y movidos a sus secciones correspondientes)*
+1. Implementar peso de cada item y el concepto de estar cargado. (PMB)
 
 
 

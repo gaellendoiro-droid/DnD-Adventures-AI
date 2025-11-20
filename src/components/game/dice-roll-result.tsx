@@ -17,6 +17,8 @@ const outcomeStyles: { [key in DiceRoll['outcome'] | 'damage'] : string } = {
   neutral: "border-border",
   initiative: "border-blue-500 bg-blue-500/10",
   damage: "border-yellow-400 bg-yellow-400/10 text-yellow-200",
+  victory: "border-4 border-green-400 bg-gradient-to-br from-green-500/30 via-emerald-500/20 to-green-600/30 shadow-lg shadow-green-500/50 animate-pulse",
+  defeat: "border-4 border-red-500 bg-gradient-to-br from-red-600/30 via-red-700/20 to-red-800/30 shadow-lg shadow-red-600/50 animate-pulse",
 };
 
 const outcomeTextStyles: { [key in DiceRoll['outcome'] | 'damage']?: string } = {
@@ -26,6 +28,8 @@ const outcomeTextStyles: { [key in DiceRoll['outcome'] | 'damage']?: string } = 
     pifia: "text-red-500 drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]",
     initiative: "text-blue-400",
     damage: "text-yellow-300",
+    victory: "text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]",
+    defeat: "text-red-400 drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]",
 }
 
 // Helper function to get critical styles based on roll type
@@ -83,7 +87,10 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
   
   let finalOutcome: DiceRoll['outcome'] | 'damage';
 
-  if (roll.description.toLowerCase().includes('iniciativa')) {
+  // Check for victory/defeat outcomes first (special combat end messages)
+  if (roll.outcome === 'victory' || roll.outcome === 'defeat') {
+    finalOutcome = roll.outcome;
+  } else if (roll.description.toLowerCase().includes('iniciativa')) {
     finalOutcome = 'initiative';
   } else if (isDamageRoll) {
     // For damage rolls, check if it's critical (either by outcome or description)
@@ -110,6 +117,9 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
   const criticalStyles = finalOutcome === 'crit' ? getCriticalStyles(isAttackRoll, isDamageRoll) : null;
   const containerStyle = criticalStyles ? criticalStyles.container : outcomeStyles[finalOutcome];
 
+  // Special handling for victory/defeat messages
+  const isCombatEndMessage = finalOutcome === 'victory' || finalOutcome === 'defeat';
+
   return (
     <div
       className={cn(
@@ -117,20 +127,43 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
         containerStyle
       )}
     >
-      <div className="flex-shrink-0 font-mono text-xs h-5 w-5 flex items-center justify-center rounded-full bg-muted-foreground/20 text-muted-foreground font-bold mt-0.5">
-        {rollNumber}
-      </div>
-      <div className="flex-grow grid grid-cols-[1fr_auto] items-start gap-x-2">
+      {!isCombatEndMessage && (
+        <div className="flex-shrink-0 font-mono text-xs h-5 w-5 flex items-center justify-center rounded-full bg-muted-foreground/20 text-muted-foreground font-bold mt-0.5">
+          {rollNumber}
+        </div>
+      )}
+      <div className={cn("flex-grow", isCombatEndMessage ? "grid grid-cols-1" : "grid grid-cols-[1fr_auto] items-start gap-x-2")}>
         <div className="text-left">
-            <p className="font-semibold leading-tight">
-                {roll.roller}
-            </p>
-            <p className="text-xs font-semibold text-muted-foreground leading-tight">
-              {roll.description}
-              {roll.rollNotation && (
-                <span className="ml-1 text-muted-foreground/70">({roll.rollNotation})</span>
-              )}
-            </p>
+            {isCombatEndMessage ? (
+              <div className="text-center">
+                <p className={cn(
+                  "text-lg font-bold tracking-wide",
+                  finalOutcome === 'victory' 
+                    ? "text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]"
+                    : "text-red-400 drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]"
+                )}>
+                  {finalOutcome === 'victory' ? '🎉 ¡VICTORIA! 🎉' : '💀 ¡DERROTA! 💀'}
+                </p>
+                <p className={cn(
+                  "text-sm font-semibold mt-2",
+                  finalOutcome === 'victory' ? "text-green-200" : "text-red-300"
+                )}>
+                  {roll.description || 'El combate ha finalizado.'}
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className="font-semibold leading-tight">
+                    {roll.roller}
+                </p>
+                <p className="text-xs font-semibold text-muted-foreground leading-tight">
+                  {roll.description}
+                  {roll.rollNotation && (
+                    <span className="ml-1 text-muted-foreground/70">({roll.rollNotation})</span>
+                  )}
+                </p>
+              </>
+            )}
             {/* Show special label for crits and fumbles */}
             {outcomeLabels[finalOutcome] && (
               <p className={cn(
@@ -197,36 +230,38 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
               </p>
             )}
         </div>
-        <div className="text-right">
-            <p className={cn(
-                "text-2xl font-bold font-mono leading-none",
-                finalOutcome === 'crit' && criticalStyles 
-                  ? criticalStyles.text 
-                  : outcomeTextStyles[finalOutcome]
-            )}>
-                {totalResult}
-            </p>
-            {showBreakdown ? (
-                <p className="text-xs font-mono text-muted-foreground text-right leading-tight">
-                    {roll.modifiers && roll.modifiers.length > 0 ? (
-                        // Show individual dice rolls + modifiers (e.g., "1+2+3" for 2d4+3 with rolls [1,2] and modifier 3)
-                        `${roll.individualRolls.join('+')}${roll.modifiers.map(mod => mod.value >= 0 ? `+${mod.value}` : `${mod.value}`).join('')}`
-                    ) : (
-                        // Fallback: use same format without spaces for consistency
-                        (() => {
-                            // Show individual dice rolls if multiple, or just the sum if single die
-                            const diceDisplay = roll.individualRolls.length > 1 
-                                ? roll.individualRolls.join('+')
-                                : roll.individualRolls[0]?.toString() || '0';
-                            const modifierStr = roll.modifier !== undefined 
-                                ? (roll.modifier >= 0 ? `+${roll.modifier}` : `${roll.modifier}`)
-                                : '';
-                            return `${diceDisplay}${modifierStr}`;
-                        })()
-                    )}
-                </p>
-            ) : null}
-        </div>
+        {!isCombatEndMessage && (
+          <div className="text-right">
+              <p className={cn(
+                  "text-2xl font-bold font-mono leading-none",
+                  finalOutcome === 'crit' && criticalStyles 
+                    ? criticalStyles.text 
+                    : outcomeTextStyles[finalOutcome]
+              )}>
+                  {totalResult}
+              </p>
+              {showBreakdown ? (
+                  <p className="text-xs font-mono text-muted-foreground text-right leading-tight">
+                      {roll.modifiers && roll.modifiers.length > 0 ? (
+                          // Show individual dice rolls + modifiers (e.g., "1+2+3" for 2d4+3 with rolls [1,2] and modifier 3)
+                          `${roll.individualRolls.join('+')}${roll.modifiers.map(mod => mod.value >= 0 ? `+${mod.value}` : `${mod.value}`).join('')}`
+                      ) : (
+                          // Fallback: use same format without spaces for consistency
+                          (() => {
+                              // Show individual dice rolls if multiple, or just the sum if single die
+                              const diceDisplay = roll.individualRolls.length > 1 
+                                  ? roll.individualRolls.join('+')
+                                  : roll.individualRolls[0]?.toString() || '0';
+                              const modifierStr = roll.modifier !== undefined 
+                                  ? (roll.modifier >= 0 ? `+${roll.modifier}` : `${roll.modifier}`)
+                                  : '';
+                              return `${diceDisplay}${modifierStr}`;
+                          })()
+                      )}
+                  </p>
+              ) : null}
+          </div>
+        )}
       </div>
     </div>
   );

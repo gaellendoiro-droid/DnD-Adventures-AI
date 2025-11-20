@@ -1,8 +1,8 @@
 # Plan: Mejora de Testabilidad y Refactorización
 
-**Versión:** 1.0.0  
+**Versión:** 1.1.0  
 **Fecha de creación:** 2025-11-15  
-**Estado:** 📝 Sin comenzar  
+**Estado:** 🚧 En curso  
 **Prioridad:** Media-Alta  
 **Dependencias:** Sistema de Unit Tests (✅ Completado)
 
@@ -33,11 +33,12 @@ Refactorizar la arquitectura del núcleo de la IA y la lógica de combate para m
 - Tests para módulos críticos (combat-validators, retry-utils, monster-name-manager, etc.)
 - Configuración de Vitest funcional
 - Documentación completa de testing
+- **Fase 2 (Parcial):** DI implementada en `processAICombatantRolls` (via `dice-roll-processor.ts`).
+- **Fase 3 (Completa):** Separación de lógica pura en `rules-engine.ts`, `turn-manager.ts`, `action-processor.ts`.
 
 **❌ Problemas Identificados:**
 - Tests de integración para combate completo fallan por problemas de mocking
-- Funciones como `processAICombatantRolls` tienen dependencias hardcodeadas
-- `combatManagerTool` es demasiado complejo y acoplado para testear fácilmente
+- `combatManagerTool` sigue teniendo dependencias hardcodeadas (`enemyTacticianTool`, etc.)
 - No es posible testear flujos completos de combate de forma aislada
 
 ### Beneficios Esperados
@@ -56,135 +57,44 @@ Refactorizar la arquitectura del núcleo de la IA y la lógica de combate para m
 
 **Concepto:** En lugar de que una función importe directamente sus dependencias, se las pasamos como argumentos. Esto permite "inyectar" mocks fácilmente en los tests.
 
-**Ejemplo Práctico:**
-
-```typescript
-// Antes (Acoplamiento Alto)
-import { diceRollerTool } from './dice-roller';
-
-export function miFuncionDeCombate(params) {
-  const tirada = await diceRollerTool(...);
-  // ...lógica
-}
-```
-
-```typescript
-// Después (Inyección de Dependencias)
-import { diceRollerTool } from './dice-roller';
-
-export function miFuncionDeCombate(params, roller = diceRollerTool) {
-  const tirada = await roller(...);
-  // ...lógica
-}
-
-// En el test:
-miFuncionDeCombate(params, mockDiceRoller);
-```
-
 **Funciones a Refactorizar:**
 
-1. **`processAICombatantRolls`** (parcialmente implementado)
-   - ✅ Ya tiene `diceRoller` como parámetro opcional
-   - ⚠️ Necesita verificación y documentación
+1. **`processAICombatantRolls`**
+   - ✅ **Completado:** Se ha implementado en `src/ai/tools/combat/dice-roll-processor.ts` aceptando `diceRoller` como argumento.
 
 2. **`combatManagerTool`**
-   - ❌ Dependencias hardcodeadas: `enemyTacticianTool`, `companionTacticianTool`, `getAdventureData`, `narrativeExpert`, `markdownToHtml`
+   - ❌ **Pendiente:** Dependencias hardcodeadas: `enemyTacticianTool`, `companionTacticianTool`, `getAdventureData`, `narrativeExpert`, `markdownToHtml`
    - **Solución:** Crear una interfaz de dependencias y pasarla como parámetro opcional
 
 3. **Funciones de validación y procesamiento**
-   - Revisar si hay más dependencias hardcodeadas que deban inyectarse
+   - ✅ **Completado:** La mayoría se han movido a módulos de lógica pura (`rules-engine.ts`).
 
 ### 2. Separación de Lógica Pura de Efectos Secundarios
 
 **Concepto:** Refactorizar funciones grandes como `combatManagerTool` para separar la "lógica pura" (cálculos de daño, cambios de estado) de los "efectos secundarios" (llamadas a la IA, tiradas de dados).
 
-**Beneficio:** Las funciones de lógica pura son triviales de testear: les das una entrada y compruebas la salida, sin necesidad de mocks.
-
-**Ejemplo:**
-
-```typescript
-// Antes (Lógica mezclada con efectos secundarios)
-async function processCombatTurn(state) {
-  const roll = await diceRollerTool(...); // Efecto secundario
-  const damage = calculateDamage(roll, state); // Lógica pura
-  state.hp -= damage; // Lógica pura
-  await updateUI(state); // Efecto secundario
-}
-
-// Después (Separación)
-// Lógica pura - fácil de testear
-function calculateDamage(roll, state) {
-  return roll.totalResult > state.ac ? roll.damage : 0;
-}
-
-function applyDamage(state, damage) {
-  return { ...state, hp: state.hp - damage };
-}
-
-// Función de orquestación - puede usar DI
-async function processCombatTurn(state, dependencies) {
-  const roll = await dependencies.roller(...);
-  const damage = calculateDamage(roll, state);
-  const newState = applyDamage(state, damage);
-  await dependencies.updateUI(newState);
-  return newState;
-}
-```
-
 **Funciones a Refactorizar:**
 
 1. **Cálculo de daño y aplicación**
-   - Extraer lógica de cálculo de daño a funciones puras
-   - Extraer lógica de aplicación de daño a funciones puras
+   - ✅ **Completado:** Extraído a `src/lib/combat/rules-engine.ts`.
 
 2. **Validación de estado de combate**
-   - Ya está parcialmente separado en `combat-validators.ts`
-   - Verificar si hay más lógica que pueda extraerse
+   - ✅ **Completado:** Extraído a `src/lib/combat/rules-engine.ts` y `combat-validators.ts`.
 
 3. **Gestión de turnos**
-   - Separar lógica de avance de turnos de efectos secundarios (llamadas a IA)
+   - ✅ **Completado:** Extraído a `src/lib/combat/turn-manager.ts`.
 
 ### 3. Preparación para Tests E2E
 
 **Concepto:** Una vez que el backend sea más predecible gracias a la DI, podremos escribir tests E2E que simulen a un usuario real en el navegador.
 
-**Ejemplo de Test E2E con Playwright:**
-
-```typescript
-test('combate completo - jugador mata goblin', async ({ page }) => {
-  // 1. Iniciar aplicación
-  await page.goto('/');
-  await page.click('button:has-text("Nueva Partida")');
-  
-  // 2. Iniciar combate
-  await page.fill('input[placeholder="Escribe tu acción..."]', 'Ataco al goblin');
-  await page.click('button:has-text("Enviar")');
-  
-  // 3. Verificar que el combate inició
-  await expect(page.locator('text=¡Comienza el Combate!')).toBeVisible();
-  
-  // 4. Verificar HP inicial
-  const goblinHP = await page.locator('[data-testid="goblin-1-hp"]').textContent();
-  expect(goblinHP).toBe('7 / 7');
-  
-  // 5. Procesar turno del jugador
-  await page.click('button:has-text("Pasar 1 Turno")');
-  
-  // 6. Verificar que el HP del goblin disminuyó
-  await expect(page.locator('[data-testid="goblin-1-hp"]')).toContainText('0 / 7');
-  
-  // 7. Verificar mensaje de fin de combate
-  await expect(page.locator('text=Todos los enemigos derrotados')).toBeVisible();
-});
-```
-
 **Preparaciones Necesarias:**
 
 1. **Añadir `data-testid` a elementos críticos de la UI**
-   - Botones de combate
-   - Indicadores de HP
-   - Mensajes del DM
-   - Indicadores de turno
+   - ❌ **Pendiente:** Botones de combate
+   - ❌ **Pendiente:** Indicadores de HP
+   - ❌ **Pendiente:** Mensajes del DM
+   - ❌ **Pendiente:** Indicadores de turno
 
 2. **Crear endpoints de testing (opcional)**
    - Endpoints que permitan inyectar estado inicial
@@ -198,11 +108,11 @@ test('combate completo - jugador mata goblin', async ({ page }) => {
 
 **Objetivo:** Identificar todas las dependencias hardcodeadas y planificar la refactorización.
 
-- [ ] Auditar `combatManagerTool` para identificar todas las dependencias
-- [ ] Auditar `processAICombatantRolls` (ya parcialmente implementado)
-- [ ] Identificar funciones con lógica pura mezclada con efectos secundarios
-- [ ] Crear lista priorizada de funciones a refactorizar
-- [ ] Documentar estrategia de DI para cada función
+- [x] Auditar `combatManagerTool` para identificar todas las dependencias
+- [x] Auditar `processAICombatantRolls` (ya parcialmente implementado)
+- [x] Identificar funciones con lógica pura mezclada con efectos secundarios
+- [x] Crear lista priorizada de funciones a refactorizar
+- [x] Documentar estrategia de DI para cada función
 
 **Estimación:** 4-6 horas
 
@@ -210,7 +120,7 @@ test('combate completo - jugador mata goblin', async ({ page }) => {
 
 **Objetivo:** Refactorizar funciones clave para aceptar dependencias inyectadas.
 
-- [ ] Completar DI en `processAICombatantRolls` (verificar y documentar)
+- [x] Completar DI en `processAICombatantRolls` (verificar y documentar)
 - [ ] Implementar DI en `combatManagerTool`
   - [ ] Crear interfaz `CombatManagerDependencies`
   - [ ] Refactorizar para aceptar dependencias como parámetro opcional
@@ -224,11 +134,11 @@ test('combate completo - jugador mata goblin', async ({ page }) => {
 
 **Objetivo:** Extraer funciones puras que sean fáciles de testear.
 
-- [ ] Extraer funciones de cálculo de daño
-- [ ] Extraer funciones de aplicación de daño
-- [ ] Extraer funciones de validación de estado
-- [ ] Extraer funciones de gestión de turnos (lógica pura)
-- [ ] Crear tests unitarios para todas las funciones puras extraídas
+- [x] Extraer funciones de cálculo de daño
+- [x] Extraer funciones de aplicación de daño
+- [x] Extraer funciones de validación de estado
+- [x] Extraer funciones de gestión de turnos (lógica pura)
+- [x] Crear tests unitarios para todas las funciones puras extraídas
 
 **Estimación:** 8-12 horas
 
@@ -286,48 +196,6 @@ export async function combatManagerTool(
 }
 ```
 
-**Ventajas:**
-- Compatibilidad hacia atrás (código existente sigue funcionando)
-- Fácil de mockear en tests
-- No requiere framework de DI complejo
-
-### Separación de Lógica Pura
-
-**Principio:** Una función pura:
-- Dado los mismos inputs, siempre produce los mismos outputs
-- No tiene efectos secundarios (no modifica estado externo, no hace llamadas a API, etc.)
-- Es fácil de testear (no requiere mocks)
-
-**Ejemplo de Función Pura:**
-
-```typescript
-// ✅ Función pura - fácil de testear
-function calculateDamage(attackRoll: number, targetAC: number, damageRoll: number): number {
-  if (attackRoll >= targetAC) {
-    return damageRoll;
-  }
-  return 0;
-}
-
-// Test trivial
-test('calculateDamage - hit applies damage', () => {
-  expect(calculateDamage(18, 15, 5)).toBe(5);
-});
-
-test('calculateDamage - miss applies no damage', () => {
-  expect(calculateDamage(12, 15, 5)).toBe(0);
-});
-```
-
-### Compatibilidad Hacia Atrás
-
-**Importante:** Todos los cambios deben mantener compatibilidad hacia atrás. El código existente debe seguir funcionando sin modificaciones.
-
-**Estrategia:**
-- Usar parámetros opcionales con defaults
-- No cambiar firmas de funciones públicas
-- Mantener exports existentes
-
 ---
 
 ## 📊 Métricas de Éxito
@@ -351,38 +219,6 @@ test('calculateDamage - miss applies no damage', () => {
 - ✅ Dependencias inyectadas en funciones críticas
 - ✅ Cobertura de tests mantenida o mejorada
 - ✅ Sin regresiones (todos los tests existentes pasan)
-
----
-
-## ⚠️ Riesgos y Mitigaciones
-
-### Riesgo 1: Introducir Bugs Durante Refactorización
-
-**Problema:** Cambios extensos pueden introducir bugs.
-
-**Mitigación:**
-- Refactorizar en pasos pequeños
-- Ejecutar tests después de cada cambio
-- Mantener compatibilidad hacia atrás
-- Code review cuidadoso
-
-### Riesgo 2: Sobrecarga de Parámetros
-
-**Problema:** Funciones con muchos parámetros pueden ser difíciles de usar.
-
-**Mitigación:**
-- Agrupar dependencias en objetos/interfaces
-- Usar defaults sensatos
-- Documentar bien el uso
-
-### Riesgo 3: Tiempo de Implementación
-
-**Problema:** Refactorización puede tomar más tiempo del estimado.
-
-**Mitigación:**
-- Implementar en fases
-- Priorizar funciones más críticas primero
-- Validar beneficios después de cada fase
 
 ---
 
@@ -428,7 +264,6 @@ test('calculateDamage - miss applies no damage', () => {
 
 ---
 
-**Última actualización:** 2025-11-15  
-**Estado:** 📝 Sin comenzar  
+**Última actualización:** 2025-11-20  
+**Estado:** 🚧 En curso  
 **Prioridad:** Media-Alta
-

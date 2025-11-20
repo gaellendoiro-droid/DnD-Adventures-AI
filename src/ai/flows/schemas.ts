@@ -72,13 +72,44 @@ export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
 
 // To-Do: This will replace GameCoordinatorInputSchema
 export const GameStateSchema = z.object({
-    playerAction: z.string(),
-    party: z.array(CharacterSchema),
-    locationId: z.string(),
-    inCombat: z.boolean(),
-    conversationHistory: z.array(z.any()), // This is an array of GameMessage objects
-    turnIndex: z.number().optional(),
-    initiativeOrder: z.array(z.any()).optional(), // This represents Combatant[]
-    enemies: z.array(z.any()).optional(),
-  });
+  playerAction: z.string(),
+  party: z.array(CharacterSchema),
+  locationId: z.string(),
+  inCombat: z.boolean(),
+  conversationHistory: z.array(z.any()), // This is an array of GameMessage objects
+  turnIndex: z.number().optional(),
+  initiativeOrder: z.array(z.any()).optional(), // This represents Combatant[]
+  enemies: z.array(z.any()).optional(),
+});
 export type GameState = z.infer<typeof GameStateSchema>;
+
+// Schema for the exploration expert
+export const ExplorationExpertInputSchema = z.object({
+  playerAction: z.string().describe('The action taken by the player.'),
+  locationId: z.string().describe('The ID of the current location.'),
+  locationContext: z.string().describe('A JSON string with the full data of the current location, including its description, exits, and interactable objects.'),
+  interpretedAction: z.string().describe("A JSON string of the structured interpretation of the player's action."),
+});
+export type ExplorationExpertInput = z.infer<typeof ExplorationExpertInputSchema>;
+
+export const ExplorationExpertOutputSchema = z.object({
+  explorationNarration: z.string().describe("The descriptive narration of the environment and the result of the exploration action."),
+  debugLogs: z.array(z.string()).optional(),
+});
+export type ExplorationExpertOutput = z.infer<typeof ExplorationExpertOutputSchema>;
+
+// Schema for the interaction expert
+export const InteractionExpertInputSchema = z.object({
+  playerAction: z.string().describe('The action taken by the player.'),
+  npcContext: z.string().describe('A JSON string with the data of the NPCs present, including their personality, attitude, and secrets.'),
+  conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation."),
+  interpretedAction: z.string().describe("A JSON string of the structured interpretation of the player's action."),
+});
+export type InteractionExpertInput = z.infer<typeof InteractionExpertInputSchema>;
+
+export const InteractionExpertOutputSchema = z.object({
+  npcResponse: z.string().describe("The dialogue and actions of the NPC(s) in response to the player."),
+  attitudeChange: z.string().optional().describe("If the NPC's attitude changed, describe the new attitude and why."),
+  debugLogs: z.array(z.string()).optional(),
+});
+export type InteractionExpertOutput = z.infer<typeof InteractionExpertOutputSchema>;
