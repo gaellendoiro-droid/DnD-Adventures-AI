@@ -31,6 +31,7 @@ El proyecto sigue un modelo cliente-servidor claramente separado:
 - **IA:** Google Gemini 2.5 Flash
 - **Comunicación:** Next.js Server Actions
 - **Responsabilidad:** Lógica del juego, toma de decisiones y generación de narrativa
+- **Arquitectura de Combate:** `CombatSession` (patrón State Object) encapsula todo el estado del combate
 
 ## Flujo de Comunicación
 
@@ -86,6 +87,8 @@ Usuario → Frontend → Server Action → Backend IA → Respuesta → Frontend
 - **`ai/flows/action-interpreter.ts`:** Interpreta acciones del jugador
 - **`ai/flows/narrative-expert.ts`:** Genera narrativa
 - **`ai/tools/`:** Herramientas especializadas (combate, dados, etc.)
+- **`lib/combat/combat-session.ts`:** Clase principal que encapsula el estado del combate (patrón State Object)
+- **`lib/combat/`:** Módulos especializados de combate (rules-engine, turn-manager, action-processor, etc.)
 
 ## Flujo de un Turno Típico
 
@@ -96,6 +99,8 @@ graph TD
     C --> D[Backend: gameCoordinator]
     D --> E{¿Tipo de Acción?}
     E -->|Combate| F[combatManagerTool]
+    F --> F1[CombatSession]
+    F1 --> F2[Inicializar/Procesar Turno]
     E -->|Narrativa| G[actionInterpreter]
     G --> H[narrativeExpert]
     H --> I[companionExpertTool]
@@ -144,4 +149,6 @@ El estado completo del juego se mantiene en el frontend y se envía al backend e
 - [Arquitectura del Backend IA](./arquitectura-backend.md) - Detalles del servidor
 - [Flujo de Datos](./flujo-datos.md) - Diagramas detallados
 - [Referencia API](./referencia-api.md) - Contratos de datos
+- [CombatSession - Guía de Uso](./combat-session-guia.md) - Guía completa de uso de CombatSession
+- [CombatSession - Diseño](./combat-session-design.md) - Diseño detallado y decisiones arquitectónicas
 

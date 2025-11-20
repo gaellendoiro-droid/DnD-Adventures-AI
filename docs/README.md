@@ -17,6 +17,8 @@ Bienvenido a la documentación del proyecto. Esta carpeta contiene toda la infor
 - [Flujo de Datos](./arquitectura/flujo-datos.md) - Cómo fluyen los datos en la aplicación
 - [Sistema de Logging](./arquitectura/sistema-logging.md) - Sistema de logs estructurado
 - [Patrones de Dependency Injection](./arquitectura/patrones-dependency-injection.md) - Patrón DI implementado para testabilidad
+- [CombatSession - Guía de Uso](./arquitectura/combat-session-guia.md) - Guía completa de uso de CombatSession
+- [CombatSession - Diseño](./arquitectura/combat-session-design.md) - Diseño detallado y decisiones arquitectónicas
 
 ### Testing
 - [Sistema de Testing](./testing/README.md) - Documentación completa del sistema de testing

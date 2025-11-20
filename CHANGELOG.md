@@ -15,7 +15,25 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+---
+
+## [0.5.5] - 2025-01-20
+
 ### Added
+- **✅ Refactorización CombatSession - State Object Pattern - COMPLETADO (2025-01-20):**
+  - **Nueva clase `CombatSession`:** Implementación del patrón State Object para encapsular todo el estado del combate
+  - **Reducción masiva de complejidad:** `combat-manager.ts` reducido de ~926 líneas a ~165 líneas (reducción del ~80%)
+  - **Arquitectura simplificada:** Flujo de 3 pasos: Hidratar → Inicializar/Procesar → Serializar
+  - **Eliminación de `debugLogs`:** Removido del output y del estado (panel DebugLog deprecado)
+  - **Tests completos:** 36 tests unitarios + 16 tests de integración (100% pasando)
+  - **Documentación completa:** JSDoc completo, guía de uso, y documentación de arquitectura actualizada
+  - **Mejoras de mantenibilidad:**
+    - Estado centralizado en una sola clase
+    - Métodos con responsabilidades únicas
+    - Testabilidad mejorada con estado encapsulado
+    - Logging estructurado usando `@/lib/logger`
+  - **Compatibilidad mantenida:** DI completamente funcional, todos los tests existentes pasando
+  - **Plan completado:** Todas las 7 fases implementadas y documentadas
 - **✅ Mejora de Testabilidad y Refactorización (2025-01-20) – Objetivos principales logrados:**
   - **Inyección de Dependencias completa:** `processAICombatantRolls` y `combatManagerTool` ahora aceptan dependencias inyectables a través de `executeCombatManager` + wrapper Genkit
   - **Código desacoplado:** Lógica pura consolidada en `rules-engine.ts`, `turn-manager.ts`, `action-processor.ts`

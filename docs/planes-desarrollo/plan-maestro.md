@@ -8,15 +8,32 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** Ninguno activo | **Última implementación:** Mejora de Testabilidad y Refactorización (2025-01-20)
+**Estado:** Ninguno activo | **Última implementación:** Refactorización CombatSession - State Object Pattern (2025-01-20) - COMPLETADO
 
 ---
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 8 planes
+**Estado:** Finalizados | **Cantidad:** 10 planes
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Refactorización CombatSession - State Object Pattern](completados/refactorizacion-combat-session-state.md) ✅ **COMPLETADO**
+- **Estado:** Todas las 7 fases completadas y documentadas
+- **Objetivo:** Refactorizar `combat-manager.ts` usando patrón State Object para encapsular estado del combate
+- **Prioridad:** Media-Alta
+- **Resultados:**
+  - ✅ Nueva clase `CombatSession` implementada con patrón State Object
+  - ✅ Reducción masiva: `combat-manager.ts` de ~926 → ~165 líneas (~80% reducción)
+  - ✅ Arquitectura simplificada: Flujo de 3 pasos (Hidratar → Inicializar/Procesar → Serializar)
+  - ✅ Eliminación de `debugLogs`: Removido del output y estado (panel DebugLog deprecado)
+  - ✅ Tests completos: 36 tests unitarios + 16 tests de integración (100% pasando)
+  - ✅ Documentación completa: JSDoc, guía de uso, y documentación de arquitectura
+  - ✅ Mejoras de mantenibilidad: Estado centralizado, métodos con responsabilidades únicas, testabilidad mejorada
+  - ✅ Compatibilidad mantenida: DI completamente funcional, todos los tests existentes pasando
+- **Fecha de finalización:** 2025-01-20
+- **Tiempo invertido:** ~30 horas
+- **Referencia:** [Plan Detallado](completados/refactorizacion-combat-session-state.md)
 
 ### [Mejora de Testabilidad y Refactorización](completados/mejora-testabilidad-refactorizacion.md) ✅ **COMPLETADO PARCIAL**
 - **Estado:** Objetivos principales logrados (DI y refactorización completadas; Fases 4-5 pospuestas)
@@ -238,7 +255,8 @@ Planes identificados pero aún no iniciados:
 
 ### Prioridad Alta
 
-1. **✅ Refactorización del Módulo `combat-manager.ts` (Fases 1-2)** - Reducción de 2723 → 1235 líneas (54.6%), Issues #21 y #16 resueltos - **COMPLETADO (Fase 3 pausada)**
+1. **✅ Refactorización CombatSession - State Object Pattern** - Reducción de ~926 → ~165 líneas (~80%), patrón State Object implementado, 52 tests pasando - **COMPLETADO**
+2. **✅ Refactorización del Módulo `combat-manager.ts` (Fases 1-2)** - Reducción de 2723 → 1235 líneas (54.6%), Issues #21 y #16 resueltos - **COMPLETADO (Fase 3 pausada)**
 3. **Sistema de Progresión y Gestión** - XP, niveles, inventario, persistencia con base de datos
 4. **Sistema de Inicio de Combate Dinámico** - Evaluación automática de hostilidad
 5. **Mejora de Estructura de Fichas de Personajes** - Mejor organización y visualización de datos
@@ -283,6 +301,7 @@ Planes identificados pero aún no iniciados:
 
 ### ✅ Logros Recientes
 
+- **Refactorización CombatSession - State Object Pattern:** ✅ Completado - Reducción de ~926 → ~165 líneas (~80%), patrón State Object implementado, 52 tests pasando (100%), documentación completa
 - **Mejora de Testabilidad y Refactorización:** ✅ Objetivos principales logrados - DI completa en `combatManagerTool`, refactorización de lógica pura finalizada, documentación de patrones DI creada
 - **Plan de Testeo v0.5.0:** ✅ Completado - 20/20 tests completados, verificación exhaustiva de todas las funcionalidades de v0.5.0, 3 bugs corregidos durante el testeo
 - **Sistema de Turnos Paso a Paso:** ✅ 100% Completado - Control total del jugador sobre el avance de turnos, botones "Pasar 1 Turno" y "Avanzar Todos", 68 unit tests + 38 integration tests, indicadores visuales y animaciones implementadas
@@ -334,7 +353,8 @@ Planes identificados pero aún no iniciados:
 - ✅ Manejo de inconsciencia y muerte masiva
 
 **Calidad del Código:**
-- ✅ Refactorización mayor de `combat-manager.ts` (54.6% de reducción)
+- ✅ Refactorización CombatSession - State Object Pattern completada (~80% reducción adicional)
+- ✅ Refactorización mayor de `combat-manager.ts` (94% de reducción total: 2723 → ~165 líneas)
 - ✅ Sistema de esquemas unificado y robusto
 - ✅ Saneamiento general completado (10 issues corregidos)
 - ✅ Sistema de logging centralizado
@@ -364,9 +384,10 @@ Planes identificados pero aún no iniciados:
 ### Métricas Clave
 
 **Código:**
-- Reducción de `combat-manager.ts`: 2723 → ~800 líneas (~70%)
-- Módulos especializados creados: 9
+- Reducción de `combat-manager.ts`: 2723 → ~165 líneas (~94% total)
+- Módulos especializados creados: 9 + CombatSession (nueva clase principal)
 - Código duplicado eliminado: ~1900 líneas
+- Arquitectura simplificada: Flujo de 3 pasos (Hidratar → Inicializar/Procesar → Serializar)
 
 **Testing:**
 - Tests unitarios: 68
@@ -387,6 +408,7 @@ Planes identificados pero aún no iniciados:
 ### Notas Importantes
 
 - El plan de **Refactorización de `combat-manager.ts`** está parcialmente completado (Fases 1-2). La Fase 3 está pausada y puede retomarse en el futuro si es necesaria.
+- El plan de **Refactorización CombatSession - State Object Pattern** está completamente completado. Todas las 7 fases implementadas, documentación completa, y 52 tests pasando (100%).
 - El plan de **Mejora de Testabilidad** se completó parcialmente (DI y refactorización listas, fases de UI/documentación pospuestas) y sirve como prerequisito cumplido para el plan de Testing Integración y E2E.
 - Todos los planes completados están documentados con referencias a sus planes detallados para consulta completa.
 
