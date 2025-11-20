@@ -417,6 +417,120 @@ vi.useRealTimers();
 
 ---
 
+## 🔌 Dependency Injection (DI) en Tests
+
+### ¿Qué es Dependency Injection?
+
+La **Inyección de Dependencias (DI)** es un patrón de diseño que permite pasar dependencias a una función como parámetros en lugar de importarlas directamente. Esto hace que el código sea más testeable porque puedes "inyectar" mocks fácilmente en los tests.
+
+### Patrón Implementado en el Proyecto
+
+El proyecto utiliza **DI con parámetros opcionales y defaults** para mantener compatibilidad hacia atrás:
+
+```typescript
+// Definir interfaz de dependencias
+interface CombatManagerDependencies {
+  diceRollerTool: typeof diceRollerTool;
+  enemyTacticianTool: typeof enemyTacticianTool;
+  // ... otras dependencias
+}
+
+// Función con DI
+export async function executeCombatManager(
+  input: CombatManagerInput,
+  dependencies?: Partial<CombatManagerDependencies>
+) {
+  // Merge con defaults
+  const deps: CombatManagerDependencies = {
+    diceRollerTool,
+    enemyTacticianTool,
+    // ... defaults
+    ...dependencies, // Sobrescribir con mocks en tests
+  };
+  
+  // Usar deps.diceRollerTool, deps.enemyTacticianTool, etc.
+}
+
+// Wrapper de Genkit mantiene compatibilidad
+export const combatManagerTool = ai.defineTool(
+  { /* ... */ },
+  async (input) => executeCombatManager(input)
+);
+```
+
+### Uso en Tests
+
+#### Opción 1: DI Explícita (Recomendada para tests de integración)
+
+```typescript
+import { executeCombatManager } from '@/ai/tools/combat-manager';
+
+describe('CombatManager with DI', () => {
+  it('should work with mocked dependencies', async () => {
+    // Crear mocks
+    const mockDiceRoller = vi.fn().mockResolvedValue({
+      totalResult: 20,
+      outcome: 'crit'
+    });
+    
+    const mockNarration = vi.fn().mockResolvedValue({
+      narration: "Epic combat description"
+    });
+
+    // Llamar con DI explícita
+    const result = await executeCombatManager(input, {
+      diceRollerTool: mockDiceRoller as any,
+      combatNarrationExpertTool: mockNarration as any,
+    });
+
+    // Verificar que mocks fueron llamados
+    expect(mockDiceRoller).toHaveBeenCalled();
+    expect(mockNarration).toHaveBeenCalled();
+    
+    // Verificar resultado
+    expect(result.messages).toContainEqual(
+      expect.objectContaining({ content: expect.stringContaining('crítico') })
+    );
+  });
+});
+```
+
+#### Opción 2: Mocks de Módulo (Para tests simples)
+
+```typescript
+// Mock a nivel de módulo
+vi.mock('@/ai/tools/dice-roller', () => ({
+  diceRollerTool: vi.fn().mockResolvedValue({
+    totalResult: 18,
+    outcome: 'success'
+  })
+}));
+
+// El código usa los mocks automáticamente
+const result = await combatManagerTool(input);
+```
+
+### Funciones con DI Implementada
+
+Las siguientes funciones soportan DI y pueden ser mockeadas fácilmente:
+
+- ✅ `executeCombatManager()` - Función principal de gestión de combate
+- ✅ `processAICombatantRolls()` - Procesamiento de tiradas de IA
+
+### Beneficios de DI
+
+1. **Tests más aislados**: Cada test controla exactamente qué dependencias usa
+2. **Mockeo fácil**: No necesitas mockear módulos completos
+3. **Tests más rápidos**: Puedes mockear llamadas costosas (IA, APIs)
+4. **Mejor cobertura**: Puedes testear escenarios específicos fácilmente
+
+### Cuándo Usar Cada Enfoque
+
+- **DI Explícita**: Para tests de integración complejos donde necesitas control fino
+- **Mocks de Módulo**: Para tests simples donde el comportamiento por defecto es suficiente
+
+---
+
 ## 📊 Mejores Prácticas
 
 ### 1. Organización
@@ -459,8 +573,16 @@ it('should calculate damage correctly', () => {
 - Evitar operaciones lentas (I/O, network)
 - Usar mocks para dependencias externas
 - Tests unitarios deben ejecutarse en < 1 segundo
+- **Usar DI para mockear dependencias costosas** (llamadas a IA, APIs)
 
-### 6. Mantenibilidad
+### 6. Dependency Injection
+
+- **Usar DI explícita** para tests de integración complejos
+- **Preferir DI sobre mocks de módulo** cuando necesites control fino
+- **Documentar dependencias inyectables** en el código
+- **Mantener compatibilidad hacia atrás** con defaults a implementaciones reales
+
+### 7. Mantenibilidad
 
 - Tests deben ser fáciles de leer y entender
 - Evitar lógica compleja en tests

@@ -1,6 +1,6 @@
 
 process.env.GOOGLE_API_KEY = 'dummy';
-import { combatManagerTool } from '../../src/ai/tools/combat-manager';
+import { combatManagerTool, executeCombatManager } from '../../src/ai/tools/combat-manager';
 import { describe, it, expect, vi, beforeEach } from 'vitest'; // Assuming vitest or jest
 import { Combatant } from '../../src/lib/types';
 
@@ -36,6 +36,17 @@ vi.mock('../../src/ai/flows/narrative-manager', () => ({
         dmNarration: "Narración simulada del combate.",
         debugLogs: []
     })
+}));
+
+vi.mock('../../src/ai/tools/combat/combat-narration-expert', () => ({
+    combatNarrationExpertTool: vi.fn().mockResolvedValue({
+        narration: "Una descripción épica del combate.",
+        debugLogs: []
+    })
+}));
+
+vi.mock('../../src/ai/flows/markdown-to-html', () => ({
+    markdownToHtml: vi.fn().mockImplementation((markdown) => Promise.resolve(markdown))
 }));
 
 vi.mock('../../src/ai/tools/enemy-tactician', () => ({
@@ -78,6 +89,14 @@ describe('CombatManager Integration', () => {
                 sabiduría: 12,
                 carisma: 10
             },
+            abilityModifiers: {
+                fuerza: 3,
+                destreza: 2,
+                constitución: 2,
+                inteligencia: 0,
+                sabiduría: 1,
+                carisma: 0
+            },
             skills: [{ name: 'Atletismo', proficient: true }],
             proficiencyBonus: 2,
             isDead: false,
@@ -115,7 +134,7 @@ describe('CombatManager Integration', () => {
             locationId: 'loc-1',
             interpretedAction: {
                 actionType: 'attack' as const,
-                target: 'goblin-1',
+                targetId: 'goblin-1',
                 detectedEntity: 'Goblin'
             },
             locationContext: { description: 'Arena' },
@@ -155,5 +174,98 @@ describe('CombatManager Integration', () => {
         // Verify messages
         const damageMessage = result.messages.find((m: any) => m.content.includes('5 puntos de daño'));
         expect(damageMessage).toBeDefined();
+    });
+
+    it('should work with explicit Dependency Injection', async () => {
+        // Create mock dependencies
+        const mockDiceRoller = vi.fn().mockImplementation(async (input) => {
+            if (input.rollNotation.includes('1d20')) {
+                return {
+                    totalResult: 20, // Critical hit!
+                    outcome: 'crit',
+                    rollNotation: input.rollNotation,
+                    individualRolls: [{ result: 20 }]
+                };
+            }
+            // For critical hits, damage dice are doubled (e.g., 2d8 instead of 1d8)
+            if (input.rollNotation.includes('2d8')) {
+                return {
+                    totalResult: 12, // Enough to kill (10 HP goblin)
+                    outcome: 'crit',
+                    rollNotation: input.rollNotation,
+                    individualRolls: [{ result: 6 }, { result: 6 }]
+                };
+            }
+            if (input.rollNotation.includes('1d8') || input.rollNotation.includes('1d6')) {
+                return {
+                    totalResult: 6, // Regular damage
+                    outcome: 'success',
+                    rollNotation: input.rollNotation,
+                    individualRolls: [{ result: 6 }]
+                };
+            }
+            return { totalResult: 10, outcome: 'success' };
+        });
+
+        const mockCombatNarration = vi.fn().mockResolvedValue({
+            narration: "¡Un golpe crítico devastador!",
+            debugLogs: []
+        });
+
+        const mockUpdateRollNotation = vi.fn();
+
+        const input = {
+            playerAction: 'Ataco al goblin con todas mis fuerzas',
+            inCombat: true,
+            locationId: 'loc-1',
+            interpretedAction: {
+                actionType: 'attack' as const,
+                targetId: 'goblin-1',
+                detectedEntity: 'Goblin'
+            },
+            locationContext: { description: 'Arena' },
+            conversationHistory: [],
+            combatantIds: ['player-1', 'goblin-1'],
+            party: mockParty,
+            initiativeOrder: mockInitiativeOrder,
+            enemies: mockEnemies,
+            turnIndex: 0
+        };
+
+        // Call executeCombatManager directly with DI
+        const result = await executeCombatManager(input, {
+            diceRollerTool: mockDiceRoller as any,
+            combatNarrationExpertTool: mockCombatNarration as any,
+            updateRollNotationWithModifiers: mockUpdateRollNotation as any,
+        });
+
+        console.log('\n--- COMBAT SIMULATION RESULT (with DI) ---');
+        console.log('Messages:');
+        result.messages.forEach((m: any) => console.log(`[${m.sender}]: ${m.content}`));
+
+        const updatedGoblin = result.updatedEnemies?.find((e: any) => e.uniqueId === 'goblin-1');
+        console.log('\nEnemy Status:');
+        console.log(`Goblin HP: ${updatedGoblin?.hp.current}/${updatedGoblin?.hp.max}`);
+        console.log('--------------------------------\n');
+
+        // Verify critical hit killed the goblin
+        const updatedGoblinHP = result.updatedEnemies?.find((e: any) => e.uniqueId === 'goblin-1');
+        expect(updatedGoblinHP).toBeDefined();
+        // Initial 10 HP, critical hit damage 12 (2d8 + modifier) -> Dead (0 HP)
+        expect(updatedGoblinHP.hp.current).toBe(0);
+
+        // Verify mocks were called
+        expect(mockDiceRoller).toHaveBeenCalled();
+        expect(mockCombatNarration).toHaveBeenCalled();
+
+        // Verify critical hit and kill messages
+        const critMessage = result.messages.find((m: any) => m.content.includes('crítico'));
+        expect(critMessage).toBeDefined();
+        
+        const killMessage = result.messages.find((m: any) => m.content.includes('matado'));
+        expect(killMessage).toBeDefined();
+        
+        // Verify combat ended
+        expect(result.inCombat).toBe(false);
     });
 });

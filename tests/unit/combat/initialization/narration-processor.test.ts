@@ -3,7 +3,7 @@ import { NarrationProcessor } from '../../../../src/lib/combat/initialization/na
 
 vi.mock('../../../../src/lib/combat/monster-name-manager', () => ({
     replaceOrdinalReferences: vi.fn((text) => text),
-    escapeRegex: vi.fn((str) => str.replace(/[.*+?^${}()|[\]\]/g, '\\$&'))
+    escapeRegex: vi.fn((str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
 }));
 
 describe('NarrationProcessor', () => {

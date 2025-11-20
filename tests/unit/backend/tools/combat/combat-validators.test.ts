@@ -1,5 +1,5 @@
 /**
- * Unit tests for combat-validators.ts
+ * Unit tests for combat rules-engine.ts (previously combat-validators.ts)
  * Tests HP validation, character state checking, and combat end detection
  */
 
@@ -9,7 +9,7 @@ import {
   validateAndClampHP,
   isUnconsciousOrDead,
   checkEndOfCombat,
-} from '@/ai/tools/combat/combat-validators';
+} from '@/lib/combat/rules-engine';
 
 describe('getHpStatus', () => {
   it('should return "Healthy" for HP >= 90%', () => {

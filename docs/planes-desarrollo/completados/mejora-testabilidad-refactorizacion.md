@@ -322,9 +322,11 @@ const result = await executeCombatManager(input, {
 
 ## 🔗 Referencias
 
-- [Documentación de Testing](../testing/README.md) - Sistema de testing actual
-- [Plan de Testing Integración y E2E](sistema-testing-integracion-e2e.md) - Plan que depende de este
-- [Refactorización del Módulo combat-manager.ts](../completados/refactorizacion-combat-manager.md) - Refactorización anterior
+- [Documentación de Testing](../testing/README.md) - Sistema de testing actual (incluye sección sobre DI)
+- [Guía Rápida de Testing](../testing/guia-rapida.md) - Ejemplos rápidos de DI en tests
+- [Patrones de Dependency Injection](../arquitectura/patrones-dependency-injection.md) - Documentación completa del patrón DI implementado
+- [Plan de Testing Integración y E2E](../sin-comenzar/sistema-testing-integracion-e2e.md) - Plan que depende de este
+- [Refactorización del Módulo combat-manager.ts](./plan-refactorizacion-combat-manager.md) - Refactorización anterior
 - [Inyección de Dependencias - Wikipedia](https://en.wikipedia.org/wiki/Dependency_injection) - Concepto general
 
 ---

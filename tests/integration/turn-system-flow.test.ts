@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { isUnconsciousOrDead, checkEndOfCombat } from '@/ai/tools/combat/combat-validators';
+import { isUnconsciousOrDead, checkEndOfCombat } from '@/lib/combat/rules-engine';
 import type { Combatant, Character } from '@/lib/types';
 
 describe('Flujo Completo del Sistema de Turnos', () => {

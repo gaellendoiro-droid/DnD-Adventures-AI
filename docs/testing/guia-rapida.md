@@ -91,6 +91,32 @@ describe('fetchData', () => {
 });
 ```
 
+### Test con Dependency Injection
+
+```typescript
+import { describe, it, expect, vi } from 'vitest';
+import { executeCombatManager } from '@/ai/tools/combat-manager';
+
+describe('CombatManager with DI', () => {
+  it('should work with mocked dependencies', async () => {
+    // Crear mocks
+    const mockDiceRoller = vi.fn().mockResolvedValue({
+      totalResult: 20,
+      outcome: 'crit'
+    });
+
+    // Llamar con DI explícita
+    const result = await executeCombatManager(input, {
+      diceRollerTool: mockDiceRoller as any,
+    });
+
+    // Verificar
+    expect(mockDiceRoller).toHaveBeenCalled();
+    expect(result.messages).toBeDefined();
+  });
+});
+```
+
 ### Test con Timers
 
 ```typescript

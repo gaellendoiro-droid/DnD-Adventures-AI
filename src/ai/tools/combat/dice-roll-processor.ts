@@ -16,7 +16,7 @@ import {
     validateAndClampHP,
     isUnconsciousOrDead,
     checkEndOfCombat,
-} from './combat-validators';
+} from '@/lib/combat/rules-engine';
 
 /**
  * Duplicates damage dice for critical hits according to D&D 5e rules.

@@ -16,6 +16,7 @@ Bienvenido a la documentación del proyecto. Esta carpeta contiene toda la infor
 - [Arquitectura Backend IA](./arquitectura/arquitectura-backend.md) - Flujos y herramientas de IA
 - [Flujo de Datos](./arquitectura/flujo-datos.md) - Cómo fluyen los datos en la aplicación
 - [Sistema de Logging](./arquitectura/sistema-logging.md) - Sistema de logs estructurado
+- [Patrones de Dependency Injection](./arquitectura/patrones-dependency-injection.md) - Patrón DI implementado para testabilidad
 
 ### Testing
 - [Sistema de Testing](./testing/README.md) - Documentación completa del sistema de testing

@@ -35,6 +35,22 @@ import { CombatTurnManager } from '@/lib/combat/turn-manager';
 import { CombatActionProcessor } from '@/lib/combat/action-processor';
 import { CombatInitializer } from '@/lib/combat/combat-initializer';
 
+/**
+ * Dependencies interface for Dependency Injection in combatManagerTool.
+ * Allows mocking dependencies in tests while maintaining backward compatibility.
+ */
+export interface CombatManagerDependencies {
+    diceRollerTool: typeof diceRollerTool;
+    enemyTacticianTool: typeof enemyTacticianTool;
+    companionTacticianTool: typeof companionTacticianTool;
+    combatNarrationExpertTool: typeof combatNarrationExpertTool;
+    processAICombatantRolls: typeof processAICombatantRolls;
+    updateRollNotationWithModifiers: typeof updateRollNotationWithModifiers;
+    // Lazy-loaded dependencies (loaded dynamically during combat initialization)
+    narrativeExpert?: any;
+    markdownToHtml?: any;
+}
+
 export const CombatManagerInputSchema = GameStateSchema.extend({
     interpretedAction: ActionInterpreterOutputSchema.optional(),
     locationContext: z.any().optional(),
@@ -94,14 +110,28 @@ export const CombatManagerOutputSchema = z.object({
 });
 
 
-export const combatManagerTool = ai.defineTool(
-    {
-        name: 'combatManagerTool',
-        description: 'Manages a sequence of turns in combat, starting from the current turn, until it is a human player\'s turn again or combat ends. It also handles the initiation of combat.',
-        inputSchema: CombatManagerInputSchema,
-        outputSchema: CombatManagerOutputSchema,
-    },
-    async (input) => {
+/**
+ * Core combat manager logic with Dependency Injection support.
+ * This function contains all the combat management logic and accepts dependencies as parameters.
+ * 
+ * @param input - The combat manager input (game state, player action, etc.)
+ * @param dependencies - Optional dependencies for DI (defaults to real implementations)
+ * @returns Combat manager output (messages, dice rolls, updated state, etc.)
+ */
+export async function executeCombatManager(
+    input: z.infer<typeof CombatManagerInputSchema>,
+    dependencies?: Partial<CombatManagerDependencies>
+) {
+    // Merge provided dependencies with defaults
+    const deps: CombatManagerDependencies = {
+        diceRollerTool,
+        enemyTacticianTool,
+        companionTacticianTool,
+        combatNarrationExpertTool,
+        processAICombatantRolls,
+        updateRollNotationWithModifiers,
+        ...dependencies, // Override with provided dependencies (for testing)
+    };
         const { playerAction, inCombat, locationId, interpretedAction, locationContext, conversationHistory, combatantIds, party, initiativeOrder } = input;
         let { turnIndex } = input;
 
@@ -340,9 +370,9 @@ export const combatManagerTool = ai.defineTool(
                             party: updatedParty,
                             enemies: updatedEnemies,
                             locationContext,
-                            diceRollerTool,
-                            combatNarrationExpertTool,
-                            updateRollNotationWithModifiers,
+                            diceRollerTool: deps.diceRollerTool,
+                            combatNarrationExpertTool: deps.combatNarrationExpertTool,
+                            updateRollNotationWithModifiers: deps.updateRollNotationWithModifiers,
                             localLog,
                         });
 
@@ -544,10 +574,10 @@ export const combatManagerTool = ai.defineTool(
 
                 if (isCompanion) {
                     localLog(`Invoking CompanionTacticianTool for ${activeCombatant.characterName}.`);
-                    tacticianResponse = await companionTacticianTool(baseTacticianInput);
+                    tacticianResponse = await deps.companionTacticianTool(baseTacticianInput);
                 } else {
                     localLog(`Invoking EnemyTacticianTool for ${activeCombatant.characterName}.`);
-                    tacticianResponse = await enemyTacticianTool(baseTacticianInput);
+                    tacticianResponse = await deps.enemyTacticianTool(baseTacticianInput);
                 }
 
                 const { narration, targetId, diceRolls: requestedRolls } = tacticianResponse;
@@ -667,7 +697,7 @@ export const combatManagerTool = ai.defineTool(
 
                     if (target) {
                         // Process AI combatant rolls using centralized function (resolves Issue #21)
-                        const rollsResult = await processAICombatantRolls({
+                        const rollsResult = await deps.processAICombatantRolls({
                             activeCombatant,
                             requestedRolls,
                             target,
@@ -805,9 +835,9 @@ export const combatManagerTool = ai.defineTool(
             // Initiation logic
             localLog("Initiating combat via CombatInitializer...");
 
-            // Lazy load heavy dependencies for initiation
-            const { narrativeExpert } = await import('@/ai/flows/narrative-manager');
-            const { markdownToHtml } = await import('@/ai/flows/markdown-to-html');
+            // Lazy load heavy dependencies for initiation (if not provided via DI)
+            const narrativeExpertToUse = deps.narrativeExpert || (await import('@/ai/flows/narrative-manager')).narrativeExpert;
+            const markdownToHtmlToUse = deps.markdownToHtml || (await import('@/ai/flows/markdown-to-html')).markdownToHtml;
 
             const initResult = await CombatInitializer.initializeCombat({
                 combatantIds: combatantIds || [],
@@ -818,30 +848,49 @@ export const combatManagerTool = ai.defineTool(
                 playerAction,
                 interpretedAction,
                 locationId,
-                diceRollerTool,
-                narrativeExpert,
-                markdownToHtml,
-                processAICombatantRolls,
-                enemyTacticianTool,
-                companionTacticianTool,
+                diceRollerTool: deps.diceRollerTool,
+                narrativeExpert: narrativeExpertToUse,
+                markdownToHtml: markdownToHtmlToUse,
+                processAICombatantRolls: deps.processAICombatantRolls,
+                enemyTacticianTool: deps.enemyTacticianTool,
+                companionTacticianTool: deps.companionTacticianTool,
                 createCombatEndDiceRoll,
                 localLog,
             });
 
             if (initResult.success) {
-                return {
-                    messages: initResult.messages,
-                    diceRolls: initResult.diceRolls,
-                    updatedParty: initResult.updatedParty,
-                    updatedEnemies: initResult.enemies,
-                    inCombat: true,
-                    initiativeOrder: initResult.initiativeOrder,
-                    enemies: initResult.enemies,
-                    debugLogs: [...debugLogs, ...(initResult.debugLogs || [])],
-                    turnIndex: 0,
-                    hasMoreAITurns: false, // Usually player starts or we handle it in next loop
-                    lastProcessedTurnWasAI: false,
-                };
+                // If first turn was processed (AI went first), use firstTurnData values
+                if (initResult.firstTurnData) {
+                    return {
+                        messages: initResult.messages,
+                        diceRolls: initResult.diceRolls,
+                        updatedParty: initResult.updatedParty,
+                        updatedEnemies: initResult.enemies,
+                        inCombat: !initResult.firstTurnData.combatEnded,
+                        initiativeOrder: initResult.initiativeOrder,
+                        enemies: initResult.firstTurnData.combatEnded ? [] : initResult.enemies,
+                        debugLogs: [...debugLogs, ...(initResult.debugLogs || [])],
+                        turnIndex: initResult.firstTurnData.turnIndex,
+                        hasMoreAITurns: initResult.firstTurnData.hasMoreAITurns,
+                        lastProcessedTurnWasAI: initResult.firstTurnData.lastProcessedTurnWasAI,
+                        lastProcessedTurnIndex: initResult.firstTurnData.lastProcessedTurnIndex,
+                    };
+                } else {
+                    // Player goes first, no AI turn was processed
+                    return {
+                        messages: initResult.messages,
+                        diceRolls: initResult.diceRolls,
+                        updatedParty: initResult.updatedParty,
+                        updatedEnemies: initResult.enemies,
+                        inCombat: true,
+                        initiativeOrder: initResult.initiativeOrder,
+                        enemies: initResult.enemies,
+                        debugLogs: [...debugLogs, ...(initResult.debugLogs || [])],
+                        turnIndex: 0,
+                        hasMoreAITurns: false, // Player starts
+                        lastProcessedTurnWasAI: false,
+                    };
+                }
             } else {
                 return {
                     messages: initResult.messages,
@@ -855,5 +904,22 @@ export const combatManagerTool = ai.defineTool(
                 };
             }
         }
+    }
+
+/**
+ * Genkit tool wrapper for combatManagerTool.
+ * This is the actual tool registered with Genkit that delegates to executeCombatManager.
+ * Uses default dependencies (real implementations) unless overridden via executeCombatManager.
+ */
+export const combatManagerTool = ai.defineTool(
+    {
+        name: 'combatManagerTool',
+        description: 'Manages a sequence of turns in combat, starting from the current turn, until it is a human player\'s turn again or combat ends. It also handles the initiation of combat.',
+        inputSchema: CombatManagerInputSchema,
+        outputSchema: CombatManagerOutputSchema,
+    },
+    async (input) => {
+        // Call the core function with default dependencies
+        return executeCombatManager(input);
     }
 );

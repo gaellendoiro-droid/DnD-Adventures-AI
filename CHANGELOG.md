@@ -16,6 +16,16 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ## [Unreleased]
 
 ### Added
+- **✅ Mejora de Testabilidad y Refactorización (2025-01-20) – Objetivos principales logrados:**
+  - **Inyección de Dependencias completa:** `processAICombatantRolls` y `combatManagerTool` ahora aceptan dependencias inyectables a través de `executeCombatManager` + wrapper Genkit
+  - **Código desacoplado:** Lógica pura consolidada en `rules-engine.ts`, `turn-manager.ts`, `action-processor.ts`
+  - **Testing robusto:** 54+ tests verificados, nuevo test de integración con DI explícita
+  - **Plan archivado:** Documentado como "Completado parcialmente" (Fases 4-5 pospuestas) en `docs/planes-desarrollo/completados/mejora-testabilidad-refactorizacion.md`
+- **📚 Documentación de Dependency Injection (2025-01-20):**
+  - Nuevo documento `docs/arquitectura/patrones-dependency-injection.md` describiendo el patrón DI implementado
+  - Actualización de `docs/testing/README.md` con sección “Dependency Injection (DI) en Tests”
+  - Guía rápida de testing actualizada con ejemplo de DI
+  - Referencias cruzadas añadidas en `docs/README.md` y plan archivado
 - **✅ Refactorización de CombatManager - Paso 4: Combat Initializer - COMPLETADO (2025-11-19):**
   - **Objetivo:** Extraer toda la lógica de inicialización de combate del `combat-manager.ts` a módulos especializados y reutilizables
   - **Módulos creados:**

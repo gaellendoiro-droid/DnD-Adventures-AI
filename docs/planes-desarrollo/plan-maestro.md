@@ -8,28 +8,28 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** Ninguno activo | **Última implementación:** Testeo Completo del Sistema de Turnos (2025-11-18)
-
-### [Mejora de Testabilidad y Refactorización](planes-en-curso/mejora-testabilidad-refactorizacion.md) 🚧 **EN CURSO**
-- **Estado:** En progreso (Fases 1, 2 parcial, 3 completadas)
-- **Objetivo:** Refactorizar código para permitir tests de integración y E2E robustos mediante Inyección de Dependencias
-- **Prioridad:** Media-Alta
-- **Avance:**
-  - ✅ Fase 1: Análisis y planificación
-  - ✅ Fase 2 (Parcial): DI en `processAICombatantRolls`
-  - ✅ Fase 3: Separación de lógica pura (Rules Engine, Turn Manager)
-  - ⏳ Fase 2 (Restante): DI en `combatManagerTool`
-  - ⏳ Fase 4: Preparación UI para E2E
-- **Fecha de inicio:** 2025-11-20
-- **Referencia:** [Plan Detallado](planes-en-curso/mejora-testabilidad-refactorizacion.md)
+**Estado:** Ninguno activo | **Última implementación:** Mejora de Testabilidad y Refactorización (2025-01-20)
 
 ---
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 7 planes
+**Estado:** Finalizados | **Cantidad:** 8 planes
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Mejora de Testabilidad y Refactorización](completados/mejora-testabilidad-refactorizacion.md) ✅ **COMPLETADO PARCIAL**
+- **Estado:** Objetivos principales logrados (DI y refactorización completadas; Fases 4-5 pospuestas)
+- **Objetivo:** Desacoplar la lógica crítica del sistema de combate, implementar Inyección de Dependencias y habilitar tests de integración fiables
+- **Prioridad:** Media-Alta
+- **Resultados:**
+  - ✅ DI completa en `processAICombatantRolls` y `combatManagerTool` (`executeCombatManager` + wrapper Genkit)
+  - ✅ Código desacoplado: lógica pura en `rules-engine`, `turn-manager`, `action-processor`
+  - ✅ Todos los tests actualizados (54+ tests pasando, nuevo test con DI explícita)
+  - ✅ Documentación ampliada (Testing README, Guía rápida, Patrón DI en arquitectura)
+  - ⏸️ Fases 4-5 (UI data-testid + documentación adicional) pospuestas para el futuro
+- **Fecha de finalización:** 2025-01-20
+- **Referencia:** [Plan Detallado](completados/mejora-testabilidad-refactorizacion.md)
 
 ### [Testeo Completo del Sistema de Turnos](completados/testeo-sistema-turnos.md) ✅ **COMPLETADO**
 - **Estado:** 30/30 tests completados (100%)
@@ -274,8 +274,8 @@ Planes identificados pero aún no iniciados:
 
 ## 📊 Estado General del Proyecto
 
-- **Planes Completados:** 6 (incluyendo 1 parcialmente completado)
-- **Planes en Curso:** 1
+- **Planes Completados:** 8 (incluyendo 1 parcialmente completado)
+- **Planes en Curso:** 0
 - **Planes Sin Comenzar:** 12
   - **Prioridad Alta:** 4 planes
   - **Prioridad Media:** 10 planes
@@ -283,6 +283,7 @@ Planes identificados pero aún no iniciados:
 
 ### ✅ Logros Recientes
 
+- **Mejora de Testabilidad y Refactorización:** ✅ Objetivos principales logrados - DI completa en `combatManagerTool`, refactorización de lógica pura finalizada, documentación de patrones DI creada
 - **Plan de Testeo v0.5.0:** ✅ Completado - 20/20 tests completados, verificación exhaustiva de todas las funcionalidades de v0.5.0, 3 bugs corregidos durante el testeo
 - **Sistema de Turnos Paso a Paso:** ✅ 100% Completado - Control total del jugador sobre el avance de turnos, botones "Pasar 1 Turno" y "Avanzar Todos", 68 unit tests + 38 integration tests, indicadores visuales y animaciones implementadas
 - **Sistema de Testing:** ✅ Implementado - Vitest configurado, 106 tests (68 unit + 38 integration), documentación completa
@@ -314,8 +315,8 @@ Planes identificados pero aún no iniciados:
 ### Estado General del Proyecto
 
 **Progreso Total:**
-- ✅ **6 planes completados** (incluyendo 1 parcialmente completado)
-- 🚧 **1 plan en curso** actualmente
+- ✅ **8 planes completados** (incluyendo 1 parcialmente completado)
+- 🚧 **0 planes en curso** actualmente
 - 📝 **12 planes sin comenzar** identificados y planificados
 
 **Distribución por Prioridad:**
@@ -337,6 +338,7 @@ Planes identificados pero aún no iniciados:
 - ✅ Sistema de esquemas unificado y robusto
 - ✅ Saneamiento general completado (10 issues corregidos)
 - ✅ Sistema de logging centralizado
+- ✅ Plan de Mejora de Testabilidad completado (DI en `combatManagerTool`, código desacoplado, documentación de patrones DI)
 
 **Testing:**
 - ✅ 106 tests implementados (68 unit + 38 integration)
@@ -351,9 +353,8 @@ Planes identificados pero aún no iniciados:
 3. **Mejora de Estructura de Fichas** - Mejora la experiencia del usuario
 
 **Medio Plazo (Prioridad Media):**
-1. **Mejora de Testabilidad** - Prerequisito para tests de integración y E2E robustos
-2. **Sistema de Testing - Integración y E2E** - Cobertura completa del sistema
-3. **Compendio de D&D Local** - Mejora de rendimiento y disponibilidad offline
+1. **Sistema de Testing - Integración y E2E** - Cobertura completa del sistema (plan desbloqueado tras completar Mejora de Testabilidad)
+2. **Compendio de D&D Local** - Mejora de rendimiento y disponibilidad offline
 
 **Largo Plazo (Prioridad Media-Baja):**
 1. **IA Conversacional Avanzada** - Streaming y reacciones orgánicas
@@ -380,12 +381,12 @@ Planes identificados pero aún no iniciados:
 ### Dependencias Críticas
 
 **Planes que requieren otros planes completados:**
-- ⏳ **Sistema de Testing - Integración y E2E** requiere **Mejora de Testabilidad** (prerequisito crítico)
+- ⏳ **Sistema de Testing - Integración y E2E** (próximo) — prerequisito **Mejora de Testabilidad** ✅ ya completado
 - ⏳ Varios planes de combate requieren el sistema base de combate (✅ completado)
 
 ### Notas Importantes
 
 - El plan de **Refactorización de `combat-manager.ts`** está parcialmente completado (Fases 1-2). La Fase 3 está pausada y puede retomarse en el futuro si es necesaria.
-- El plan de **Mejora de Testabilidad** fue creado después de identificar problemas de acoplamiento que impiden escribir tests de integración robustos. Es un prerequisito crítico para el plan de Testing Integración y E2E.
+- El plan de **Mejora de Testabilidad** se completó parcialmente (DI y refactorización listas, fases de UI/documentación pospuestas) y sirve como prerequisito cumplido para el plan de Testing Integración y E2E.
 - Todos los planes completados están documentados con referencias a sus planes detallados para consulta completa.
 
