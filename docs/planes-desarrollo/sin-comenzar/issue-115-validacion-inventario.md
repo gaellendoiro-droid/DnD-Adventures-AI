@@ -3,7 +3,9 @@
 **Issue:** #115  
 **Prioridad:** 🟡 ALTA  
 **Fecha de creación del plan:** 2025-01-27  
-**Estado:** 📝 EN CURSO  
+**Estado:** ⏸️ POSPUESTO  
+**Fecha de posposición:** 2025-01-27  
+**Razón de posposición:** Priorizar otras mejoras arquitectónicas (Issue #94) y features del roadmap. Este issue mejora la calidad pero no es bloqueador.  
 **Referencia:** [Issue #115](../../tracking/issues/pendientes.md#issue-115-validación-de-inventario-al-usar-armas-u-objetos-🟡-advertencia)
 
 ---
@@ -350,14 +352,15 @@ function normalizeItemName(name: string): string {
 ## 🚀 Próximos Pasos
 
 1. ✅ Crear este plan
-2. ⏳ Revisar y aprobar plan
-3. ⏳ Implementar Fase 1 (módulo de validación)
-4. ⏳ Implementar Fase 2 (validación en combate)
-5. ⏳ Implementar Fase 3 (validación en exploración)
-6. ⏳ Testing completo (Fase 4)
-7. ⏳ Mover issue #115 a resueltos
+2. ⏸️ **POSPUESTO** - Priorizar otras mejoras arquitectónicas y features del roadmap
+3. ⏳ Revisar y aprobar plan (cuando se retome)
+4. ⏳ Implementar Fase 1 (módulo de validación)
+5. ⏳ Implementar Fase 2 (validación en combate)
+6. ⏳ Implementar Fase 3 (validación en exploración)
+7. ⏳ Testing completo (Fase 4)
+8. ⏳ Mover issue #115 a resueltos
 
 ---
 
-**Última actualización:** 2025-01-27
+**Última actualización:** 2025-01-27 (Pospuesto)
 

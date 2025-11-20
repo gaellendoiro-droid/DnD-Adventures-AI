@@ -10,6 +10,19 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 **Estado:** Ninguno activo | **Última implementación:** Testeo Completo del Sistema de Turnos (2025-11-18)
 
+### [Mejora de Testabilidad y Refactorización](planes-en-curso/mejora-testabilidad-refactorizacion.md) 🚧 **EN CURSO**
+- **Estado:** En progreso (Fases 1, 2 parcial, 3 completadas)
+- **Objetivo:** Refactorizar código para permitir tests de integración y E2E robustos mediante Inyección de Dependencias
+- **Prioridad:** Media-Alta
+- **Avance:**
+  - ✅ Fase 1: Análisis y planificación
+  - ✅ Fase 2 (Parcial): DI en `processAICombatantRolls`
+  - ✅ Fase 3: Separación de lógica pura (Rules Engine, Turn Manager)
+  - ⏳ Fase 2 (Restante): DI en `combatManagerTool`
+  - ⏳ Fase 4: Preparación UI para E2E
+- **Fecha de inicio:** 2025-11-20
+- **Referencia:** [Plan Detallado](planes-en-curso/mejora-testabilidad-refactorizacion.md)
+
 ---
 
 ## ✅ Planes Completados
@@ -73,19 +86,21 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 - **Tiempo invertido:** ~12-17 horas total
 - **Referencia:** [Plan Detallado](completados/sistema-turnos-paso-a-paso.md)
 
-### [Refactorización del Módulo `combat-manager.ts` (Fases 1-2)](planes-en-curso/refactorizacion-combat-manager.md) ⏸️ **PARCIALMENTE COMPLETADO**
-- **Estado:** Fases 1-2 completadas (54.6% de reducción), Fase 3 pausada (opcional)
+### [Refactorización del Módulo `combat-manager.ts`](completados/plan-refactorizacion-combat-manager.md) ✅ **COMPLETADO**
+- **Estado:** 100% completado (4 pasos completados)
 - **Objetivo:** Refactorizar `combat-manager.ts` (2723 líneas) en módulos más pequeños y manejables
 - **Prioridad:** Alta
 - **Resultados:**
-  - ✅ Reducción: 2723 → 1235 líneas (54.6% de reducción)
-  - ✅ Módulos creados: 5 módulos especializados (1310 líneas extraídas)
+  - ✅ Paso 1: Rules Engine - Lógica de reglas de D&D 5e extraída
+  - ✅ Paso 2: Turn Manager - Gestión de turnos extraída
+  - ✅ Paso 3: Action Processor - Procesamiento de acciones extraída
+  - ✅ Paso 4: Combat Initializer - Inicialización de combate extraída
+  - ✅ Reducción total: 2723 → ~800 líneas (~70% de reducción)
+  - ✅ Módulos creados: 9 módulos especializados
   - ✅ Issues resueltos: #21 (código duplicado), #16 (gestión de nombres)
-  - ✅ Testing: 10/10 tests PASS — Sin regresiones
-  - ✅ Código duplicado eliminado: ~798 líneas
-- **Decisión:** Pausado después de Fase 2 para priorizar sistema de turnos paso a paso (Prioridad Muy Alta). La Fase 3 se puede retomar en el futuro si es necesaria.
-- **Fecha de finalización parcial:** 2025-11-14
-- **Referencia:** [Plan Detallado](planes-en-curso/refactorizacion-combat-manager.md)
+  - ✅ Testing: Todos los tests de integración pasan sin regresiones
+- **Fecha de finalización:** 2025-11-19
+- **Referencia:** [Plan Detallado](completados/plan-refactorizacion-combat-manager.md)
 
 ### [Sistema de Turnos de Combate](completados/combate-turnos.md) ✅ **COMPLETADO**
 - **Estado:** 100% funcional (5 de 5 pasos completamente funcionales)
@@ -231,18 +246,7 @@ Planes identificados pero aún no iniciados:
 
 ### Prioridad Media
 
-1. **Mejora de Testabilidad y Refactorización** - Refactorizar código para permitir tests de integración y E2E robustos
-   - **Estado:** Sin comenzar
-   - **Objetivo:** Implementar Inyección de Dependencias (DI) y separar lógica pura de efectos secundarios
-   - **Componentes:**
-     - DI en funciones críticas (`combatManagerTool`, `processAICombatantRolls`)
-     - Separación de lógica pura de efectos secundarios
-     - Preparación de UI para tests E2E (data-testid)
-   - **Beneficios:** Tests de integración viables, código más mantenible, refactorizaciones más seguras
-   - **Estimación:** 32-46 horas
-   - **Dependencias:** Sistema de Unit Tests (✅ Completado)
-   - **Nota:** Prerequisito para el plan de Testing Integración y E2E
-   - **Referencia:** [Plan Detallado](sin-comenzar/mejora-testabilidad-refactorizacion.md)
+
 2. **Sistema de Testing - Integración y E2E** - Extender sistema de testing con tests de integración y E2E
    - **Estado:** Sin comenzar
    - **Objetivo:** Implementar tests de integración (Vitest) y tests E2E (Playwright) para cobertura completa
@@ -271,8 +275,8 @@ Planes identificados pero aún no iniciados:
 ## 📊 Estado General del Proyecto
 
 - **Planes Completados:** 6 (incluyendo 1 parcialmente completado)
-- **Planes en Curso:** 0
-- **Planes Sin Comenzar:** 13
+- **Planes en Curso:** 1
+- **Planes Sin Comenzar:** 12
   - **Prioridad Alta:** 4 planes
   - **Prioridad Media:** 10 planes
   - **Prioridad Baja:** 2 planes
@@ -311,8 +315,8 @@ Planes identificados pero aún no iniciados:
 
 **Progreso Total:**
 - ✅ **6 planes completados** (incluyendo 1 parcialmente completado)
-- 🚧 **0 planes en curso** actualmente
-- 📝 **13 planes sin comenzar** identificados y planificados
+- 🚧 **1 plan en curso** actualmente
+- 📝 **12 planes sin comenzar** identificados y planificados
 
 **Distribución por Prioridad:**
 - **Prioridad Alta:** 4 planes pendientes
@@ -359,9 +363,9 @@ Planes identificados pero aún no iniciados:
 ### Métricas Clave
 
 **Código:**
-- Reducción de `combat-manager.ts`: 2723 → 1235 líneas (54.6%)
-- Módulos especializados creados: 5
-- Código duplicado eliminado: ~798 líneas
+- Reducción de `combat-manager.ts`: 2723 → ~800 líneas (~70%)
+- Módulos especializados creados: 9
+- Código duplicado eliminado: ~1900 líneas
 
 **Testing:**
 - Tests unitarios: 68

@@ -1,0 +1,215 @@
+
+'use server';
+/**
+ * @fileOverview NarrativeManager - The Orchestrator of the "Soft Mode".
+ * Replaces the old NarrativeExpert.
+ * 
+ * Responsibilities:
+ * 1. Analyze player intent (Exploration vs Interaction vs Hybrid).
+ * 2. Route to appropriate experts (ExplorationExpert, InteractionExpert).
+ * 3. Synthesize responses for hybrid actions.
+ * 4. Handle Combat Initiation (legacy/special mode).
+ */
+
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
+import { dndApiLookupTool } from '../tools/dnd-api-lookup';
+import { adventureLookupTool } from '../tools/adventure-lookup';
+import { characterLookupTool } from '../tools/character-lookup';
+import {
+    NarrativeExpertInputSchema,
+    NarrativeExpertOutputSchema,
+    type NarrativeExpertInput,
+    type NarrativeExpertOutput
+} from './schemas';
+import { explorationExpert } from './experts/exploration-expert';
+import { interactionExpert } from './experts/interaction-expert';
+import { log } from '@/lib/logger';
+import { retryWithExponentialBackoff } from './retry-utils';
+
+// --- Internal Schemas ---
+
+const RouterOutputSchema = z.object({
+    classification: z.enum(['EXPLORATION', 'INTERACTION', 'HYBRID']).describe("The classification of the player's action."),
+    reasoning: z.string().describe("Brief reasoning for the classification."),
+});
+
+const SynthesizerInputSchema = z.object({
+    explorationText: z.string().optional(),
+    interactionText: z.string().optional(),
+    originalAction: z.string(),
+});
+
+const SynthesizerOutputSchema = z.object({
+    finalNarration: z.string().describe("The combined, fluid narration merging both exploration and interaction elements."),
+});
+
+// --- Prompts ---
+
+// 1. Router Prompt: Decides which expert(s) to call
+const narrativeRouterPrompt = ai.definePrompt({
+    name: 'narrativeRouterPrompt',
+    input: { schema: z.object({ playerAction: z.string(), interpretedAction: z.string() }) },
+    output: { schema: RouterOutputSchema },
+    prompt: `Analyze the player's action and classify it into one of three categories:
+
+1. **EXPLORATION**: The player is moving, looking, searching, or interacting with inanimate objects/environment. (e.g., "I look at the wall", "I go north", "I search the chest").
+2. **INTERACTION**: The player is speaking to or interacting socially with an NPC or intelligent being. (e.g., "I say hello", "I ask the guard for directions").
+3. **HYBRID**: The player is doing BOTH simultaneously. (e.g., "I walk towards the door AND ask the guard why he's nervous", "I draw my sword and shout at the goblin").
+
+**Input:**
+- Action: "{{playerAction}}"
+- Interpreted: {{interpretedAction}}
+
+**Output:**
+Return the classification and reasoning.
+`,
+});
+
+// 2. Synthesizer Prompt: Merges outputs from both experts
+const narrativeSynthesizerPrompt = ai.definePrompt({
+    name: 'narrativeSynthesizerPrompt',
+    input: { schema: SynthesizerInputSchema },
+    output: { schema: SynthesizerOutputSchema },
+    prompt: `You are a Master Storyteller. Your task is to combine two separate narrative threads into a single, fluid paragraph.
+
+**Inputs:**
+1. **Exploration/Action:** "{{explorationText}}"
+2. **Dialogue/Social:** "{{interactionText}}"
+3. **Original Player Action:** "{{originalAction}}"
+
+**Goal:**
+Write a cohesive response in Spanish (Spain) that weaves these two elements together naturally. Do not just paste them one after another. Make it flow.
+
+**Example:**
+- Exp: "You walk to the bar."
+- Int: "The barman asks what you want."
+- **Result:** "Te acercas a la barra, donde la madera cruje bajo tus botas. Antes de que puedas acomodarte, el tabernero levanta la vista y te pregunta: '¿Qué te pongo?'"
+`,
+});
+
+// 3. Combat Initiation Prompt (Preserved from legacy NarrativeExpert)
+const combatInitiationPrompt = ai.definePrompt({
+    name: 'combatInitiationPrompt',
+    input: { schema: NarrativeExpertInputSchema },
+    output: { schema: NarrativeExpertOutputSchema },
+    tools: [dndApiLookupTool, adventureLookupTool, characterLookupTool],
+    prompt: `You are narrating the START of combat.
+    
+**Combat Initiation Guidelines:**
+1. **Describe the tension:** Use the location description.
+2. **Mention initiative:** "Orco 1 actúa primero...".
+3. **NO attacks/damage:** Combat hasn't started yet.
+4. **Use Combat Context:** \`\`\`{{{combatContext}}}\`\`\`
+
+Narrate the scene in Spanish (Spain).
+`,
+});
+
+// --- Flow ---
+
+export const narrativeManagerFlow = ai.defineFlow(
+    {
+        name: 'narrativeManagerFlow', // Keeping the name 'narrativeExpertFlow' might be safer for external callers? No, let's use the new name but export as 'narrativeExpert' for compatibility.
+        inputSchema: NarrativeExpertInputSchema,
+        outputSchema: NarrativeExpertOutputSchema,
+    },
+    async (input) => {
+        const debugLogs: string[] = [];
+        const localLog = (msg: string) => debugLogs.push(msg);
+
+        try {
+            localLog("NarrativeManager: Received input.");
+
+            // 1. Handle Combat Initiation (Special Mode)
+            if (input.phase === 'combat_initiation') {
+                localLog("NarrativeManager: Mode = COMBAT INITIATION");
+                const response = await retryWithExponentialBackoff(
+                    () => combatInitiationPrompt(input),
+                    3, 1000, 'combatInitiation'
+                );
+                return { ...response.output!, debugLogs };
+            }
+
+            // 2. Routing (Normal Mode)
+            localLog("NarrativeManager: Routing action...");
+            const routerResponse = await narrativeRouterPrompt({
+                playerAction: input.playerAction,
+                interpretedAction: input.interpretedAction
+            });
+            const classification = routerResponse.output?.classification || 'EXPLORATION'; // Default to exploration
+            localLog(`NarrativeManager: Classification = ${classification}`);
+
+            let finalNarration = "";
+            let updatedStats = null; // Placeholder for future use
+
+            // 3. Execution
+            if (classification === 'EXPLORATION') {
+                const expResult = await explorationExpert({
+                    playerAction: input.playerAction,
+                    locationId: input.locationId,
+                    locationContext: input.locationContext,
+                    interpretedAction: input.interpretedAction
+                });
+                finalNarration = expResult.explorationNarration;
+                if (expResult.debugLogs) debugLogs.push(...expResult.debugLogs);
+
+            } else if (classification === 'INTERACTION') {
+                const intResult = await interactionExpert({
+                    playerAction: input.playerAction,
+                    npcContext: input.locationContext, // Passing locationContext as npcContext for now (assuming NPCs are in location data)
+                    conversationHistory: input.conversationHistory,
+                    interpretedAction: input.interpretedAction
+                });
+                finalNarration = intResult.npcResponse;
+                if (intResult.attitudeChange) localLog(`Attitude Change: ${intResult.attitudeChange}`);
+                if (intResult.debugLogs) debugLogs.push(...intResult.debugLogs);
+
+            } else { // HYBRID
+                localLog("NarrativeManager: Executing Hybrid Mode (Parallel Calls)");
+                const [expResult, intResult] = await Promise.all([
+                    explorationExpert({
+                        playerAction: input.playerAction,
+                        locationId: input.locationId,
+                        locationContext: input.locationContext,
+                        interpretedAction: input.interpretedAction
+                    }),
+                    interactionExpert({
+                        playerAction: input.playerAction,
+                        npcContext: input.locationContext,
+                        conversationHistory: input.conversationHistory,
+                        interpretedAction: input.interpretedAction
+                    })
+                ]);
+
+                if (expResult.debugLogs) debugLogs.push(...expResult.debugLogs);
+                if (intResult.debugLogs) debugLogs.push(...intResult.debugLogs);
+
+                // Synthesize
+                localLog("NarrativeManager: Synthesizing results...");
+                const synthesis = await narrativeSynthesizerPrompt({
+                    explorationText: expResult.explorationNarration,
+                    interactionText: intResult.npcResponse,
+                    originalAction: input.playerAction
+                });
+                finalNarration = synthesis.output?.finalNarration || `${expResult.explorationNarration}\n\n${intResult.npcResponse}`;
+            }
+
+            return {
+                dmNarration: finalNarration,
+                updatedCharacterStats: updatedStats,
+                debugLogs
+            };
+
+        } catch (e: any) {
+            localLog(`NarrativeManager: CRITICAL ERROR: ${e.message}`);
+            log.error("NarrativeManager Failed", e);
+            throw e;
+        }
+    }
+);
+
+// Export as 'narrativeExpert' to maintain compatibility with GameCoordinator
+export async function narrativeExpert(input: NarrativeExpertInput): Promise<NarrativeExpertOutput> {
+    return narrativeManagerFlow(input);
+}

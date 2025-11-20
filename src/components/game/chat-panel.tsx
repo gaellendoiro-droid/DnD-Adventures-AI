@@ -59,17 +59,17 @@ export function ChatPanel({
             <ChatMessage key={msg.id} message={msg} />
           ))}
           {isThinking && (
-             <div className="flex gap-3 my-4 justify-start">
-                <Bot className="h-6 w-6 flex-shrink-0 mt-1 text-primary" />
-                <div className="flex flex-col max-w-[75%] items-start">
-                    <div className="p-3 rounded-lg shadow-sm w-fit bg-card rounded-br-none space-y-2">
-                        <Skeleton className="h-4 w-[250px]" />
-                        <Skeleton className="h-4 w-[200px]" />
-                    </div>
-                     <span className="text-xs text-muted-foreground mt-1 px-1">
-                        Dungeon Master está pensando...
-                    </span>
+            <div className="flex gap-3 my-4 justify-start">
+              <Bot className="h-6 w-6 flex-shrink-0 mt-1 text-primary" />
+              <div className="flex flex-col max-w-[75%] items-start">
+                <div className="p-3 rounded-lg shadow-sm w-fit bg-card rounded-br-none space-y-2">
+                  <Skeleton className="h-4 w-[250px]" />
+                  <Skeleton className="h-4 w-[200px]" />
                 </div>
+                <span className="text-xs text-muted-foreground mt-1 px-1">
+                  Dungeon Master está pensando...
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -81,7 +81,7 @@ export function ChatPanel({
         {/* Keep buttons visible during auto-advance to show "Avanzando..." continuously */}
         {inCombat && (hasMoreAITurns || justProcessedAITurn || autoAdvancing || playerActionCompleted) && onPassTurn && onAdvanceAll && (
           <div className="flex gap-2">
-            <Button 
+            <Button
               onClick={onPassTurn}
               disabled={isThinking || autoAdvancing}
               variant="outline"
@@ -89,9 +89,9 @@ export function ChatPanel({
               className="flex-1"
             >
               <Play className="mr-2 h-4 w-4" />
-              Pasar 1 Turno
+              Avanzar 1 turno
             </Button>
-            <Button 
+            <Button
               onClick={onAdvanceAll}
               disabled={isThinking || autoAdvancing}
               variant="default"
@@ -99,13 +99,13 @@ export function ChatPanel({
               className="flex-1"
             >
               <FastForward className="mr-2 h-4 w-4" />
-              {autoAdvancing ? "Avanzando..." : "Avanzar Todos"}
+              {autoAdvancing ? "Avanzando..." : "Avance automático"}
             </Button>
           </div>
         )}
-        <PlayerInput 
-          onSendMessage={onSendMessage} 
-          disabled={isThinking || (inCombat && playerActionCompleted) || (inCombat && !isPlayerTurn)} 
+        <PlayerInput
+          onSendMessage={onSendMessage}
+          disabled={isThinking || (inCombat && playerActionCompleted) || (inCombat && !isPlayerTurn)}
           onDiceRoll={onDiceRoll}
           isPlayerTurn={isPlayerTurn}
           waitingForTurnAdvance={inCombat && !isThinking && !isPlayerTurn && (hasMoreAITurns || justProcessedAITurn || autoAdvancing || playerActionCompleted) && !!onPassTurn && !!onAdvanceAll}

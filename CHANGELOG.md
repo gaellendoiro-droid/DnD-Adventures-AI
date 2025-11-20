@@ -16,6 +16,51 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ## [Unreleased]
 
 ### Added
+- **✅ Refactorización de CombatManager - Paso 4: Combat Initializer - COMPLETADO (2025-11-19):**
+  - **Objetivo:** Extraer toda la lógica de inicialización de combate del `combat-manager.ts` a módulos especializados y reutilizables
+  - **Módulos creados:**
+    - `src/lib/combat/initialization/types.ts` - Interfaces compartidas para inicialización
+    - `src/lib/combat/initialization/enemy-validator.ts` - Validación de combatientes y obtención de stats de enemigos
+    - `src/lib/combat/initialization/initiative-generator.ts` - Generación de orden de iniciativa
+    - `src/lib/combat/initialization/narration-processor.ts` - Procesamiento de narración de inicio de combate
+    - `src/lib/combat/initialization/first-turn-handler.ts` - Manejo del primer turno si es de IA
+    - `src/lib/combat/combat-initializer.ts` - Coordinador principal que orquesta todos los sub-módulos
+  - **Tests implementados:**
+    - Tests unitarios completos para todos los sub-módulos (`tests/unit/combat/initialization/`)
+    - Test unitario del `CombatInitializer` principal (`tests/unit/combat/combat-initializer.test.ts`)
+    - Test de integración end-to-end (`tests/integration/combat-initializer.integration.test.ts`)
+    - Test manual de escenarios de combate (`tests/manual/combat-scenarios.test.ts`)
+  - **Resultados:**
+    - ✅ Reducción adicional de ~200 líneas en `combat-manager.ts`
+    - ✅ Lógica de inicialización completamente modular y testeable
+    - ✅ Separación clara de responsabilidades (validación, iniciativa, narración, primer turno)
+    - ✅ Todos los tests de integración existentes siguen pasando
+  - **Refactorización total completada:**
+    - Paso 1: Rules Engine ✅
+    - Paso 2: Turn Manager ✅
+    - Paso 3: Action Processor ✅
+    - Paso 4: Combat Initializer ✅
+    - **Reducción total:** 2723 → ~800 líneas (~70% de reducción)
+    - **Módulos extraídos:** 9 módulos especializados
+  - **Referencia:** Plan completo en `docs/planes-desarrollo/completados/plan-refactorizacion-combat-manager.md`
+- **✨ Optimización de Performance - Lazy Loading de Módulos Pesados (2025-11-19):**
+  - **Problema:** La aplicación tardaba 111 segundos en cargar el menú principal debido a la inicialización inmediata de Genkit
+  - **Solución:** Implementado lazy loading (carga diferida) de todos los módulos que inicializan Genkit
+  - **Módulos optimizados:**
+    - `gameCoordinator` en `src/app/actions.ts` - Solo se carga cuando el usuario ejecuta una acción
+    - `parseAdventureFromJson` en `src/app/page.tsx` - Solo se carga cuando el usuario carga una aventura JSON
+    - `processPlayerAction` y `setAdventureDataCache` en `src/app/page.tsx` - Solo se cargan cuando se necesitan
+    - `narrativeExpert` y `markdownToHtml` en `src/ai/tools/combat-manager.ts` - Solo se cargan cuando se inicia un combate
+  - **Resultados:**
+    - ✅ Tiempo de carga inicial: 111s → 26.8s (76% más rápido)
+    - ✅ Tiempo de compilación: 69.7s → 23.4s (66% más rápido)
+    - ✅ Modo producción: < 2 segundos de carga
+    - ✅ Genkit solo se inicializa cuando realmente se usa
+  - **Archivos modificados:**
+    - `src/app/actions.ts` - Lazy import de `gameCoordinator`
+    - `src/app/page.tsx` - Lazy imports de `parseAdventureFromJson`, `processPlayerAction`, `setAdventureDataCache`
+    - `src/ai/tools/combat-manager.ts` - Lazy imports de `narrativeExpert` y `markdownToHtml`
+  - **Impacto:** Crítico - Mejora drástica de la experiencia de usuario al cargar la aplicación
 - **✅ Fichas de Personajes Completas - COMPLETADO:**
   - **Schema actualizado (`src/lib/schemas.ts`):** Añadidos campos opcionales para fichas completas de D&D 5e:
     - `alignment`: Alineamiento del personaje
@@ -39,6 +84,15 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - **Inventario mejorado:** Descripciones de armas ahora incluyen información de ataque (bonificador, daño, tipo, alcance, propiedades)
 
 ### Fixed
+- **🔧 Error de sintaxis en `narration-processor.ts` (Build Error):**
+  - **Problema:** Build fallaba con "Parsing ecmascript source code failed" debido a un punto y coma en lugar de coma en la lista de parámetros
+  - **Solución:** Corregido el separador de parámetros en la línea 28 de `src/lib/combat/initialization/narration-processor.ts`
+  - **Impacto:** Crítico - Bloqueaba la compilación de la aplicación
+- **🔧 Logging verboso de errores de timeout en `parseAdventureFromJson`:**
+  - **Problema:** Los errores de timeout de conexión con la API de Gemini mostraban stack traces completos muy largos en los logs
+  - **Solución:** Modificado el logging para mostrar solo mensajes concisos en intentos intermedios, stack trace completo solo en el último intento fallido
+  - **Archivos modificados:** `src/ai/flows/parse-adventure-from-json.ts`
+  - **Impacto:** Mejora la legibilidad de los logs durante desarrollo
 - **Issue #91: Colores y efectos de tiradas críticas:**
   - Corregidos los colores y efectos visuales de las tiradas críticas según el diseño esperado
   - Tiradas de ataque críticas: Verde con efecto pulso y etiqueta "¡CRÍTICO!" verde
@@ -63,6 +117,21 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
   - **Elara:** HP corregido de 30 → 10 (correcto para nivel 1 de Clériga con CON +2), CA corregida de 18 → 13 (armadura de escamas con DES mod negativo)
 
 ### Changed
+- **⚡ Desactivado Turbopack en favor de Webpack (2025-11-19):**
+  - **Problema:** Turbopack era 4x más lento que Webpack para este proyecto (111s vs 26.8s)
+  - **Solución:** Cambiado `package.json` para usar Webpack por defecto (`next dev` en lugar de `next dev --turbopack`)
+  - **Razón:** Turbopack está en beta y tiene problemas con patrones complejos de server actions y lazy loading
+  - **Resultado:** Compilación 66% más rápida, carga inicial 76% más rápida
+  - **Archivo modificado:** `package.json` - Script `dev`
+- **⚙️ Configuración de puerto unificada (2025-11-19):**
+  - Configurado puerto 8080 tanto para desarrollo (`npm run dev`) como para producción (`npm start`)
+  - **Antes:** dev en 8080, producción en 3000 (por defecto)
+  - **Ahora:** Ambos en 8080 para consistencia
+  - **Archivo modificado:** `package.json` - Scripts `dev` y `start`
+- **🔧 Corrección de script de build para Windows (2025-11-19):**
+  - Eliminado prefijo `NODE_ENV=production` del script de build (sintaxis Unix no compatible con Windows)
+  - Next.js detecta automáticamente el modo producción en `npm run build`
+  - **Archivo modificado:** `package.json` - Script `build`
 - **Habilidades completadas:** Todas las fichas ahora incluyen las 18 habilidades oficiales de D&D 5e con sus estados de competencia correctos
 - **Información de armas:** Las descripciones de armas en el inventario ahora incluyen estadísticas de ataque completas para mejor referencia durante el juego
 - **Mejora de layout en panel de tiradas de ataque:**

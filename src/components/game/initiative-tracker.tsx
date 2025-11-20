@@ -39,9 +39,8 @@ export function InitiativeTracker({
                 return (
                   <li
                     key={combatant.id}
-                    className={`flex items-center space-x-3 p-2 rounded-lg transition-all duration-300 border-l-4 ${
-                      isActive ? "bg-secondary border-primary/80" : "border-transparent"
-                    } ${isActive && isProcessing ? "animate-pulse" : ""}`}
+                    className={`flex items-center space-x-3 p-2 rounded-lg transition-all duration-300 border-l-4 ${isActive ? "bg-secondary border-primary/80" : "border-transparent"
+                      } ${isActive && isProcessing ? "animate-pulse" : ""}`}
                   >
                     <div className="flex-shrink-0 font-mono text-xs h-6 w-6 flex items-center justify-center rounded-full bg-muted-foreground/20 text-muted-foreground font-bold">
                       {index + 1}

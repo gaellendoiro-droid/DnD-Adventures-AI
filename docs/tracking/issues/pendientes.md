@@ -2,8 +2,8 @@
 
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 26 issues  
-**Última actualización:** 2025-11-18 (Issue #14 movido a corregidos - no reproducido desde mejoras)
+**Total:** 25 issues  
+**Última actualización:** 2025-11-18 (Issue #66 movido a corregidos - corregido en código)
 
 ---
 
@@ -30,9 +30,10 @@ _No hay issues críticos pendientes en este momento._
   - `src/ai/flows/action-interpreter.ts` (interpretación de acciones)
   - `src/ai/tools/combat-manager.ts` (procesamiento de acciones en combate)
   - Sistema de validación de inventario (a crear o mejorar)
-- **Estado:** 📝 **PENDIENTE** - Plan creado
+- **Estado:** ⏸️ **POSPUESTO** - Plan creado pero pospuesto para priorizar otras mejoras
 - **Referencia:** [Notas de Gael - #115](../notas/Notas%20de%20Gael.md)
-- **Plan de implementación:** [Issue #115 - Validación de Inventario](../../planes-desarrollo/planes-en-curso/issue-115-validacion-inventario.md)
+- **Plan de implementación:** [Issue #115 - Validación de Inventario](../../planes-desarrollo/sin-comenzar/issue-115-validacion-inventario.md)
+- **Razón de posposición:** Priorizar otras mejoras arquitectónicas (Issue #94) y features del roadmap. Este issue mejora la calidad pero no es bloqueador.
 
 
 
@@ -579,57 +580,6 @@ _No hay issues críticos pendientes en este momento._
   - `src/ai/flows/action-interpreter.ts` (detección de ataques)
   - `src/ai/flows/game-coordinator.ts` (inicio de combate)
 - **Estado:** 📝 **PENDIENTE (Mejora futura)** - Funcionalidad no crítica, marcada para implementación futura
-
----
-
-### Issue #66: Orden incorrecto de mensajes en muerte masiva 🟡 ADVERTENCIA
-
-- **Fecha de creación:** 2025-11-16
-- **Ubicación:** `src/ai/tools/combat/dice-roll-processor.ts`
-- **Severidad:** 🟡 **ALTA** (afecta narrativa, secuencia ilógica, confunde al jugador)
-- **Descripción:** Cuando un personaje recibe muerte masiva (daño restante >= HP máximo), el mensaje "ha recibido un golpe devastador y muere instantáneamente" aparece ANTES del mensaje de daño, causando una secuencia ilógica.
-- **Contexto:** Detectado durante Test 1.1 (Flujo Completo de Inicio de Combate). Este bug es similar al Issue #35, pero afecta específicamente al caso de muerte masiva, que no fue corregido cuando se resolvió el Issue #35.
-- **Secuencia incorrecta (actual):**
-  1. Narración del enemigo
-  2. "Goblin 2 ataca a Merryl y acierta (12 vs AC 10)."
-  3. ❌ **"Merryl ha recibido un golpe devastador y muere instantáneamente."** (PREMATURO)
-  4. "Goblin 2 ha hecho 7 puntos de daño a Merryl (2 → 0 HP)."
-  5. "¡Goblin 2 ha matado a Merryl!"
-- **Secuencia esperada (correcta):**
-  1. Narración del enemigo
-  2. "Goblin 2 ataca a Merryl y acierta (12 vs AC 10)."
-  3. "Goblin 2 ha hecho 7 puntos de daño a Merryl (2 → 0 HP)."
-  4. ✅ **"Merryl ha recibido un golpe devastador y muere instantáneamente."** (DESPUÉS del daño)
-  5. ✅ **"¡Goblin 2 ha matado a Merryl!"** (DESPUÉS del mensaje anterior)
-- **Causa raíz:** En `dice-roll-processor.ts`, el mensaje de muerte masiva se añade dentro del `map()` que actualiza el HP (líneas 388-390), mientras que el mensaje de daño se añade después del `map()` (líneas 439-444). Esto causa que el mensaje de muerte masiva aparezca antes del mensaje de daño.
-- **Código problemático:**
-  ```typescript
-  // Líneas 386-391: Mensaje de muerte masiva se añade DENTRO del map()
-  if (remainingDamage >= targetHPMax) {
-      messages.push({
-          sender: 'DM',
-          content: `${p.name} ha recibido un golpe devastador y muere instantáneamente.`,
-      });
-      // ...
-  }
-  
-  // Línea 439-444: Mensaje de daño se añade DESPUÉS del map()
-  messages.push({
-      sender: 'DM',
-      content: `${activeCombatant.characterName} ha hecho ${roll.totalResult} puntos de daño...`,
-  });
-  ```
-- **Solución propuesta:**
-  - Mover el mensaje de muerte masiva para que se añada DESPUÉS del mensaje de daño
-  - Usar un flag o variable temporal para indicar que hubo muerte masiva
-  - Añadir el mensaje de muerte masiva junto con los otros mensajes de derrota (líneas 467-493)
-  - Mantener la misma estructura que se usó para corregir el Issue #35 (mensajes de inconsciencia)
-- **Impacto:** Alto - Rompe la narrativa, confunde al jugador sobre qué pasó primero, secuencia ilógica
-- **Archivos afectados:**
-  - `src/ai/tools/combat/dice-roll-processor.ts` (líneas 375-494)
-- **Relacionado con:** Issue #35 (orden incorrecto de mensajes - corregido para inconsciencia, pero no para muerte masiva)
-- **Estado:** 📝 **PENDIENTE** - Bug detectado en Test 1.1
-- **Detección:** Testing manual - Test 1.1 (Flujo Completo de Inicio de Combate)
 
 ---
 

@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getCriticalDamageNotation as getCriticalDamageNotationPlayer } from '@/ai/tools/combat-manager';
-import { getCriticalDamageNotation as getCriticalDamageNotationNPC } from '@/ai/tools/combat/dice-roll-processor';
+import { getCriticalDamageNotation as getCriticalDamageNotationPlayer } from '../../../../src/lib/combat/rules-engine';
+import { getCriticalDamageNotation as getCriticalDamageNotationNPC } from '../../../../src/ai/tools/combat/dice-roll-processor';
 
 describe('getCriticalDamageNotation - Player Attacks (combat-manager)', () => {
   describe('Non-critical hits', () => {

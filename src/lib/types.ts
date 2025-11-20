@@ -17,7 +17,7 @@ export interface GameMessage {
   onRetry?: () => void;
 }
 
-export type DiceRollOutcome = 'crit' | 'success' | 'fail' | 'pifia' | 'neutral' | 'initiative';
+export type DiceRollOutcome = 'crit' | 'success' | 'fail' | 'pifia' | 'neutral' | 'initiative' | 'victory' | 'defeat';
 
 export interface DiceRollModifier {
   value: number;

@@ -1,7 +1,8 @@
 
 'use server';
 
-import { gameCoordinator } from "@/ai/flows/game-coordinator";
+// gameCoordinator is lazy-loaded to improve initial page load time
+// import { gameCoordinator } from "@/ai/flows/game-coordinator";
 import { type GameState, type GameCoordinatorOutput } from "@/ai/flows/schemas";
 import { lookupAdventureEntityInDb } from "./game-state-actions";
 import { log } from "@/lib/logger";
@@ -14,36 +15,38 @@ import { log } from "@/lib/logger";
 export async function processPlayerAction(
   input: GameState
 ): Promise<GameCoordinatorOutput> {
-  
+
   log.serverAction('Processing player action', {
     action: input.playerAction,
     inCombat: input.inCombat,
     turnIndex: input.turnIndex,
     locationId: input.locationId,
-    isContinueTurn: input.playerAction?.toLowerCase().includes('continuar turno') || 
-                     input.playerAction?.toLowerCase().includes('pasar turno') ||
-                     input.playerAction?.toLowerCase().includes('siguiente turno'),
+    isContinueTurn: input.playerAction?.toLowerCase().includes('continuar turno') ||
+      input.playerAction?.toLowerCase().includes('pasar turno') ||
+      input.playerAction?.toLowerCase().includes('siguiente turno'),
     partySize: input.party?.length,
     enemiesCount: input.enemies?.length,
   });
 
   try {
+    // Lazy load gameCoordinator only when actually needed
+    const { gameCoordinator } = await import("@/ai/flows/game-coordinator");
     const result = await gameCoordinator(input);
 
     const logSummary = {
-        messages: result.messages?.length,
-        diceRolls: result.diceRolls?.length,
-        updatedParty: result.updatedParty?.length,
-        inCombat: result.inCombat,
-        nextLocationId: result.nextLocationId,
-        turnIndex: result.turnIndex,
-        hasMoreAITurns: result.hasMoreAITurns,
+      messages: result.messages?.length,
+      diceRolls: result.diceRolls?.length,
+      updatedParty: result.updatedParty?.length,
+      inCombat: result.inCombat,
+      nextLocationId: result.nextLocationId,
+      turnIndex: result.turnIndex,
+      hasMoreAITurns: result.hasMoreAITurns,
     };
-    
+
     // Get combatant names for better debugging
     const currentCombatant = result.initiativeOrder?.[result.turnIndex || 0]?.characterName || 'Unknown';
     const previousCombatant = result.initiativeOrder?.[input.turnIndex || 0]?.characterName || 'Unknown';
-    
+
     log.serverAction('Returning result to client', {
       summary: logSummary,
       messagesCount: result.messages?.length || 0,
@@ -68,7 +71,7 @@ export async function processPlayerAction(
       action: 'processPlayerAction',
       playerAction: input.playerAction,
     }, error);
-    
+
     // Return a structured error that the client can display
     return {
       error: `La IA coordinadora ha fallado: ${error.message || 'Error desconocido'}`,
@@ -96,5 +99,5 @@ export async function setAdventureDataCache(adventureData: any): Promise<void> {
  * This is needed because the client-side components cannot run the tool directly.
  */
 export async function lookupAdventureEntity(entityName: string): Promise<any | null> {
-    return lookupAdventureEntityInDb(entityName);
+  return lookupAdventureEntityInDb(entityName);
 }

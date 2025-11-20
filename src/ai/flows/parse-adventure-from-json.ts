@@ -8,9 +8,9 @@
  * @exports ParseAdventureFromJsonOutput - Output type for parseAdventureFromJson.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-import {log} from '@/lib/logger';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
+import { log } from '@/lib/logger';
 
 const ParseAdventureFromJsonInputSchema = z.object({
   adventureJson: z
@@ -39,11 +39,13 @@ export async function parseAdventureFromJson(
 
 const prompt = ai.definePrompt({
   name: 'parseAdventureFromJsonPrompt',
-  input: {schema: ParseAdventureFromJsonInputSchema},
-  output: {schema: z.object({
-    adventureTitle: z.string().describe('The title of the adventure, extracted from the JSON content.'),
-    adventureSummary: z.string().describe('A brief summary of the adventure, generated from the JSON content.'),
-  })},
+  input: { schema: ParseAdventureFromJsonInputSchema },
+  output: {
+    schema: z.object({
+      adventureTitle: z.string().describe('The title of the adventure, extracted from the JSON content.'),
+      adventureSummary: z.string().describe('A brief summary of the adventure, generated from the JSON content.'),
+    })
+  },
   prompt: `You are an expert D&D game master. Your task is to process adventure data from a JSON format.
 
   Here is the adventure data in JSON format:
@@ -75,14 +77,14 @@ const parseAdventureFromJsonFlow = ai.defineFlow(
     let output;
     const maxRetries = 3;
     let lastError: any = null;
-    
+
     log.info('Starting adventure JSON parsing', {
       module: 'ParseAdventure',
       flow: 'parseAdventureFromJsonFlow',
       jsonLength: input.adventureJson.length,
       hasAdventureData: !!adventureData,
     });
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         log.debug(`Attempting to parse adventure (attempt ${attempt}/${maxRetries})`, {
@@ -91,7 +93,7 @@ const parseAdventureFromJsonFlow = ai.defineFlow(
           attempt,
           maxRetries,
         });
-        
+
         const result = await prompt(input);
         output = result.output;
         if (output) {
@@ -106,13 +108,13 @@ const parseAdventureFromJsonFlow = ai.defineFlow(
         }
       } catch (error: any) {
         lastError = error;
-        
+
         // Extract error information more robustly
         const errorCode = error?.code || error?.cause?.code || 'UNKNOWN';
         let errorMessage = error?.message || error?.toString() || 'Unknown error';
         const causeCode = error?.cause?.code || null;
         let causeMessage = error?.cause?.message || null;
-        
+
         // Clean error messages: remove newlines and excessive whitespace, then truncate
         const cleanMessage = (msg: string, maxLength: number): string => {
           return msg
@@ -120,26 +122,35 @@ const parseAdventureFromJsonFlow = ai.defineFlow(
             .trim()
             .substring(0, maxLength);
         };
-        
+
         errorMessage = cleanMessage(errorMessage, 150);
         if (causeMessage) {
           causeMessage = cleanMessage(causeMessage, 80);
         }
-        
+
         // Check if it's a connection timeout error
-        const isTimeoutError = errorCode === 'UND_ERR_CONNECT_TIMEOUT' || 
-                              errorMessage.includes('Connect Timeout') ||
-                              errorMessage.includes('fetch failed') ||
-                              causeCode === 'UND_ERR_CONNECT_TIMEOUT' ||
-                              (causeMessage && causeMessage.includes('Connect Timeout'));
-        
-        log.warn(`Gemini API error (attempt ${attempt}/${maxRetries})`, {
-          module: 'ParseAdventure',
-          code: errorCode,
-          msg: errorMessage,
-          ...(isTimeoutError && { type: 'timeout' }),
-        });
-        
+        const isTimeoutError = errorCode === 'UND_ERR_CONNECT_TIMEOUT' ||
+          errorMessage.includes('Connect Timeout') ||
+          errorMessage.includes('fetch failed') ||
+          causeCode === 'UND_ERR_CONNECT_TIMEOUT' ||
+          (causeMessage && causeMessage.includes('Connect Timeout'));
+
+        // Only log if it's not a timeout, or if it's the last attempt
+        if (!isTimeoutError || attempt === maxRetries) {
+          log.warn(`Gemini API error (attempt ${attempt}/${maxRetries})`, {
+            module: 'ParseAdventure',
+            code: errorCode,
+            msg: errorMessage,
+            ...(isTimeoutError && { type: 'timeout' }),
+          });
+        } else {
+          // For timeout errors on retry attempts, just log a brief message
+          log.debug(`Connection timeout, retrying... (attempt ${attempt}/${maxRetries})`, {
+            module: 'ParseAdventure',
+            type: 'timeout',
+          });
+        }
+
         if (isTimeoutError && attempt < maxRetries) {
           // Wait a bit before retrying (exponential backoff)
           const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
@@ -149,10 +160,10 @@ const parseAdventureFromJsonFlow = ai.defineFlow(
         // If it's not a timeout or we've exhausted retries, throw
         const finalErrorCode = lastError?.code || lastError?.cause?.code || 'UNKNOWN';
         let finalErrorMessage = lastError?.message || lastError?.toString() || 'Unknown error';
-        
+
         // Clean error message: remove newlines and excessive whitespace, then truncate
         finalErrorMessage = cleanMessage(finalErrorMessage, 150);
-        
+
         log.warn('Gemini API error: parsing failed after all retries', {
           module: 'ParseAdventure',
           code: finalErrorCode,
@@ -161,7 +172,7 @@ const parseAdventureFromJsonFlow = ai.defineFlow(
         throw error;
       }
     }
-    
+
     if (!output) {
       const errorMessage = `Could not extract adventure title and summary after ${maxRetries} attempts. ${lastError ? `Last error: ${lastError.message}` : ''}`;
       const lastErrorMsg = lastError?.message || lastError?.toString() || 'Unknown';
@@ -172,7 +183,7 @@ const parseAdventureFromJsonFlow = ai.defineFlow(
       });
       throw new Error(errorMessage);
     }
-    
+
     // Return the extracted info plus the full, original JSON data.
     return {
       adventureTitle: output.adventureTitle,
