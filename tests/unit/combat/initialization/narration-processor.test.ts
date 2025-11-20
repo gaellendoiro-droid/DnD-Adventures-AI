@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NarrationProcessor } from '../../../../src/lib/combat/initialization/narration-processor';
 
 vi.mock('../../../../src/lib/combat/monster-name-manager', () => ({

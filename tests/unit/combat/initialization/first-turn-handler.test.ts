@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { FirstTurnHandler } from '../../../../src/lib/combat/initialization/first-turn-handler';
 import { CombatTurnManager } from '../../../../src/lib/combat/turn-manager';
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EnemyValidator } from '../../../../src/lib/combat/initialization/enemy-validator';
 import { getAdventureData } from '../../../../src/app/game-state-actions';
 import { getMonsterStatsFromDndApi } from '../../../../src/lib/combat/monster-stats-parser';

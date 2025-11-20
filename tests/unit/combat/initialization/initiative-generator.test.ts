@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InitiativeGenerator } from '../../../../src/lib/combat/initialization/initiative-generator';
 import { generateDifferentiatedNames } from '../../../../src/lib/combat/monster-name-manager';
 
