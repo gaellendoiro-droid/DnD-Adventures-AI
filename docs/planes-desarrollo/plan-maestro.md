@@ -161,38 +161,19 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 
 ---
 
-## 📝 Planes Sin Comenzar
+## 📝 Planes en Curso
 
-**Estado:** Pendientes | **Cantidad:** 13 planes
+- [ ] **Issue #94: Refactorización de Prompts de Tacticians**
+  - **Descripción:** Separar la decisión táctica de la narración en los `tacticians` de IA, centralizando toda la narración de combate en `combatNarrationExpertTool` para mejorar la consistencia y reducir la complejidad.
+  - **Estado:** 📝 **EN CURSO**
+  - **Plan:** [Refactorización de Prompts de Tacticians](./en-curso/issue-94-refactorizacion-prompts-tacticians.md)
 
-Planes identificados pero aún no iniciados:
+## 💡 Planes Sin Comenzar (Priorizados)
 
-### Prioridad Alta
-
-#### [Sistema de Progresión y Gestión](roadmap.md#1-sistema-de-progresión-y-gestión-prioridad-alta)
+### 1. Sistema de Compendio de D&D Local (Prioridad Alta)
 - **Estado:** Sin comenzar
 - **Prioridad:** Alta
-- **Referencia:** Ver detalles completos en [Roadmap - Sección 1](../roadmap.md#1-sistema-de-progresión-y-gestión-prioridad-alta)
-
-#### [Sistema de Inicio de Combate Dinámico](roadmap.md#2-sistema-de-inicio-de-combate-dinámico-prioridad-alta)
-- **Estado:** Sin comenzar
-- **Prioridad:** Alta
-- **Referencia:** Ver detalles completos en [Roadmap - Sección 2](../roadmap.md#2-sistema-de-inicio-de-combate-dinámico-prioridad-alta)
-
-
-#### [Mejora de Estructura de Fichas de Personajes](roadmap.md#3-mejora-de-estructura-de-fichas-de-personajes-prioridad-alta)
-- **Estado:** Sin comenzar
-- **Prioridad:** Alta
-- **Referencia:** Ver detalles completos en [Roadmap - Sección 3](../roadmap.md#3-mejora-de-estructura-de-fichas-de-personajes-prioridad-alta)
-
-### Prioridad Media
-
-#### [Compendio de D&D Local - Base de Datos Local](sin-comenzar/compendio-dnd-local.md)
-- **Estado:** Sin comenzar
-- **Prioridad:** Media-Alta
-- **Referencias:** 
-  - [Plan Detallado](sin-comenzar/compendio-dnd-local.md) - Plan completo de implementación
-  - [Roadmap - Sección 4](../roadmap.md#4-compendio-de-dd-local---base-de-datos-local-prioridad-media) - Visión general
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 4](../roadmap.md#4-compendio-de-dd-local---base-de-datos-local-prioridad-media) - Visión general
 
 #### [Convertidor de PDF a JSON - Aplicación Auxiliar](sin-comenzar/pdf-to-json-converter.md)
 - **Estado:** Sin comenzar

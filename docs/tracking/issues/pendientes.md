@@ -2,8 +2,8 @@
 
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 25 issues  
-**Última actualización:** 2025-11-18 (Issue #66 movido a corregidos - corregido en código)
+**Total:** 26 issues  
+**Última actualización:** 2025-01-20 (Issue #116 añadido - Coordinación narraciones DM y compañeros)
 
 ---
 
@@ -131,7 +131,49 @@ _No hay issues críticos pendientes en este momento._
 
 ## 🟢 Prioridad Media (PM) - Mejoras
 
-### Issue #76: Input debe deshabilitarse cuando el DM está “pensando” 🟢 MEJORA
+### Issue #116: DM narra palabras textuales de compañeros cuando tienen su propia voz 🟢 MEJORA
+
+- **Fecha de creación:** 2025-01-20
+- **Ubicación:** `src/ai/flows/game-coordinator.ts`, `src/ai/flows/narrative-manager.ts`, `src/ai/tools/companion-expert.ts`
+- **Severidad:** 🟢 **MEDIA** (afecta calidad narrativa y coherencia del sistema de mensajes)
+- **Descripción:** El DM a veces narra lo que dice algún compañero cuando los compañeros tienen su propia voz en el chat. El DM no debe narrar sus palabras textuales, ya que los compañeros generan sus propios mensajes directamente en el chat.
+- **Problema:**
+  - Los compañeros generan sus propios mensajes a través de `companionExpertTool` que aparecen directamente en el chat con su propia voz
+  - El DM está narrando las palabras textuales de los compañeros en sus narraciones, creando duplicación y confusión
+  - Falta coordinación entre el sistema de narración del DM y el sistema de mensajes de los compañeros
+  - El DM debería narrar acciones y contexto, no repetir lo que los compañeros ya dijeron
+- **Comportamiento actual:**
+  - Los compañeros generan mensajes (ej: "Elara dice: '¡Cuidado, hay un goblin!'")
+  - El DM luego narra: "Elara te advierte: '¡Cuidado, hay un goblin!'" (duplicación)
+- **Comportamiento esperado:**
+  - Los compañeros generan sus mensajes directamente en el chat con su propia voz
+  - El DM narra el contexto y las acciones, pero NO repite las palabras textuales de los compañeros
+  - El DM puede referenciar que un compañero habló (ej: "Elara te advierte sobre el peligro") sin citar sus palabras exactas
+  - Coordinación clara: el DM debe saber qué compañeros ya hablaron para no duplicar su contenido
+- **Impacto:** Medio - Afecta la calidad narrativa, crea duplicación de contenido y confusión sobre quién está hablando
+- **Solución propuesta:**
+  - **Fase 1:** Estudiar el flujo actual de coordinación entre `game-coordinator.ts`, `narrative-manager.ts` y `companion-expert.ts`
+  - **Fase 2:** Identificar dónde el DM está recibiendo información sobre lo que dijeron los compañeros
+  - **Fase 3:** Modificar el prompt del `narrativeExpert` para que:
+    - No narre las palabras textuales de los compañeros
+    - Solo referencie que un compañero habló sin citar sus palabras exactas
+    - Se enfoque en narrar acciones, contexto y consecuencias, no diálogos directos
+  - **Fase 4:** Asegurar que el contexto pasado al DM incluya información sobre qué compañeros hablaron, pero no sus palabras exactas
+  - **Fase 5:** Testing para verificar que no hay duplicación y que la coordinación es clara
+- **Archivos afectados:**
+  - `src/ai/flows/game-coordinator.ts` (coordinación entre compañeros y DM)
+  - `src/ai/flows/narrative-manager.ts` (prompt del narrativeExpert)
+  - `src/ai/tools/companion-expert.ts` (generación de mensajes de compañeros)
+- **Estado:** 📝 **PENDIENTE**
+- **Prioridad:** Media (mejora calidad narrativa, no bloqueador)
+- **Relacionado con:**
+  - Issue #94 (Refactorización de Prompts de Tacticians) - Similar problema de coordinación narrativa
+  - Roadmap - Sección 9 "Narración Unificada para Todos los Turnos"
+- **Detección:** Observado durante gameplay manual - duplicación de contenido entre mensajes de compañeros y narraciones del DM
+
+---
+
+### Issue #76: Input debe deshabilitarse cuando el DM está "pensando" 🟢 MEJORA
 
 - **Fecha de creación:** 2025-11-17
 - **Ubicación:** `src/components/game/player-input.tsx`, `src/app/game-state-actions.ts`
