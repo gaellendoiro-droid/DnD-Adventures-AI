@@ -7,7 +7,7 @@
  * This module is part of the Fase 2.1 refactorization and resolves Issue #21.
  */
 
-import type { GameMessage, DiceRoll, Combatant } from '@/lib/types';
+import type { GameMessage, DiceRoll, Combatant, DiceRollOutcome } from '@/lib/types';
 import { log } from '@/lib/logger';
 import { diceRollerTool } from '../dice-roller';
 import { getVisualName } from '@/lib/combat/monster-name-manager';
@@ -17,6 +17,9 @@ import {
     isUnconsciousOrDead,
     checkEndOfCombat,
 } from '@/lib/combat/rules-engine';
+
+// Define type locally to avoid circular imports
+type NarrationTool = (input: any) => Promise<{ narration: string }>;
 
 /**
  * Duplicates damage dice for critical hits according to D&D 5e rules.
@@ -35,11 +38,11 @@ export function getCriticalDamageNotation(rollNotation: string, isCritical: bool
     if (!isCritical) {
         return rollNotation;
     }
-    
+
     // Parse the damage roll notation (e.g., "1d8+2" -> {numDice: 1, dieType: 8, modifier: 2})
     // Also supports notation without modifier (e.g., "1d8" -> {numDice: 1, dieType: 8, modifier: 0})
     const diceMatch = rollNotation.match(/^(\d+)d(\d+)([+-]\d+)?$/);
-    
+
     if (!diceMatch) {
         log.warn('Invalid damage roll notation for critical, using as-is', {
             module: 'DiceRollProcessor',
@@ -48,14 +51,14 @@ export function getCriticalDamageNotation(rollNotation: string, isCritical: bool
         // Fallback: return original notation
         return rollNotation;
     }
-    
+
     const numDice = parseInt(diceMatch[1], 10);
     const dieType = diceMatch[2];
     const modifier = diceMatch[3] || '';
-    
+
     // In D&D 5e, critical hits double the number of dice, not the modifier
     const finalNumDice = numDice * 2;
-    
+
     return `${finalNumDice}d${dieType}${modifier}`;
 }
 
@@ -75,28 +78,28 @@ export function updateRollNotationWithModifiers(
     if (!character || !character.abilityModifiers || character.proficiencyBonus === undefined) {
         return; // Can't update without character data
     }
-    
+
     const strMod = character.abilityModifiers.fuerza || 0;
     const dexMod = character.abilityModifiers.destreza || 0;
     const abilityMod = Math.max(strMod, dexMod);
     const proficiencyBonus = character.proficiencyBonus ?? 2;
-    
+
     // Parse the original rollNotation to extract base dice (e.g., "1d20" or "1d8")
     const diceMatch = roll.rollNotation.match(/^(\d+d\d+)/);
     if (!diceMatch) {
         return; // Can't parse, return as-is
     }
-    
+
     const baseDice = diceMatch[1];
     const modifiers: Array<{ value: number; label: string }> = [];
-    
+
     if (isAttackRoll) {
         // Attack roll: ability modifier + proficiency bonus
         modifiers.push(
             { value: abilityMod, label: abilityMod === strMod ? 'FUE' : 'DES' },
             { value: proficiencyBonus, label: 'BC' }
         );
-        
+
         const abilityStr = abilityMod >= 0 ? `+${abilityMod}` : `${abilityMod}`;
         const profStr = proficiencyBonus >= 0 ? `+${proficiencyBonus}` : `${proficiencyBonus}`;
         roll.rollNotation = `${baseDice}${abilityStr}${profStr}`;
@@ -108,7 +111,7 @@ export function updateRollNotationWithModifiers(
             roll.rollNotation = `${baseDice}${abilityStr}`;
         }
     }
-    
+
     roll.modifiers = modifiers;
 }
 
@@ -117,7 +120,7 @@ export function updateRollNotationWithModifiers(
  */
 export interface ProcessAICombatantRollsResult {
     diceRolls: DiceRoll[];
-    messages: GameMessage[];
+    messages: Omit<GameMessage, 'id' | 'timestamp'>[];
     updatedParty: any[];
     updatedEnemies: any[];
     combatEnded: boolean;
@@ -135,6 +138,8 @@ export interface ProcessAICombatantRollsParams {
     newInitiativeOrder: Combatant[];
     localLog: (message: string) => void;
     diceRoller?: typeof diceRollerTool; // Inyección de dependencia opcional
+    combatNarrationExpertTool?: NarrationTool; // Inyección de dependencia opcional
+    actionDescription?: string; // Description of the action for complete narration
 }
 
 /**
@@ -159,12 +164,13 @@ export async function processAICombatantRolls(
         newInitiativeOrder,
         localLog,
         diceRoller = diceRollerTool, // Usar el inyectado o el original
+        combatNarrationExpertTool: narrationTool, // Alias for easier usage
     } = params;
 
     let updatedParty = initialParty;
     let updatedEnemies = initialEnemies;
     const diceRolls: DiceRoll[] = [];
-    const messages: GameMessage[] = [];
+    const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
     let combatEnded = false;
 
     // Get visual name for target
@@ -190,12 +196,13 @@ export async function processAICombatantRolls(
     });
 
     // Process rolls in order: attack first, then damage/healing
-    for (const rollRequest of requestedRolls) {
+    for (let i = 0; i < requestedRolls.length; i++) {
+        const rollRequest = requestedRolls[i];
         try {
             // Check if this is a damage roll and if previous attack was critical
             const rollDescription = (rollRequest.description || '').toLowerCase();
             const isDamageRoll = rollDescription.includes('damage') || rollDescription.includes('daño');
-            
+
             // Adjust damage dice for critical hits (Issue #50)
             let adjustedRollNotation = rollRequest.rollNotation;
             if (isDamageRoll && wasCritical) {
@@ -206,26 +213,26 @@ export async function processAICombatantRolls(
                     adjusted: adjustedRollNotation,
                 });
             }
-            
+
             // Make the actual dice roll using the injected roller
             const rollResult = await diceRoller({
                 roller: rollRequest.roller,
                 rollNotation: adjustedRollNotation,
                 description: rollRequest.description,
             });
-            
+
             // Store the adjusted notation if it was modified for critical
             const roll: DiceRoll = {
                 ...rollResult,
                 roller: rollRequest.roller,
                 rollNotation: adjustedRollNotation,
-                description: isDamageRoll && wasCritical 
+                description: isDamageRoll && wasCritical
                     ? `${rollRequest.description} (crítico)`
                     : rollRequest.description,
                 // Set outcome to 'crit' for critical damage rolls
                 outcome: isDamageRoll && wasCritical ? 'crit' : rollResult.outcome,
             };
-            
+
             // Try to find character data for companions to update notation with modifiers
             const isAttackRoll = rollDescription.includes('attack') || rollDescription.includes('ataque');
             const companionChar = initialParty.find(p => p.id === activeCombatant.id);
@@ -235,7 +242,7 @@ export async function processAICombatantRolls(
             }
             // Note: For enemies, we don't have structured character data with abilityModifiers/proficiencyBonus,
             // so we can't break down modifiers. The AI should generate the correct notation, but if not, it will show as-is
-            
+
             diceRolls.push(roll);
 
             // Extract attackType from rollData (provided by AI tactician)
@@ -296,7 +303,7 @@ export async function processAICombatantRolls(
                 }
 
                 attackHit = roll.totalResult >= finalTargetAC;
-                
+
                 // Check for critical hit (Issue #50)
                 wasCritical = attackHit && roll.outcome === 'crit';
 
@@ -307,13 +314,13 @@ export async function processAICombatantRolls(
                     targetName: targetVisualName,
                     targetAC: finalTargetAC,
                     attackHit: attackHit,
-                    outcome: attackHit
+                    outcome: (attackHit
                         ? roll.outcome === 'crit'
                             ? 'crit'
                             : 'success'
                         : roll.outcome === 'pifia'
-                        ? 'pifia'
-                        : 'fail',
+                            ? 'pifia'
+                            : 'fail') as DiceRollOutcome,
                 };
                 diceRolls[rollIndex] = updatedRoll;
 
@@ -330,17 +337,43 @@ export async function processAICombatantRolls(
 
                 if (attackHit) {
                     // Check for crit
-                    if (wasCritical) {
-                        messages.push({
-                            sender: 'DM',
-                            content: `¡${activeCombatant.characterName} ataca a ${targetVisualName} con un golpe crítico!`,
-                        });
+                    // Check if next roll is damage (to combine narration)
+                    const nextRoll = requestedRolls[i + 1];
+                    const nextIsDamage = nextRoll && (
+                        (nextRoll.description || '').toLowerCase().includes('damage') ||
+                        (nextRoll.description || '').toLowerCase().includes('daño')
+                    );
+
+                    if (!nextIsDamage) {
+                        // Hit but no damage follows (e.g. grapple, or just attack)
+                        // Generate narration now
+                        if (narrationTool) {
+                            const narrationResult = await narrationTool({
+                                attackerName: activeCombatant.characterName,
+                                targetName: targetVisualName,
+                                actionDescription: params.actionDescription || 'ataque',
+                                attackResult: wasCritical ? 'critical' : 'hit',
+                                // No damage info
+                            });
+                            messages.push({ sender: 'DM', content: narrationResult.narration });
+                        } else {
+                            // Fallback: complete narration
+                            const actionDesc = params.actionDescription || 'ataque';
+                            let fallbackNarration = '';
+                            if (wasCritical) {
+                                fallbackNarration = `${activeCombatant.characterName} encuentra el momento perfecto y ejecuta ${actionDesc} con precisión letal. El golpe crítico impacta en ${targetVisualName} con fuerza devastadora.`;
+                            } else {
+                                fallbackNarration = `${activeCombatant.characterName} se lanza hacia ${targetVisualName} con ${actionDesc}. El golpe conecta sólidamente y ${targetVisualName} retrocede por el impacto.`;
+                            }
+                            messages.push({ sender: 'DM', content: fallbackNarration });
+                        }
                     } else {
-                        messages.push({
-                            sender: 'DM',
-                            content: `${activeCombatant.characterName} ataca a ${targetVisualName} y acierta (${roll.totalResult} vs AC ${finalTargetAC}).`,
+                        // Next is damage, so we skip narration here and wait for damage roll
+                        log.debug('Attack hit, waiting for damage roll to narrate', {
+                            module: 'DiceRollProcessor',
                         });
                     }
+
                     log.debug('Attack hit', {
                         module: 'DiceRollProcessor',
                         rollTotal: roll.totalResult,
@@ -348,18 +381,27 @@ export async function processAICombatantRolls(
                         isCrit: roll.outcome === 'crit',
                     });
                 } else {
-                    // Check for pifia
-                    if (roll.outcome === 'pifia') {
-                        messages.push({
-                            sender: 'DM',
-                            content: `¡${activeCombatant.characterName} falla estrepitosamente al atacar a ${targetVisualName}! (Pifia: ${roll.totalResult} vs AC ${finalTargetAC})`,
+                    // Miss
+                    if (narrationTool) {
+                        const narrationResult = await narrationTool({
+                            attackerName: activeCombatant.characterName,
+                            targetName: targetVisualName,
+                            actionDescription: params.actionDescription || 'ataque',
+                            attackResult: roll.outcome === 'pifia' ? 'fumble' : 'miss',
                         });
+                        messages.push({ sender: 'DM', content: narrationResult.narration });
                     } else {
-                        messages.push({
-                            sender: 'DM',
-                            content: `${activeCombatant.characterName} ataca a ${targetVisualName}, pero falla (${roll.totalResult} vs AC ${finalTargetAC}).`,
-                        });
+                        // Fallback: complete narration for miss
+                        const actionDesc = params.actionDescription || 'ataque';
+                        let fallbackNarration = '';
+                        if (roll.outcome === 'pifia') {
+                            fallbackNarration = `${activeCombatant.characterName} intenta ${actionDesc} contra ${targetVisualName}, pero falla estrepitosamente. El ataque se desvía completamente y ${activeCombatant.characterName} pierde el equilibrio.`;
+                        } else {
+                            fallbackNarration = `${activeCombatant.characterName} se lanza hacia ${targetVisualName} con ${actionDesc}. ${targetVisualName} esquiva ágilmente en el último momento y el golpe solo corta el aire.`;
+                        }
+                        messages.push({ sender: 'DM', content: fallbackNarration });
                     }
+
                     log.debug('Attack missed', {
                         module: 'DiceRollProcessor',
                         rollTotal: roll.totalResult,
@@ -373,7 +415,11 @@ export async function processAICombatantRolls(
                     log.debug('Attack missed, skipping damage rolls', {
                         module: 'DiceRollProcessor',
                     });
-                    break; // No damage if attack misses
+                    // Skip subsequent damage rolls in the loop
+                    // We can't just break because there might be other independent rolls? 
+                    // Usually not for one action. But let's be safe.
+                    // The original code used 'break'.
+                    break;
                 }
             }
             // Process damage roll (only if attack hit or it's a saving throw spell)
@@ -490,61 +536,29 @@ export async function processAICombatantRolls(
                     ? updatedParty.find((p) => p.id === target.id)?.hp.current
                     : updatedEnemies.find((e: any) => e.uniqueId === (target as any).uniqueId)?.hp.current;
 
-                // Check if target was killed by this damage
-                const targetKilled = newHP !== undefined && newHP <= 0;
-
-                // Update roll with damage information
-                const rollIndex = diceRolls.length - 1;
-                diceRolls[rollIndex] = {
-                    ...roll,
-                    targetName: targetVisualName,
-                    damageDealt: roll.totalResult,
-                    targetKilled: targetKilled,
-                };
-
-                messages.push({
-                    sender: 'DM',
-                    content: `${activeCombatant.characterName} ha hecho ${roll.totalResult} puntos de daño a ${targetVisualName}${
-                        previousHP !== undefined && newHP !== undefined ? ` (${previousHP} → ${newHP} HP)` : ''
-                    }.`,
-                });
-
-                log.debug('Damage applied', {
-                    module: 'DiceRollProcessor',
-                    target: targetVisualName,
-                    damage: roll.totalResult,
-                    previousHP,
-                    newHP,
-                    targetKilled,
-                });
-
                 // Check if target was defeated or knocked unconscious
-                if (targetKilled) {
-                    // Get updated target to check isDead status
-                    const updatedTarget = targetIsPlayer
-                        ? updatedParty.find((p) => p.id === target.id)
-                        : updatedEnemies.find((e: any) => (e as any).uniqueId === (target as any).uniqueId);
-                    
-                    const targetIsDead = updatedTarget?.isDead === true;
-                    
+                const targetHPZero = newHP !== undefined && newHP <= 0;
+                
+                // Get updated target to check isDead status
+                const updatedTarget = targetIsPlayer
+                    ? updatedParty.find((p) => p.id === target.id)
+                    : updatedEnemies.find((e: any) => (e as any).uniqueId === (target as any).uniqueId);
+
+                // Determine if target is actually dead or just unconscious
+                let targetKilled = false;
+                let targetKnockedOut = false;
+                
+                if (targetHPZero) {
                     if (targetIsPlayer && updatedTarget) {
                         // For players/companions: distinguish between death and unconsciousness
-                        // Players/companions can fall unconscious (isDead = false) or die (isDead = true via massive damage)
+                        const targetIsDead = updatedTarget?.isDead === true;
                         if (targetIsDead) {
-                            // Add massive damage death message if applicable (AFTER damage message, BEFORE kill message)
-                            if (massiveDamageDeath) {
-                                messages.push({
-                                    sender: 'DM',
-                                    content: `${targetVisualName} ha recibido un golpe devastador y muere instantáneamente.`,
-                                });
-                            }
-                            messages.push({
-                                sender: 'DM',
-                                content: `¡${activeCombatant.characterName} ha matado a ${targetVisualName}!`,
-                            });
+                            targetKilled = true;
                             localLog(`${activeCombatant.characterName} killed ${targetVisualName}!`);
-                        } else if (newHP === 0 && previousHP !== undefined && previousHP > 0) {
+                        } else if (previousHP !== undefined && previousHP > 0) {
                             // Target just fell unconscious (not dead) - only for players/companions
+                            targetKnockedOut = true;
+                            // Unconsciousness messages are kept as they are different from death
                             messages.push({
                                 sender: 'DM',
                                 content: `¡${activeCombatant.characterName} ha dejado inconsciente a ${targetVisualName}!`,
@@ -557,14 +571,83 @@ export async function processAICombatantRolls(
                         }
                     } else {
                         // For enemies: they die directly at HP 0 (no unconsciousness concept)
-                        // Enemies don't have the isDead field or it's not used - they simply die when HP <= 0
-                        messages.push({
-                            sender: 'DM',
-                            content: `¡${activeCombatant.characterName} ha matado a ${targetVisualName}!`,
-                        });
+                        targetKilled = true;
                         localLog(`${activeCombatant.characterName} killed ${targetVisualName}!`);
                     }
                 }
+
+                // Update roll with damage information
+                const rollIndex = diceRolls.length - 1;
+                diceRolls[rollIndex] = {
+                    ...roll,
+                    targetName: targetVisualName,
+                    damageDealt: roll.totalResult,
+                    targetKilled: targetKilled,
+                };
+
+                // Generate complete narration with action context
+                // CRITICAL: Always try to generate narration, never use technical messages
+                if (narrationTool) {
+                    try {
+                        const narrationResult = await narrationTool({
+                            attackerName: activeCombatant.characterName,
+                            targetName: targetVisualName,
+                            actionDescription: params.actionDescription || 'ataque',
+                            attackResult: wasCritical ? 'critical' : 'hit',
+                            damageDealt: roll.totalResult,
+                            targetPreviousHP: previousHP,
+                            targetNewHP: newHP,
+                            targetKilled: targetKilled,
+                            targetKnockedOut: targetKnockedOut,
+                        });
+                        
+                        // Validate narration is not generic
+                        // Accept narration if it's descriptive (not just "X ataca a Y") and has reasonable length
+                        const isGeneric = narrationResult.narration && 
+                            narrationResult.narration.match(/^[^.]* (ataca|golpea) a [^.]*\.?$/i);
+                        
+                        if (narrationResult.narration && !isGeneric && narrationResult.narration.length > 15) {
+                            messages.push({ sender: 'DM', content: narrationResult.narration });
+                        } else {
+                            // Narration is too generic or too short, log warning but use it anyway
+                            // The combat-narration-expert should have already handled this, but just in case
+                            localLog(`WARNING: Generated narration may be too generic or short: "${narrationResult.narration}"`);
+                            messages.push({ sender: 'DM', content: narrationResult.narration });
+                        }
+                    } catch (narrationError) {
+                        localLog(`ERROR: Narration generation failed: ${narrationError}`);
+                        // If narration fails, use a complete descriptive fallback
+                        const actionDesc = params.actionDescription || 'ataque';
+                        let fallbackNarration = '';
+                        if (targetKilled) {
+                            fallbackNarration = `${activeCombatant.characterName} se lanza hacia ${targetVisualName} con ${actionDesc}. El golpe impacta con fuerza devastadora y ${targetVisualName} se desploma sin vida.`;
+                        } else {
+                            fallbackNarration = `${activeCombatant.characterName} carga contra ${targetVisualName} con ${actionDesc}. El impacto es contundente y ${targetVisualName} retrocede tambaleándose bajo el golpe.`;
+                        }
+                        messages.push({ sender: 'DM', content: fallbackNarration });
+                    }
+                } else {
+                    // narrationTool not provided - use complete descriptive fallback
+                    localLog(`WARNING: narrationTool not provided, using descriptive fallback`);
+                    const actionDesc = params.actionDescription || 'ataque';
+                    let fallbackNarration = '';
+                    if (targetKilled) {
+                        fallbackNarration = `${activeCombatant.characterName} se lanza hacia ${targetVisualName} con ${actionDesc}. El golpe impacta con fuerza devastadora y ${targetVisualName} se desploma sin vida.`;
+                    } else {
+                        fallbackNarration = `${activeCombatant.characterName} carga contra ${targetVisualName} con ${actionDesc}. El impacto es contundente y ${targetVisualName} retrocede tambaleándose bajo el golpe.`;
+                    }
+                    messages.push({ sender: 'DM', content: fallbackNarration });
+                }
+
+                log.debug('Damage applied', {
+                    module: 'DiceRollProcessor',
+                    target: targetVisualName,
+                    damage: roll.totalResult,
+                    previousHP,
+                    newHP,
+                    targetKilled,
+                    targetKnockedOut,
+                });
 
                 // Check if combat has ended after applying damage
                 localLog('checkEndOfCombat: Checking for end of combat...');
@@ -574,14 +657,14 @@ export async function processAICombatantRolls(
                     if (combatCheck.reason === 'Todos los enemigos derrotados') {
                         messages.push({ sender: 'DM', content: '¡Victoria! Todos los enemigos han sido derrotados.' });
                     } else if (combatCheck.reason === 'Todos los aliados inconscientes') {
-                        messages.push({ 
-                            sender: 'DM', 
-                            content: '¡Game Over! Todos los miembros del grupo han caído inconscientes. Sin nadie que pueda ayudarlos, vuestro viaje termina aquí. La aventura ha terminado.' 
+                        messages.push({
+                            sender: 'DM',
+                            content: '¡Game Over! Todos los miembros del grupo han caído inconscientes. Sin nadie que pueda ayudarlos, vuestro viaje termina aquí. La aventura ha terminado.'
                         });
                     } else if (combatCheck.reason === 'Todos los aliados muertos') {
-                        messages.push({ 
-                            sender: 'DM', 
-                            content: '¡Game Over! Todos los miembros del grupo han muerto en combate. Vuestro viaje termina aquí, pero vuestra historia será recordada. La aventura ha terminado.' 
+                        messages.push({
+                            sender: 'DM',
+                            content: '¡Game Over! Todos los miembros del grupo han muerto en combate. Vuestro viaje termina aquí, pero vuestra historia será recordada. La aventura ha terminado.'
                         });
                     }
                     // Mark combat as ended and break out of the roll loop
@@ -645,9 +728,8 @@ export async function processAICombatantRolls(
 
                     messages.push({
                         sender: 'DM',
-                        content: `${targetVisualName} es curado por ${roll.totalResult} puntos${
-                            previousHP !== undefined && newHP !== undefined ? ` (${previousHP} → ${newHP} HP)` : ''
-                        }.`,
+                        content: `${targetVisualName} es curado por ${roll.totalResult} puntos${previousHP !== undefined && newHP !== undefined ? ` (${previousHP} → ${newHP} HP)` : ''
+                            }.`,
                     });
 
                     log.debug('Healing applied', {
@@ -683,9 +765,8 @@ export async function processAICombatantRolls(
 
                     messages.push({
                         sender: 'DM',
-                        content: `${targetVisualName} es curado por ${roll.totalResult} puntos${
-                            previousHP !== undefined && newHP !== undefined ? ` (${previousHP} → ${newHP} HP)` : ''
-                        }.`,
+                        content: `${targetVisualName} es curado por ${roll.totalResult} puntos${previousHP !== undefined && newHP !== undefined ? ` (${previousHP} → ${newHP} HP)` : ''
+                            }.`,
                     });
 
                     log.debug('Healing applied to enemy', {

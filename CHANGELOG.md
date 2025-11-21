@@ -15,6 +15,48 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+### Changed
+- **✅ Issue #94 - Refactorización de Prompts de Tacticians - Narración Centralizada (2025-11-21):**
+  - **Problema:** Los tacticians (`enemyTacticianTool` y `companionTacticianTool`) generaban tanto la decisión táctica como la narración, creando prompts complejos, inconsistencias narrativas y dificultando el mantenimiento
+  - **Solución:** Separación completa de responsabilidades - Tacticians solo deciden táctica, `combatNarrationExpertTool` genera todas las narraciones
+  - **Cambios principales:**
+    - **Tacticians simplificados:** Eliminado campo `narration`, ahora solo generan `targetId`, `diceRolls` y `actionDescription`
+    - **Narración centralizada:** `combatNarrationExpertTool` genera narraciones completas (preparación + ejecución + resultado) en un solo mensaje
+    - **Schema simplificado:** Eliminado `narrationType` (intention/resolution), ahora solo narraciones completas
+    - **Flujo simplificado:** Un solo mensaje narrativo por turno de IA, más limpio y fluido
+    - **Bug corregido:** Añadido `combatNarrationExpertTool` al `CombatInitContext` para que esté disponible desde el primer turno
+  - **Beneficios:**
+    - ✅ Consistencia narrativa total entre jugador, compañeros y enemigos
+    - ✅ Prompts más simples = menos errores de validación
+    - ✅ Mejoras de narración aplicables centralmente a todos los turnos
+    - ✅ Experiencia mejorada: un solo mensaje narrativo por turno de IA
+    - ✅ Código más limpio y mantenible
+  - **Archivos modificados:**
+    - `src/ai/tools/combat/tactician-schemas.ts` - Schema simplificado sin `narrationType`
+    - `src/ai/tools/combat/combat-narration-expert.ts` - Prompt reescrito para narraciones completas
+    - `src/ai/tools/enemy-tactician.ts` - Prompt simplificado, sin narración
+    - `src/ai/tools/companion-tactician.ts` - Prompt simplificado, sin narración
+    - `src/lib/combat/combat-session.ts` - Eliminada narración de intención
+    - `src/lib/combat/initialization/first-turn-handler.ts` - Eliminada narración de intención
+    - `src/ai/tools/combat/dice-roll-processor.ts` - Acepta y pasa `actionDescription`, fallbacks mejorados
+    - `src/lib/combat/action-processor.ts` - Actualizado para pasar `actionDescription`
+    - `src/lib/combat/combat-initializer.ts` - Añadido `combatNarrationExpertTool` al contexto
+    - `src/lib/combat/initialization/types.ts` - Añadido `combatNarrationExpertTool` al contexto
+  - **Referencia:** [Issue #94](../../docs/tracking/issues/corregidos.md#issue-94-refactorización-de-prompts-de-tacticians---separación-de-narración-y-decisión-táctica--resuelto) | [Plan Completado](../../docs/planes-desarrollo/completados/issue-94-refactorizacion-prompts-tacticians.md)
+
+### Fixed
+- **✅ Issue #93 - Stack traces completos en errores de API call (2025-11-21):**
+  - **Problema:** Los errores de red/timeout (como `TypeError: fetch failed` con `ConnectTimeoutError`) mostraban stack traces completos muy largos en los logs, dificultando la lectura y diagnóstico
+  - **Solución:** Modificado `retryWithExponentialBackoff` en `src/ai/flows/retry-utils.ts` para crear errores limpios sin stack traces completos:
+    - Cuando se agotan los reintentos, se crea un nuevo error con mensaje limpio: `API call failed: [mensaje] ([código])`
+    - Se usa `Error.captureStackTrace` para limitar el stack trace solo a la función `retryWithExponentialBackoff`
+    - Los errores se registran con `log.error` antes de lanzarse, mostrando solo información relevante
+    - Fallback para entornos sin `Error.captureStackTrace`: stack trace mínimo
+  - **Resultado:** Los logs ahora muestran solo mensajes limpios como `Error: API call failed: Connect Timeout Error (UND_ERR_CONNECT_TIMEOUT)` sin stack traces de 20+ líneas
+  - **Archivos modificados:**
+    - `src/ai/flows/retry-utils.ts` - Manejo mejorado de errores con stack traces limitados
+  - **Referencia:** [Issue #93](../../docs/tracking/issues/pendientes.md#issue-93-manejo-de-errores-cuando-se-agotan-los-reintentos-especialmente-errores-503-de-sobrecarga-🟡-advertencia)
+
 ---
 
 ## [0.5.5] - 2025-01-20

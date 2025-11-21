@@ -2,8 +2,8 @@
 
 Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 42 issues  
-**Última actualización:** 2025-11-18 (Issue #66 movido desde pendientes - corregido en código)
+**Total:** 43 issues  
+**Última actualización:** 2025-11-21 (Issue #94 añadido - Refactorización de Prompts de Tacticians completada)
 
 ---
 
@@ -362,6 +362,47 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 ---
 
 ## 🟡 Prioridad Alta (PA) - Advertencias
+
+### Issue #94: Refactorización de Prompts de Tacticians - Separación de Narración y Decisión Táctica ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-18
+- **Fecha de corrección:** 2025-11-21
+- **Ubicación:** `src/ai/tools/enemy-tactician.ts`, `src/ai/tools/companion-tactician.ts`, `src/ai/tools/combat/combat-narration-expert.ts`, `src/lib/combat/`
+- **Severidad:** 🟡 **ALTA** (mejora arquitectura, consistencia narrativa y reduce complejidad de prompts)
+- **Descripción:** Los tacticians (`enemyTacticianTool` y `companionTacticianTool`) generaban tanto la decisión táctica como la narración, creando prompts complejos, inconsistencias narrativas y dificultando el mantenimiento.
+- **Problema original:**
+  - Responsabilidades mezcladas: Los tacticians decidían la acción Y la narraban
+  - Inconsistencia narrativa: El estilo de narración de la IA (enemigos y compañeros) difería del `combatNarrationExpertTool` usado para el jugador
+  - Complejidad de prompts: Prompts largos y complejos aumentaban el riesgo de errores de validación
+  - Mantenimiento difícil: Mejorar la calidad narrativa requería editar múltiples archivos
+- **Solución implementada:** ✅
+  - **Tacticians simplificados:** Ahora solo generan decisión táctica (`targetId`, `diceRolls`, `actionDescription`), sin narración
+  - **Narración centralizada:** `combatNarrationExpertTool` genera narraciones completas (preparación + ejecución + resultado) para todos los turnos
+  - **Flujo simplificado:** Un solo mensaje narrativo por turno de IA, más limpio y fluido
+  - **Schema simplificado:** Eliminado `narrationType` (intention/resolution), ahora solo narraciones completas
+  - **Bug corregido:** Añadido `combatNarrationExpertTool` al `CombatInitContext` para que esté disponible desde el primer turno
+- **Beneficios logrados:**
+  - ✅ Consistencia narrativa total entre jugador, compañeros y enemigos
+  - ✅ Prompts más simples = menos errores de validación
+  - ✅ Mejoras de narración aplicables centralmente a todos los turnos
+  - ✅ Experiencia mejorada: un solo mensaje narrativo por turno de IA
+  - ✅ Código más limpio y mantenible
+- **Archivos modificados:**
+  - `src/ai/tools/combat/tactician-schemas.ts` - Schema simplificado sin `narrationType`
+  - `src/ai/tools/combat/combat-narration-expert.ts` - Prompt reescrito para narraciones completas
+  - `src/ai/tools/enemy-tactician.ts` - Prompt simplificado, sin narración
+  - `src/ai/tools/companion-tactician.ts` - Prompt simplificado, sin narración
+  - `src/lib/combat/combat-session.ts` - Eliminada narración de intención
+  - `src/lib/combat/initialization/first-turn-handler.ts` - Eliminada narración de intención
+  - `src/ai/tools/combat/dice-roll-processor.ts` - Acepta y pasa `actionDescription`
+  - `src/lib/combat/action-processor.ts` - Actualizado para pasar `actionDescription`
+  - `src/lib/combat/combat-initializer.ts` - Añadido `combatNarrationExpertTool` al contexto
+  - `src/lib/combat/initialization/types.ts` - Añadido `combatNarrationExpertTool` al contexto
+- **Impacto:** Alto - Mejora arquitectura, reduce errores, mejora consistencia narrativa y experiencia del usuario
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada
+- **Referencia:** [Plan Completado](../../planes-desarrollo/completados/issue-94-refactorizacion-prompts-tacticians.md)
+
+---
 
 ### Issue #14: AI Tacticians (enemigos y companions) a veces devuelven output inválido/null en combate ✅ RESUELTO
 

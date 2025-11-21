@@ -33,6 +33,7 @@ export class CombatInitializer {
             processAICombatantRolls,
             enemyTacticianTool,
             companionTacticianTool,
+            combatNarrationExpertTool,
             createCombatEndDiceRoll,
             localLog,
         } = context;
@@ -132,6 +133,7 @@ export class CombatInitializer {
                 processAICombatantRolls,
                 enemyTacticianTool,
                 companionTacticianTool,
+                combatNarrationExpertTool,
                 createCombatEndDiceRoll,
                 localLog,
             });

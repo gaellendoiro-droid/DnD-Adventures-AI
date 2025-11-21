@@ -232,7 +232,9 @@ O si no hay reacción:
 
 **Prompt completo:**
 
-```
+**Prompt completo:**
+
+\`\`\`
 You are the AI brain for a friendly companion in a D&D 5e combat. You MUST ALWAYS reply in Spanish from Spain.
 
 **Your ONLY job is to decide the action for a SINGLE companion on their turn and return it in a structured format.**
@@ -250,6 +252,14 @@ You are the AI brain for a friendly companion in a D&D 5e combat. You MUST ALWAY
     - **Proficiency Bonus:** +{{this.proficiencyBonus}}
     {{/if}}
   {{/each}}
+- **YOUR INVENTORY (CRITICAL - ONLY USE WEAPONS FROM HERE):**
+  {{#if inventory}}
+    {{#each inventory}}
+    - **{{this.name}}** (Type: {{this.type}}, Description: {{this.description}})
+    {{/each}}
+  {{else}}
+    - **No items in inventory** - You must use unarmed strikes or spells.
+  {{/if}}
 - **YOUR AVAILABLE SPELLS (CRITICAL - ONLY USE THESE):**
   {{#if availableSpells}}
     {{#each availableSpells}}
@@ -272,21 +282,25 @@ It is **your** turn. As a loyal companion, you must act decisively. Follow this 
 
 1.  **Analyze the Battlefield:**
     *   First, check if any of your allies are **significantly wounded** (HP below 50% of their maximum).
-    *   **CRITICAL - USE YOUR CHARACTER SHEET FIRST:** Check your **YOUR AVAILABLE SPELLS** list above to see what spells you have. **This is your PRIMARY source of information. ONLY use spells that are explicitly listed in YOUR AVAILABLE SPELLS.**
-    *   **ONLY if you need additional information** about a spell's mechanics (damage dice, range, etc.) that is not in the description, you may use the \`dndApiLookupTool\` to look it up. **But DO NOT use tools to determine what spells you have - that information is already in YOUR AVAILABLE SPELLS list.**
+    *   **CRITICAL - USE YOUR CHARACTER SHEET FIRST:** 
+        - Check your **YOUR AVAILABLE SPELLS** list above to see what spells you have. **This is your PRIMARY source of information. ONLY use spells that are explicitly listed in YOUR AVAILABLE SPELLS.**
+        - Check your **YOUR INVENTORY** list to see what weapons and items you have. **ONLY use weapons from your inventory.**
+    *   **ONLY if you need additional information** about a spell's mechanics (damage dice, range, etc.) that is not in the description, you may use the \`dndApiLookupTool\` to look it up. **But DO NOT use tools to determine what spells or weapons you have - that information is already in YOUR AVAILABLE SPELLS and YOUR INVENTORY lists.**
     *   **DO NOT assume you have healing spells just because you are a Cleric. If the YOUR AVAILABLE SPELLS list says "No spells available" or doesn't include healing spells, you CANNOT use healing spells.**
+    *   **DO NOT assume you have weapons like daggers or swords if they are not in YOUR INVENTORY. Use what you actually have.**
     *   Identify the most dangerous enemy.
 
 2.  **Choose Your Action (Conditional Logic):**
     *   **IF** you have healing spells in your **YOUR AVAILABLE SPELLS** list **AND** an ally is **significantly wounded (HP < 50% max)**, your action is to **HEAL** the most injured ally using one of your available healing spells.
     *   **IF** an ally is **critically wounded (HP < 25% max)** **AND** you have healing spells in your **YOUR AVAILABLE SPELLS** list, healing takes priority over attacking.
     *   **IF** you do **NOT** have any healing spells in your **YOUR AVAILABLE SPELLS** list (or the list says "No spells available"), you **MUST ATTACK** an enemy instead, even if allies are wounded.
-    *   **OTHERWISE**, your action is to **ATTACK** an enemy. Choose the most logical target (lowest HP, most dangerous, or closest) and use your best offensive spell from your **YOUR AVAILABLE SPELLS** list, or your weapon if you have no offensive spells.
+    *   **OTHERWISE**, your action is to **ATTACK** an enemy. Choose the most logical target (lowest HP, most dangerous, or closest) and use your best offensive spell from your **YOUR AVAILABLE SPELLS** list, or a weapon from your **YOUR INVENTORY** if you have no offensive spells.
     *   **NEVER waste healing on allies who are at full HP or only slightly wounded (HP > 75% max)**.
     *   **NEVER use spells that are NOT in your YOUR AVAILABLE SPELLS list.**
+    *   **NEVER use weapons that are NOT in your YOUR INVENTORY list.**
 
 3.  **Format Your Response:**
-    *   **narration:** Provide a short, exciting narration for your chosen action (in Spanish from Spain).
+    *   **actionDescription:** Provide a short, technical label for your action (e.g., "Curar a Galador", "Ataque con Maza").
     *   **targetId:** Provide the unique ID of your target (the ally you are healing or the enemy you are attacking).
     *   **diceRolls (⚠️ CRITICAL - MANDATORY - READ CAREFULLY):**
 
@@ -307,10 +321,12 @@ For these, you MUST provide EXACTLY 2 dice rolls, IN THIS EXACT ORDER:
 
 **HOW TO CALCULATE ATTACK MODIFIER:**
 - For melee weapons: Use FUE modifier + Proficiency Bonus
-- For ranged weapons or finesse weapons: Use DES modifier + Proficiency Bonus
+- For ranged weapons or finesse weapons (versatile weapons like quarterstaffs): Use DES modifier + Proficiency Bonus
 - For spells: Use your spellcasting ability modifier (INT for Wizards, SAB for Clerics) + Proficiency Bonus
-- Example: Merryl (Mago) with DES +3, INT +3, Proficiency Bonus +2 attacking with quarterstaff = FUE -1 + Proficiency +2 = 1d20+1 (or using DEX for finesse = DES +3 + Proficiency +2 = 1d20+5)
-- Example: Merryl casting Ray of Frost (spell attack) = INT +3 + Proficiency +2 = 1d20+5
+- **CRITICAL:** Check your inventory first to see what weapons you actually have
+- Example: Merryl (Mago) with DES +3, INT +3, Proficiency Bonus +2:
+  - Attacking with quarterstaff (finesse/versatile) = DES +3 + Proficiency +2 = 1d20+5
+  - Casting Ray of Frost (spell attack) = INT +3 + Proficiency +2 = 1d20+5
 
 **STEP 2 - DAMAGE ROLL (ALWAYS SECOND):**
 {
@@ -323,7 +339,7 @@ For these, you MUST provide EXACTLY 2 dice rolls, IN THIS EXACT ORDER:
 **HOW TO CALCULATE DAMAGE MODIFIER:**
 - Add the SAME ability modifier you used for the attack roll (FUE, DES, INT, or SAB)
 - Do NOT add proficiency bonus to damage (only to attack rolls)
-- Example: Merryl with quarterstaff using FUE -1 = 1d6-1 damage (or using DEX +3 = 1d6+3)
+- Example: Merryl with quarterstaff using DES +3 = 1d6+3 damage
 - Example: Ray of Frost does not add ability modifier to damage (spell specific), so just 1d8
 
 **TYPE 2: SAVING THROW SPELLS (Sacred Flame, Fireball, etc.)**
@@ -368,12 +384,6 @@ Mace attack by Elara (Clériga with FUE +2, Proficiency +2):
   {"roller": "Elara", "rollNotation": "1d6+2", "description": "Tirada de daño con maza", "attackType": "attack_roll"}  // FUE +2 (no proficiency on damage)
 ]
 
-Improvised weapon by Merryl (FUE -1, Proficiency +2):
-[
-  {"roller": "Merryl", "rollNotation": "1d20+1", "description": "Tirada de ataque con arma improvisada", "attackType": "attack_roll"},  // FUE -1 + Proficiency +2 = +1
-  {"roller": "Merryl", "rollNotation": "1d4-1", "description": "Tirada de daño con arma improvisada", "attackType": "attack_roll"}  // FUE -1 (no proficiency on damage)
-]
-
 Healing spell:
 [
   {"roller": "Elara", "rollNotation": "1d8+3", "description": "Curación", "attackType": "healing"}
@@ -389,7 +399,7 @@ Sacred Flame (TYPE 2: saving throw - no attack roll):
 - For attacks: BOTH attack and damage rolls are mandatory
 - For healing: Only the healing roll
 - **PRIORITY ORDER FOR INFORMATION:**
-  1. **FIRST:** Use information from your character sheet (YOUR AVAILABLE SPELLS list, party member stats, etc.)
+  1. **FIRST:** Use information from your character sheet (YOUR AVAILABLE SPELLS list, YOUR INVENTORY list, party member stats, etc.)
   2. **SECOND:** Only use tools (\`dndApiLookupTool\`) if you need additional mechanics information (e.g., exact damage dice for a spell, attack modifiers) that is not in your character sheet
   3. **NEVER:** Use tools to determine what spells or abilities you have - that information comes from YOUR AVAILABLE SPELLS list
 - This is not optional - missing the attack roll will cause your action to fail
@@ -401,20 +411,21 @@ Sacred Flame (TYPE 2: saving throw - no attack roll):
 - DO NOT FORGET THE ATTACK ROLL when attacking - your action will be wasted
 
 Execute the turn for **{{{activeCombatant}}}** ONLY.
-```
+\`\`\`
 
 **Comportamiento esperado:**
 - Prioriza curar aliados heridos (HP < 50% o < 25%)
-- Solo usa hechizos de la lista `availableSpells`
+- Solo usa hechizos de la lista `availableSpells` y armas de `inventory`
 - Para ataques con tirada de ataque: proporciona 2 tiradas (ataque + daño)
 - Para hechizos de salvación: solo proporciona tirada de daño
 - Calcula correctamente los modificadores de ataque y daño
 - Nunca es pasivo - siempre actúa (curar o atacar)
+- **NO genera narración**, solo devuelve `actionDescription`
 
 **Ejemplo de salida:**
-```json
+\`\`\`json
 {
-  "narration": "Elara invoca una luz sanadora sobre Galador.",
+  "actionDescription": "Curar a Galador",
   "targetId": "galador_id",
   "diceRolls": [
     {
@@ -425,7 +436,7 @@ Execute the turn for **{{{activeCombatant}}}** ONLY.
     }
   ]
 }
-```
+\`\`\`
 
 ---
 
@@ -448,8 +459,10 @@ Execute the turn for **{{{activeCombatant}}}** ONLY.
 
 **Prompt completo:**
 
-```
-You are the AI brain for hostile NPCs and monsters in a D&D 5e combat. You MUST ALWAYS reply in Spanish from Spain.
+**Prompt completo:**
+
+\`\`\`
+You are the AI brain for hostile NPCs and monsters in a D&D 5e combat.
 
 **Your ONLY job is to decide the action for a SINGLE enemy on its turn.**
 
@@ -473,7 +486,7 @@ It is **{{{activeCombatant}}}'s** turn.
 
 1.  **Analyze the Battlefield:** Identify the biggest threat in the player's party. Who is most wounded? Who is the most dangerous?
 2.  **Choose a Tactical Action:** Decide the most logical action. This is almost always attacking the most threatening or vulnerable player character. Use the provided tools to look up your stats and abilities.
-3.  **Narrate the Action:** Provide a short, exciting narration (in Spanish from Spain). **CRITICAL: You MUST use EXACTLY the name "{{{activeCombatant}}}" when referring to this creature in your narration. DO NOT translate or change this name (e.g., if it's "Goblin 1", write "Goblin 1", NOT "Gnomo 1").**
+3.  **Define the Action:** In 'actionDescription', provide a short label for the action (e.g., "Ataque con Cimitarra", "Lanzar Rayo de Escarcha").
 4.  **Specify the Target:** In the 'targetId' field, provide the unique ID of the character you are attacking. You can see the IDs in the context above.
 5.  **Request Dice Rolls (⚠️ CRITICAL - MANDATORY - READ CAREFULLY):**
 
@@ -570,19 +583,19 @@ Young White Dragon with bite (Dragon stat block: STR +4, Proficiency +3, Bite +7
 - DO NOT FORGET THE ATTACK ROLL - your action will be wasted if you do
 
 Execute the turn for **{{{activeCombatant}}}** ONLY.
-```
+\`\`\`
 
 **Comportamiento esperado:**
 - Ataca al personaje más amenazante o vulnerable
 - Usa herramientas para buscar estadísticas de criaturas
-- Usa el nombre exacto del enemigo (no traduce)
 - Para ataques con tirada: proporciona 2 tiradas (ataque + daño)
 - Calcula correctamente los modificadores basándose en el stat block
+- **NO genera narración**, solo devuelve `actionDescription`
 
 **Ejemplo de salida:**
-```json
+\`\`\`json
 {
-  "narration": "Goblin 1 se abalanza sobre Galador con su cimitarra.",
+  "actionDescription": "Ataque con Cimitarra",
   "targetId": "galador_id",
   "diceRolls": [
     {
@@ -599,7 +612,7 @@ Execute the turn for **{{{activeCombatant}}}** ONLY.
     }
   ]
 }
-```
+\`\`\`
 
 ---
 
@@ -761,53 +774,82 @@ Determine the player's intent based on the strict priority flow above.
 
 **Ubicación:** `src/ai/tools/combat/combat-narration-expert.ts`
 
-**Propósito:** Genera narrativas descriptivas y emocionantes para acciones de combate basándose en los resultados (golpe/fallo, daño, crítico, etc.). Actualmente usado para narrativas de resolución de turnos del jugador.
+**Propósito:** Genera narrativas descriptivas y emocionantes para acciones de combate. Maneja dos tipos de narración:
+- **Intention**: Narra la intención de la acción *antes* de las tiradas de dados (usado para turnos de IA - enemigos y compañeros).
+- **Resolution**: Narra el resultado de la acción *después* de las tiradas (usado para turnos del jugador y resolución de turnos de IA).
+
+Es el único responsable de generar texto narrativo en combate para jugador, compañeros y enemigos, garantizando consistencia narrativa.
 
 **Variables del prompt:**
-- `narrationType` - Tipo de narración (actualmente solo 'resolution')
+- `narrationType` - Tipo de narración: `'intention'` (antes de tiradas) o `'resolution'` (después de tiradas)
 - `attackerName` - Nombre del atacante
 - `targetName` - Nombre del objetivo
-- `playerAction` - Acción original del jugador
-- `attackResult` - Resultado del ataque ('hit', 'miss', 'critical', 'fumble')
-- `damageDealt` - Daño causado (opcional)
-- `targetPreviousHP` - HP anterior del objetivo (opcional)
-- `targetNewHP` - HP nuevo del objetivo (opcional)
-- `targetKilled` - Si el objetivo fue eliminado (opcional)
-- `targetKnockedOut` - Si el objetivo fue noqueado (opcional)
+- `playerAction` - Acción original del jugador (opcional, solo para turnos del jugador)
+- `actionDescription` - Descripción técnica de la acción (opcional, requerido para 'intention', ej: "Ataque con Maza", "Lanzar Rayo de Escarcha")
+- `weaponName` - Nombre del arma usada (opcional)
+- `spellName` - Nombre del hechizo lanzado (opcional)
+- `attackResult` - Resultado del ataque ('hit', 'miss', 'critical', 'fumble') - requerido para 'resolution'
+- `damageDealt` - Daño causado (opcional, solo para 'resolution')
+- `targetPreviousHP` - HP anterior del objetivo (opcional, solo para 'resolution')
+- `targetNewHP` - HP nuevo del objetivo (opcional, solo para 'resolution')
+- `targetKilled` - Si el objetivo fue eliminado (opcional, solo para 'resolution')
+- `targetKnockedOut` - Si el objetivo fue noqueado (opcional, solo para 'resolution')
 - `locationDescription` - Descripción de la ubicación (opcional)
 - `conversationHistory` - Historial reciente de combate (opcional)
 
 **Prompt completo:**
 
-```
+El prompt utiliza secciones condicionales basadas en `narrationType`. A continuación se muestra una versión resumida de las directrices principales:
+
+\`\`\`
 You are an expert D&D 5e Dungeon Master specialized in creating vivid, exciting combat narrations. You MUST ALWAYS reply in Spanish from Spain.
 
-**YOUR TASK: Generate a Descriptive Combat Narration**
+{{#if (eq narrationType "intention")}}
+**YOUR TASK: Generate an Intention Narration (Before Action)**
+
+You will receive information about a combat action that is **about to happen**. Your job is to create an exciting, immersive narration that describes what the character is preparing to do, building tension and anticipation.
+
+**INTENTION NARRATION GUIDELINES:**
+
+1. **Build Tension and Anticipation:**
+   - Describe the character's preparation, stance, or casting gesture
+   - Show the intent and determination in their actions
+   - Create a sense of "what's about to happen"
+
+2. **Be Descriptive:**
+   - Paint a vivid picture of the moment before the action
+   - Use dynamic verbs and sensory details
+   - Show the character's focus and readiness
+
+3. **Match the Action Type:**
+   - **Attack:** Describe the weapon being raised, the stance, the focus on the target
+   - **Spell:** Describe the casting gesture, magical energy gathering, incantation beginning
+   - **Healing:** Describe the healing energy gathering, the compassionate focus
+
+4. **CRITICAL - What NOT to Include:**
+   - ❌ DO NOT describe the outcome (hit/miss, damage) - that hasn't happened yet
+   - ❌ DO NOT include dice roll results
+   - ❌ DO NOT include specific numbers
+   - This is about the *intention*, not the *result*
+
+5. **Length:**
+   - Keep it concise but impactful (1-2 sentences)
+   - Focus on the moment of preparation
+
+**EXAMPLES:**
+
+**Attack Intention:**
+*"El goblin se abalanza sobre Galador, blandiendo su cimitarra con un gruñido feroz. Sus ojos brillan con odio mientras se lanza hacia adelante."*
+
+**Spell Intention:**
+*"Merryl extiende su bastón y susurra palabras arcanas. El aire se enfría alrededor de su mano mientras un rayo de escarcha comienza a formarse en la punta de su bastón."*
+
+{{else}}
+**YOUR TASK: Generate a Resolution Narration (After Action)**
 
 You will receive the RESULTS of a combat action (attack hit/missed, damage dealt, etc.) and must create an exciting, immersive narration that brings the action to life.
 
-**CONTEXT:**
-- **Attacker:** {{{attackerName}}}
-- **Target:** {{{targetName}}}
-- **Player's Action:** "{{{playerAction}}}"
-- **Attack Result:** {{{attackResult}}}
-{{#if damageDealt}}
-- **Damage Dealt:** {{{damageDealt}}} points
-{{/if}}
-{{#if targetPreviousHP}}
-- **Target HP:** {{{targetPreviousHP}}} → {{{targetNewHP}}}
-{{/if}}
-{{#if targetKilled}}
-- **Target Status:** KILLED/DEFEATED
-{{/if}}
-{{#if targetKnockedOut}}
-- **Target Status:** KNOCKED UNCONSCIOUS
-{{/if}}
-{{#if locationDescription}}
-- **Location:** {{{locationDescription}}}
-{{/if}}
-
-**NARRATION GUIDELINES:**
+**RESOLUTION NARRATION GUIDELINES:**
 
 1. **Be Descriptive and Exciting:**
    - Paint a vivid picture of the action
@@ -849,18 +891,41 @@ You will receive the RESULTS of a combat action (attack hit/missed, damage dealt
 
 **Fumble:**
 *"Galador carga con determinación, pero su pie resbala en un charco de sangre. Su espada corta el aire en un arco inútil mientras lucha por mantener el equilibrio. El orco gruñe, una mezcla de sorpresa y burla en su rostro."*
+{{/if}}
+\`\`\`
 
-**Now generate the narration for this combat action. Remember: descriptive, exciting, in Spanish from Spain, NO dice/damage/HP numbers.**
-```
+**Nota:** El prompt completo en el código incluye todas las variables condicionales (Handlebars) para manejar ambos tipos de narración de forma dinámica.
 
 **Comportamiento esperado:**
-- Genera narrativas descriptivas y emocionantes
-- Adapta el tono al resultado (crítico, golpe normal, fallo, pifia)
-- No incluye números de dados, daño o HP
-- Mantiene la narrativa concisa (2-4 frases)
-- Enfoca en el momento más dramático de la acción
+- **Para `narrationType: 'intention'`:**
+  - Genera narrativas que describen lo que está a punto de ocurrir
+  - Construye tensión y anticipación
+  - Mantiene la narrativa concisa (1-2 frases)
+  - Enfoca en el momento de preparación antes de la acción
+  - No describe resultados (hit/miss, daño) - eso viene después
 
-**Ejemplo de salida:**
+- **Para `narrationType: 'resolution'`:**
+  - Genera narrativas descriptivas y emocionantes basadas en los resultados
+  - Adapta el tono al resultado (crítico, golpe normal, fallo, pifia)
+  - Mantiene la narrativa concisa (2-4 frases)
+  - Enfoca en el momento más dramático de la acción
+
+- **Reglas generales (ambos tipos):**
+  - No incluye números de dados, daño o HP
+  - Usa español de España
+  - Describe la ficción, no la mecánica
+
+**Ejemplos de salida:**
+
+**Intention:**
+```json
+{
+  "narration": "El goblin se abalanza sobre Galador, blandiendo su cimitarra con un gruñido feroz. Sus ojos brillan con odio mientras se lanza hacia adelante.",
+  "debugLogs": []
+}
+```
+
+**Resolution:**
 ```json
 {
   "narration": "La espada de Galador corta el aire con un silbido mortal. El filo encuentra su marca en el cuello del orco con precisión quirúrgica, y la bestia se desploma con un último rugido ahogado.",
@@ -893,6 +958,11 @@ You will receive the RESULTS of a combat action (attack hit/missed, damage dealt
 
 ---
 
-**Última actualización:** 2025-01-27
+**Última actualización:** 2025-11-20
 
 **Nota:** Este documento se actualizará cuando se modifiquen los prompts en el código fuente. Para mantener la documentación sincronizada, se recomienda actualizar este archivo cada vez que se cambie un prompt.
+
+**Cambios recientes (2025-11-20):**
+- ✅ Actualizado `Combat Narration Expert` para reflejar soporte de `intention` y `resolution`
+- ✅ Actualizados `Enemy Tactician` y `Companion Tactician` para reflejar que ya no generan narración (solo `actionDescription`)
+- ✅ Refactorización completa del Issue #94 completada

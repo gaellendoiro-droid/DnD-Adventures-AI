@@ -107,7 +107,7 @@ graph TD
     - Prioriza curar aliados heridos si tiene habilidades de curación
     - Si no puede curar o no hay aliados heridos, ataca a enemigos
     - Considera el contexto del combate y el estado de aliados/enemigos
--   **Salida**: Narración de la acción, targetId, tiradas de dados necesarias
+-   **Salida**: `actionDescription` (etiqueta técnica), `targetId`, tiradas de dados necesarias. **NO genera narración.**
 
 #### `enemyTacticianTool`
 -   **Archivo**: `src/ai/tools/enemy-tactician.ts`
@@ -116,7 +116,15 @@ graph TD
     - Ataca a los miembros más débiles de la party
     - Considera el contexto del combate y el estado de aliados
     - Puede usar habilidades especiales según el tipo de enemigo
--   **Salida**: Narración de la acción, targetId, tiradas de dados necesarias
+-   **Salida**: `actionDescription` (etiqueta técnica), `targetId`, tiradas de dados necesarias. **NO genera narración.**
+
+#### `combatNarrationExpertTool`
+-   **Archivo**: `src/ai/tools/combat/combat-narration-expert.ts`
+-   **Rol**: Genera narrativas descriptivas y emocionantes para acciones de combate.
+-   **Funcionalidad**:
+    - **Intención**: Narra la preparación de una acción antes de las tiradas.
+    - **Resolución**: Narra el resultado de una acción después de las tiradas (golpe, fallo, daño, etc.).
+-   **Salida**: Texto narrativo en español de España.
 
 ### 4. Herramientas de Apoyo
 

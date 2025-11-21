@@ -110,14 +110,14 @@ export class CombatSession {
     this.party = party;
     this.enemies = enemies;
     this.initiativeOrder = initiativeOrder;
-    
+
     // Validate and clamp turnIndex to valid range
     if (initiativeOrder.length > 0) {
       this.turnIndex = Math.max(0, Math.min(turnIndex, initiativeOrder.length - 1));
     } else {
       this.turnIndex = 0;
     }
-    
+
     this.inCombat = inCombat;
     this.locationId = locationId;
     this.nextLocationId = nextLocationId;
@@ -175,7 +175,7 @@ export class CombatSession {
       turnIndex,
       inCombat,
       input.locationId || '',
-      input.nextLocationId || null
+      (input as any).nextLocationId || null
     );
   }
 
@@ -319,6 +319,7 @@ export class CombatSession {
       processAICombatantRolls: deps.processAICombatantRolls,
       enemyTacticianTool: deps.enemyTacticianTool,
       companionTacticianTool: deps.companionTacticianTool,
+      combatNarrationExpertTool: deps.combatNarrationExpertTool,
       createCombatEndDiceRoll,
       localLog,
     };
@@ -332,9 +333,9 @@ export class CombatSession {
         sender: 'DM',
         content: initResult.messages[0]?.content || 'Hubo un error al iniciar el combate.',
       });
-      this.addMessages(initResult.messages.slice(1));
+      this.addMessages(initResult.messages.slice(1).map(m => ({ ...m, sender: m.sender as 'DM' | 'Player' | 'System' | 'Character' | 'Error' })));
       this.addDiceRolls(initResult.diceRolls);
-      
+
       // Update party if provided
       if (initResult.updatedParty) {
         this.updateState({ party: initResult.updatedParty });
@@ -350,7 +351,7 @@ export class CombatSession {
     }
 
     // Initialization succeeded - update state
-    this.addMessages(initResult.messages);
+    this.addMessages(initResult.messages.map(m => ({ ...m, sender: m.sender as 'DM' | 'Player' | 'System' | 'Character' | 'Error' })));
     this.addDiceRolls(initResult.diceRolls);
     this.updateState({
       party: initResult.updatedParty,
@@ -444,7 +445,7 @@ export class CombatSession {
       if (activeCombatant.controlledBy === 'Player') {
         const previousIndex = this.turnIndex;
         this.advanceTurn();
-        
+
         this.log('info', 'Advanced from player turn to next turn', {
           fromIndex: previousIndex,
           toIndex: this.turnIndex,
@@ -504,7 +505,7 @@ export class CombatSession {
 
     const previousIndex = this.turnIndex;
     this.turnIndex = CombatTurnManager.nextTurnIndex(this.turnIndex, this.initiativeOrder.length);
-    
+
     this.log('debug', 'Turn advanced', {
       fromIndex: previousIndex,
       toIndex: this.turnIndex,
@@ -556,7 +557,7 @@ export class CombatSession {
     }
 
     const result = checkEndOfCombat(this.party, this.enemies);
-    
+
     if (result.combatEnded) {
       this.log('info', 'Combat ended', {
         reason: result.reason || 'Unknown',
@@ -876,56 +877,15 @@ export class CombatSession {
       tacticianResponse = await deps.enemyTacticianTool(baseTacticianInput);
     }
 
-    const { narration, targetId, diceRolls: requestedRolls } = tacticianResponse;
+    const { actionDescription, targetId, diceRolls: requestedRolls } = tacticianResponse;
 
-    this.log('debug', `Tactician for ${activeCombatant.characterName} decided action targeting ${targetId || 'no one'}.`);
+    this.log('debug', `Tactician for ${activeCombatant.characterName} decided action: ${actionDescription}, targeting ${targetId || 'no one'}.`);
 
-    if (narration) {
-      // Post-process narration to replace enemy IDs/names with visual names
-      let processedNarration = narration;
+    // Resolve target if present
+    let target: any = null;
+    let targetVisualName = 'nadie';
 
-      // FIRST: Replace ordinal references (e.g., "primer goblin" -> "Goblin 1")
-      processedNarration = replaceOrdinalReferences(processedNarration, this.enemies, enemyVisualNames);
-
-      // Sort enemies by visual name length (longest first) to avoid replacing "Goblin 2" with "Goblin 1 2"
-      const enemiesSorted = [...this.enemies].sort((a, b) => {
-        const nameA = enemyVisualNames.get(a.uniqueId) || a.name;
-        const nameB = enemyVisualNames.get(b.uniqueId) || b.name;
-        return nameB.length - nameA.length; // Longest first
-      });
-
-      for (const enemy of enemiesSorted) {
-        const visualName = enemyVisualNames.get(enemy.uniqueId) || enemy.name;
-        const originalName = enemy.name;
-
-        // Replace uniqueId references first
-        processedNarration = processedNarration.replace(
-          new RegExp(`\\b${enemy.uniqueId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'),
-          visualName
-        );
-
-        // Replace original name references ONLY if appropriate
-        const visualNameLower = visualName.toLowerCase();
-        const narrationLower = processedNarration.toLowerCase();
-
-        const hasFullVisualName = new RegExp(`\\b${escapeRegex(visualNameLower)}\\b`).test(narrationLower);
-        const hasBaseNameWithNumber = new RegExp(`\\b${escapeRegex(originalName.toLowerCase())}\\s+\\d+\\b`).test(narrationLower);
-        const shouldSkip = hasFullVisualName || hasBaseNameWithNumber;
-
-        if (originalName !== visualName &&
-          !visualName.startsWith(originalName + ' ') &&
-          !shouldSkip) {
-          processedNarration = processedNarration.replace(
-            new RegExp(`\\b${escapeRegex(originalName)}(?!\\s+\\d)`, 'gi'),
-            visualName
-          );
-        }
-      }
-
-      this.addMessage({ sender: 'DM', content: processedNarration });
-    }
-
-    if (targetId && requestedRolls && requestedRolls.length > 0) {
+    if (targetId) {
       // Resolve targetId (can be visual name or uniqueId)
       const resolved = resolveEnemyId(targetId, this.enemies, this.initiativeOrder, this.party);
 
@@ -940,91 +900,104 @@ export class CombatSession {
 
       // Use resolved uniqueId to find target
       const finalTargetId = resolvedTargetId || targetId;
-      const target = [...this.party, ...this.enemies].find(
+      target = [...this.party, ...this.enemies].find(
         c => c.id === finalTargetId || (c as any).uniqueId === finalTargetId
       );
 
       if (target) {
-        // Process AI combatant rolls using centralized function
-        const rollsResult = await deps.processAICombatantRolls({
-          activeCombatant,
-          requestedRolls,
-          target,
-          updatedParty: this.party,
-          updatedEnemies: this.enemies,
-          newInitiativeOrder: this.initiativeOrder,
-          localLog,
-        });
-
-        // Extract results
-        this.addDiceRolls(rollsResult.diceRolls);
-        this.addMessages(rollsResult.messages);
-        this.updateState({
-          party: rollsResult.updatedParty,
-          enemies: rollsResult.updatedEnemies,
-        });
-
-        let combatHasEnded = rollsResult.combatEnded;
-
-        // Double-check combat end status after updating enemies
-        if (!combatHasEnded) {
-          const endOfCombatCheck = this.checkEndOfCombat();
-          if (endOfCombatCheck.combatEnded) {
-            this.log('info', 'Combat ended detected after AI turn', {
-              reason: endOfCombatCheck.reason,
-            });
-
-            combatHasEnded = true;
-            if (!this.messages.some(m => String(m.content || '').includes('Victoria') || String(m.content || '').includes('derrotados'))) {
-              this.addMessage({
-                sender: 'DM',
-                content: endOfCombatCheck.reason || 'El combate ha terminado.'
-              });
-
-              // Create combat end dice roll
-              const createCombatEndDiceRoll = (reason: string): DiceRoll => {
-                const isVictory = reason.includes('enemigos derrotados');
-                return {
-                  id: `combat-end-${Date.now()}-${Math.random()}`,
-                  roller: 'DM',
-                  rollNotation: '',
-                  individualRolls: [],
-                  totalResult: 0,
-                  outcome: isVictory ? 'victory' : 'defeat',
-                  timestamp: new Date(),
-                  description: reason || 'El combate ha finalizado.',
-                };
-              };
-
-              const combatEndRoll = createCombatEndDiceRoll(endOfCombatCheck.reason || 'El combate ha terminado.');
-              this.addDiceRoll(combatEndRoll);
-            }
-          }
-        }
-
-        // If combat ended during this turn, update state
-        if (combatHasEnded) {
-          const processedTurnIndex = this.turnIndex;
-          this.updateState({
-            inCombat: false,
-            turnIndex: 0,
-            initiativeOrder: [],
-            enemies: [],
-            lastProcessedTurnWasAI: true,
-            lastProcessedTurnIndex: processedTurnIndex,
-          });
-          return;
-        }
-      } else {
-        this.log('warn', `Could not find target combatant with id: "${targetId}"`);
+        targetVisualName = getVisualName(
+          (target as any).uniqueId || target.id,
+          this.initiativeOrder,
+          this.enemies
+        );
       }
-    } else if (!targetId) {
-      this.log('debug', 'Action had no targetId.');
     }
 
-    // Only advance turn if combat hasn't ended
+    if (target && requestedRolls && requestedRolls.length > 0) {
+      // Process AI combatant rolls using centralized function
+      const rollsResult = await deps.processAICombatantRolls({
+        activeCombatant,
+        requestedRolls,
+        target,
+        updatedParty: this.party,
+        updatedEnemies: this.enemies,
+        newInitiativeOrder: this.initiativeOrder,
+        localLog,
+        combatNarrationExpertTool: deps.combatNarrationExpertTool,
+        actionDescription: actionDescription, // Pass action description for complete narration
+      });
+
+      // Extract results
+      this.addDiceRolls(rollsResult.diceRolls);
+      this.addMessages(rollsResult.messages);
+      this.updateState({
+        party: rollsResult.updatedParty,
+        enemies: rollsResult.updatedEnemies,
+      });
+
+      let combatHasEnded = rollsResult.combatEnded;
+
+      // Double-check combat end status after updating enemies
+      if (!combatHasEnded) {
+        const endOfCombatCheck = this.checkEndOfCombat();
+        if (endOfCombatCheck.combatEnded) {
+          this.log('info', 'Combat ended detected after AI turn', {
+            reason: endOfCombatCheck.reason,
+          });
+
+          combatHasEnded = true;
+          if (!this.messages.some(m => String(m.content || '').includes('Victoria') || String(m.content || '').includes('derrotados'))) {
+            this.addMessage({
+              sender: 'DM',
+              content: endOfCombatCheck.reason || 'El combate ha terminado.'
+            });
+
+            // Create combat end dice roll
+            const createCombatEndDiceRoll = (reason: string): DiceRoll => {
+              const isVictory = reason.includes('enemigos derrotados');
+              return {
+                id: `combat-end-${Date.now()}-${Math.random()}`,
+                roller: 'DM',
+                rollNotation: '',
+                individualRolls: [],
+                totalResult: 0,
+                outcome: isVictory ? 'victory' : 'defeat',
+                timestamp: new Date(),
+                description: reason || 'El combate ha finalizado.',
+              };
+            };
+
+            const combatEndRoll = createCombatEndDiceRoll(endOfCombatCheck.reason || 'El combate ha terminado.');
+            this.addDiceRoll(combatEndRoll);
+          }
+        }
+      }
+
+      if (combatHasEnded) {
+        this.updateState({
+          inCombat: false,
+          turnIndex: 0,
+          initiativeOrder: [],
+          enemies: [],
+          lastProcessedTurnWasAI: true,
+          lastProcessedTurnIndex: this.turnIndex,
+        });
+        return;
+      }
+    }
+
+    // Advance turn
     const processedTurnIndex = this.turnIndex;
     this.advanceTurn();
+
+    // Check if there are more AI turns
+    const nextCombatant = this.getActiveCombatant();
+    const hasMoreAITurns = CombatTurnManager.hasMoreAITurns(
+      nextCombatant!,
+      this.party,
+      this.enemies,
+      false
+    );
 
     // Update flags
     this.updateState({

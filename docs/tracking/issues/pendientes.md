@@ -2,16 +2,91 @@
 
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 26 issues  
-**Última actualización:** 2025-01-20 (Issue #116 añadido - Coordinación narraciones DM y compañeros)
+**Total:** 28 issues  
+**Última actualización:** 2025-11-21 (Issue #94 movido a corregidos - Refactorización de Prompts de Tacticians completada)
 
 ---
 
 ## 🔴 Prioridad Muy Alta (PMA) - Críticos
 
-_No hay issues críticos pendientes en este momento._
+### Issue #117: Simplificación de Arquitectura de Combate 🔴 CRÍTICO
+
+- **Fecha de creación:** 2025-11-20
+- **Ubicación:** `src/lib/combat/`, `src/ai/tools/combat/`
+- **Severidad:** 🔴 **MUY ALTA** (afecta mantenibilidad, consistencia y facilita futuras mejoras)
+- **Descripción:** El sistema de combate actual tiene una arquitectura excesivamente compleja con múltiples capas de delegación y duplicación de lógica. El flujo del jugador y el de la IA son diferentes, causando inconsistencias y dificultando el mantenimiento.
+- **Problema actual:**
+  - Duplicación de lógica: `action-processor.ts` y `dice-roll-processor.ts` hacen esencialmente lo mismo
+  - Complejidad de flujo: 8-9 niveles de profundidad, difícil de seguir y depurar
+  - Módulos especiales innecesarios: `first-turn-handler.ts` maneja el primer turno de forma especial
+  - Inconsistencias: Jugador e IA usan código diferente, causando bugs como mensajes de muerte duplicados
+- **Comportamiento esperado:**
+  - Flujo unificado: Jugador e IA usan el mismo código para ejecutar acciones
+  - Arquitectura simplificada: Máximo 3-4 niveles de profundidad
+  - Eliminación de duplicación: Fusionar `action-processor` y `dice-roll-processor` en `CombatActionExecutor`
+  - Eliminación de módulos especiales: `first-turn-handler` eliminado, flujo normal para todos los turnos
+- **Solución propuesta:**
+  - Crear `CombatActionExecutor` unificado que procese cualquier acción de combate
+  - Crear `TurnProcessor` unificado que maneje el flujo completo (planificación → intención → ejecución → resolución)
+  - Simplificar `CombatInitializer` para solo inicializar estado
+  - Refactorizar `CombatSession` para usar `TurnProcessor` en todos los casos
+- **Beneficios esperados:**
+  - ✅ Consistencia total: Jugador e IA usan el mismo código
+  - ✅ Menos saltos: Flujo lineal y fácil de seguir
+  - ✅ Código más mantenible: Menos archivos, menos duplicación
+  - ✅ Depuración más fácil: Un solo lugar donde mirar qué pasó
+  - ✅ Menos bugs: Un solo lugar para arreglar problemas
+- **Archivos afectados:**
+  - Nuevo: `src/lib/combat/action-executor.ts` (unificado)
+  - Nuevo: `src/lib/combat/turn-processor.ts` (unificado)
+  - Modificar: `src/lib/combat/combat-session.ts` (usar TurnProcessor)
+  - Modificar: `src/lib/combat/combat-initializer.ts` (simplificar)
+  - Eliminar: `src/lib/combat/action-processor.ts` (deprecar)
+  - Eliminar: `src/ai/tools/combat/dice-roll-processor.ts` (deprecar)
+  - Eliminar: `src/lib/combat/initialization/first-turn-handler.ts` (deprecar)
+- **Impacto:** Muy Alto - Mejora significativa de la arquitectura, facilita mantenimiento futuro y resuelve inconsistencias actuales
+- **Estado:** 📝 **PENDIENTE**
+- **Prioridad:** Muy Alta (mejora arquitectónica fundamental)
+- **Relacionado con:**
+  - Issue #94 (Refactorización de Prompts de Tacticians) - Esta simplificación resolverá problemas de consistencia identificados
+  - Issue #82 (Unificar sistema de procesamiento de tiradas) - Esta simplificación resolverá este issue completamente
+  - Issue #21 (Código duplicado) - Esta simplificación eliminará la duplicación
+- **Estimación:** 30-41 horas
+- **Plan de implementación:** [Issue #117 - Simplificación de Arquitectura de Combate](../../planes-desarrollo/sin-comenzar/issue-117-simplificacion-arquitectura-combate.md)
 
 ## 🟡 Prioridad Alta (PA) - Advertencias
+
+### Issue #118: Narración de inicio de combate menciona enemigos incorrectos 🟡 ADVERTENCIA
+
+- **Fecha de creación:** 2025-11-20
+- **Ubicación:** `src/ai/flows/narrative-manager.ts`, `src/lib/combat/initialization/narration-processor.ts`
+- **Severidad:** 🟡 **ALTA** (afecta la inmersión y la coherencia narrativa)
+- **Descripción:** La narración de inicio de combate generada por `combatInitiationPrompt` menciona nombres de enemigos incorrectos. Por ejemplo, cuando se combate contra goblins, la narración menciona "gnomos" en lugar de "goblins".
+- **Problema actual:**
+  - La IA está inventando o confundiendo los nombres de los enemigos en la narración de inicio
+  - El prompt de `combatInitiationPrompt` no es lo suficientemente explícito sobre usar los nombres exactos del `combatContext`
+  - La IA puede estar usando información del historial de conversación o inventando nombres en lugar de usar los del contexto de combate
+- **Comportamiento esperado:**
+  - La narración debe usar EXACTAMENTE los nombres de los enemigos que aparecen en el `combatContext`
+  - Si el contexto dice "Goblin 1" y "Goblin 2", la narración debe mencionar "Goblin 1" y "Goblin 2", no "Gnomo 1" o cualquier otro nombre
+  - La narración debe ser coherente con los enemigos reales en combate
+- **Solución propuesta:**
+  - Reforzar el prompt de `combatInitiationPrompt` para que sea explícito sobre usar los nombres exactos del `combatContext`
+  - Añadir instrucciones claras: "CRITICAL: Use EXACTLY the enemy names from the combatContext. Do NOT translate, change, or invent enemy names."
+  - Añadir ejemplos en el prompt mostrando cómo usar los nombres correctamente
+  - Verificar que el `combatContext` se está pasando correctamente con los nombres diferenciados
+- **Archivos afectados:**
+  - `src/ai/flows/narrative-manager.ts` (prompt de `combatInitiationPrompt`)
+  - `src/lib/combat/initialization/narration-processor.ts` (construcción del `combatContext`)
+- **Impacto:** Alto - Afecta la inmersión y la coherencia narrativa del inicio de combate
+- **Estado:** 📝 **PENDIENTE**
+- **Prioridad:** Alta (afecta la experiencia del jugador en cada combate)
+- **Relacionado con:**
+  - Issue #34 (AI de enemigos traduce/inventa nombres) - Similar problema pero en narraciones de turnos
+- **Estimación:** 2-3 horas
+- **Referencia:** Reportado por usuario durante testing (2025-11-20)
+
+---
 
 ### Issue #115: Validación de inventario al usar armas u objetos 🟡 ADVERTENCIA
 
@@ -39,50 +114,6 @@ _No hay issues críticos pendientes en este momento._
 
 ---
 
-### Issue #94: Refactorización de Prompts de Tacticians - Separación de Narración y Decisión Táctica 🟡 ADVERTENCIA
-
-- **Fecha de creación:** 2025-11-18
-- **Ubicación:** `src/ai/tools/enemy-tactician.ts`, `src/ai/tools/companion-tactician.ts`, `src/ai/tools/combat/combat-narration-expert.ts`
-- **Severidad:** 🟡 **ALTA** (mejora arquitectura, consistencia narrativa y reduce complejidad de prompts)
-- **Descripción:** Los tacticians (`enemyTacticianTool` y `companionTacticianTool`) actualmente generan tanto la decisión táctica (qué hacer, a quién atacar) como la narración de intención. Esto hace que los prompts sean complejos y propensos a errores, además de crear inconsistencias narrativas con el `combat-narration-expert` usado para turnos del jugador.
-- **Problema actual:**
-  - Los tacticians tienen responsabilidades mezcladas: decisión táctica + narración
-  - Prompts complejos que aumentan probabilidad de errores de validación (Issue #14)
-  - Inconsistencia narrativa: turnos de IA vs turnos del jugador tienen diferentes estilos
-  - Difícil mantener y mejorar la calidad narrativa de forma centralizada
-- **Comportamiento esperado:**
-  - **Tacticians:** Solo deciden acción táctica (target, tiradas necesarias, tipo de acción)
-  - **Combat Narration Expert:** Maneja TODA la narración (intención pre-roll + resolución post-roll)
-  - Consistencia narrativa total entre jugador, companions y enemigos
-  - Prompts de tacticians más simples = menos errores de validación
-- **Solución propuesta:**
-  - **Fase 1:** Extender `combat-narration-expert` para manejar narraciones de intención (pre-roll)
-  - **Fase 2:** Modificar tacticians para que NO generen narración, solo decisión táctica
-  - **Fase 3:** Integrar `combat-narration-expert` en flujo de turnos de IA (antes y después de tiradas)
-  - **Fase 4:** Actualizar prompts de tacticians para enfocarse solo en decisión táctica
-  - **Fase 5:** Testing y validación de consistencia narrativa
-- **Beneficios esperados:**
-  - ✅ Prompts más simples = menos errores de validación (relacionado con Issue #14)
-  - ✅ Consistencia narrativa total en combate
-  - ✅ Mejoras de narración aplicables a todos los turnos por igual
-  - ✅ Base para futuras mejoras (combat-context-summarizer, etc.)
-- **Archivos afectados:**
-  - `src/ai/tools/enemy-tactician.ts` (simplificar prompt, eliminar narración)
-  - `src/ai/tools/companion-tactician.ts` (simplificar prompt, eliminar narración)
-  - `src/ai/tools/combat/combat-narration-expert.ts` (extender para narraciones de intención)
-  - `src/ai/tools/combat-manager.ts` (integrar narration-expert en turnos de IA)
-- **Impacto:** Alto - Mejora arquitectura, reduce errores, mejora consistencia narrativa
-- **Estado:** 📝 **PENDIENTE**
-- **Prioridad:** Alta (mejora calidad y robustez del sistema)
-- **Relacionado con:**
-  - Issue #14 (Fase 4 menciona esta refactorización)
-  - Issue #79 (Narraciones de combate para turnos del jugador) ✅ RESUELTO
-  - Roadmap - Sección 7 "Narración Unificada para Todos los Turnos"
-- **Estimación:** 12-16 horas
-- **Referencia:** [Roadmap - Narración Unificada](../roadmap.md#7-calidad-y-profundidad-de-la-ia)
-
----
-
 ### Issue #93: Manejo de errores cuando se agotan los reintentos (especialmente errores 503 de sobrecarga) 🟡 ADVERTENCIA
 
 - **Fecha de creación:** 2025-11-18
@@ -107,6 +138,7 @@ _No hay issues críticos pendientes en este momento._
 - **Mejoras implementadas:**
   - ✅ Añadida detección de errores 503 en `retry-utils.ts` para reintentar automáticamente
   - ✅ Añadido logging detallado en `enemy-tactician.ts` para errores de validación
+  - ✅ **Corregido (2025-11-21):** Stack traces completos de errores de API call ahora se suprimen. Los errores de red/timeout ahora muestran solo mensajes limpios sin stack traces largos en los logs.
 - **Solución propuesta:**
   - **Fase 1 (PENDIENTE):** Mejorar detección y logging de errores 503 después de agotar reintentos
     - Detectar específicamente errores 503 en el catch de `enemyTacticianTool` / `companionTacticianTool`

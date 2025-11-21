@@ -8,15 +8,31 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** Ninguno activo | **Última implementación:** Refactorización CombatSession - State Object Pattern (2025-01-20) - COMPLETADO
+**Estado:** Ninguno activo | **Última implementación:** Issue #94 - Refactorización de Prompts de Tacticians (2025-11-21) - COMPLETADO
 
 ---
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 10 planes
+**Estado:** Finalizados | **Cantidad:** 11 planes
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Issue #94 - Refactorización de Prompts de Tacticians](completados/issue-94-refactorizacion-prompts-tacticians.md) ✅ **COMPLETADO**
+- **Estado:** Todas las fases completadas y documentadas
+- **Objetivo:** Separar la responsabilidad de decisión táctica de la narración, centralizando toda la narración en `combatNarrationExpertTool`
+- **Prioridad:** Alta
+- **Resultados:**
+  - ✅ Tacticians simplificados: Solo generan decisión táctica (`targetId`, `diceRolls`, `actionDescription`)
+  - ✅ Narración centralizada: `combatNarrationExpertTool` genera narraciones completas para todos los turnos
+  - ✅ Consistencia narrativa total entre jugador, compañeros y enemigos
+  - ✅ Prompts más simples = menos errores de validación
+  - ✅ Flujo simplificado: Un solo mensaje narrativo por turno de IA
+  - ✅ Schema simplificado: Eliminado `narrationType`, ahora solo narraciones completas
+  - ✅ Bug corregido: `combatNarrationExpertTool` disponible desde el primer turno
+- **Fecha de finalización:** 2025-11-21
+- **Tiempo invertido:** ~15 horas
+- **Referencia:** [Plan Detallado](completados/issue-94-refactorizacion-prompts-tacticians.md) | [Issue #94](../../tracking/issues/corregidos.md#issue-94-refactorización-de-prompts-de-tacticians---separación-de-narración-y-decisión-táctica--resuelto)
 
 ### [Refactorización CombatSession - State Object Pattern](completados/refactorizacion-combat-session-state.md) ✅ **COMPLETADO**
 - **Estado:** Todas las 7 fases completadas y documentadas
@@ -161,14 +177,46 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 
 ---
 
-## 📝 Planes en Curso
-
-- [ ] **Issue #94: Refactorización de Prompts de Tacticians**
-  - **Descripción:** Separar la decisión táctica de la narración en los `tacticians` de IA, centralizando toda la narración de combate en `combatNarrationExpertTool` para mejorar la consistencia y reducir la complejidad.
-  - **Estado:** 📝 **EN CURSO**
-  - **Plan:** [Refactorización de Prompts de Tacticians](./en-curso/issue-94-refactorizacion-prompts-tacticians.md)
-
 ## 💡 Planes Sin Comenzar (Priorizados)
+
+### Prioridad Muy Alta
+
+#### [Estandarización de Niveles de Logging](sin-comenzar/issue-119-estandarizacion-logging.md)
+- **Estado:** Sin comenzar
+- **Prioridad:** Muy Alta
+- **Referencia:** 
+  - Issue #119 (Inconsistencia en niveles de logging) 🔴 CRÍTICO
+  - [Roadmap - Sección 0](../roadmap.md#0-estandarización-de-niveles-de-logging) - Visión general
+  - [Issue Detallado](../tracking/issues/pendientes.md#issue-119-inconsistencia-en-niveles-de-logging--crítico)
+
+---
+
+#### [Simplificación de Arquitectura de Combate](sin-comenzar/issue-117-simplificacion-arquitectura-combate.md)
+- **Estado:** Sin comenzar
+- **Prioridad:** Muy Alta
+- **Objetivo:** Simplificar la arquitectura del sistema de combate unificando el procesamiento de turnos (jugador e IA) en un flujo único y consolidado
+- **Componentes:**
+  - Crear `CombatActionExecutor` unificado (fusionar `action-processor.ts` y `dice-roll-processor.ts`)
+  - Crear `TurnProcessor` unificado (manejar flujo completo: planificación → intención → ejecución → resolución)
+  - Simplificar `CombatInitializer` (solo inicializar estado)
+  - Eliminar `first-turn-handler.ts` (procesar primer turno como cualquier otro)
+  - Refactorizar `CombatSession` para usar `TurnProcessor` en todos los casos
+- **Beneficios:**
+  - ✅ Consistencia total: Jugador e IA usan el mismo código
+  - ✅ Menos saltos: Flujo lineal (3-4 niveles vs 8-9 actuales)
+  - ✅ Código más mantenible: Menos archivos, menos duplicación
+  - ✅ Depuración más fácil: Un solo lugar donde mirar
+  - ✅ Menos bugs: Un solo lugar para arreglar problemas
+- **Impacto:** Transformacional - Mejora significativa de la arquitectura, elimina duplicación, garantiza consistencia total
+- **Estimación:** 30-41 horas
+- **Relacionado con:**
+  - Issue #117 (Simplificación de Arquitectura de Combate) 🔴 CRÍTICO
+  - Issue #94 (Refactorización de Prompts de Tacticians) - ✅ COMPLETADO - Resuelve problemas de consistencia
+  - Issue #82 (Unificar sistema de procesamiento de tiradas) - Resuelve completamente
+  - Issue #21 (Código duplicado) - Elimina duplicación
+- **Referencia:** [Plan Detallado](sin-comenzar/issue-117-simplificacion-arquitectura-combate.md)
+
+---
 
 ### 1. Sistema de Compendio de D&D Local (Prioridad Alta)
 - **Estado:** Sin comenzar
@@ -232,7 +280,8 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 
 ### Prioridad Muy Alta
 
-1. **✅ Sistema de Turnos Paso a Paso en Combate** - Control manual del jugador para pasar turnos uno a uno - **COMPLETADO**
+1. **Simplificación de Arquitectura de Combate** - Unificar procesamiento de turnos (jugador e IA), eliminar duplicación, reducir complejidad de 8-9 a 3-4 niveles - **PENDIENTE**
+2. **✅ Sistema de Turnos Paso a Paso en Combate** - Control manual del jugador para pasar turnos uno a uno - **COMPLETADO**
 
 ### Prioridad Alta
 
@@ -273,9 +322,10 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 
 ## 📊 Estado General del Proyecto
 
-- **Planes Completados:** 8 (incluyendo 1 parcialmente completado)
+- **Planes Completados:** 11 (incluyendo 1 parcialmente completado)
 - **Planes en Curso:** 0
-- **Planes Sin Comenzar:** 12
+- **Planes Sin Comenzar:** 13
+  - **Prioridad Muy Alta:** 2 planes
   - **Prioridad Alta:** 4 planes
   - **Prioridad Media:** 10 planes
   - **Prioridad Baja:** 2 planes
@@ -317,7 +367,7 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 **Progreso Total:**
 - ✅ **8 planes completados** (incluyendo 1 parcialmente completado)
 - 🚧 **0 planes en curso** actualmente
-- 📝 **12 planes sin comenzar** identificados y planificados
+- 📝 **13 planes sin comenzar** identificados y planificados
 
 **Distribución por Prioridad:**
 - **Prioridad Alta:** 4 planes pendientes

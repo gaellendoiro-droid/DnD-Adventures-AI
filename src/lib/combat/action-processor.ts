@@ -231,18 +231,8 @@ export class CombatActionProcessor {
             let newHP: number | undefined;
 
             if (attackHit) {
-                // Attack hit - generate messages
-                if (isCritical) {
-                    messages.push({
-                        sender: 'DM',
-                        content: `¡${attacker.characterName} ataca a ${targetVisualName} con un golpe crítico!`
-                    });
-                } else {
-                    messages.push({
-                        sender: 'DM',
-                        content: `${attacker.characterName} ataca a ${targetVisualName} y acierta (${attackRollResult.totalResult} vs AC ${finalTargetAC}).`
-                    });
-                }
+                // Technical messages will be replaced by descriptive narration
+                // No need to generate technical hit messages here
 
                 // Generate damage roll
                 const damageNotation = getCriticalDamageNotation(damageDie, damageMod, isCritical);
@@ -303,36 +293,18 @@ export class CombatActionProcessor {
                             );
                         }
 
-                        // Generate status messages
-                        if (damageResult.isMassiveDamage) {
-                            messages.push({
-                                sender: 'DM',
-                                content: `${targetObj.name} ha recibido un golpe devastador y muere instantáneamente.`
-                            });
-                        } else if (damageResult.isUnconscious && !damageResult.isDead) {
-                            if (previousHP && previousHP > 0) {
-                                messages.push({
-                                    sender: 'DM',
-                                    content: `${targetObj.name} cae inconsciente.`
-                                });
-                            }
-                        } else if (damageResult.isDead) {
-                            if (targetIsEnemy) {
-                                targetWasKilled = true;
-                                messages.push({
-                                    sender: 'DM',
-                                    content: `¡${attacker.characterName} ha matado a ${targetVisualName}!`
-                                });
-                                localLog(`${attacker.characterName} killed ${targetVisualName}!`);
-                            }
+                        // Status information will be integrated into resolution narration
+                        // No separate status messages needed - combat-narration-expert will handle it
+                        if (damageResult.isDead && targetIsEnemy) {
+                            targetWasKilled = true;
+                            // Death status will be integrated into resolution narration by combat-narration-expert
+                            localLog(`${attacker.characterName} killed ${targetVisualName}!`);
                         }
+                        // Note: isMassiveDamage and isUnconscious status will be passed to narration expert for context
                     }
 
-                    // If the target was not killed, push the standard damage message
-                    if (!targetWasKilled) {
-                        const damageMessage = `${attacker.characterName} ha hecho ${damageRollResult.totalResult} puntos de daño a ${targetVisualName}${previousHP !== undefined && newHP !== undefined ? ` (${previousHP} → ${newHP} HP)` : ''}.`;
-                        messages.push({ sender: 'DM', content: damageMessage });
-                    }
+                    // Technical damage messages will be replaced by descriptive narration
+                    // No need to generate technical damage messages here
                 }
 
                 // Update damage roll with combat information
@@ -345,18 +317,8 @@ export class CombatActionProcessor {
                 };
                 diceRolls.push(updatedDamageRoll);
             } else {
-                // Attack missed
-                if (isFumble) {
-                    messages.push({
-                        sender: 'DM',
-                        content: `¡${attacker.characterName} falla estrepitosamente al atacar a ${targetVisualName}! (Pifia: ${attackRollResult.totalResult} vs AC ${finalTargetAC})`
-                    });
-                } else {
-                    messages.push({
-                        sender: 'DM',
-                        content: `${attacker.characterName} ataca a ${targetVisualName}, pero falla (${attackRollResult.totalResult} vs AC ${finalTargetAC}).`
-                    });
-                }
+                // Attack missed - technical messages will be replaced by descriptive narration
+                // No need to generate technical miss messages here
                 log.debug('Player attack missed', {
                     module: 'CombatActionProcessor',
                     rollTotal: attackRollResult.totalResult,
@@ -380,9 +342,9 @@ export class CombatActionProcessor {
 
                 // Prepare narration input
                 const narrationInput: any = {
-                    narrationType: 'resolution',
                     attackerName: attacker.characterName,
                     targetName: targetVisualName,
+                    actionDescription: playerAction, // Use player action as action description
                     playerAction: playerAction,
                     attackResult: narrativeAttackResult,
                 };

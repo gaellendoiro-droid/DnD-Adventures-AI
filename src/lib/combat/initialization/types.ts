@@ -20,6 +20,7 @@ export interface CombatInitContext {
     processAICombatantRolls: (input: any) => Promise<any>;
     enemyTacticianTool: (input: any) => Promise<any>;
     companionTacticianTool: (input: any) => Promise<any>;
+    combatNarrationExpertTool: (input: any) => Promise<any>;
     createCombatEndDiceRoll: (reason: string) => DiceRoll;
     localLog: (message: string) => void;
 }
@@ -52,4 +53,5 @@ export interface EnemyWithStats {
     color: string;
     hp: { current: number; max: number };
     ac: number;
+    isDead?: boolean;
 }

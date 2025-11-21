@@ -296,7 +296,7 @@ IA decide: "Elara ataca con su bastón"
 ```typescript
 // companionTacticianTool devuelve:
 {
-  narration: "Elara invoca un rayo...",
+  actionDescription: "Lanzar Rayo de Escarcha",
   targetId: "enemy-1",
   diceRolls: [
     {
@@ -313,10 +313,12 @@ IA decide: "Elara ataca con su bastón"
 }
 
 // combatManagerTool procesa:
-1. Llama a diceRollerTool para cada tirada
-2. Calcula resultados
-3. Aplica daño/efectos
-4. Añade tiradas a diceRolls en la respuesta
+1. Genera narración de intención con combatNarrationExpertTool
+2. Llama a diceRollerTool para cada tirada
+3. Calcula resultados
+4. Aplica daño/efectos
+5. Genera narración de resolución con combatNarrationExpertTool
+6. Añade tiradas a diceRolls en la respuesta
 ```
 
 ## Flujo de Validación de Datos

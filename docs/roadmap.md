@@ -4,12 +4,46 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 
 **Nota:** Para ver las mejoras ya implementadas, consulta el [CHANGELOG.md](../CHANGELOG.md).
 
-**Última actualización:** 2025-01-20  
-**Estado:** Actualizado - Refactorización de combat-manager completada (v0.5.5)
+**Última actualización:** 2025-11-21  
+**Estado:** Actualizado - Issue #119 añadido (Inconsistencia en niveles de logging)
 
 ---
 
 ## 🔴 Prioridad Muy Alta
+
+Mejoras críticas que mejoran significativamente la arquitectura, mantenibilidad y consistencia del sistema.
+
+### 0. Estandarización de Niveles de Logging
+*   **Problema Actual:** Existe una inconsistencia sistemática en los niveles de logging utilizados en todo el código base. Mensajes marcados como `DEBUG` contienen texto que dice "WARNING", mensajes marcados como `INFO` contienen texto que dice "DEBUG", y en general hay una falta de coherencia entre el nivel de log declarado y el contenido del mensaje.
+*   **Mejora Propuesta:**
+    *   **Auditoría Completa:** Revisar todo el código base para identificar inconsistencias en los niveles de log
+    *   **Estandarización:** Asegurar que el nivel de log corresponda con la severidad real del mensaje
+    *   **Guías de Estilo:** Crear documentación sobre cuándo usar cada nivel de log (DEBUG, INFO, WARN, ERROR)
+    *   **Validación:** Añadir validación en el logger para detectar inconsistencias futuras
+*   **Impacto:** Muy Alto - Mejora significativa de la calidad de logs, facilita depuración y mantenimiento, y permite que los filtros de log funcionen correctamente.
+*   **Referencia:** 
+    - Issue #119 (Inconsistencia en niveles de logging) 🔴 CRÍTICO
+    - Relacionado con Issue #30 (Errores de conexión a APIs con logs verbosos)
+    - Relacionado con Issue #25 (Logs del navegador colapsados por defecto)
+
+---
+
+### 1. Simplificación de Arquitectura de Combate
+*   **Problema Actual:** El sistema de combate tiene una arquitectura excesivamente compleja con múltiples capas de delegación (8-9 niveles de profundidad). El flujo del jugador y el de la IA son diferentes, causando duplicación de código, inconsistencias y dificultando el mantenimiento.
+*   **Mejora Propuesta:**
+    *   **Unificar Procesamiento de Turnos:** Crear un `TurnProcessor` único que funcione igual para jugador e IA, eliminando la duplicación entre `action-processor.ts` y `dice-roll-processor.ts`.
+    *   **Crear `CombatActionExecutor` Unificado:** Fusionar la lógica de procesamiento de acciones en un solo módulo que maneje cualquier acción de combate independientemente de quién la ejecute.
+    *   **Simplificar Inicialización:** Eliminar `first-turn-handler.ts` y hacer que el primer turno se procese como cualquier otro usando el flujo normal.
+    *   **Flujo Simplificado:** Reducir de 8-9 niveles de profundidad a 3-4 niveles, haciendo el código más fácil de seguir y depurar.
+*   **Impacto:** Transformacional - Mejora significativa de la arquitectura, elimina duplicación, garantiza consistencia total entre jugador e IA, y facilita enormemente el mantenimiento futuro. Resuelve problemas como mensajes de muerte duplicados y otras inconsistencias.
+*   **Plan Detallado:** ✅ [Simplificación de Arquitectura de Combate](../planes-desarrollo/sin-comenzar/issue-117-simplificacion-arquitectura-combate.md)
+*   **Referencia:** 
+    - Issue #117 (Simplificación de Arquitectura de Combate) 🔴 CRÍTICO
+    - Relacionado con Issue #94 (Refactorización de Prompts de Tacticians)
+    - Resuelve Issue #82 (Unificar sistema de procesamiento de tiradas)
+    - Resuelve Issue #21 (Código duplicado en combat-manager)
+
+---
 
 Mejoras críticas de interfaz de usuario que mejoran significativamente la experiencia y usabilidad del juego.
 

@@ -3,33 +3,16 @@
  * @fileOverview A Genkit flow that acts as the "enemy brain" in combat.
  */
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
 import { dndApiLookupTool } from './dnd-api-lookup';
 import { adventureLookupTool } from './adventure-lookup';
-import { CharacterSchema } from '@/lib/schemas';
 import { log } from '@/lib/logger';
 import { retryWithExponentialBackoff } from '../flows/retry-utils';
-
-const EnemyTacticianInputSchema = z.object({
-  activeCombatant: z.string().describe("The name of the hostile NPC/monster whose turn it is."),
-  party: z.array(CharacterSchema).describe('An array containing the data for all characters in the party (player and AI-controlled).'),
-  enemies: z.array(z.object({name: z.string(), id: z.string(), hp: z.string()})).describe("A list of all hostile NPCs/monsters currently in combat and their HP status (e.g., 'Healthy', 'Wounded', 'Badly Wounded')."),
-  locationDescription: z.string().describe('A description of the current location.'),
-  conversationHistory: z.string().describe("A transcript of the last few turns of combat to provide immediate context."),
-});
-export type EnemyTacticianInput = z.infer<typeof EnemyTacticianInputSchema>;
-
-const EnemyTacticianOutputSchema = z.object({
-    narration: z.string().describe("The AI Dungeon Master's brief narration for this enemy's action. Do not include dice rolls here."),
-    targetId: z.string().nullable().describe("The unique ID of the character being targeted by the action. This can be null if the action has no specific target."),
-    diceRolls: z.array(z.object({
-        roller: z.string().describe("The name of the character or monster rolling the dice."),
-        rollNotation: z.string().describe("The dice notation for the roll (e.g., '1d20+5', '2d6+3')."),
-        description: z.string().describe("A brief description of the roll's purpose. For attacks: MUST be 'Tirada de ataque con [weapon]' for attack roll (1d20+modifier), then 'Tirada de daño con [weapon]' for damage roll. ATTACK ROLL MUST ALWAYS COME FIRST."),
-        attackType: z.enum(['attack_roll', 'saving_throw', 'other']).optional().describe("IMPORTANT: Specify the type of roll. 'attack_roll' for weapons/spells that use 1d20 to hit. 'saving_throw' for spells where the target rolls to avoid damage (rare for basic enemies). 'other' for utility rolls. This field is MANDATORY for all attack/damage rolls."),
-    })).describe("MANDATORY: An array of dice rolls. FOR ATTACK ACTIONS: You MUST provide EXACTLY 2 rolls in order - FIRST the attack roll (1d20+modifier with 'Tirada de ataque'), THEN the damage roll (damage dice with 'Tirada de daño'). NEVER provide only a damage roll."),
-});
-export type EnemyTacticianOutput = z.infer<typeof EnemyTacticianOutputSchema>;
+import {
+  EnemyTacticianInputSchema,
+  EnemyTacticianOutputSchema,
+  type EnemyTacticianInput,
+  type EnemyTacticianOutput,
+} from './combat/tactician-schemas';
 
 const enemyTacticianPrompt = ai.definePrompt({
   name: 'enemyTacticianPrompt',
@@ -60,7 +43,7 @@ It is **{{{activeCombatant}}}'s** turn.
 
 1.  **Analyze the Battlefield:** Identify the biggest threat in the player's party. Who is most wounded? Who is the most dangerous?
 2.  **Choose a Tactical Action:** Decide the most logical action. This is almost always attacking the most threatening or vulnerable player character. Use the provided tools to look up your stats and abilities.
-3.  **Narrate the Action:** Provide a short, exciting narration (in Spanish from Spain). **CRITICAL: You MUST use EXACTLY the name "{{{activeCombatant}}}" when referring to this creature in your narration. DO NOT translate or change this name (e.g., if it's "Goblin 1", write "Goblin 1", NOT "Gnomo 1").**
+3.  **Specify the Action Description:** In the 'actionDescription' field, provide a brief, technical description of the action (e.g., "Ataque con Cimitarra", "Lanzar Rayo de Escarcha"). This is NOT a narration, just a label for the action type.
 4.  **Specify the Target:** In the 'targetId' field, provide the unique ID of the character you are attacking. You can see the IDs in the context above.
 5.  **Request Dice Rolls (⚠️ CRITICAL - MANDATORY - READ CAREFULLY):**
 
@@ -153,7 +136,7 @@ Young White Dragon with bite (Dragon stat block: STR +4, Proficiency +3, Bite +7
 - Do not decide whose turn it is or roll dice yourself
 - Do not determine the outcome of the rolls
 - Do not provide ONLY a damage roll without an attack roll first (THIS WILL FAIL)
-- Do not include dice rolls in the narration text
+- Do not generate narration - that is handled by another system
 - DO NOT FORGET THE ATTACK ROLL - your action will be wasted if you do
 
 Execute the turn for **{{{activeCombatant}}}** ONLY.
@@ -200,7 +183,7 @@ export const enemyTacticianTool = ai.defineTool(
               errorStack: promptError.stack?.substring(0, 500), // Primeros 500 chars del stack
             });
             return {
-              narration: `${input.activeCombatant} ruge con frustración, pero no hace nada.`,
+              actionDescription: "No hace nada",
               targetId: null,
               diceRolls: [],
             };
@@ -218,7 +201,7 @@ export const enemyTacticianTool = ai.defineTool(
             responseKeys: response ? Object.keys(response) : [],
           });
           return {
-            narration: `${input.activeCombatant} ruge con frustración, pero no hace nada.`,
+            actionDescription: "No hace nada",
             targetId: null,
             diceRolls: [],
           };
@@ -239,7 +222,7 @@ export const enemyTacticianTool = ai.defineTool(
           activeCombatant: input.activeCombatant,
         }, e);
         return {
-          narration: `${input.activeCombatant} ruge con frustración, pero no hace nada.`,
+          actionDescription: "No hace nada",
           targetId: null,
           diceRolls: [],
         };

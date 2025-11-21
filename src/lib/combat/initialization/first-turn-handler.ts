@@ -22,6 +22,7 @@ interface FirstTurnContext {
     processAICombatantRolls: (input: any) => Promise<any>;
     enemyTacticianTool: (input: any) => Promise<any>;
     companionTacticianTool: (input: any) => Promise<any>;
+    combatNarrationExpertTool: (input: any) => Promise<any>;
     createCombatEndDiceRoll: (reason: string) => DiceRoll;
     localLog: (msg: string) => void;
 }
@@ -55,6 +56,7 @@ export class FirstTurnHandler {
             processAICombatantRolls,
             enemyTacticianTool,
             companionTacticianTool,
+            combatNarrationExpertTool,
             createCombatEndDiceRoll,
             localLog
         } = context;
@@ -164,16 +166,34 @@ export class FirstTurnHandler {
             tacticianResponse = await enemyTacticianTool(baseTacticianInput);
         }
 
-        const { narration, targetId, diceRolls: requestedRolls } = tacticianResponse;
+        const { actionDescription, targetId, diceRolls: requestedRolls } = tacticianResponse;
 
-        if (narration) {
-            const processedNarration = this.postProcessNarration(
-                narration,
-                updatedEnemies,
-                enemyVisualNamesInit,
-                localLog
+        // Resolve target if present
+        let target: any = null;
+        let targetVisualName = 'nadie';
+
+        if (targetId) {
+            const resolved = resolveEnemyId(targetId, updatedEnemies, newInitiativeOrder, updatedParty);
+            let resolvedTargetId = resolved.uniqueId;
+
+            if (resolved.ambiguous && resolved.matches.length > 0) {
+                const firstMatchName = resolved.matches[0];
+                const firstMatchCombatant = newInitiativeOrder.find(c => c.characterName === firstMatchName);
+                resolvedTargetId = firstMatchCombatant?.id || null;
+            }
+
+            const finalTargetId = resolvedTargetId || targetId;
+            target = [...updatedParty, ...updatedEnemies].find(
+                c => c.id === finalTargetId || (c as any).uniqueId === finalTargetId
             );
-            messages.push({ sender: 'DM', content: processedNarration });
+
+            if (target) {
+                targetVisualName = getVisualName(
+                    (target as any).uniqueId || target.id,
+                    newInitiativeOrder,
+                    updatedEnemies
+                );
+            }
         }
 
         if (targetId && requestedRolls && requestedRolls.length > 0) {
@@ -192,15 +212,17 @@ export class FirstTurnHandler {
             );
 
             if (target) {
-                const rollsResult = await processAICombatantRolls({
-                    activeCombatant,
-                    requestedRolls,
-                    target,
-                    updatedParty,
-                    updatedEnemies,
-                    newInitiativeOrder,
-                    localLog,
-                });
+            const rollsResult = await processAICombatantRolls({
+                activeCombatant,
+                requestedRolls,
+                target,
+                updatedParty,
+                updatedEnemies,
+                newInitiativeOrder,
+                localLog,
+                combatNarrationExpertTool,
+                actionDescription, // Pass action description for complete narration
+            });
 
                 diceRolls.push(...rollsResult.diceRolls);
                 messages.push(...rollsResult.messages);
@@ -273,40 +295,4 @@ export class FirstTurnHandler {
         };
     }
 
-    private static postProcessNarration(
-        narration: string,
-        enemies: EnemyWithStats[],
-        visualNames: Map<string, string>,
-        localLog: (msg: string) => void
-    ): string {
-        // Reuse similar logic to NarrationProcessor but with visualNames map
-        // (Simplified for brevity, could be shared utility)
-        let processedNarration = narration;
-
-        // Sort enemies by visual name length
-        const enemiesSorted = [...enemies].sort((a, b) => {
-            const nameA = visualNames.get(a.uniqueId) || a.name;
-            const nameB = visualNames.get(b.uniqueId) || b.name;
-            return nameB.length - nameA.length;
-        });
-
-        for (const enemy of enemiesSorted) {
-            const visualName = visualNames.get(enemy.uniqueId) || enemy.name;
-
-            // Replace uniqueId
-            processedNarration = processedNarration.replace(
-                new RegExp(`\\b${enemy.uniqueId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'),
-                visualName
-            );
-
-            // Replace name if not already visual
-            if (enemy.name !== visualName && !visualName.startsWith(enemy.name + ' ')) {
-                processedNarration = processedNarration.replace(
-                    new RegExp(`\\b${escapeRegex(enemy.name)}(?!\\s+\\d)`, 'gi'),
-                    visualName
-                );
-            }
-        }
-        return processedNarration;
-    }
 }
