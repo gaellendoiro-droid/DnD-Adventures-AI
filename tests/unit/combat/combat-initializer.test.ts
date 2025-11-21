@@ -3,7 +3,8 @@ import { CombatInitializer } from '../../../src/lib/combat/combat-initializer';
 import { EnemyValidator } from '../../../src/lib/combat/initialization/enemy-validator';
 import { InitiativeGenerator } from '../../../src/lib/combat/initialization/initiative-generator';
 import { NarrationProcessor } from '../../../src/lib/combat/initialization/narration-processor';
-import { FirstTurnHandler } from '../../../src/lib/combat/initialization/first-turn-handler';
+// Note: FirstTurnHandler is deprecated and no longer used
+// Turn processing is now handled by TurnProcessor in CombatSession
 
 vi.mock('../../../src/lib/combat/initialization/enemy-validator', () => ({
     EnemyValidator: {
@@ -19,9 +20,6 @@ vi.mock('../../../src/lib/combat/initialization/initiative-generator', () => ({
 }));
 vi.mock('../../../src/lib/combat/initialization/narration-processor', () => ({
     NarrationProcessor: { generateCombatNarration: vi.fn() }
-}));
-vi.mock('../../../src/lib/combat/initialization/first-turn-handler', () => ({
-    FirstTurnHandler: { processFirstAITurn: vi.fn() }
 }));
 
 vi.mock('../../../src/lib/logger', () => ({
@@ -82,7 +80,6 @@ describe('CombatInitializer', () => {
         (NarrationProcessor.generateCombatNarration as any).mockResolvedValue([
             { sender: 'DM', content: '¡Comienza el combate!' }
         ]);
-        (FirstTurnHandler.processFirstAITurn as any).mockResolvedValue(null);
 
         const result = await CombatInitializer.initializeCombat({
             combatantIds: ['goblin-1'],
@@ -108,8 +105,10 @@ describe('CombatInitializer', () => {
         expect(EnemyValidator.fetchAndValidateEnemyStats).toHaveBeenCalled();
         expect(InitiativeGenerator.generateInitiativeRolls).toHaveBeenCalled();
         expect(NarrationProcessor.generateCombatNarration).toHaveBeenCalled();
-        expect(FirstTurnHandler.processFirstAITurn).toHaveBeenCalled();
+        // Note: FirstTurnHandler is no longer called - turn processing is handled by TurnProcessor
         expect(result.messages).toHaveLength(2);
+        expect(result.initiativeOrder).toBeDefined();
+        expect(result.enemies).toBeDefined();
     });
 
     it('should return failure if combatant validation fails', async () => {

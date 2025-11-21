@@ -97,10 +97,13 @@ const combatInitiationPrompt = ai.definePrompt({
     prompt: `You are narrating the START of combat.
     
 **Combat Initiation Guidelines:**
-1. **Describe the tension:** Use the location description.
-2. **Mention initiative:** "Orco 1 actúa primero...".
-3. **NO attacks/damage:** Combat hasn't started yet.
-4. **Use Combat Context:** \`\`\`{{{combatContext}}}\`\`\`
+1. **Describe the tension:** Use the location description to set the scene.
+2. **Identify Enemies:** Clearly state who the enemies are using ONLY the names provided in the Combat Context.
+3. **Initiative:** Mention who acts first based on the initiative order.
+4. **NO attacks/damage:** Combat hasn't started yet (no actions taken).
+5. **Use Combat Context:** \`\`\`{{{combatContext}}}\`\`\`
+
+**CRITICAL:** Do NOT invent enemy types. If the context says "Goblin", describe goblins. If it says "Bandit", describe bandits. Use the exact names from the context.
 
 Narrate the scene in Spanish (Spain).
 `,

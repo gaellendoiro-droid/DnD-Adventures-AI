@@ -16,7 +16,7 @@ import { CombatTurnManager } from '@/lib/combat/turn-manager';
 import { checkEndOfCombat, getHpStatus, isUnconsciousOrDead } from '@/lib/combat/rules-engine';
 import { CombatInitializer } from '@/lib/combat/combat-initializer';
 import type { CombatInitContext } from '@/lib/combat/initialization/types';
-import { CombatActionProcessor } from '@/lib/combat/action-processor';
+import { TurnProcessor } from '@/lib/combat/turn-processor';
 import { resolveEnemyId } from '@/lib/combat/target-resolver';
 import { getVisualName, replaceOrdinalReferences, escapeRegex } from '@/lib/combat/monster-name-manager';
 
@@ -360,36 +360,36 @@ export class CombatSession {
       inCombat: true,
     });
 
-    // Handle first turn data if AI went first
-    if (initResult.firstTurnData) {
-      this.log('info', 'First turn was AI, updating state', {
-        turnIndex: initResult.firstTurnData.turnIndex,
-        combatant: initResult.firstTurnData.activeCombatant.characterName,
-        hasMoreAITurns: initResult.firstTurnData.hasMoreAITurns,
+    // Set initial turn state
+    const firstCombatant = initResult.initiativeOrder[0];
+    const isFirstTurnAI = firstCombatant?.controlledBy === 'AI';
+
+    this.log('info', 'Combat initialized', {
+      turnIndex: 0,
+      firstCombatant: firstCombatant?.characterName,
+      isFirstTurnAI,
+    });
+
+    this.updateState({
+      turnIndex: 0,
+      lastProcessedTurnWasAI: false,
+      lastProcessedTurnIndex: 0,
+    });
+
+    // Process first turn if it's AI (using TurnProcessor - no special handling needed)
+    if (isFirstTurnAI && firstCombatant) {
+      this.log('info', 'First turn is AI, processing with TurnProcessor', {
+        combatant: firstCombatant.characterName,
       });
 
-      this.updateState({
-        turnIndex: initResult.firstTurnData.turnIndex,
-        inCombat: !initResult.firstTurnData.combatEnded,
-        lastProcessedTurnWasAI: initResult.firstTurnData.lastProcessedTurnWasAI,
-        lastProcessedTurnIndex: initResult.firstTurnData.lastProcessedTurnIndex,
-      });
-
-      // If combat ended during first turn, clear enemies
-      if (initResult.firstTurnData.combatEnded) {
-        this.updateState({ enemies: [] });
-      }
-    } else {
-      // Player goes first
-      this.log('info', 'Player goes first', {
-        turnIndex: 0,
-      });
-
-      this.updateState({
-        turnIndex: 0,
-        lastProcessedTurnWasAI: false,
-        lastProcessedTurnIndex: 0,
-      });
+      await this.processTurn(
+        firstCombatant,
+        undefined,
+        undefined,
+        locationContext,
+        conversationHistory,
+        deps
+      );
     }
 
     this.log('info', 'Combat initialization completed', {
@@ -462,8 +462,8 @@ export class CombatSession {
         // Update activeCombatant for next check
         const nextCombatant = this.getActiveCombatant();
         if (nextCombatant && nextCombatant.controlledBy === 'AI') {
-          // Process the AI turn that we just advanced to
-          await this.processAITurn(nextCombatant, locationContext, conversationHistory, deps);
+          // Process the AI turn that we just advanced to using TurnProcessor
+          await this.processTurn(nextCombatant, undefined, undefined, locationContext, conversationHistory, deps);
         }
         return;
       }
@@ -476,9 +476,9 @@ export class CombatSession {
         return;
       }
 
-      // Process player turn
+      // Process player turn using TurnProcessor
       if (interpretedAction && interpretedAction.actionType !== 'continue_turn') {
-        await this.processPlayerTurn(interpretedAction, playerAction, locationContext, deps);
+        await this.processTurn(activeCombatant, interpretedAction, playerAction, locationContext, conversationHistory, deps);
         return;
       }
     }
@@ -489,7 +489,7 @@ export class CombatSession {
         this.party.some(p => p.id === activeCombatant.id && isUnconsciousOrDead(p)));
 
     if (shouldProcessTurn) {
-      await this.processAITurn(activeCombatant, locationContext, conversationHistory, deps);
+      await this.processTurn(activeCombatant, undefined, undefined, locationContext, conversationHistory, deps);
     }
   }
 
@@ -600,411 +600,152 @@ export class CombatSession {
   // ============================================================================
 
   /**
-   * Processes a player's turn.
-   * Handles attack actions, target inference, and uses CombatActionProcessor.
+   * Processes a turn using TurnProcessor (unified for Player and AI).
    * 
-   * @param interpretedAction - The interpreted player action
-   * @param playerAction - Original player action text
+   * @param combatant - The combatant whose turn it is
+   * @param interpretedAction - The interpreted player action (for Player only)
+   * @param playerAction - Original player action text (for Player only)
    * @param locationContext - Location context
-   * @param deps - Combat manager dependencies
-   */
-  private async processPlayerTurn(
-    interpretedAction: any,
-    playerAction: string,
-    locationContext: any,
-    deps: CombatManagerDependencies
-  ): Promise<void> {
-    const activeCombatant = this.getActiveCombatant();
-    if (!activeCombatant || activeCombatant.controlledBy !== 'Player') {
-      return;
-    }
-
-    this.log('info', 'Processing player turn', {
-      player: activeCombatant.characterName,
-      actionType: interpretedAction?.actionType,
-    });
-
-    // Process player action (attack, spell, etc.)
-    if (interpretedAction?.actionType === 'attack') {
-      // If no targetId specified, try to infer it
-      let targetIdToUse = interpretedAction.targetId;
-
-      if (!targetIdToUse) {
-        // Filter only alive enemies
-        const aliveEnemies = this.enemies.filter(e => e.hp.current > 0);
-
-        this.log('debug', 'Player attack without explicit target - inferring target', {
-          player: activeCombatant.characterName,
-          aliveEnemiesCount: aliveEnemies.length,
-        });
-
-        if (aliveEnemies.length === 1) {
-          // Only one enemy alive: auto-select it
-          targetIdToUse = aliveEnemies[0].uniqueId;
-          const autoSelectedName = getVisualName(targetIdToUse || '', this.initiativeOrder, this.enemies);
-
-          this.log('info', 'Auto-selected single enemy as target', {
-            player: activeCombatant.characterName,
-            target: autoSelectedName,
-            targetId: targetIdToUse,
-          });
-
-          // Add a brief DM message to clarify the auto-selection
-          this.addMessage({
-            sender: 'DM',
-            content: `${activeCombatant.characterName} ataca a ${autoSelectedName}.`
-          });
-        } else if (aliveEnemies.length > 1) {
-          // Multiple enemies: ask for clarification
-          const clarificationMessage = `No has especificado un objetivo. ¿A quién o qué quieres atacar?`;
-
-          this.log('info', 'Player attack without target - multiple enemies, asking for clarification', {
-            player: activeCombatant.characterName,
-            enemiesCount: aliveEnemies.length,
-          });
-
-          this.addMessage({
-            sender: 'DM',
-            content: clarificationMessage
-          });
-
-          // Do NOT advance turn - wait for player's next action
-          this.updateState({
-            lastProcessedTurnWasAI: false,
-            lastProcessedTurnIndex: this.turnIndex,
-          });
-          return;
-        } else {
-          // No enemies alive
-          this.log('warn', 'Player tried to attack but no enemies are alive');
-          this.addMessage({
-            sender: 'DM',
-            content: `No hay enemigos vivos para atacar.`
-          });
-
-          // Advance turn normally
-          this.advanceTurn();
-          return;
-        }
-      }
-
-      // Only proceed with attack if we have a valid target
-      if (targetIdToUse) {
-        // Create localLog wrapper
-        const localLog = (message: string) => {
-          this.log('debug', message, { source: 'CombatActionProcessor' });
-        };
-
-        // Process the attack using CombatActionProcessor
-        const attackResult = await CombatActionProcessor.processPlayerAttack({
-          attacker: activeCombatant,
-          targetId: targetIdToUse,
-          playerAction,
-          initiativeOrder: this.initiativeOrder,
-          party: this.party,
-          enemies: this.enemies,
-          locationContext,
-          diceRollerTool: deps.diceRollerTool,
-          combatNarrationExpertTool: deps.combatNarrationExpertTool,
-          updateRollNotationWithModifiers: deps.updateRollNotationWithModifiers,
-          localLog,
-        });
-
-        // Handle the result
-        if (!attackResult.success) {
-          // Target not found or ambiguous
-          this.addMessages(attackResult.messages.map(m => ({ ...m, sender: m.sender as 'DM' })));
-          this.addDiceRolls(attackResult.diceRolls);
-
-          // For ambiguous or invalid targets, return without advancing turn
-          if (attackResult.error === 'TARGET_AMBIGUOUS' || attackResult.error === 'TARGET_NOT_FOUND') {
-            this.updateState({
-              lastProcessedTurnWasAI: false,
-              lastProcessedTurnIndex: this.turnIndex,
-            });
-            return;
-          }
-        }
-
-        // Successful attack - update state
-        this.addMessages(attackResult.messages.map(m => ({ ...m, sender: m.sender as 'DM' })));
-        this.addDiceRolls(attackResult.diceRolls);
-        this.updateState({
-          party: attackResult.updatedParty,
-          enemies: attackResult.updatedEnemies,
-        });
-
-        // Check if combat has ended
-        if (attackResult.combatEnded) {
-          this.log('info', 'Combat ended after player action', {
-            reason: attackResult.endReason,
-          });
-
-          this.addMessage({
-            sender: 'DM',
-            content: attackResult.endReason || 'El combate ha terminado.'
-          });
-
-          // Create combat end dice roll
-          const createCombatEndDiceRoll = (reason: string): DiceRoll => {
-            const isVictory = reason.includes('enemigos derrotados');
-            return {
-              id: `combat-end-${Date.now()}-${Math.random()}`,
-              roller: 'DM',
-              rollNotation: '',
-              individualRolls: [],
-              totalResult: 0,
-              outcome: isVictory ? 'victory' : 'defeat',
-              timestamp: new Date(),
-              description: reason || 'El combate ha finalizado.',
-            };
-          };
-
-          const combatEndRoll = createCombatEndDiceRoll(attackResult.endReason || 'El combate ha terminado.');
-          this.addDiceRoll(combatEndRoll);
-
-          this.updateState({
-            inCombat: false,
-            turnIndex: 0,
-            initiativeOrder: [],
-            enemies: [],
-            lastProcessedTurnWasAI: false,
-            lastProcessedTurnIndex: this.turnIndex,
-          });
-          return;
-        }
-
-        // After processing player action, DO NOT advance turn yet
-        // The turn will advance when user explicitly clicks "Pasar turno"
-        this.log('debug', 'Player action completed. Waiting for user to advance turn.');
-
-        this.updateState({
-          lastProcessedTurnWasAI: false,
-          lastProcessedTurnIndex: this.turnIndex,
-          playerActionCompleted: true,
-        });
-      }
-    }
-  }
-
-  /**
-   * Processes an AI turn (enemy or companion).
-   * Consults tactician, processes narration, and executes rolls.
-   * 
-   * @param activeCombatant - The AI combatant whose turn it is
-   * @param locationContext - Location context for narration
    * @param conversationHistory - Recent conversation history
    * @param deps - Combat manager dependencies
    */
-  private async processAITurn(
-    activeCombatant: Combatant,
-    locationContext: any,
-    conversationHistory: Array<Partial<GameMessage>>,
-    deps: CombatManagerDependencies
+  private async processTurn(
+    combatant: Combatant,
+    interpretedAction?: any,
+    playerAction?: string,
+    locationContext?: any,
+    conversationHistory?: Array<Partial<GameMessage>>,
+    deps?: CombatManagerDependencies
   ): Promise<void> {
-    this.log('info', 'Processing AI turn', {
-      combatant: activeCombatant.characterName,
-      controlledBy: activeCombatant.controlledBy,
-    });
-
-    // Check if active combatant is dead or unconscious - skip their turn if so
-    const isCompanion = this.party.some(p => p.id === activeCombatant.id);
-
-    if (CombatTurnManager.shouldSkipTurn(activeCombatant, this.party, this.enemies)) {
-      await this.processSkippedAITurn(activeCombatant, isCompanion);
+    if (!deps) {
+      this.log('error', 'Cannot process turn: dependencies not provided');
       return;
     }
 
-    // Create localLog wrapper
-    const localLog = (message: string) => {
-      this.log('debug', message, { source: 'AICombatantRolls' });
-    };
-
-    // Get visual names for enemies to pass to tacticians
-    const enemyVisualNames = new Map<string, string>();
-    for (const enemy of this.enemies) {
-      const visualName = getVisualName(enemy.uniqueId, this.initiativeOrder, this.enemies);
-      enemyVisualNames.set(enemy.uniqueId, visualName);
+    // Check if combatant should skip turn (dead/unconscious)
+    if (CombatTurnManager.shouldSkipTurn(combatant, this.party, this.enemies)) {
+      const isCompanion = this.party.some(p => p.id === combatant.id);
+      if (combatant.controlledBy === 'Player') {
+        await this.processSkippedPlayerTurn(combatant, interpretedAction);
+      } else {
+        await this.processSkippedAITurn(combatant, isCompanion);
+      }
+      return;
     }
 
-    // Filter out dead combatants before passing to tactician
-    const aliveParty = this.party.filter(p => p.hp.current > 0);
-    const aliveEnemies = this.enemies.filter(e => e.hp.current > 0);
+    // Determine tactician for AI
+    const isCompanion = this.party.some(p => p.id === combatant.id);
+    const tactician = combatant.controlledBy === 'AI'
+      ? (isCompanion ? deps.companionTacticianTool : deps.enemyTacticianTool)
+      : undefined;
 
-    this.log('debug', 'Filtering dead combatants for tactician', {
-      activeCombatant: activeCombatant.characterName,
-      totalParty: this.party.length,
-      aliveParty: aliveParty.length,
-      totalEnemies: this.enemies.length,
-      aliveEnemies: aliveEnemies.length,
+    // Process turn using TurnProcessor
+    const turnResult = await TurnProcessor.processTurn({
+      combatant,
+      interpretedAction,
+      playerAction,
+      party: this.party,
+      enemies: this.enemies,
+      initiativeOrder: this.initiativeOrder,
+      locationContext,
+      conversationHistory: conversationHistory || [],
+      dependencies: {
+        tactician,
+        narrationExpert: deps.combatNarrationExpertTool,
+        diceRollerTool: deps.diceRollerTool,
+        updateRollNotationWithModifiers: deps.updateRollNotationWithModifiers,
+      },
     });
 
-    // Get full character data for companions to access their inventory and spells
-    const activeCombatantFullData = isCompanion
-      ? aliveParty.find(p => p.id === activeCombatant.id)
-      : null;
+    if (!turnResult.success) {
+      // Handle errors
+      this.addMessages(turnResult.messages);
+      this.addDiceRolls(turnResult.diceRolls);
 
-    // Format conversation history
-    const formatMessageForTranscript = (msg: Partial<GameMessage>): string => {
-      const senderName = msg.senderName || msg.sender;
-      const content = msg.originalContent || msg.content;
-      if (senderName && content) {
-        return `${senderName}: ${content}`;
-      }
-      return '';
-    };
-
-    const baseTacticianInput = {
-      activeCombatant: activeCombatant.characterName,
-      party: aliveParty,
-      enemies: aliveEnemies.map(e => ({
-        name: enemyVisualNames.get(e.uniqueId) || e.name,
-        id: e.uniqueId,
-        hp: getHpStatus(e.hp.current, e.hp.max)
-      })),
-      locationDescription: locationContext?.description || "An unknown battlefield",
-      conversationHistory: conversationHistory.map(formatMessageForTranscript).join('\n'),
-      availableSpells: activeCombatantFullData?.spells || [],
-      inventory: activeCombatantFullData?.inventory || []
-    };
-
-    let tacticianResponse;
-    if (isCompanion) {
-      this.log('debug', `Invoking CompanionTacticianTool for ${activeCombatant.characterName}.`);
-      tacticianResponse = await deps.companionTacticianTool(baseTacticianInput);
-    } else {
-      this.log('debug', `Invoking EnemyTacticianTool for ${activeCombatant.characterName}.`);
-      tacticianResponse = await deps.enemyTacticianTool(baseTacticianInput);
-    }
-
-    const { actionDescription, targetId, diceRolls: requestedRolls } = tacticianResponse;
-
-    this.log('debug', `Tactician for ${activeCombatant.characterName} decided action: ${actionDescription}, targeting ${targetId || 'no one'}.`);
-
-    // Resolve target if present
-    let target: any = null;
-    let targetVisualName = 'nadie';
-
-    if (targetId) {
-      // Resolve targetId (can be visual name or uniqueId)
-      const resolved = resolveEnemyId(targetId, this.enemies, this.initiativeOrder, this.party);
-
-      // For AI, if ambiguous, choose the first match
-      let resolvedTargetId = resolved.uniqueId;
-      if (resolved.ambiguous && resolved.matches.length > 0) {
-        const firstMatchName = resolved.matches[0];
-        const firstMatchCombatant = this.initiativeOrder.find(c => c.characterName === firstMatchName);
-        resolvedTargetId = firstMatchCombatant?.id || null;
-        this.log('debug', `AI target ambiguous, choosing first match: ${firstMatchName} (${resolvedTargetId})`);
-      }
-
-      // Use resolved uniqueId to find target
-      const finalTargetId = resolvedTargetId || targetId;
-      target = [...this.party, ...this.enemies].find(
-        c => c.id === finalTargetId || (c as any).uniqueId === finalTargetId
-      );
-
-      if (target) {
-        targetVisualName = getVisualName(
-          (target as any).uniqueId || target.id,
-          this.initiativeOrder,
-          this.enemies
-        );
-      }
-    }
-
-    if (target && requestedRolls && requestedRolls.length > 0) {
-      // Process AI combatant rolls using centralized function
-      const rollsResult = await deps.processAICombatantRolls({
-        activeCombatant,
-        requestedRolls,
-        target,
-        updatedParty: this.party,
-        updatedEnemies: this.enemies,
-        newInitiativeOrder: this.initiativeOrder,
-        localLog,
-        combatNarrationExpertTool: deps.combatNarrationExpertTool,
-        actionDescription: actionDescription, // Pass action description for complete narration
-      });
-
-      // Extract results
-      this.addDiceRolls(rollsResult.diceRolls);
-      this.addMessages(rollsResult.messages);
-      this.updateState({
-        party: rollsResult.updatedParty,
-        enemies: rollsResult.updatedEnemies,
-      });
-
-      let combatHasEnded = rollsResult.combatEnded;
-
-      // Double-check combat end status after updating enemies
-      if (!combatHasEnded) {
-        const endOfCombatCheck = this.checkEndOfCombat();
-        if (endOfCombatCheck.combatEnded) {
-          this.log('info', 'Combat ended detected after AI turn', {
-            reason: endOfCombatCheck.reason,
-          });
-
-          combatHasEnded = true;
-          if (!this.messages.some(m => String(m.content || '').includes('Victoria') || String(m.content || '').includes('derrotados'))) {
-            this.addMessage({
-              sender: 'DM',
-              content: endOfCombatCheck.reason || 'El combate ha terminado.'
-            });
-
-            // Create combat end dice roll
-            const createCombatEndDiceRoll = (reason: string): DiceRoll => {
-              const isVictory = reason.includes('enemigos derrotados');
-              return {
-                id: `combat-end-${Date.now()}-${Math.random()}`,
-                roller: 'DM',
-                rollNotation: '',
-                individualRolls: [],
-                totalResult: 0,
-                outcome: isVictory ? 'victory' : 'defeat',
-                timestamp: new Date(),
-                description: reason || 'El combate ha finalizado.',
-              };
-            };
-
-            const combatEndRoll = createCombatEndDiceRoll(endOfCombatCheck.reason || 'El combate ha terminado.');
-            this.addDiceRoll(combatEndRoll);
-          }
-        }
-      }
-
-      if (combatHasEnded) {
+      // For certain errors, don't advance turn
+      if (turnResult.error === 'TARGET_AMBIGUOUS' || turnResult.error === 'TARGET_REQUIRED' || turnResult.error === 'TARGET_NOT_FOUND') {
         this.updateState({
-          inCombat: false,
-          turnIndex: 0,
-          initiativeOrder: [],
-          enemies: [],
-          lastProcessedTurnWasAI: true,
+          lastProcessedTurnWasAI: combatant.controlledBy === 'AI',
           lastProcessedTurnIndex: this.turnIndex,
         });
         return;
       }
+
+      // For other errors, advance turn
+      this.advanceTurn();
+      return;
     }
 
-    // Advance turn
-    const processedTurnIndex = this.turnIndex;
-    this.advanceTurn();
-
-    // Check if there are more AI turns
-    const nextCombatant = this.getActiveCombatant();
-    const hasMoreAITurns = CombatTurnManager.hasMoreAITurns(
-      nextCombatant!,
-      this.party,
-      this.enemies,
-      false
-    );
-
-    // Update flags
+    // Successful turn - update state
+    this.addMessages(turnResult.messages);
+    this.addDiceRolls(turnResult.diceRolls);
     this.updateState({
-      lastProcessedTurnWasAI: true,
-      lastProcessedTurnIndex: processedTurnIndex,
+      party: turnResult.updatedParty,
+      enemies: turnResult.updatedEnemies,
     });
+
+    // Check if combat ended
+    if (turnResult.combatEnded) {
+      this.log('info', 'Combat ended after turn', {
+        reason: turnResult.endReason,
+        combatant: combatant.characterName,
+      });
+
+      // Create combat end dice roll
+      const createCombatEndDiceRoll = (reason: string): DiceRoll => {
+        const isVictory = reason?.includes('enemigos derrotados');
+        return {
+          id: `combat-end-${Date.now()}-${Math.random()}`,
+          roller: 'DM',
+          rollNotation: '',
+          individualRolls: [],
+          totalResult: 0,
+          outcome: isVictory ? 'victory' : 'defeat',
+          timestamp: new Date(),
+          description: reason || 'El combate ha finalizado.',
+        };
+      };
+
+      const combatEndRoll = createCombatEndDiceRoll(turnResult.endReason || 'El combate ha terminado.');
+      this.addDiceRoll(combatEndRoll);
+
+      // IMPORTANT: Do NOT clear enemies array - keep defeated enemies in state
+      // This allows the system to filter dead enemies when generating location descriptions
+      // The enemies array will contain defeated enemies (hp.current = 0) which can be
+      // filtered by game-coordinator.ts to prevent the DM from describing them as alive
+      this.updateState({
+        inCombat: false,
+        turnIndex: 0,
+        initiativeOrder: [],
+        // enemies: [], // ← Keep enemies in state so dead enemies can be filtered
+        lastProcessedTurnWasAI: combatant.controlledBy === 'AI',
+        lastProcessedTurnIndex: this.turnIndex,
+      });
+      return;
+    }
+
+    // Turn completed successfully
+    if (combatant.controlledBy === 'Player') {
+      // Player turn - don't advance automatically, wait for user to click "Pasar turno"
+      this.log('debug', 'Player action completed. Waiting for user to advance turn.');
+      this.updateState({
+        lastProcessedTurnWasAI: false,
+        lastProcessedTurnIndex: this.turnIndex,
+        playerActionCompleted: true,
+      });
+    } else {
+      // AI turn - advance automatically
+      const processedTurnIndex = this.turnIndex;
+      this.advanceTurn();
+
+      // Update flags
+      this.updateState({
+        lastProcessedTurnWasAI: true,
+        lastProcessedTurnIndex: processedTurnIndex,
+      });
+    }
   }
+
 
   /**
    * Processes a skipped player turn (player is unconscious/dead).

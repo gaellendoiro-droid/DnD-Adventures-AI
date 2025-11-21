@@ -124,13 +124,21 @@ tests/
 │   │   │       └── combat-validators.test.ts
 │   │   └── flows/
 │   │       └── retry-utils.test.ts
+│   ├── combat/
+│   │   ├── action-executor.test.ts            # Tests de CombatActionExecutor (Issue #117)
+│   │   ├── turn-processor.test.ts             # Tests de TurnProcessor (Issue #117)
+│   │   ├── combat-initializer.test.ts         # Tests de CombatInitializer
+│   │   └── initialization/
+│   │       └── first-turn-handler.test.ts     # Deprecated (Issue #117)
 │   └── frontend/
 │       ├── utils.test.ts
 │       ├── monster-name-manager.test.ts
 │       └── target-resolver.test.ts
 └── integration/
     ├── turn-system.test.ts           # Tests de sincronización y estado
-    └── turn-system-flow.test.ts      # Tests de flujos completos
+    ├── turn-system-flow.test.ts      # Tests de flujos completos
+    └── combat/
+        └── unified-combat-flow.test.ts # Tests de flujo unificado (Issue #117)
 ```
 
 ### Convenciones de Nomenclatura
@@ -150,8 +158,7 @@ tests/
 **Módulo:** Cálculo de Daño Crítico (Issue #50)
 
 **Funciones testeadas:**
-- `getCriticalDamageNotation` (combat-manager.ts) - Para ataques de jugadores
-- `getCriticalDamageNotation` (dice-roll-processor.ts) - Para ataques de NPCs
+- `getCriticalDamageNotation` (rules-engine.ts) - Función unificada para todos los ataques (Issue #117)
 
 **Cobertura:**
 - ✅ Golpes no críticos (notación sin cambios)

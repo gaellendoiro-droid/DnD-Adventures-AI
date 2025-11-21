@@ -88,7 +88,7 @@ Usuario → Frontend → Server Action → Backend IA → Respuesta → Frontend
 - **`ai/flows/narrative-expert.ts`:** Genera narrativa
 - **`ai/tools/`:** Herramientas especializadas (combate, dados, etc.)
 - **`lib/combat/combat-session.ts`:** Clase principal que encapsula el estado del combate (patrón State Object)
-- **`lib/combat/`:** Módulos especializados de combate (rules-engine, turn-manager, action-processor, etc.)
+- **`lib/combat/`:** Módulos especializados de combate (rules-engine, turn-manager, turn-processor, action-executor, combat-session, etc.)
 
 ## Flujo de un Turno Típico
 

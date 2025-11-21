@@ -16,6 +16,42 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ## [Unreleased]
 
 ### Changed
+- **✅ Issue #117 - Simplificación de Arquitectura de Combate - Arquitectura Unificada (2025-11-21):**
+  - **Problema:** El sistema de combate tenía una arquitectura excesivamente compleja con múltiples capas de delegación y duplicación de lógica. El flujo del jugador y el de la IA eran diferentes, causando inconsistencias y dificultando el mantenimiento
+  - **Solución:** Arquitectura completamente unificada - Jugador e IA usan el mismo código para procesar turnos
+  - **Cambios principales:**
+    - **Nuevo `TurnProcessor` unificado:** Procesa turnos completos (planificación → intención → ejecución → resolución) para jugador e IA
+    - **Nuevo `CombatActionExecutor` unificado:** Ejecuta cualquier acción de combate (ataque, hechizo, curación) independientemente de quién la ejecute
+    - **Nuevo `roll-notation-utils.ts`:** Utilidades para notación de tiradas extraídas de módulos obsoletos
+    - **`CombatInitializer` simplificado:** Solo inicializa estado, no procesa turnos
+    - **`CombatSession` refactorizado:** Usa `TurnProcessor` para todos los turnos, eliminando métodos duplicados
+    - **Módulos eliminados:** `action-processor.ts`, `dice-roll-processor.ts`, `first-turn-handler.ts`
+  - **Beneficios:**
+    - ✅ Consistencia total: Jugador e IA usan exactamente el mismo código
+    - ✅ Complejidad reducida: De 8-9 niveles de profundidad a 3-4 niveles
+    - ✅ Duplicación eliminada: Lógica unificada en módulos centralizados
+    - ✅ Mantenibilidad mejorada: Menos archivos, menos duplicación, más fácil de depurar
+    - ✅ Menos bugs: Un solo lugar para corregir problemas
+  - **Archivos modificados:**
+    - `src/lib/combat/turn-processor.ts` - Nuevo módulo unificado
+    - `src/lib/combat/action-executor.ts` - Nuevo módulo unificado
+    - `src/lib/combat/roll-notation-utils.ts` - Nuevo módulo de utilidades
+    - `src/lib/combat/combat-session.ts` - Refactorizado para usar `TurnProcessor`
+    - `src/lib/combat/combat-initializer.ts` - Simplificado, sin procesamiento de turnos
+    - `src/ai/tools/combat-manager.ts` - Actualizado para nueva arquitectura
+    - `src/lib/combat/action-processor.ts` - Eliminado (deprecated)
+    - `src/ai/tools/combat/dice-roll-processor.ts` - Eliminado (deprecated)
+    - `src/lib/combat/initialization/first-turn-handler.ts` - Eliminado (deprecated)
+  - **Tests:**
+    - `tests/unit/combat/action-executor.test.ts` - 5 tests unitarios
+    - `tests/unit/combat/turn-processor.test.ts` - 6 tests unitarios
+    - `tests/integration/combat/unified-combat-flow.test.ts` - 3 tests de integración
+  - **Documentación:**
+    - `docs/arquitectura/arquitectura-backend.md` - Actualizado con nueva arquitectura
+    - `docs/arquitectura/flujo-datos.md` - Actualizado con flujo unificado
+    - `docs/testing/README.md` - Actualizado con nuevos tests
+  - **Referencia:** [Issue #117](../../docs/tracking/issues/corregidos.md#issue-117-simplificación-de-arquitectura-de-combate--resuelto) | [Plan Completado](../../docs/planes-desarrollo/completados/issue-117-simplificacion-arquitectura-combate.md)
+
 - **✅ Issue #94 - Refactorización de Prompts de Tacticians - Narración Centralizada (2025-11-21):**
   - **Problema:** Los tacticians (`enemyTacticianTool` y `companionTacticianTool`) generaban tanto la decisión táctica como la narración, creando prompts complejos, inconsistencias narrativas y dificultando el mantenimiento
   - **Solución:** Separación completa de responsabilidades - Tacticians solo deciden táctica, `combatNarrationExpertTool` genera todas las narraciones
@@ -37,9 +73,9 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - `src/ai/tools/enemy-tactician.ts` - Prompt simplificado, sin narración
     - `src/ai/tools/companion-tactician.ts` - Prompt simplificado, sin narración
     - `src/lib/combat/combat-session.ts` - Eliminada narración de intención
-    - `src/lib/combat/initialization/first-turn-handler.ts` - Eliminada narración de intención
-    - `src/ai/tools/combat/dice-roll-processor.ts` - Acepta y pasa `actionDescription`, fallbacks mejorados
-    - `src/lib/combat/action-processor.ts` - Actualizado para pasar `actionDescription`
+    - `src/lib/combat/initialization/first-turn-handler.ts` - Eliminado (deprecated en Issue #117)
+    - `src/ai/tools/combat/dice-roll-processor.ts` - Eliminado (deprecated en Issue #117)
+    - `src/lib/combat/action-processor.ts` - Eliminado (deprecated en Issue #117)
     - `src/lib/combat/combat-initializer.ts` - Añadido `combatNarrationExpertTool` al contexto
     - `src/lib/combat/initialization/types.ts` - Añadido `combatNarrationExpertTool` al contexto
   - **Referencia:** [Issue #94](../../docs/tracking/issues/corregidos.md#issue-94-refactorización-de-prompts-de-tacticians---separación-de-narración-y-decisión-táctica--resuelto) | [Plan Completado](../../docs/planes-desarrollo/completados/issue-94-refactorizacion-prompts-tacticians.md)

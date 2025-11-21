@@ -8,15 +8,31 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** Ninguno activo | **Última implementación:** Issue #94 - Refactorización de Prompts de Tacticians (2025-11-21) - COMPLETADO
+**Estado:** Ninguno activo | **Última implementación:** Issue #117 - Simplificación de Arquitectura de Combate (2025-11-21) - COMPLETADO
 
 ---
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 11 planes
+**Estado:** Finalizados | **Cantidad:** 12 planes
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Issue #117 - Simplificación de Arquitectura de Combate](completados/issue-117-simplificacion-arquitectura-combate.md) ✅ **COMPLETADO**
+- **Estado:** Todas las 6 fases completadas y documentadas
+- **Objetivo:** Simplificar la arquitectura del sistema de combate unificando el procesamiento de turnos (jugador e IA) en un flujo único y consolidado
+- **Prioridad:** Muy Alta
+- **Resultados:**
+  - ✅ Arquitectura unificada: Jugador e IA usan el mismo código (`TurnProcessor` y `CombatActionExecutor`)
+  - ✅ Complejidad reducida: De 8-9 niveles de profundidad a 3-4 niveles
+  - ✅ Duplicación eliminada: `action-processor.ts` y `dice-roll-processor.ts` fusionados en `CombatActionExecutor`
+  - ✅ Módulos especiales eliminados: `first-turn-handler.ts` eliminado, flujo normal para todos los turnos
+  - ✅ Consistencia total: Mismo flujo para jugador e IA (Planificación → Intención → Ejecución → Resolución)
+  - ✅ Tests completos: 11 tests unitarios + 3 tests de integración
+  - ✅ Documentación actualizada: Arquitectura, flujo de datos y testing
+- **Fecha de finalización:** 2025-11-21
+- **Tiempo invertido:** ~36-49 horas
+- **Referencia:** [Plan Detallado](completados/issue-117-simplificacion-arquitectura-combate.md) | [Issue #117](../../tracking/issues/corregidos.md#issue-117-simplificación-de-arquitectura-de-combate--resuelto)
 
 ### [Issue #94 - Refactorización de Prompts de Tacticians](completados/issue-94-refactorizacion-prompts-tacticians.md) ✅ **COMPLETADO**
 - **Estado:** Todas las fases completadas y documentadas
@@ -57,7 +73,7 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 - **Prioridad:** Media-Alta
 - **Resultados:**
   - ✅ DI completa en `processAICombatantRolls` y `combatManagerTool` (`executeCombatManager` + wrapper Genkit)
-  - ✅ Código desacoplado: lógica pura en `rules-engine`, `turn-manager`, `action-processor`
+  - ✅ Código desacoplado: lógica pura en `rules-engine`, `turn-manager`, `CombatActionExecutor`, `TurnProcessor`
   - ✅ Todos los tests actualizados (54+ tests pasando, nuevo test con DI explícita)
   - ✅ Documentación ampliada (Testing README, Guía rápida, Patrón DI en arquitectura)
   - ⏸️ Fases 4-5 (UI data-testid + documentación adicional) pospuestas para el futuro
@@ -191,30 +207,6 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 
 ---
 
-#### [Simplificación de Arquitectura de Combate](sin-comenzar/issue-117-simplificacion-arquitectura-combate.md)
-- **Estado:** Sin comenzar
-- **Prioridad:** Muy Alta
-- **Objetivo:** Simplificar la arquitectura del sistema de combate unificando el procesamiento de turnos (jugador e IA) en un flujo único y consolidado
-- **Componentes:**
-  - Crear `CombatActionExecutor` unificado (fusionar `action-processor.ts` y `dice-roll-processor.ts`)
-  - Crear `TurnProcessor` unificado (manejar flujo completo: planificación → intención → ejecución → resolución)
-  - Simplificar `CombatInitializer` (solo inicializar estado)
-  - Eliminar `first-turn-handler.ts` (procesar primer turno como cualquier otro)
-  - Refactorizar `CombatSession` para usar `TurnProcessor` en todos los casos
-- **Beneficios:**
-  - ✅ Consistencia total: Jugador e IA usan el mismo código
-  - ✅ Menos saltos: Flujo lineal (3-4 niveles vs 8-9 actuales)
-  - ✅ Código más mantenible: Menos archivos, menos duplicación
-  - ✅ Depuración más fácil: Un solo lugar donde mirar
-  - ✅ Menos bugs: Un solo lugar para arreglar problemas
-- **Impacto:** Transformacional - Mejora significativa de la arquitectura, elimina duplicación, garantiza consistencia total
-- **Estimación:** 30-41 horas
-- **Relacionado con:**
-  - Issue #117 (Simplificación de Arquitectura de Combate) 🔴 CRÍTICO
-  - Issue #94 (Refactorización de Prompts de Tacticians) - ✅ COMPLETADO - Resuelve problemas de consistencia
-  - Issue #82 (Unificar sistema de procesamiento de tiradas) - Resuelve completamente
-  - Issue #21 (Código duplicado) - Elimina duplicación
-- **Referencia:** [Plan Detallado](sin-comenzar/issue-117-simplificacion-arquitectura-combate.md)
 
 ---
 

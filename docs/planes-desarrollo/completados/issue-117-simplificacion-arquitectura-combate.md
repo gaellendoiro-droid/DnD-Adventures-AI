@@ -3,7 +3,7 @@
 **Issue:** #117  
 **Prioridad:** 🔴 MUY ALTA  
 **Fecha de creación del plan:** 2025-11-20  
-**Estado:** 📝 SIN COMENZAR  
+**Estado:** ✅ COMPLETADO  
 **Referencia:** [Issue #117](../../tracking/issues/pendientes.md#issue-117-simplificación-de-arquitectura-de-combate-🔴-crítico)
 
 ---
@@ -323,33 +323,108 @@ El sistema de combate actual tiene una arquitectura excesivamente compleja con m
 
 ---
 
-### Fase 5: Actualizar Tests y Limpiar Código Obsoleto (4-6 horas)
+### Fase 5: Testing Completo y Limpieza de Código Obsoleto (10-14 horas)
 
-**Objetivo:** Actualizar tests para usar la nueva arquitectura y eliminar código obsoleto.
+**Objetivo:** Validar completamente la nueva arquitectura con tests exhaustivos, asegurar que no se rompió funcionalidad existente, y eliminar código obsoleto una vez validado.
 
 **Tareas:**
-1. Actualizar tests existentes:
-   - Tests que usan `action-processor.ts` → usar `CombatActionExecutor`
-   - Tests que usan `dice-roll-processor.ts` → usar `CombatActionExecutor`
-   - Tests que usan `first-turn-handler.ts` → usar flujo normal
-2. Crear nuevos tests para `TurnProcessor`:
-   - Test de turno de jugador
-   - Test de turno de enemigo
-   - Test de turno de compañero
-   - Test de flujo completo (intención → ejecución → resolución)
-3. Eliminar código obsoleto:
-   - Eliminar `action-processor.ts` (después de migrar tests)
-   - Eliminar `dice-roll-processor.ts` (después de migrar tests)
-   - Eliminar `first-turn-handler.ts` (después de migrar tests)
-   - Limpiar imports y referencias
+
+1. **Migración de Tests Existentes:**
+   - Actualizar tests que usan `action-processor.ts` → usar `CombatActionExecutor`
+   - Actualizar tests que usan `dice-roll-processor.ts` → usar `CombatActionExecutor`
+   - Actualizar tests que usan `first-turn-handler.ts` → usar flujo normal con `TurnProcessor`
+   - Asegurar que todos los tests existentes pasen con la nueva arquitectura
+
+2. **Tests Unitarios para Nuevos Módulos:**
+   - **Tests de `CombatActionExecutor`:**
+     - Test de ejecución de ataque (hit/miss)
+     - Test de ejecución de hechizo
+     - Test de ejecución de curación
+     - Test de aplicación de daño
+     - Test de detección de muerte/knockout
+     - Test de múltiples targets
+     - Test de casos edge (AC 0, daño 0, etc.)
+   - **Tests de `TurnProcessor`:**
+     - Test de turno completo de jugador (planificación → intención → ejecución → resolución)
+     - Test de turno completo de enemigo (con mock de tactician)
+     - Test de turno completo de compañero (con mock de tactician)
+     - Test de manejo de errores en planificación
+     - Test de manejo de errores en ejecución
+     - Test de flujo con múltiples acciones
+     - Test de skip turn (combatiente muerto/inconsciente)
+
+3. **Tests de Integración del Flujo Completo:**
+   - Test de inicialización de combate → primer turno (jugador)
+   - Test de inicialización de combate → primer turno (IA)
+   - Test de ciclo completo de combate (múltiples turnos)
+   - Test de fin de combate (victoria/derrota)
+   - Test de consistencia entre jugador e IA (mismo código)
+   - Test de wrap-around del orden de iniciativa
+
+4. **Tests de Regresión:**
+   - Comparar resultados del sistema antiguo vs nuevo:
+     - Mismo input → mismo output (validar que no se rompió funcionalidad)
+     - Validar que los mensajes de muerte no se duplican
+     - Validar que los mensajes técnicos se generan correctamente
+   - Tests de casos edge:
+     - Combate con un solo enemigo
+     - Combate con múltiples enemigos del mismo tipo
+     - Combate con compañeros
+     - Combate con personaje muerto/inconsciente
+     - Combate con múltiples rounds
+
+5. **Tests de Consistencia:**
+   - Validar que jugador e IA generan el mismo tipo de mensajes técnicos
+   - Validar que jugador e IA aplican daño de la misma forma
+   - Validar que jugador e IA detectan muerte de la misma forma
+   - Validar que no hay diferencias en el flujo entre jugador e IA
+   - Validar que el mismo ataque produce el mismo resultado independientemente del controlador
+
+6. **Validación de Cobertura:**
+   - Ejecutar `npm run test:coverage` para los nuevos módulos
+   - Asegurar cobertura mínima del 80% en:
+     - `CombatActionExecutor`
+     - `TurnProcessor`
+     - `CombatInitializer` (versión simplificada)
+   - Identificar y cubrir casos no cubiertos
+   - Generar reporte de cobertura y documentar
+
+7. **Tests de Rendimiento (opcional):**
+   - Validar que el nuevo flujo no es más lento que el anterior
+   - Medir tiempo de ejecución de un turno completo
+   - Validar que no hay regresiones de rendimiento
+
+8. **Limpieza de Código Obsoleto:**
+   - **Solo después de validar que todos los tests pasan:**
+   - Eliminar `action-processor.ts` (marcado como deprecated)
+   - Eliminar `dice-roll-processor.ts` (marcado como deprecated)
+   - Eliminar `first-turn-handler.ts` (marcado como deprecated)
+   - Limpiar imports y referencias en todo el código
+   - Verificar que no quedan referencias a módulos eliminados
 
 **Archivos:**
-- Modificar: Todos los archivos de tests relacionados
-- Eliminar: `src/lib/combat/action-processor.ts`
-- Eliminar: `src/ai/tools/combat/dice-roll-processor.ts`
-- Eliminar: `src/lib/combat/initialization/first-turn-handler.ts`
+- Nuevo: `tests/unit/combat/action-executor.test.ts`
+- Nuevo: `tests/unit/combat/turn-processor.test.ts`
+- Nuevo: `tests/integration/combat/unified-combat-flow.test.ts`
+- Nuevo: `tests/integration/combat/regression.test.ts`
+- Nuevo: `tests/integration/combat/consistency.test.ts`
+- Modificar: Todos los archivos de tests existentes que usan módulos deprecados
+- Eliminar: `src/lib/combat/action-processor.ts` (después de validación)
+- Eliminar: `src/ai/tools/combat/dice-roll-processor.ts` (después de validación)
+- Eliminar: `src/lib/combat/initialization/first-turn-handler.ts` (después de validación)
 
-**Estimación:** 4-6 horas
+**Criterios de Éxito:**
+- ✅ Todos los tests unitarios pasando
+- ✅ Todos los tests de integración pasando
+- ✅ Todos los tests de regresión pasando
+- ✅ Todos los tests de consistencia pasando
+- ✅ Cobertura mínima del 80% en nuevos módulos
+- ✅ No hay regresiones de funcionalidad
+- ✅ No hay regresiones de rendimiento
+- ✅ Consistencia verificada entre jugador e IA
+- ✅ Código obsoleto eliminado y limpieza completa
+
+**Estimación:** 10-14 horas
 
 ---
 
@@ -384,9 +459,9 @@ El sistema de combate actual tiene una arquitectura excesivamente compleja con m
 | Fase 2 | Crear `TurnProcessor` Unificado | 8-10 horas |
 | Fase 3 | Simplificar `CombatInitializer` y Eliminar `FirstTurnHandler` | 4-6 horas |
 | Fase 4 | Refactorizar `CombatSession` para Usar `TurnProcessor` | 6-8 horas |
-| Fase 5 | Actualizar Tests y Limpiar Código Obsoleto | 4-6 horas |
+| Fase 5 | Testing Completo y Limpieza de Código Obsoleto | 10-14 horas |
 | Fase 6 | Actualizar Documentación | 2-3 horas |
-| **TOTAL** | | **30-41 horas** |
+| **TOTAL** | | **36-49 horas** |
 
 ---
 
@@ -421,25 +496,29 @@ El sistema de combate actual tiene una arquitectura excesivamente compleja con m
 3. ✅ Eliminación de duplicación: `action-processor` y `dice-roll-processor` fusionados
 4. ✅ Eliminación de módulos especiales: `first-turn-handler` eliminado
 5. ✅ Consistencia total: mensajes de muerte integrados en narración de resolución
-6. ✅ Todos los tests pasando
-7. ✅ Documentación actualizada
+6. ✅ Todos los tests unitarios pasando
+7. ✅ Todos los tests de integración pasando
+8. ✅ Tests de regresión validando que no se rompió funcionalidad
+9. ✅ Cobertura mínima del 80% en nuevos módulos
+10. ✅ Documentación actualizada
 
 ---
 
 ## 🚀 Próximos Pasos
 
 1. ✅ Crear este plan
-2. ⏳ Revisar y aprobar plan
-3. ⏳ Implementar Fase 1 (CombatActionExecutor)
-4. ⏳ Implementar Fase 2 (TurnProcessor)
-5. ⏳ Implementar Fase 3 (Simplificar Initializer)
-6. ⏳ Implementar Fase 4 (Refactorizar CombatSession)
-7. ⏳ Implementar Fase 5 (Tests y Limpieza)
-8. ⏳ Implementar Fase 6 (Documentación)
-9. ⏳ Testing completo del sistema
-10. ⏳ Mover issue #117 a resueltos
+2. ✅ Revisar y aprobar plan
+3. ✅ Implementar Fase 1 (CombatActionExecutor)
+4. ✅ Implementar Fase 2 (TurnProcessor)
+5. ✅ Implementar Fase 3 (Simplificar Initializer)
+6. ✅ Implementar Fase 4 (Refactorizar CombatSession)
+7. ✅ Implementar Fase 5 (Testing Completo y Limpieza)
+8. ✅ Implementar Fase 6 (Documentación)
+9. ✅ Validación final y revisión de código
+10. ✅ Mover issue #117 a resueltos
 
 ---
 
-**Última actualización:** 2025-11-20
+**Última actualización:** 2025-11-21 (Todas las fases completadas - Issue resuelto)
+**Fecha de finalización:** 2025-11-21
 

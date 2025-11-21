@@ -2,57 +2,13 @@
 
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 28 issues  
-**Última actualización:** 2025-11-21 (Issue #94 movido a corregidos - Refactorización de Prompts de Tacticians completada)
+**Total:** 27 issues  
+**Última actualización:** 2025-11-21 (Issue #117 movido a corregidos - Simplificación de Arquitectura de Combate completada)
 
 ---
 
 ## 🔴 Prioridad Muy Alta (PMA) - Críticos
 
-### Issue #117: Simplificación de Arquitectura de Combate 🔴 CRÍTICO
-
-- **Fecha de creación:** 2025-11-20
-- **Ubicación:** `src/lib/combat/`, `src/ai/tools/combat/`
-- **Severidad:** 🔴 **MUY ALTA** (afecta mantenibilidad, consistencia y facilita futuras mejoras)
-- **Descripción:** El sistema de combate actual tiene una arquitectura excesivamente compleja con múltiples capas de delegación y duplicación de lógica. El flujo del jugador y el de la IA son diferentes, causando inconsistencias y dificultando el mantenimiento.
-- **Problema actual:**
-  - Duplicación de lógica: `action-processor.ts` y `dice-roll-processor.ts` hacen esencialmente lo mismo
-  - Complejidad de flujo: 8-9 niveles de profundidad, difícil de seguir y depurar
-  - Módulos especiales innecesarios: `first-turn-handler.ts` maneja el primer turno de forma especial
-  - Inconsistencias: Jugador e IA usan código diferente, causando bugs como mensajes de muerte duplicados
-- **Comportamiento esperado:**
-  - Flujo unificado: Jugador e IA usan el mismo código para ejecutar acciones
-  - Arquitectura simplificada: Máximo 3-4 niveles de profundidad
-  - Eliminación de duplicación: Fusionar `action-processor` y `dice-roll-processor` en `CombatActionExecutor`
-  - Eliminación de módulos especiales: `first-turn-handler` eliminado, flujo normal para todos los turnos
-- **Solución propuesta:**
-  - Crear `CombatActionExecutor` unificado que procese cualquier acción de combate
-  - Crear `TurnProcessor` unificado que maneje el flujo completo (planificación → intención → ejecución → resolución)
-  - Simplificar `CombatInitializer` para solo inicializar estado
-  - Refactorizar `CombatSession` para usar `TurnProcessor` en todos los casos
-- **Beneficios esperados:**
-  - ✅ Consistencia total: Jugador e IA usan el mismo código
-  - ✅ Menos saltos: Flujo lineal y fácil de seguir
-  - ✅ Código más mantenible: Menos archivos, menos duplicación
-  - ✅ Depuración más fácil: Un solo lugar donde mirar qué pasó
-  - ✅ Menos bugs: Un solo lugar para arreglar problemas
-- **Archivos afectados:**
-  - Nuevo: `src/lib/combat/action-executor.ts` (unificado)
-  - Nuevo: `src/lib/combat/turn-processor.ts` (unificado)
-  - Modificar: `src/lib/combat/combat-session.ts` (usar TurnProcessor)
-  - Modificar: `src/lib/combat/combat-initializer.ts` (simplificar)
-  - Eliminar: `src/lib/combat/action-processor.ts` (deprecar)
-  - Eliminar: `src/ai/tools/combat/dice-roll-processor.ts` (deprecar)
-  - Eliminar: `src/lib/combat/initialization/first-turn-handler.ts` (deprecar)
-- **Impacto:** Muy Alto - Mejora significativa de la arquitectura, facilita mantenimiento futuro y resuelve inconsistencias actuales
-- **Estado:** 📝 **PENDIENTE**
-- **Prioridad:** Muy Alta (mejora arquitectónica fundamental)
-- **Relacionado con:**
-  - Issue #94 (Refactorización de Prompts de Tacticians) - Esta simplificación resolverá problemas de consistencia identificados
-  - Issue #82 (Unificar sistema de procesamiento de tiradas) - Esta simplificación resolverá este issue completamente
-  - Issue #21 (Código duplicado) - Esta simplificación eliminará la duplicación
-- **Estimación:** 30-41 horas
-- **Plan de implementación:** [Issue #117 - Simplificación de Arquitectura de Combate](../../planes-desarrollo/sin-comenzar/issue-117-simplificacion-arquitectura-combate.md)
 
 ## 🟡 Prioridad Alta (PA) - Advertencias
 

@@ -135,7 +135,34 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
 
 Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, pero no son críticas para la funcionalidad básica.
 
-### 7. Compendio de D&D Local - Base de Datos Local
+### 7. Sistema de Mundo Persistente
+*   **Problema Actual:** El mundo del juego no persiste cambios entre sesiones. Cuando los jugadores derrotan enemigos, interactúan con objetos, o modifican el estado del mundo, estos cambios se pierden al recargar la partida o al volver a una ubicación. El sistema actual mantiene los enemigos derrotados en el estado del juego, pero no actualiza el `locationContext` original, lo que puede causar inconsistencias narrativas.
+*   **Mejora Propuesta:**
+    *   **Sistema de Estado del Mundo:** Implementar un sistema que rastree y persista cambios en el mundo del juego (enemigos derrotados, objetos recogidos, puertas abiertas/cerradas, NPCs con actitudes modificadas, etc.)
+    *   **Actualización de LocationContext:** Cuando el estado del mundo cambia (ej: enemigos derrotados), actualizar el `locationContext` original para reflejar estos cambios. Esto asegura que el DM siempre tenga información correcta sobre el estado actual de cada ubicación.
+    *   **Persistencia entre Sesiones:** Los cambios en el mundo deben persistir entre sesiones de juego, guardándose en el archivo de partida junto con el estado del jugador.
+    *   **Sistema de Entidades Dinámicas:** Las entidades (enemigos, NPCs, objetos) deben tener estados que puedan cambiar (vivo/muerto, presente/ausente, hostil/amistoso, etc.) y estos estados deben persistir.
+    *   **Filtrado Inteligente:** El sistema debe filtrar automáticamente entidades muertas o ausentes del `locationContext` antes de pasarlo al `narrativeExpert`, pero mantener la información de cadáveres para narración contextual.
+    *   **Sistema de Marcadores de Estado:** Implementar marcadores de estado para ubicaciones (ej: "combate_reciente", "sangre_en_suelo", "cadáveres_presentes") que el DM pueda usar para generar narraciones contextuales.
+*   **Componentes Técnicos:**
+    *   **WorldStateManager:** Módulo que gestiona el estado del mundo, rastreando cambios y actualizando `locationContext` dinámicamente
+    *   **EntityStateTracker:** Sistema que rastrea el estado de cada entidad (HP, posición, actitud, etc.)
+    *   **LocationStateUpdater:** Módulo que actualiza el `locationContext` basándose en el estado actual del mundo
+    *   **PersistentWorldStorage:** Sistema de almacenamiento que guarda y carga el estado del mundo junto con el estado del jugador
+*   **Beneficios:**
+    *   ✅ **Consistencia Narrativa:** El DM siempre describe el mundo correctamente, sin mencionar enemigos muertos como vivos
+    *   ✅ **Inmersión Mejorada:** Los cambios en el mundo persisten, haciendo que las acciones del jugador tengan consecuencias duraderas
+    *   ✅ **Narración Contextual:** El DM puede referenciar eventos pasados (cadáveres, sangre, destrucción) en descripciones futuras
+    *   ✅ **Mundo Vivo:** El mundo se siente más real y reactivo a las acciones del jugador
+*   **Relacionado con:**
+    *   Issue #117 (Simplificación de Arquitectura de Combate) - El sistema actual mantiene enemigos en estado pero no actualiza locationContext
+    *   Sistema de Guardado de Partidas - Necesita expandirse para incluir estado del mundo
+    *   Sistema de Progresión (Roadmap #2) - Base para un sistema de campaña duradera
+*   **Impacto:** Alto - Fundamental para crear un mundo coherente y persistente que reaccione a las acciones del jugador. Mejora significativamente la inmersión y la sensación de que las acciones tienen consecuencias.
+*   **Plan Detallado:** ❌ No creado
+*   **Estado:** 📝 Documentado como mejora futura - Solución temporal implementada (mantener enemigos en estado)
+
+### 8. Compendio de D&D Local - Base de Datos Local
 *   **Problema Actual:** El sistema depende completamente de la API externa de D&D 5e para obtener información sobre monstruos, hechizos, reglas, etc. Esto causa latencia, dependencia de conectividad, y múltiples llamadas redundantes a la API.
 *   **Mejora Propuesta:**
     *   **Base de Datos Local:** Crear un sistema de base de datos local (SQLite recomendado) que almacene un compendio completo de conocimiento de D&D (fichas de monstruos, reglas, razas, clases, hechizos, equipamiento, etc.).
@@ -152,7 +179,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   **Base para RAG:** Esta infraestructura sentará las bases para futuras implementaciones de RAG y búsqueda semántica
 *   **Plan Detallado:** ✅ [Compendio de D&D Local](../planes-desarrollo/sin-comenzar/compendio-dnd-local.md)
 
-### 8. IA Conversacional Avanzada
+### 9. IA Conversacional Avanzada
 *   **Problema Actual:** Los compañeros de IA reaccionan de forma aislada a la acción del jugador, sin ser conscientes de lo que los otros compañeros han dicho en el mismo turno. El flujo es secuencial y el servidor devuelve todos los mensajes a la vez.
 *   **Mejora Propuesta:**
     *   **Arquitectura de Streaming:** Reemplazar el modelo actual de "una petición, una respuesta" por una comunicación persistente entre el cliente y el servidor (usando, por ejemplo, WebSockets o Server-Sent Events).
@@ -160,7 +187,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Impacto:** Lograría una dinámica de grupo mucho más orgánica y creíble, mejorando significativamente la inmersión.
 *   **Plan Detallado:** ❌ No creado
 
-### 9. Calidad y Profundidad de la IA
+### 10. Calidad y Profundidad de la IA
 *   **Mejora Propuesta: Implementación de RAG (Retrieval-Augmented Generation)**
     *   **Estado Actual:** La IA recupera información del mundo (lore, personajes) mediante búsquedas directas en archivos JSON por ID. No "comprende" el contexto, solo busca datos.
     *   **Salto Evolutivo:** Migrar a un sistema RAG donde el lore se almacena en una base de datos vectorial. Esto permitiría a herramientas como `narrativeExpert` hacer preguntas en lenguaje natural (ej: "¿Cuál es la historia de la Vieja Atalaya?", "¿Qué sabe Elara sobre el dragón Cryovain?").
@@ -203,7 +230,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
         - Refactorización futura de `enemyTacticianTool` / `companionTacticianTool`
 *   **Plan Detallado:** ❌ No creado
 
-### 10. Separación de IDs de Fichas de Personajes
+### 11. Separación de IDs de Fichas de Personajes
 *   **Problema Actual:** Las fichas de personajes (`new-game-data.ts`) incluyen IDs hardcodeados (ej: `id: "1"`, `id: "6"`, `id: "3"`). Esto mezcla datos de ficha (stats, habilidades, inventario) con metadatos del sistema (IDs para identificación interna). Las fichas deberían ser datos puros y portables, mientras que los IDs son una necesidad interna del procesamiento del juego.
 *   **Mejora Propuesta:**
     *   **Separación de Responsabilidades:** Crear una distinción clara entre `CharacterSheet` (ficha pura sin IDs) y `Character` (personaje en juego con ID generado).
@@ -224,7 +251,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Estado:** 📝 Documentado como mejora futura - No implementado
 *   **Plan Detallado:** ❌ No creado
 
-### 11. Mejoras de Mecánicas de D&D 5e
+### 12. Mejoras de Mecánicas de D&D 5e
 *   **Estado Actual:** El sistema implementa las mecánicas básicas de D&D 5e, pero algunas reglas avanzadas están simplificadas o pendientes.
 *   **Mejoras Propuestas:**
     *   **Sistema Completo de Saving Throws:** Actualmente los hechizos con saving throws aplican daño automáticamente. Implementar cálculo de Spell Save DC, tirada de salvación del objetivo, y regla de mitad de daño si acierta.
@@ -256,7 +283,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   [Issues Tracker - Issue #22](../tracking/issues/pendientes.md#issue-22-sistema-completo-de-saving-throws-tiradas-de-salvación-del-objetivo-feature-incompleta)
     *   [Notas de Gael - #04, #10, #12, #13, #23, #24, #25, #26, #27, #36, #37, #38, #40, #45, #53, #68, #70, #71, #72](../notas/Notas%20de%20Gael.md)
 
-### 12. Actualización Automática de Fichas desde Archivos JSON
+### 13. Actualización Automática de Fichas desde Archivos JSON
 *   **Problema Actual:** Cuando se modifican los archivos JSON de las fichas de personajes, el panel de fichas del juego no se actualiza automáticamente, requiriendo recargar la partida.
 *   **Mejora Propuesta:**
     *   Implementar un sistema de detección de cambios en los archivos JSON de fichas de personajes.
@@ -267,7 +294,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Plan Detallado:** ❌ No creado
 *   **Referencia:** [Notas de Gael - #99](../notas/Notas%20de%20Gael.md)
 
-#### 11.1. Información de Dados de Daño de Armas en Fichas
+#### 12.1. Información de Dados de Daño de Armas en Fichas
 *   **Problema Actual:** La información de los dados de daño de cada arma no está incluida en las fichas de personajes, requiriendo que el DM consulte la API de D&D cada vez que se necesita esta información.
 *   **Mejora Propuesta:**
     *   Incluir la información de los dados de daño de cada arma en la ficha de cada personaje.
@@ -277,7 +304,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Plan Detallado:** ❌ No creado
 *   **Referencia:** [Notas de Gael - #117](../notas/Notas%20de%20Gael.md)
 
-### 13. Convertidor de PDF a JSON - Aplicación Auxiliar
+### 14. Convertidor de PDF a JSON - Aplicación Auxiliar
 *   **Problema Actual:** Añadir nuevas aventuras al juego requiere crear manualmente archivos JSON con una estructura específica, lo cual es tedioso y propenso a errores. Los usuarios que tienen aventuras en formato PDF no pueden usarlas directamente.
 *   **Mejora Propuesta:**
     *   **Aplicación Auxiliar Independiente:** Crear una aplicación CLI (y futuramente web) que analice PDFs de aventuras de D&D y los convierta automáticamente en JSON compatible con el juego.
@@ -291,7 +318,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   **Accesibilidad:** Permite a usuarios usar aventuras oficiales o homebrew en formato PDF
 *   **Plan Detallado:** ✅ [Convertidor de PDF a JSON](../planes-desarrollo/sin-comenzar/pdf-to-json-converter.md)
 
-### 14. Música y Sonido Dinámicos
+### 15. Música y Sonido Dinámicos
 *   **Problema Actual:** La experiencia de juego es silenciosa, careciendo de un fondo sonoro que ayude a la inmersión.
 *   **Mejora Propuesta:**
     *   Integrar un reproductor de audio que pueda cambiar la pista musical dinámicamente según el estado del juego (exploración, combate, localización específica).

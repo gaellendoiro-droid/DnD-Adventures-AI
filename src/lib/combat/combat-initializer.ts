@@ -2,6 +2,9 @@
  * @fileOverview Combat Initializer
  * Main coordinator for combat initialization.
  * Delegates specific tasks to sub-modules.
+ * 
+ * Simplified version: Only initializes state (enemies, initiative, order).
+ * Turn processing is handled by TurnProcessor (no special first turn handling needed).
  */
 
 import { log } from '@/lib/logger';
@@ -10,7 +13,6 @@ import type { CombatInitContext, CombatInitResult } from './initialization/types
 import { EnemyValidator } from './initialization/enemy-validator';
 import { InitiativeGenerator } from './initialization/initiative-generator';
 import { NarrationProcessor } from './initialization/narration-processor';
-import { FirstTurnHandler } from './initialization/first-turn-handler';
 
 export class CombatInitializer {
     /**
@@ -121,42 +123,9 @@ export class CombatInitializer {
 
             messages.push(...narrationMessages);
 
-            // Step 6: Process first AI turn if applicable
-            const firstTurnResult = await FirstTurnHandler.processFirstAITurn({
-                newInitiativeOrder,
-                updatedParty,
-                updatedEnemies,
-                differentiatedNames,
-                locationContext,
-                conversationHistory,
-                diceRollerTool,
-                processAICombatantRolls,
-                enemyTacticianTool,
-                companionTacticianTool,
-                combatNarrationExpertTool,
-                createCombatEndDiceRoll,
-                localLog,
-            });
-
-            if (firstTurnResult) {
-                messages.push(...firstTurnResult.messages);
-                diceRolls.push(...firstTurnResult.diceRolls);
-                updatedParty = firstTurnResult.updatedParty;
-                updatedEnemies = firstTurnResult.updatedEnemies;
-
-                return {
-                    success: true,
-                    initiativeOrder: newInitiativeOrder,
-                    enemies: updatedEnemies,
-                    updatedParty,
-                    messages,
-                    diceRolls,
-                    debugLogs,
-                    firstTurnData: firstTurnResult.firstTurnData,
-                };
-            }
-
-            // No first AI turn processed - player goes first
+            // Initialization complete - return state
+            // Turn processing will be handled by CombatSession using TurnProcessor
+            // No special first turn handling needed - TurnProcessor handles all turns uniformly
             return {
                 success: true,
                 initiativeOrder: newInitiativeOrder,

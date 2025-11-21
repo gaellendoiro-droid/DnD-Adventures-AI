@@ -2,12 +2,57 @@
 
 Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 43 issues  
-**Última actualización:** 2025-11-21 (Issue #94 añadido - Refactorización de Prompts de Tacticians completada)
+**Total:** 44 issues  
+**Última actualización:** 2025-11-21 (Issue #117 añadido - Simplificación de Arquitectura de Combate completada)
 
 ---
 
 ## 🔴 Prioridad Muy Alta (PMA) - Críticos
+
+### Issue #117: Simplificación de Arquitectura de Combate ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-20
+- **Fecha de corrección:** 2025-11-21
+- **Ubicación:** `src/lib/combat/`, `src/ai/tools/combat/`
+- **Severidad:** 🔴 **MUY ALTA** (afecta mantenibilidad, consistencia y facilita futuras mejoras)
+- **Descripción:** El sistema de combate tenía una arquitectura excesivamente compleja con múltiples capas de delegación y duplicación de lógica. El flujo del jugador y el de la IA eran diferentes, causando inconsistencias y dificultando el mantenimiento.
+- **Problema resuelto:**
+  - ✅ Duplicación de lógica eliminada: `action-processor.ts` y `dice-roll-processor.ts` fusionados en `CombatActionExecutor`
+  - ✅ Complejidad reducida: De 8-9 niveles de profundidad a 3-4 niveles
+  - ✅ Módulos especiales eliminados: `first-turn-handler.ts` eliminado, flujo normal para todos los turnos
+  - ✅ Inconsistencias resueltas: Jugador e IA ahora usan el mismo código
+- **Solución implementada:** ✅
+  - Creado `CombatActionExecutor` unificado que procesa cualquier acción de combate
+  - Creado `TurnProcessor` unificado que maneja el flujo completo (planificación → intención → ejecución → resolución)
+  - Simplificado `CombatInitializer` para solo inicializar estado
+  - Refactorizado `CombatSession` para usar `TurnProcessor` en todos los casos
+  - Eliminados módulos obsoletos: `action-processor.ts`, `dice-roll-processor.ts`, `first-turn-handler.ts`
+- **Archivos modificados:**
+  - ✅ Nuevo: `src/lib/combat/action-executor.ts` (unificado)
+  - ✅ Nuevo: `src/lib/combat/turn-processor.ts` (unificado)
+  - ✅ Nuevo: `src/lib/combat/roll-notation-utils.ts` (utilidades)
+  - ✅ Modificado: `src/lib/combat/combat-session.ts` (usa TurnProcessor)
+  - ✅ Modificado: `src/lib/combat/combat-initializer.ts` (simplificado)
+  - ✅ Eliminado: `src/lib/combat/action-processor.ts`
+  - ✅ Eliminado: `src/ai/tools/combat/dice-roll-processor.ts`
+  - ✅ Eliminado: `src/lib/combat/initialization/first-turn-handler.ts`
+- **Tests implementados:**
+  - ✅ `tests/unit/combat/action-executor.test.ts` (5 tests)
+  - ✅ `tests/unit/combat/turn-processor.test.ts` (6 tests)
+  - ✅ `tests/integration/combat/unified-combat-flow.test.ts` (3 tests)
+- **Documentación actualizada:**
+  - ✅ `docs/arquitectura/arquitectura-backend.md`
+  - ✅ `docs/arquitectura/flujo-datos.md`
+  - ✅ `docs/testing/README.md`
+- **Impacto:** Muy Alto - Mejora significativa de la arquitectura, facilita mantenimiento futuro y resuelve inconsistencias actuales
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada
+- **Plan de implementación:** [Issue #117 - Simplificación de Arquitectura de Combate](../../planes-desarrollo/completados/issue-117-simplificacion-arquitectura-combate.md)
+- **Relacionado con:**
+  - Issue #94 (Refactorización de Prompts de Tacticians) - Resuelto problemas de consistencia
+  - Issue #82 (Unificar sistema de procesamiento de tiradas) - Resuelto completamente
+  - Issue #21 (Código duplicado) - Eliminada duplicación
+
+---
 
 ### Issue #116: Tirada de ataque del jugador no especifica arma utilizada ✅ RESUELTO
 

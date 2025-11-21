@@ -84,6 +84,8 @@ graph TD
 
 ### 3. El Subsistema de Combate
 
+El subsistema de combate ha sido simplificado significativamente (Issue #117) para unificar el procesamiento de turnos de jugador e IA, eliminando duplicación y mejorando la consistencia.
+
 #### `combatInitiationExpertTool`
 -   **Archivo**: `src/ai/tools/combat-initiation-expert.ts`
 -   **Rol**: Determina si una acción debe iniciar un combate.
@@ -99,6 +101,45 @@ graph TD
     - Procesa turnos de IA (compañeros y enemigos) automáticamente
     - Cede el control al jugador cuando es su turno
     - Gestiona el estado del combate (turnIndex, initiativeOrder)
+-   **Arquitectura**: Utiliza `CombatSession` que delega a `TurnProcessor` para procesar todos los turnos de forma unificada.
+
+#### `CombatSession`
+-   **Archivo**: `src/lib/combat/combat-session.ts`
+-   **Rol**: Encapsula el estado del combate y proporciona métodos para manipularlo.
+-   **Responsabilidades**:
+    - Mantiene el estado del combate (party, enemies, initiativeOrder, turnIndex)
+    - Proporciona métodos para inicializar y procesar turnos
+    - Delega el procesamiento de turnos a `TurnProcessor` (unificado para jugador e IA)
+
+#### `TurnProcessor` (Nuevo - Unificado)
+-   **Archivo**: `src/lib/combat/turn-processor.ts`
+-   **Rol**: Procesa un turno completo (planificación → intención → ejecución → resolución) de forma unificada para jugador e IA.
+-   **Flujo**:
+    1. **Planificación**: Si es IA, consulta al tactician correspondiente. Si es jugador, usa la acción interpretada.
+    2. **Narración de Intención**: Genera narración descriptiva de la acción planificada.
+    3. **Ejecución**: Llama a `CombatActionExecutor` para ejecutar la acción (tiradas, daño, efectos).
+    4. **Narración de Resolución**: Genera narración descriptiva del resultado.
+-   **Beneficios**: Elimina duplicación entre flujos de jugador e IA, garantiza consistencia.
+
+#### `CombatActionExecutor` (Nuevo - Unificado)
+-   **Archivo**: `src/lib/combat/action-executor.ts`
+-   **Rol**: Ejecuta cualquier acción de combate (ataque, hechizo, curación) independientemente de quién la ejecute.
+-   **Responsabilidades**:
+    - Procesa tiradas de ataque y compara con AC
+    - Procesa tiradas de daño/curación
+    - Aplica resultados usando `RulesEngine`
+    - Retorna resultados estructurados (NO genera mensajes - eso es responsabilidad de `TurnProcessor`)
+-   **Beneficios**: Unifica la lógica que antes estaba duplicada en `action-processor.ts` y `dice-roll-processor.ts`.
+
+#### `CombatInitializer` (Simplificado)
+-   **Archivo**: `src/lib/combat/combat-initializer.ts`
+-   **Rol**: Inicializa el estado del combate (enemigos, iniciativa, orden).
+-   **Responsabilidades**:
+    - Valida combatants
+    - Obtiene stats de enemigos
+    - Genera tiradas de iniciativa
+    - Crea `initiativeOrder`
+    - **NO procesa turnos** - eso lo hace `TurnProcessor` de forma unificada
 
 #### `companionTacticianTool`
 -   **Archivo**: `src/ai/tools/companion-tactician.ts`

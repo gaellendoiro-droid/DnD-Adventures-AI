@@ -12,7 +12,8 @@ import { diceRollerTool } from './dice-roller';
 import { GameStateSchema, ActionInterpreterOutputSchema } from '@/ai/flows/schemas';
 // narrativeExpert and markdownToHtml are lazy-loaded when combat starts
 import { log } from '@/lib/logger';
-import { processAICombatantRolls, updateRollNotationWithModifiers } from './combat/dice-roll-processor';
+import { updateRollNotationWithModifiers } from '@/lib/combat/roll-notation-utils';
+// Note: processAICombatantRolls is deprecated - TurnProcessor now uses CombatActionExecutor
 import { combatNarrationExpertTool } from './combat/combat-narration-expert';
 import { CombatSession } from '@/lib/combat/combat-session';
 
@@ -25,8 +26,9 @@ export interface CombatManagerDependencies {
     enemyTacticianTool: typeof enemyTacticianTool;
     companionTacticianTool: typeof companionTacticianTool;
     combatNarrationExpertTool: typeof combatNarrationExpertTool;
-    processAICombatantRolls: typeof processAICombatantRolls;
     updateRollNotationWithModifiers: typeof updateRollNotationWithModifiers;
+    // Deprecated: processAICombatantRolls is no longer used (replaced by TurnProcessor + CombatActionExecutor)
+    processAICombatantRolls?: any; // Kept for backward compatibility but not used
     // Lazy-loaded dependencies (loaded dynamically during combat initialization)
     narrativeExpert?: any;
     markdownToHtml?: any;
@@ -81,8 +83,9 @@ export async function executeCombatManager(
         enemyTacticianTool,
         companionTacticianTool,
         combatNarrationExpertTool,
-        processAICombatantRolls,
         updateRollNotationWithModifiers,
+        // processAICombatantRolls is deprecated but kept for backward compatibility
+        processAICombatantRolls: undefined,
         ...dependencies, // Override with provided dependencies (for testing)
     };
 

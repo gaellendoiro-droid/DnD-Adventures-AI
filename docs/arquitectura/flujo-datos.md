@@ -186,9 +186,12 @@ combatManagerTool({
    ]
 ```
 
-### 6. Bucle de Turnos
+### 6. Bucle de Turnos (Simplificado - Issue #117)
+
+El procesamiento de turnos ahora es unificado usando `TurnProcessor`:
 
 ```typescript
+// CombatSession procesa turnos usando TurnProcessor (unificado)
 while (turnIndex < initiativeOrder.length) {
   const currentCombatant = initiativeOrder[turnIndex];
   
@@ -197,33 +200,30 @@ while (turnIndex < initiativeOrder.length) {
     break;
   }
   
-  if (currentCombatant.controlledBy === 'AI' && currentCombatant.isEnemy === false) {
-    // Turno de compañero
-    const action = await companionTacticianTool({
-      activeCombatant: currentCombatant.name,
-      party: party,
-      enemies: enemies,
-      locationDescription: "...",
-      conversationHistory: "..."
-    });
-    // Procesa acción (ataque, curación, etc.)
-  }
-  
-  if (currentCombatant.isEnemy === true) {
-    // Turno de enemigo
-    const action = await enemyTacticianTool({
-      activeCombatant: currentCombatant.name,
-      party: party,
-      enemies: enemies,
-      locationDescription: "...",
-      conversationHistory: "..."
-    });
-    // Procesa acción
-  }
+  // Para IA (compañeros y enemigos), TurnProcessor maneja todo:
+  // 1. Si es IA, consulta al tactician correspondiente
+  // 2. Genera narración de intención
+  // 3. Ejecuta acción usando CombatActionExecutor
+  // 4. Genera narración de resolución
+  await TurnProcessor.processTurn({
+    combatant: currentCombatant,
+    // ... contexto y dependencias
+  });
   
   turnIndex++;
 }
 ```
+
+**Flujo Unificado de TurnProcessor:**
+1. **Planificación**: 
+   - Si IA: Consulta `companionTacticianTool` o `enemyTacticianTool`
+   - Si Jugador: Usa `interpretedAction`
+2. **Narración de Intención**: Llama a `combatNarrationExpertTool` (tipo: 'intention')
+3. **Ejecución**: Llama a `CombatActionExecutor.execute()` que:
+   - Procesa tiradas de ataque/daño
+   - Aplica resultados usando `RulesEngine`
+   - Retorna resultados estructurados
+4. **Narración de Resolución**: Llama a `combatNarrationExpertTool` (tipo: 'resolution')
 
 ### 7. Turno del Jugador
 
@@ -237,9 +237,18 @@ while (turnIndex < initiativeOrder.length) {
 
 ```
 Usuario: "Ataco con mi espada"
-→ Se repite el flujo desde el paso 2
+→ actionInterpreter interpreta la acción
+→ combatManagerTool procesa el turno usando CombatSession
+→ CombatSession delega a TurnProcessor.processTurn()
+→ TurnProcessor procesa el turno del jugador:
+   1. Usa interpretedAction (ya planificado)
+   2. Genera narración de intención
+   3. Ejecuta acción usando CombatActionExecutor
+   4. Genera narración de resolución
 → Después de procesar, el bucle continúa con el siguiente combatiente
 ```
+
+**Nota**: Tanto el turno del jugador como el de la IA usan el mismo flujo unificado a través de `TurnProcessor`, garantizando consistencia.
 
 ## Flujo de Guardado y Carga
 
@@ -312,13 +321,16 @@ IA decide: "Elara ataca con su bastón"
   ]
 }
 
-// combatManagerTool procesa:
-1. Genera narración de intención con combatNarrationExpertTool
-2. Llama a diceRollerTool para cada tirada
-3. Calcula resultados
-4. Aplica daño/efectos
-5. Genera narración de resolución con combatNarrationExpertTool
-6. Añade tiradas a diceRolls en la respuesta
+// TurnProcessor procesa (flujo unificado):
+1. Planificación: Ya recibida del tactician
+2. Narración de Intención: Llama a combatNarrationExpertTool (tipo: 'intention')
+3. Ejecución: Llama a CombatActionExecutor.execute() que:
+   - Procesa cada tirada usando diceRollerTool
+   - Compara ataque con AC
+   - Aplica daño usando RulesEngine
+   - Retorna resultados estructurados
+4. Narración de Resolución: Llama a combatNarrationExpertTool (tipo: 'resolution')
+5. Retorna: Mensajes (intención + resolución), diceRolls, estado actualizado
 ```
 
 ## Flujo de Validación de Datos
@@ -350,30 +362,36 @@ GameCoordinatorOutputSchema.parse(output)
   ❌ Falla → Error interno
 ```
 
-## Diagrama de Flujo Completo de Combate
+## Diagrama de Flujo Completo de Combate (Simplificado - Issue #117)
 
 ```mermaid
 graph TD
     A[Usuario: Acción] --> B{¿Es Combate?}
     B -->|No| C[Flujo Narrativo]
     B -->|Sí| D[combatManagerTool]
-    D --> E[Calcula Iniciativa]
+    D --> E[CombatInitializer: Calcula Iniciativa]
     E --> F[Inicia Bucle]
     F --> G{¿Turno de Jugador?}
     G -->|Sí| H[Espera Acción]
-    G -->|No| I{¿Compañero o Enemigo?}
-    I -->|Compañero| J[companionTacticianTool]
-    I -->|Enemigo| K[enemyTacticianTool]
-    J --> L[Procesa Acción]
-    K --> L
-    L --> M[Actualiza Estado]
-    M --> N{¿Fin Combate?}
-    N -->|No| O[Siguiente Turno]
-    O --> G
-    N -->|Sí| P[Fin Combate]
-    H --> Q[Usuario Responde]
-    Q --> D
+    G -->|No| I[TurnProcessor: Planificación]
+    I --> J{¿Compañero o Enemigo?}
+    J -->|Compañero| K[companionTacticianTool]
+    J -->|Enemigo| L[enemyTacticianTool]
+    K --> M[TurnProcessor: Narración Intención]
+    L --> M
+    M --> N[CombatActionExecutor: Ejecución]
+    N --> O[TurnProcessor: Narración Resolución]
+    O --> P[Actualiza Estado]
+    P --> Q{¿Fin Combate?}
+    Q -->|No| R[Siguiente Turno]
+    R --> G
+    Q -->|Sí| S[Fin Combate]
+    H --> T[Usuario Responde]
+    T --> U[TurnProcessor: Procesa Turno Jugador]
+    U --> M
 ```
+
+**Nota**: El flujo ahora es unificado - tanto jugador como IA usan `TurnProcessor` y `CombatActionExecutor`, eliminando duplicación y garantizando consistencia.
 
 ## Consideraciones de Rendimiento
 
