@@ -54,4 +54,23 @@ export interface EnemyWithStats {
     hp: { current: number; max: number };
     ac: number;
     isDead?: boolean;
+    // Full stats for robust roll system
+    abilityScores?: {
+        fuerza: number;
+        destreza: number;
+        constitución: number;
+        inteligencia: number;
+        sabiduría: number;
+        carisma: number;
+    };
+    abilityModifiers?: {
+        fuerza: number;
+        destreza: number;
+        constitución: number;
+        inteligencia: number;
+        sabiduría: number;
+        carisma: number;
+    };
+    proficiencyBonus?: number;
+    actions?: any[];
 }

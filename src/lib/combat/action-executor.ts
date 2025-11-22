@@ -32,7 +32,7 @@ export interface DiceRollRequest {
     rollNotation: string; // e.g., "1d20+5", "2d6+3"
     description: string; // e.g., "Tirada de ataque", "Tirada de daño"
     roller?: string; // Character name (defaults to combatant.characterName)
-    attackType?: 'attack' | 'saving_throw'; // For spells
+    attackType?: 'attack' | 'saving_throw' | 'attack_roll' | 'damage_roll' | 'healing'; // Expanded types
 }
 
 /**
@@ -219,10 +219,23 @@ export class CombatActionExecutor {
                     description: rollRequest.description,
                 });
 
-                // Update roll notation with modifiers if function provided (for player characters)
-                const character = updatedParty.find(p => p.id === combatant.id);
-                if (character && updateRollNotationWithModifiers) {
-                    updateRollNotationWithModifiers(rollResult, character, isAttackRoll);
+                // Update roll notation with modifiers if function provided
+                // Works for any combatant (player, companion, or enemy) with ability modifiers
+                if (updateRollNotationWithModifiers) {
+                    // Try to find combatant in party first (players and companions)
+                    let combatantData = updatedParty.find(p => p.id === combatant.id);
+
+                    // If not in party, try enemies
+                    if (!combatantData) {
+                        combatantData = updatedEnemies.find(e =>
+                            (e as any).uniqueId === combatant.id || e.id === combatant.id
+                        );
+                    }
+
+                    // Apply modifier breakdown if combatant has the necessary data
+                    if (combatantData && combatantData.abilityModifiers && combatantData.proficiencyBonus !== undefined) {
+                        updateRollNotationWithModifiers(rollResult, combatantData, isAttackRoll);
+                    }
                 }
 
                 // Create roll with combat information

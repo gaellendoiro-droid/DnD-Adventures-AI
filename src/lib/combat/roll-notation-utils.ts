@@ -10,10 +10,11 @@ import { log } from '@/lib/logger';
 
 /**
  * Updates a dice roll's notation to show individual modifiers instead of a single sum.
- * This function works for player characters, companions, and enemies.
+ * This function works for any combatant (player, companion, or enemy) that has
+ * abilityModifiers and proficiencyBonus defined.
  * 
  * @param roll - The dice roll to update (will be modified in place)
- * @param character - Character data with abilityModifiers and proficiencyBonus
+ * @param character - Character/combatant data with abilityModifiers and proficiencyBonus
  * @param isAttackRoll - Whether this is an attack roll (includes proficiency bonus) or damage roll (doesn't)
  */
 export function updateRollNotationWithModifiers(
@@ -58,6 +59,8 @@ export function updateRollNotationWithModifiers(
         }
     }
 
+    // IMPORTANT: Clear the original modifier to avoid duplication in frontend display
+    // The frontend will use roll.modifiers array instead of roll.modifier
+    roll.modifier = undefined;
     roll.modifiers = modifiers;
 }
-

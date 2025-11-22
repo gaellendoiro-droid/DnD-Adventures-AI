@@ -73,29 +73,9 @@ const companionTacticianPrompt = ai.definePrompt({
 - \`targetId\` (string | null): The ID of your target (ally for healing, enemy for attacking).
 - \`diceRolls\` (array): The dice rolls needed for the action. This is CRITICAL.
 
-**Dice Roll Rules (MANDATORY):**
-
-*   **For Weapon/Spell Attacks (that use 1d20 to hit):**
-    *   You MUST provide **TWO** roll objects in the array.
-    *   **1st Roll (Attack):** \`{"roller": "{{{activeCombatant}}}", "rollNotation": "1d20+BONUS", "description": "Tirada de ataque con [Arma]" or "Tirada de ataque de [Hechizo]", "attackType": "attack_roll"}\`.
-        *   *Calculate BONUS = ability modifier (FUE/DES/INT/SAB based on weapon/spell) + proficiency bonus from your character sheet above.*
-    *   **2nd Roll (Damage):** \`{"roller": "{{{activeCombatant}}}", "rollNotation": "XdY+MOD", "description": "Tirada de daño con [Arma]" or "Tirada de daño de [Hechizo]", "attackType": "attack_roll"}\`.
-        *   *Add the same ability modifier used for attack (NOT proficiency bonus). Some spells don't add ability modifier to damage - check spell description.*
-
-*   **For Saving Throw Spells (where target rolls to save):**
-    *   You MUST provide **ONE** roll object in the array for damage.
-    *   **The Roll (Damage):** \`{"roller": "{{{activeCombatant}}}", "rollNotation": "XdY", "description": "Daño radiante de [Hechizo]" or "Daño de [Hechizo]", "attackType": "saving_throw"}\`.
-
-*   **For Healing Actions:**
-    *   You MUST provide **ONE** roll object in the array.
-    *   **The Roll (Healing):** \`{"roller": "{{{activeCombatant}}}", "rollNotation": "XdY+MOD", "description": "Curación", "attackType": "healing"}\`.
-        *   *Use the healing spell's dice notation from YOUR AVAILABLE SPELLS description.*
-
-**Critical Failure Conditions (Your turn will be skipped if you violate these):**
-- Your action will fail if you provide only a damage roll for a weapon/spell attack. The attack roll (1d20) MUST come first.
-- Your action will fail if you use spells/weapons NOT in YOUR AVAILABLE SPELLS/YOUR INVENTORY lists.
-- Your action will fail if the JSON is not valid or is incomplete.
-- Do NOT generate narration. Do NOT roll dice. Just provide the JSON plan for the action of **{{{activeCombatant}}}**.
+**Dice Roll Rules:**
+- **For Standard Attacks (Melee/Ranged):** Leave \`diceRolls\` as an empty array \`[]\`. The system will automatically calculate the correct attack and damage rolls based on your stats.
+- **For Healing/Spells:** You MAY provide dice rolls if it's a complex ability (like healing), but for standard attacks, use an empty array.
 
 **OUTPUT FORMAT (CRITICAL):**
 - You MUST return ONLY a valid JSON object. Do NOT wrap it in markdown code blocks (\`\`\`json\`\`\`).
@@ -106,20 +86,7 @@ Example output for an attack with a mace:
 {
   "actionDescription": "Ataque con Maza",
   "targetId": "enemy-1",
-  "diceRolls": [
-    {
-      "roller": "Elara",
-      "rollNotation": "1d20+4",
-      "description": "Tirada de ataque con maza",
-      "attackType": "attack_roll"
-    },
-    {
-      "roller": "Elara",
-      "rollNotation": "1d6+2",
-      "description": "Tirada de daño con maza",
-      "attackType": "attack_roll"
-    }
-  ]
+  "diceRolls": []
 }
 
 Example output for healing:

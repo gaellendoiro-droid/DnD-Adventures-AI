@@ -371,7 +371,7 @@ Al clasificar un item de esta sección, debe moverse a su sección correspondien
 
 1. NUEVA FUNCIONALIDAD: Implementar peso de inventario, peso de cada item y el concepto de estar cargado y sus consecuencias. (PMB)
 2. NUEVA FUNCIONALIDAD: Implementar niveles de dificaltad en los combates: Enemigos con más HP, IAs más inteligentes, etc (PMB)
-
+3. REVISION: Comprobar que datos conocen los enemigos de los aventureros cuando deciden su acción. (PM)
 
 
 

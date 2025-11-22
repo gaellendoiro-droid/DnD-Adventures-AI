@@ -27,7 +27,7 @@ export const EnemyTacticianOutputSchema = z.object({
         rollNotation: z.string().describe("The dice notation for the roll (e.g., '1d20+5', '2d6+3')."),
         description: z.string().describe("A brief description of the roll's purpose. For attacks: MUST be 'Tirada de ataque con [weapon]' for attack roll (1d20+modifier), then 'Tirada de daño con [weapon]' for damage roll. ATTACK ROLL MUST ALWAYS COME FIRST."),
         attackType: z.enum(['attack_roll', 'saving_throw', 'other']).describe("IMPORTANT: Specify the type of roll. 'attack_roll' for weapons/spells that use 1d20 to hit. 'saving_throw' for spells where the target rolls to avoid damage (rare for basic enemies). 'other' for utility rolls. This field is MANDATORY for all attack/damage rolls."),
-    })).describe("MANDATORY: An array of dice rolls. FOR ATTACK ACTIONS: You MUST provide EXACTLY 2 rolls in order - FIRST the attack roll (1d20+modifier with 'Tirada de ataque'), THEN the damage roll (damage dice with 'Tirada de daño'). NEVER provide only a damage roll."),
+    })).describe("An array of dice rolls. FOR STANDARD ATTACKS: Leave empty []. The system will calculate rolls automatically. FOR SPECIAL ABILITIES/SPELLS: You may provide rolls if needed."),
 });
 export type EnemyTacticianOutput = z.infer<typeof EnemyTacticianOutputSchema>;
 
@@ -63,7 +63,7 @@ export const CompanionTacticianOutputSchema = z.object({
         rollNotation: z.string().describe("The dice notation for the roll (e.g., '1d20+5', '1d4')."),
         description: z.string().describe("A brief description of the roll's purpose. For attacks: MUST be 'Tirada de ataque con [weapon]' for attack roll (1d20+modifier), then 'Tirada de daño con [weapon]' for damage roll. ATTACK ROLL MUST ALWAYS COME FIRST."),
         attackType: z.enum(['attack_roll', 'saving_throw', 'healing', 'other']).describe("IMPORTANT: Specify the type of roll. 'attack_roll' for weapons/spells that use 1d20 to hit (Ray of Frost, Mace). 'saving_throw' for spells where the target rolls to avoid damage (Sacred Flame, Fireball). 'healing' for healing spells. 'other' for utility rolls. This field is MANDATORY for all attack/damage rolls."),
-    })).describe("MANDATORY: An array of dice rolls. FOR ATTACK ACTIONS: You MUST provide EXACTLY 2 rolls in order - FIRST the attack roll (1d20+modifier with 'Tirada de ataque'), THEN the damage roll (damage dice with 'Tirada de daño'). For healing: only the healing roll. NEVER provide only a damage roll."),
+    })).describe("An array of dice rolls. FOR STANDARD ATTACKS: Leave empty []. The system will calculate rolls automatically. FOR HEALING/SPECIAL SPELLS: Provide the necessary rolls."),
 });
 export type CompanionTacticianOutput = z.infer<typeof CompanionTacticianOutputSchema>;
 
@@ -76,7 +76,7 @@ export const CombatNarrationExpertInputSchema = z.object({
     attackerName: z.string().describe("Name of the character performing the action (e.g., 'Galador', 'Goblin 1')."),
     targetName: z.string().describe("Name of the target character (e.g., 'Orco 1', 'Merryl')."),
     actionDescription: z.string().describe("Brief description of the action (e.g., 'Ataque con Maza', 'Lanzar Rayo de Escarcha')."),
-    
+
     // Optional context
     playerAction: z.string().optional().describe("The original action text from the player (e.g., 'Ataco al orco con mi espada'). Optional for AI turns."),
     weaponName: z.string().optional().describe("Name of the weapon used, if any."),

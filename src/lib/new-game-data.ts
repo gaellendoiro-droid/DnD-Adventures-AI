@@ -66,11 +66,11 @@ export const initialParty: Character[] = [
     ],
     controlledBy: "Player",
     inventory: [
-        { id: "item-1", name: "Mandoble", quantity: 1, description: "Una espada a dos manos pesada y fiable. Ataque: +4, Daño: 2d6+2 (Cortante), Alcance: 5 pies. Propiedades: Pesada, Dos manos, Versátil." },
-        { id: "item-2", name: "Armadura de placas", quantity: 1, description: "Cubre todo el cuerpo y ofrece una gran protección. CA 18." },
-        { id: "item-3", name: "Escudo", quantity: 1, description: "Un escudo de madera reforzado con acero. +2 CA." },
-        { id: "item-4", name: "Paquete de aventurero", quantity: 1, description: "Contiene raciones, una cuerda, un saco de dormir y otros enseres básicos." },
-        { id: "item-gp-1", name: "Monedas de Oro", quantity: 25, description: "Dinero contante y sonante." },
+      { id: "item-1", name: "Mandoble", quantity: 1, description: "Una espada a dos manos pesada y fiable. Daño: 2d6 (Cortante), Alcance: 5 pies. Propiedades: Pesada, Dos manos." },
+      { id: "item-2", name: "Armadura de placas", quantity: 1, description: "Cubre todo el cuerpo y ofrece una gran protección. CA 18." },
+      { id: "item-3", name: "Escudo", quantity: 1, description: "Un escudo de madera reforzado con acero. +2 CA." },
+      { id: "item-4", name: "Paquete de aventurero", quantity: 1, description: "Contiene raciones, una cuerda, un saco de dormir y otros enseres básicos." },
+      { id: "item-gp-1", name: "Monedas de Oro", quantity: 25, description: "Dinero contante y sonante." },
     ],
     attacks: [
       {
@@ -182,20 +182,20 @@ export const initialParty: Character[] = [
     ],
     controlledBy: "AI",
     inventory: [
-        { id: "item-9", name: "Bastón", quantity: 1, description: "Un bastón de roble nudoso que le sirve como foco arcano. Ataque: +1, Daño: 1d4-1 (Contundente), Alcance: 5 pies. Propiedades: Versátil (1d6)." },
-        { id: "item-10", name: "Libro de conjuros", quantity: 1, description: "Un tomo ajado lleno de sus conjuros iniciales." },
-        { id: "item-11", name: "Componentes de conjuros", quantity: 1, description: "Una pequeña bolsa con los materiales necesarios para sus hechizos." },
-        { id: "item-gp-3", name: "Monedas de Oro", quantity: 10, description: "Dinero contante y sonante." },
+      { id: "item-9", name: "Bastón", quantity: 1, description: "Un bastón de roble nudoso que le sirve como foco arcano. Daño: 1d8 (Contundente), Alcance: 5 pies. Propiedades: Versátil (1d6 a una mano)." },
+      { id: "item-10", name: "Libro de conjuros", quantity: 1, description: "Un tomo ajado lleno de sus conjuros iniciales." },
+      { id: "item-11", name: "Componentes de conjuros", quantity: 1, description: "Una pequeña bolsa con los materiales necesarios para sus hechizos." },
+      { id: "item-gp-3", name: "Monedas de Oro", quantity: 10, description: "Dinero contante y sonante." },
     ],
     attacks: [
       {
         id: "attack-2",
         name: "Bastón",
         attackBonus: 1, // FUE mod (-1) + BC (2)
-        damage: "1d4-1",
+        damage: "1d6-1",
         damageType: "Contundente",
         range: "5 pies",
-        properties: ["Versátil (1d6)"]
+        properties: ["Versátil (1d8)"]
       },
     ],
     racialTraits: [
@@ -333,11 +333,11 @@ export const initialParty: Character[] = [
     ],
     controlledBy: "AI",
     inventory: [
-        { id: "item-5", name: "Maza", quantity: 1, description: "Un arma contundente simple pero efectiva. Ataque: +4, Daño: 1d6+2 (Contundente), Alcance: 5 pies." },
-        { id: "item-6", name: "Armadura de escamas", quantity: 1, description: "Armadura de cuero reforzada con escamas de metal. CA 14." },
-        { id: "item-7", name: "Símbolo sagrado", quantity: 1, description: "Un amuleto de plata que canaliza su poder divino." },
-        { id: "item-8", name: "Paquete de sacerdote", quantity: 1, description: "Incluye agua bendita, viales y otros objetos para sus rituales." },
-        { id: "item-gp-2", name: "Monedas de Oro", quantity: 15, description: "Dinero contante y sonante." },
+      { id: "item-5", name: "Maza", quantity: 1, description: "Un arma contundente simple pero efectiva. Daño: 1d6 (Contundente), Alcance: 5 pies." },
+      { id: "item-6", name: "Armadura de escamas", quantity: 1, description: "Armadura de cuero reforzada con escamas de metal. CA 14." },
+      { id: "item-7", name: "Símbolo sagrado", quantity: 1, description: "Un amuleto de plata que canaliza su poder divino." },
+      { id: "item-8", name: "Paquete de sacerdote", quantity: 1, description: "Incluye agua bendita, viales y otros objetos para sus rituales." },
+      { id: "item-gp-2", name: "Monedas de Oro", quantity: 15, description: "Dinero contante y sonante." },
     ],
     attacks: [
       {
@@ -433,4 +433,4 @@ export const initialMessage: GameMessage = {
   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
 };
 
-    
+

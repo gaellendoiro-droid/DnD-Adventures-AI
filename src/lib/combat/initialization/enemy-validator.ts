@@ -112,6 +112,9 @@ export class EnemyValidator {
             }
 
             // If hp or ac are missing, try to fetch from D&D API
+            // Also fetch full stats for robust roll system
+            let fullStats: any = null;
+
             if (hpValue === undefined || hpMax === undefined || ac === undefined || ac === null) {
                 localLog(`Enemy ${enemy.name} missing hp or ac, fetching from D&D API...`);
                 const stats = await getMonsterStatsFromDndApi(enemy.name);
@@ -120,12 +123,21 @@ export class EnemyValidator {
                     hpValue = hpValue !== undefined ? hpValue : stats.hp;
                     hpMax = hpMax !== undefined ? hpMax : stats.hp;
                     ac = ac !== undefined && ac !== null ? ac : stats.ac;
+                    fullStats = stats;
                     localLog(`Fetched stats for ${enemy.name}: HP=${hpMax}, AC=${ac}`);
                 } else {
                     hpValue = hpValue !== undefined ? hpValue : 10;
                     hpMax = hpMax !== undefined ? hpMax : 10;
                     ac = ac !== undefined && ac !== null ? ac : 10;
                     localLog(`Using default stats for ${enemy.name}: HP=${hpMax}, AC=${ac}`);
+                }
+            } else {
+                // Even if we have HP/AC, we might want full stats for the new system
+                // We'll fetch them asynchronously to not block if we already have basic stats
+                // For now, we'll just fetch them if we don't have them
+                const stats = await getMonsterStatsFromDndApi(enemy.name);
+                if (stats) {
+                    fullStats = stats;
                 }
             }
 
@@ -157,6 +169,11 @@ export class EnemyValidator {
                 color: '#ef4444',
                 hp: { current: hpValue, max: hpMax },
                 ac: ac,
+                // Add full stats for robust roll system
+                abilityScores: fullStats?.abilityScores,
+                abilityModifiers: fullStats?.abilityModifiers,
+                proficiencyBonus: fullStats?.proficiencyBonus,
+                actions: fullStats?.actions,
             };
 
             const validatedEnemy = validateAndClampHP(newEnemy);

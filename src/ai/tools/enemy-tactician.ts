@@ -16,8 +16,8 @@ import {
 
 const enemyTacticianPrompt = ai.definePrompt({
   name: 'enemyTacticianPrompt',
-  input: {schema: EnemyTacticianInputSchema},
-  output: {schema: EnemyTacticianOutputSchema},
+  input: { schema: EnemyTacticianInputSchema },
+  output: { schema: EnemyTacticianOutputSchema },
   tools: [dndApiLookupTool, adventureLookupTool],
   prompt: `You are a D&D 5e AI tactician for hostile monsters. Your job is to decide the action for ONE monster on its turn and provide the output in a specific JSON format. Reply in Spanish (Spain).
 
@@ -47,23 +47,9 @@ const enemyTacticianPrompt = ai.definePrompt({
 -   \`targetId\` (string | null): The ID of your target from the list above.
 -   \`diceRolls\` (array): The dice rolls needed for the action. This is CRITICAL.
 
-**Dice Roll Rules (MANDATORY):**
-
-*   **For Weapon/Spell Attacks (that use 1d20 to hit):**
-    *   You MUST provide **TWO** roll objects in the array.
-    *   **1st Roll (Attack):** \`{"roller": "{{{activeCombatant}}}", "rollNotation": "1d20+BONUS", "description": "Tirada de ataque con [Arma]", "attackType": "attack_roll"}\`.
-        *   *Get the attack BONUS from the monster's stat block (e.g., a Goblin's Scimitar is +4 to hit, so "1d20+4"). Use the \`dndApiLookupTool\` if unsure.*
-    *   **2nd Roll (Damage):** \`{"roller": "{{{activeCombatant}}}", "rollNotation": "XdY+MOD", "description": "Tirada de daño con [Arma]", "attackType": "attack_roll"}\`.
-        *   *Get the damage dice from the stat block (e.g., a Goblin's Scimitar is 1d6+2).*
-
-*   **For Saving Throw Spells (where the target rolls to save):**
-    *   You MUST provide **ONE** roll object in the array for damage.
-    *   **The Roll (Damage):** \`{"roller": "{{{activeCombatant}}}", "rollNotation": "XdY", "description": "Daño de [Hechizo]", "attackType": "saving_throw"}\`.
-
-**Critical Failure Conditions (Your turn will be skipped if you violate these):**
--   Your action will fail if you provide only a damage roll for a weapon/spell attack. The attack roll (1d20) MUST come first.
--   Your action will fail if the JSON is not valid or is incomplete.
--   Do NOT generate narration. Do NOT roll dice. Just provide the JSON plan for the action of **{{{activeCombatant}}}**.
+**Dice Roll Rules:**
+- **For Standard Attacks (Melee/Ranged):** Leave \`diceRolls\` as an empty array \`[]\`. The system will automatically calculate the correct attack and damage rolls based on the monster's stats.
+- **For Spells/Special Abilities:** You MAY provide dice rolls if it's a complex ability not covered by standard attacks, but usually an empty array is preferred.
 
 **OUTPUT FORMAT (CRITICAL):**
 - You MUST return ONLY a valid JSON object. Do NOT wrap it in markdown code blocks (\`\`\`json\`\`\`).
@@ -74,81 +60,50 @@ Example output for a Goblin attacking with a scimitar:
 {
   "actionDescription": "Ataque con Cimitarra",
   "targetId": "player-1",
-  "diceRolls": [
-    {
-      "roller": "Goblin 1",
-      "rollNotation": "1d20+4",
-      "description": "Tirada de ataque con cimitarra",
-      "attackType": "attack_roll"
-    },
-    {
-      "roller": "Goblin 1",
-      "rollNotation": "1d6+2",
-      "description": "Tirada de daño con cimitarra",
-      "attackType": "attack_roll"
-    }
-  ]
+  "diceRolls": []
 }
 
 Return ONLY the JSON object, nothing else.`,
 });
 
 export const enemyTacticianTool = ai.defineTool(
-    {
-      name: 'enemyTacticianTool',
-      description: 'Determines the most logical action for a hostile NPC/monster during its turn in combat.',
-      inputSchema: EnemyTacticianInputSchema,
-      outputSchema: EnemyTacticianOutputSchema,
-    },
-    async (input) => {
+  {
+    name: 'enemyTacticianTool',
+    description: 'Determines the most logical action for a hostile NPC/monster during its turn in combat.',
+    inputSchema: EnemyTacticianInputSchema,
+    outputSchema: EnemyTacticianOutputSchema,
+  },
+  async (input) => {
+    try {
+      log.aiTool('enemyTacticianTool', 'Processing enemy turn', {
+        activeCombatant: input.activeCombatant,
+        enemiesCount: input.enemies?.length || 0,
+        partySize: input.party?.length || 0,
+      });
+
+      let output;
+      let response: any = null;
       try {
-        log.aiTool('enemyTacticianTool', 'Processing enemy turn', { 
-          activeCombatant: input.activeCombatant,
-          enemiesCount: input.enemies?.length || 0,
-          partySize: input.party?.length || 0,
-        });
-        
-        let output;
-        let response: any = null;
-        try {
-          response = await retryWithExponentialBackoff(
-            () => enemyTacticianPrompt(input),
-            3,
-            1000,
-            'enemyTactician'
-          );
-          output = response.output;
-        } catch (promptError: any) {
-          // Catch Genkit schema validation errors (when AI returns null)
-          if (promptError?.message?.includes('Schema validation failed') || 
-              promptError?.message?.includes('INVALID_ARGUMENT') ||
-              promptError?.code === 'INVALID_ARGUMENT') {
-            log.warn('AI returned null/invalid output for enemy, using default action', { 
-              module: 'AITool',
-              tool: 'enemyTacticianTool',
-              activeCombatant: input.activeCombatant,
-              errorMessage: promptError.message,
-              errorCode: promptError.code,
-              errorDetails: promptError.details || promptError.cause || 'No details available',
-              errorStack: promptError.stack?.substring(0, 500), // Primeros 500 chars del stack
-            });
-            return {
-              actionDescription: "No hace nada",
-              targetId: null,
-              diceRolls: [],
-            };
-          }
-          // Re-throw if it's a different error
-          throw promptError;
-        }
-  
-        if (!output) {
-          log.error('AI failed to return action for enemy', { 
+        response = await retryWithExponentialBackoff(
+          () => enemyTacticianPrompt(input),
+          3,
+          1000,
+          'enemyTactician'
+        );
+        output = response.output;
+      } catch (promptError: any) {
+        // Catch Genkit schema validation errors (when AI returns null)
+        if (promptError?.message?.includes('Schema validation failed') ||
+          promptError?.message?.includes('INVALID_ARGUMENT') ||
+          promptError?.code === 'INVALID_ARGUMENT') {
+          log.warn('AI returned null/invalid output for enemy, using default action', {
             module: 'AITool',
             tool: 'enemyTacticianTool',
             activeCombatant: input.activeCombatant,
-            responseReceived: !!response,
-            responseKeys: response ? Object.keys(response) : [],
+            errorMessage: promptError.message,
+            errorCode: promptError.code,
+            errorDetails: promptError.details || promptError.cause || 'No details available',
+            errorStack: promptError.stack?.substring(0, 500), // Primeros 500 chars del stack
           });
           return {
             actionDescription: "No hace nada",
@@ -156,26 +111,44 @@ export const enemyTacticianTool = ai.defineTool(
             diceRolls: [],
           };
         }
-        
-        log.aiTool('enemyTacticianTool', 'Enemy action determined', { 
-          activeCombatant: input.activeCombatant,
-          targetId: output.targetId,
-          hasDiceRolls: (output.diceRolls?.length || 0) > 0,
-        });
-        
-        return output;
-  
-      } catch (e: any) {
-        log.error('Critical error in enemyTacticianTool', { 
+        // Re-throw if it's a different error
+        throw promptError;
+      }
+
+      if (!output) {
+        log.error('AI failed to return action for enemy', {
           module: 'AITool',
           tool: 'enemyTacticianTool',
           activeCombatant: input.activeCombatant,
-        }, e);
+          responseReceived: !!response,
+          responseKeys: response ? Object.keys(response) : [],
+        });
         return {
           actionDescription: "No hace nada",
           targetId: null,
           diceRolls: [],
         };
       }
+
+      log.aiTool('enemyTacticianTool', 'Enemy action determined', {
+        activeCombatant: input.activeCombatant,
+        targetId: output.targetId,
+        hasDiceRolls: (output.diceRolls?.length || 0) > 0,
+      });
+
+      return output;
+
+    } catch (e: any) {
+      log.error('Critical error in enemyTacticianTool', {
+        module: 'AITool',
+        tool: 'enemyTacticianTool',
+        activeCombatant: input.activeCombatant,
+      }, e);
+      return {
+        actionDescription: "No hace nada",
+        targetId: null,
+        diceRolls: [],
+      };
     }
-  );
+  }
+);

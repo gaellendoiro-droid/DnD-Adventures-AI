@@ -23,6 +23,7 @@ import {
     type CombatActionResult,
 } from './action-executor';
 import { updateRollNotationWithModifiers } from '@/lib/combat/roll-notation-utils';
+import { CombatActionResolver } from './action-resolver';
 
 // --- Types ---
 
@@ -121,7 +122,7 @@ export class TurnProcessor {
             // ============================================================
             // STEP 1: PLANNING
             // ============================================================
-            
+
             let plannedAction: {
                 type: 'attack' | 'spell' | 'heal';
                 targetId: string;
@@ -216,45 +217,34 @@ export class TurnProcessor {
                     };
                 }
 
-                // Calculate attack modifiers
-                const proficiencyBonus = playerChar.proficiencyBonus ?? 2;
-                const strMod = playerChar.abilityModifiers?.fuerza || 0;
-                const dexMod = playerChar.abilityModifiers?.destreza || 0;
-                const abilityMod = Math.max(strMod, dexMod);
-                const attackMod = abilityMod + proficiencyBonus;
-                const damageMod = abilityMod;
+                // Use CombatActionResolver to calculate rolls
+                // This ensures consistency with the new robust system
+                const targetName = getVisualName(resolvedTargetId, initiativeOrder, initialEnemies);
+                // Extract weapon name from player action or default to "ataque"
+                // Simple heuristic: look for weapon names in the action text
+                const weaponQuery = playerAction || 'ataque';
 
-                // Determine weapon and damage die
-                const weapon = playerChar.inventory.find((item: any) =>
-                    item.description?.toLowerCase().includes('daño') ||
-                    item.name.toLowerCase().includes('espada') ||
-                    item.name.toLowerCase().includes('mandoble') ||
-                    item.name.toLowerCase().includes('maza') ||
-                    item.name.toLowerCase().includes('daga') ||
-                    item.name.toLowerCase().includes('bastón') ||
-                    item.name.toLowerCase().includes('arco')
-                );
+                const resolution = CombatActionResolver.resolveAttack(playerChar, weaponQuery, targetName);
 
-                const weaponName = weapon?.name || 'su arma';
-                const damageDie = weapon?.description?.match(/(\d+d\d+)/)?.[0] || '1d8';
+                if (!resolution.success) {
+                    return {
+                        success: false,
+                        messages: [{ sender: 'DM', content: resolution.error || 'No se pudo realizar el ataque.' }],
+                        diceRolls: [],
+                        updatedParty: initialParty,
+                        updatedEnemies: initialEnemies,
+                        combatResult: {},
+                        combatEnded: false,
+                        error: 'RESOLUTION_FAILED',
+                    };
+                }
 
                 // Create dice roll requests
                 plannedAction = {
                     type: 'attack',
                     targetId: resolvedTargetId,
-                    actionDescription: playerAction || 'ataque',
-                    diceRollRequests: [
-                        {
-                            rollNotation: `1d20+${attackMod}`,
-                            description: `Tirada de ataque con ${weaponName}`,
-                            roller: combatant.characterName,
-                        },
-                        {
-                            rollNotation: `${damageDie}+${damageMod}`,
-                            description: `Tirada de daño con ${weaponName}`,
-                            roller: combatant.characterName,
-                        },
-                    ],
+                    actionDescription: resolution.actionDescription || playerAction || 'ataque',
+                    diceRollRequests: resolution.diceRollRequests,
                 };
             } else {
                 // AI: use tactician
@@ -315,6 +305,16 @@ export class TurnProcessor {
                 const tacticianResponse = await dependencies.tactician(tacticianInput);
                 const { actionDescription, targetId, diceRolls: requestedRolls } = tacticianResponse;
 
+                // DEBUG: Log tactician response to investigate duplicate attacks
+                log.debug('Tactician response received', {
+                    module: 'TurnProcessor',
+                    combatant: combatant.characterName,
+                    actionDescription,
+                    targetId,
+                    diceRollsCount: requestedRolls?.length || 0,
+                    diceRolls: requestedRolls,
+                });
+
                 if (!targetId || !requestedRolls || requestedRolls.length === 0) {
                     return {
                         success: false,
@@ -341,21 +341,77 @@ export class TurnProcessor {
                     resolvedTargetId = targetId;
                 }
 
-                // Convert requestedRolls to DiceRollRequest[]
-                const diceRollRequests: DiceRollRequest[] = requestedRolls.map((roll: any) => ({
-                    rollNotation: roll.rollNotation,
-                    description: roll.description,
-                    roller: roll.roller || combatant.characterName,
-                    attackType: roll.attackType,
-                }));
-
-                // Determine action type from rolls
+                // Determine action type from rolls or description
                 let actionType: 'attack' | 'spell' | 'heal' = 'attack';
-                const firstRollDesc = (diceRollRequests[0]?.description || '').toLowerCase();
+                const firstRollDesc = (requestedRolls[0]?.description || '').toLowerCase();
                 if (firstRollDesc.includes('healing') || firstRollDesc.includes('curación') || firstRollDesc.includes('cura')) {
                     actionType = 'heal';
                 } else if (firstRollDesc.includes('spell') || firstRollDesc.includes('hechizo')) {
                     actionType = 'spell';
+                }
+
+                // Convert requestedRolls to DiceRollRequest[]
+                let diceRollRequests: DiceRollRequest[] = [];
+
+                // NEW LOGIC: If it's an attack, use CombatActionResolver instead of trusting AI rolls
+                // This ensures consistency between what the AI says ("I attack with +5") and the actual stats
+                if (actionType === 'attack') {
+                    // Find the enemy/companion data
+                    // For companions, they are in initialParty. For enemies, in initialEnemies.
+                    const combatantData = isCompanion
+                        ? initialParty.find(p => p.id === combatant.id)
+                        : initialEnemies.find(e => (e as any).uniqueId === combatant.id || e.id === combatant.id);
+
+                    if (combatantData) {
+                        // Extract weapon name from description or use "ataque"
+                        // Heuristic: "Ataque con Cimitarra" -> "Cimitarra"
+                        let weaponQuery = 'ataque';
+                        if (actionDescription && actionDescription.toLowerCase().includes('con ')) {
+                            const parts = actionDescription.toLowerCase().split('con ');
+                            if (parts.length > 1) {
+                                weaponQuery = parts[1].trim();
+                            }
+                        }
+
+                        const targetName = getVisualName(resolvedTargetId || 'objetivo', initiativeOrder, initialEnemies);
+                        const resolution = CombatActionResolver.resolveAttack(combatantData, weaponQuery, targetName);
+
+                        if (resolution.success) {
+                            diceRollRequests = resolution.diceRollRequests;
+                            log.debug('Resolved AI attack using CombatActionResolver', {
+                                combatant: combatant.characterName,
+                                weapon: weaponQuery,
+                                rolls: diceRollRequests.length
+                            });
+                        } else {
+                            // Fallback to AI rolls if resolution fails
+                            log.warn('Failed to resolve AI attack, falling back to AI rolls', {
+                                combatant: combatant.characterName,
+                                error: resolution.error
+                            });
+                            diceRollRequests = requestedRolls.map((roll: any) => ({
+                                rollNotation: roll.rollNotation,
+                                description: roll.description,
+                                roller: roll.roller || combatant.characterName,
+                                attackType: roll.attackType,
+                            }));
+                        }
+                    } else {
+                        diceRollRequests = requestedRolls.map((roll: any) => ({
+                            rollNotation: roll.rollNotation,
+                            description: roll.description,
+                            roller: roll.roller || combatant.characterName,
+                            attackType: roll.attackType,
+                        }));
+                    }
+                } else {
+                    // Non-attack actions (spells, heals) still use AI rolls for now
+                    diceRollRequests = requestedRolls.map((roll: any) => ({
+                        rollNotation: roll.rollNotation,
+                        description: roll.description,
+                        roller: roll.roller || combatant.characterName,
+                        attackType: roll.attackType,
+                    }));
                 }
 
                 plannedAction = {
@@ -385,7 +441,7 @@ export class TurnProcessor {
             // Note: Intention narration was removed in Issue #94.
             // combatNarrationExpertTool now generates complete narrations
             // that include preparation, execution, and result in a single message.
-            
+
             const actionInput: CombatActionInput = {
                 combatant,
                 action: {
@@ -423,11 +479,11 @@ export class TurnProcessor {
             // ============================================================
             // STEP 3: RESOLUTION NARRATION
             // ============================================================
-            
+
             try {
                 const targetVisualName = executionResult.combatResult.targetName || 'objetivo';
                 let narrativeAttackResult: 'hit' | 'miss' | 'critical' | 'fumble' = 'miss';
-                
+
                 if (executionResult.combatResult.wasCritical) {
                     narrativeAttackResult = 'critical';
                 } else if (executionResult.combatResult.wasFumble) {
