@@ -94,16 +94,25 @@ const combatInitiationPrompt = ai.definePrompt({
     input: { schema: NarrativeExpertInputSchema },
     output: { schema: NarrativeExpertOutputSchema },
     tools: [dndApiLookupTool, adventureLookupTool, characterLookupTool],
-    prompt: `You are narrating the START of combat.
+    prompt: `You are a Master Storyteller DM expert in D&D 5e. Your task is to narrate the START of combat.
     
 **Combat Initiation Guidelines:**
 1. **Describe the tension:** Use the location description to set the scene.
-2. **Identify Enemies:** Clearly state who the enemies are using ONLY the names provided in the Combat Context.
-3. **Initiative:** Mention who acts first based on the initiative order.
-4. **NO attacks/damage:** Combat hasn't started yet (no actions taken).
-5. **Use Combat Context:** \`\`\`{{{combatContext}}}\`\`\`
+2. **Use conversation history:** Consider the recent conversation context ({{{conversationHistory}}}) to make the combat initiation narratively coherent with what just happened. Reference recent events, dialogue, or actions that led to this combat if relevant.
+3. **Identify Enemies:** Describe the enemies naturally and immersively.
+   - Extract the base enemy type from differentiated names (remove numbers: "Goblin 1" → "Goblin")
+   - You can group enemies of the same type naturally: "dos goblins" instead of "Goblin 1 y Goblin 2"
+   - You can be descriptive and immersive: "dos goblins pequeños" or "un enorme orco"
+   - Use the EXACT base type from the names (if you see "Goblin", use "goblin" in Spanish, NOT "gnomo")
+4. **Initiative:** Mention who acts first based on the initiative order.
+5. **NO attacks/damage:** Combat hasn't started yet (no actions taken).
+6. **Use Combat Context:** \`\`\`{{{combatContext}}}\`\`\`
 
-**CRITICAL:** Do NOT invent enemy types. If the context says "Goblin", describe goblins. If it says "Bandit", describe bandits. Use the exact names from the context.
+**CRITICAL - ENEMY TYPES:**
+- Use the EXACT base type in Spanish (Goblin → goblin, Orc → orco, NOT "gnomo" or invented names)
+- Do NOT translate or change enemy type names - use the correct Spanish translation of the exact type
+- Be immersive and descriptive while maintaining accuracy about enemy types
+- Example: If combatContext shows "Goblin 1", "Goblin 2", "Orco 1" → narrate as "dos goblins y un orco" (not "Goblin 1, Goblin 2 y Orco 1")
 
 Narrate the scene in Spanish (Spain).
 `,
@@ -207,8 +216,8 @@ export const narrativeManagerFlow = ai.defineFlow(
             };
 
         } catch (e: any) {
-            localLog(`NarrativeManager: CRITICAL ERROR: ${e.message}`);
-            log.error("NarrativeManager Failed", e);
+            localLog(`NarrativeManager: Flow failed. Error: ${e.message}`);
+            log.error("NarrativeManager failed", { module: 'NarrativeManager' }, e);
             throw e;
         }
     }

@@ -185,12 +185,27 @@ logClient.uiError(component, message, error?, { [key: string]: any })
 
 ## 🎯 Mejores Prácticas
 
-### Cuándo Usar Cada Nivel
+Para una guía completa y detallada sobre cuándo usar cada nivel de logging, consulta:
+
+**[📖 Guía de Estilo de Logging](./guia-estilo-logging.md)**
+
+### Cuándo Usar Cada Nivel (Resumen)
 
 - **DEBUG:** Información detallada solo útil durante desarrollo
 - **INFO:** Eventos normales que quieres rastrear (guardado, carga, acciones)
 - **WARN:** Situaciones inesperadas que no rompen la funcionalidad
 - **ERROR:** Errores que requieren atención y pueden afectar la experiencia del usuario
+
+### Validación Automática
+
+El logger incluye validación automática que detecta inconsistencias entre el nivel de log y el contenido del mensaje:
+
+- **Mensajes DEBUG que contienen "WARNING" o "ERROR"** → Se registra como inconsistencia
+- **Mensajes INFO que contienen "DEBUG", "WARNING" o "ERROR"** → Se registra como inconsistencia
+- **Mensajes WARN que contienen "ERROR", "CRITICAL" o "FATAL"** → Se registra como inconsistencia
+- **Mensajes ERROR que contienen "WARNING" o "DEBUG"** → Se registra como inconsistencia
+
+En desarrollo, estas inconsistencias se registran como warnings en la consola para facilitar la corrección.
 
 ### Contexto en Logs
 
@@ -274,6 +289,7 @@ log.serverAction('Processing player action', {
 
 ## 🔗 Referencias
 
+- [Guía de Estilo de Logging](./guia-estilo-logging.md) - Guía completa sobre cuándo usar cada nivel de log
 - [Logger del Servidor](../../src/lib/logger.ts) - Implementación del logger del servidor
 - [Logger del Cliente](../../src/lib/logger-client.ts) - Implementación del logger del cliente
 - [Endpoint de API](../../src/app/api/log/route.ts) - Endpoint para centralización de logs

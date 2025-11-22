@@ -15,6 +15,56 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+### Fixed
+- **✅ Issue #118 - Narración de inicio de combate mejorada (2025-01-22):**
+  - **Problema:** La narración de inicio de combate mencionaba nombres de enemigos incorrectos (ej: "gnomos" cuando debería decir "goblins") y usaba nombres técnicos como "Goblin 1, Goblin 2" en lugar de descripciones naturales
+  - **Solución:** Mejorado el prompt de `combatInitiationPrompt` para:
+    - Usar exactamente los tipos de enemigos del `combatContext` (no traducir ni inventar nombres)
+    - Permitir agrupación natural de enemigos ("dos goblins" en lugar de "Goblin 1 y Goblin 2")
+    - Usar el historial de conversación para hacer la narración coherente con eventos recientes
+  - **Cambios:**
+    - Añadida sección "CRITICAL - ENEMY TYPES" con instrucciones explícitas sobre tipos de enemigos
+    - Instrucciones para agrupar enemigos del mismo tipo de forma natural e inmersiva
+    - Añadida instrucción para usar `conversationHistory` en la narración de inicio
+  - **Beneficios:**
+    - ✅ Narraciones más inmersivas y naturales ("dos goblins y un enorme orco" vs "Goblin 1, Goblin 2 y Orco 1")
+    - ✅ Precisión mantenida sobre tipos de enemigos (no traduce "Goblin" a "Gnomo")
+    - ✅ Coherencia narrativa con eventos recientes del chat
+  - **Archivos modificados:**
+    - `src/ai/flows/narrative-manager.ts` - Prompt `combatInitiationPrompt` mejorado
+  - **Referencia:** [Issue #118](../../docs/tracking/issues/corregidos.md#issue-118-narración-de-inicio-de-combate-menciona-enemigos-incorrectos--resuelto)
+
+### Changed
+- **✅ Estandarización de Niveles de Logging (2025-01-22):**
+  - **Problema:** Existían inconsistencias sistemáticas en los niveles de logging: mensajes DEBUG contenían "WARNING", mensajes INFO contenían "DEBUG", etc.
+  - **Solución implementada:**
+    - Creada guía de estilo completa sobre cuándo usar cada nivel de log (DEBUG, INFO, WARN, ERROR)
+    - Añadida validación automática en el logger para detectar inconsistencias futuras
+    - Corregidas 7 inconsistencias detectadas en el código
+  - **Cambios:**
+    - Nueva guía: `docs/arquitectura/guia-estilo-logging.md`
+    - Validación automática en `src/lib/logger.ts` que detecta palabras clave inconsistentes
+    - Correcciones en múltiples archivos:
+      - `src/lib/combat/action-executor.ts` - Mensaje DEBUG con "Critical" corregido
+      - `src/ai/tools/dnd-api-lookup.ts` - Mensaje WARN con "error" corregido
+      - `src/lib/combat/turn-processor.ts` - Mensaje WARN mejorado para clarificar fallback
+      - `src/ai/flows/action-interpreter.ts` - Eliminada redundancia "CRITICAL" en mensajes ERROR
+      - `src/ai/flows/narrative-manager.ts` - Mejorados mensajes de error con contexto estructurado
+      - `src/components/game/game-view.tsx` - Eliminado prefijo "[DEBUG]" de mensajes INFO
+  - **Beneficios:**
+    - ✅ Logs más consistentes y legibles
+    - ✅ Validación automática detecta futuras inconsistencias en desarrollo
+    - ✅ Facilita depuración y mantenimiento
+    - ✅ Los filtros de log funcionan correctamente
+  - **Archivos modificados:**
+    - `src/lib/logger.ts` - Añadida validación automática de niveles de log
+    - `docs/arquitectura/guia-estilo-logging.md` - Nueva guía de estilo
+    - `docs/arquitectura/sistema-logging.md` - Actualizado con referencia a guía de estilo
+    - `docs/roadmap.md` - Marcado como completado
+    - `docs/planes-desarrollo/plan-maestro.md` - Actualizado estado
+    - Múltiples archivos corregidos (ver lista arriba)
+  - **Referencia:** [Roadmap - Estandarización de Niveles de Logging](../../docs/roadmap.md#0-estandarización-de-niveles-de-logging--completado)
+
 ---
 
 ## [0.5.51] - 2025-11-22

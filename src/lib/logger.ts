@@ -21,11 +21,62 @@ interface LogContext {
 class Logger {
   private minLevel: LogLevel;
   private colors: boolean;
+  private validationEnabled: boolean;
 
   constructor() {
     // En desarrollo, mostrar todos los logs. En producción, solo INFO y superiores
     this.minLevel = process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG;
     this.colors = process.stdout.isTTY && !process.env.NO_COLOR;
+    // Validación habilitada en desarrollo para detectar inconsistencias
+    this.validationEnabled = process.env.NODE_ENV !== 'production';
+  }
+
+  /**
+   * Valida que el nivel de log coincida con el contenido del mensaje.
+   * Detecta inconsistencias como "WARNING" en mensajes DEBUG o "ERROR" en mensajes INFO.
+   */
+  private validateLogLevel(level: LogLevel, message: string): void {
+    if (!this.validationEnabled) return;
+
+    const messageUpper = message.toUpperCase();
+    const inconsistencies: string[] = [];
+
+    // Validaciones por nivel
+    switch (level) {
+      case LogLevel.DEBUG:
+        if (/\b(WARNING|WARN|ERROR|CRITICAL|FATAL)\b/.test(messageUpper)) {
+          inconsistencies.push(`DEBUG message contains severity keywords: ${message.match(/\b(WARNING|WARN|ERROR|CRITICAL|FATAL)\b/i)?.[0]}`);
+        }
+        break;
+
+      case LogLevel.INFO:
+        if (/\b(DEBUG|WARNING|WARN|ERROR|CRITICAL|FATAL)\b/.test(messageUpper)) {
+          inconsistencies.push(`INFO message contains severity keywords: ${message.match(/\b(DEBUG|WARNING|WARN|ERROR|CRITICAL|FATAL)\b/i)?.[0]}`);
+        }
+        break;
+
+      case LogLevel.WARN:
+        if (/\b(ERROR|CRITICAL|FATAL)\b/.test(messageUpper)) {
+          inconsistencies.push(`WARN message contains error keywords: ${message.match(/\b(ERROR|CRITICAL|FATAL)\b/i)?.[0]}`);
+        }
+        break;
+
+      case LogLevel.ERROR:
+        if (/\b(DEBUG|WARNING|WARN)\b/.test(messageUpper)) {
+          inconsistencies.push(`ERROR message contains lower severity keywords: ${message.match(/\b(DEBUG|WARNING|WARN)\b/i)?.[0]}`);
+        }
+        break;
+    }
+
+    // Si hay inconsistencias, registrar un warning
+    if (inconsistencies.length > 0) {
+      const levelName = LogLevel[level];
+      console.warn(
+        `\x1b[33m[LOG VALIDATION] Inconsistency detected in ${levelName} log:\x1b[0m`,
+        message,
+        `\n  Issues: ${inconsistencies.join(', ')}`
+      );
+    }
   }
 
   private formatTimestamp(): string {
@@ -80,6 +131,9 @@ class Logger {
 
   private log(level: LogLevel, message: string, context?: LogContext, error?: Error): void {
     if (level < this.minLevel) return;
+
+    // Validar consistencia del nivel de log
+    this.validateLogLevel(level, message);
 
     const timestamp = this.formatTimestamp();
     const contextStr = this.formatContext(context);

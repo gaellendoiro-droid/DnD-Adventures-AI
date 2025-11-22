@@ -275,7 +275,7 @@ export class CombatActionExecutor {
                     let damage = rollResult.totalResult;
                     if (wasCritical && action.type === 'attack') {
                         // Damage dice should already be doubled, but we verify
-                        log.debug('Critical hit damage', {
+                        log.debug('Damage calculated for critical hit', {
                             module: 'CombatActionExecutor',
                             damage,
                             wasCritical,

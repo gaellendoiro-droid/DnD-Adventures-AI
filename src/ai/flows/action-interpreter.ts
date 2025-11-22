@@ -197,7 +197,7 @@ export const actionInterpreterFlow = ai.defineFlow(
             let output = llmResponse.output;
 
             if (!output) {
-                const msg = "ActionInterpreter: CRITICAL - AI returned null output. Defaulting to 'narrate'.";
+                const msg = "ActionInterpreter: AI returned null output. Defaulting to 'narrate'.";
                 log.error(msg, { module: 'AIFlow', flow: 'actionInterpreter' });
                 debugLogs.push(msg);
                 output = { actionType: 'narrate' };
@@ -223,7 +223,7 @@ export const actionInterpreterFlow = ai.defineFlow(
             return { interpretation: output, debugLogs };
 
         } catch (e: any) {
-            const msg = `ActionInterpreter: CRITICAL - Flow failed. Error: ${e.message}. Defaulting to 'narrate'.`;
+            const msg = `ActionInterpreter: Flow failed. Error: ${e.message}. Defaulting to 'narrate'.`;
             log.error(msg, { module: 'AIFlow', flow: 'actionInterpreter' }, e);
             debugLogs.push(msg);
             return { interpretation: { actionType: 'narrate' }, debugLogs };

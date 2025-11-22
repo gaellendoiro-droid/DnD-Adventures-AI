@@ -2,8 +2,8 @@
 
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 28 issues  
-**Última actualización:** 2025-11-22 (Issue #119 añadido - Testeo profundo del sistema de combate)
+**Total:** 27 issues  
+**Última actualización:** 2025-01-22 (Issue #118 movido a corregidos - Narración de inicio de combate corregida)
 
 ---
 
@@ -11,36 +11,6 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
 
 
 ## 🟡 Prioridad Alta (PA) - Advertencias
-
-### Issue #118: Narración de inicio de combate menciona enemigos incorrectos 🟡 ADVERTENCIA
-
-- **Fecha de creación:** 2025-11-20
-- **Ubicación:** `src/ai/flows/narrative-manager.ts`, `src/lib/combat/initialization/narration-processor.ts`
-- **Severidad:** 🟡 **ALTA** (afecta la inmersión y la coherencia narrativa)
-- **Descripción:** La narración de inicio de combate generada por `combatInitiationPrompt` menciona nombres de enemigos incorrectos. Por ejemplo, cuando se combate contra goblins, la narración menciona "gnomos" en lugar de "goblins".
-- **Problema actual:**
-  - La IA está inventando o confundiendo los nombres de los enemigos en la narración de inicio
-  - El prompt de `combatInitiationPrompt` no es lo suficientemente explícito sobre usar los nombres exactos del `combatContext`
-  - La IA puede estar usando información del historial de conversación o inventando nombres en lugar de usar los del contexto de combate
-- **Comportamiento esperado:**
-  - La narración debe usar EXACTAMENTE los nombres de los enemigos que aparecen en el `combatContext`
-  - Si el contexto dice "Goblin 1" y "Goblin 2", la narración debe mencionar "Goblin 1" y "Goblin 2", no "Gnomo 1" o cualquier otro nombre
-  - La narración debe ser coherente con los enemigos reales en combate
-- **Solución propuesta:**
-  - Reforzar el prompt de `combatInitiationPrompt` para que sea explícito sobre usar los nombres exactos del `combatContext`
-  - Añadir instrucciones claras: "CRITICAL: Use EXACTLY the enemy names from the combatContext. Do NOT translate, change, or invent enemy names."
-  - Añadir ejemplos en el prompt mostrando cómo usar los nombres correctamente
-  - Verificar que el `combatContext` se está pasando correctamente con los nombres diferenciados
-- **Archivos afectados:**
-  - `src/ai/flows/narrative-manager.ts` (prompt de `combatInitiationPrompt`)
-  - `src/lib/combat/initialization/narration-processor.ts` (construcción del `combatContext`)
-- **Impacto:** Alto - Afecta la inmersión y la coherencia narrativa del inicio de combate
-- **Estado:** 📝 **PENDIENTE**
-- **Prioridad:** Alta (afecta la experiencia del jugador en cada combate)
-- **Relacionado con:**
-  - Issue #34 (AI de enemigos traduce/inventa nombres) - Similar problema pero en narraciones de turnos
-- **Estimación:** 2-3 horas
-- **Referencia:** Reportado por usuario durante testing (2025-11-20)
 
 ---
 

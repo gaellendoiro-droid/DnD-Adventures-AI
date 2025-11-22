@@ -313,7 +313,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         enemies: enemiesRef.current,
       };
 
-      logClient.uiEvent('GameView', '[DEBUG] Sending action to backend', {
+      logClient.uiEvent('GameView', 'Sending action to backend', {
         action: content,
         turnIndex: turnIndexRef.current,
         activeCombatant: turnIndexRef.current !== undefined 
@@ -448,7 +448,7 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
             // Always update the ref to the next turn for internal logic
             turnIndexRef.current = result.turnIndex;
 
-            logClient.uiEvent('GameView', '[DEBUG] turnIndexRef updated', {
+            logClient.uiEvent('GameView', 'turnIndexRef updated', {
               previousRefValue: oldTurnIndexRefValue,
               newRefValue: turnIndexRef.current,
               receivedFromBackend: result.turnIndex,

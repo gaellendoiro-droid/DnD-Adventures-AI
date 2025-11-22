@@ -3,21 +3,21 @@
 Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras identificados durante el desarrollo del proyecto.
 
 **Fecha de inicio:** Durante el saneamiento general de la aplicación (2025-11-10)  
-**Última actualización:** 2025-11-22 (Issue #119 añadido - Testeo profundo del sistema de combate)
+**Última actualización:** 2025-01-22 (Issue #118 corregido - Narración de inicio de combate mejorada; Estandarización de logging completada)
 
 ---
 
 ## 📊 Resumen Estadístico
 
-- **Total de issues:** 58
-- **Issues corregidos:** 34 (59%)
+- **Total de issues:** 59
+- **Issues corregidos:** 35 (59%)
 - **Issues pendientes:** 24 (41%)
 
 ### Por Prioridad
 
 **Issues Corregidos:**
 - 🔴 PMA (Prioridad Muy Alta): 10 issues (Issues #67, #79, #81)
-- 🟡 PA (Prioridad Alta): 6 issues (Issues #34, #35, #36, #37, #51, #68)
+- 🟡 PA (Prioridad Alta): 7 issues (Issues #34, #35, #36, #37, #51, #68, #118)
 - 🟢 PM (Prioridad Media): 10 issues
 - ⚪ PB (Prioridad Baja): 1 issue
 

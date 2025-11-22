@@ -202,7 +202,7 @@ async function searchApi(resourceType: string, query: string): Promise<string | 
         }
         return null;
     } catch (error: any) {
-        log.warn('D&D API lookup error', { 
+        log.warn('D&D API lookup encountered an issue', { 
             module: 'AITool',
             tool: 'dndApiLookupTool',
             resourceType,

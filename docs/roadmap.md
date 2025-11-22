@@ -13,18 +13,26 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 
 Mejoras críticas que mejoran significativamente la arquitectura, mantenibilidad y consistencia del sistema.
 
-### 0. Estandarización de Niveles de Logging
+### 0. Estandarización de Niveles de Logging ✅ COMPLETADO
 *   **Problema Actual:** Existe una inconsistencia sistemática en los niveles de logging utilizados en todo el código base. Mensajes marcados como `DEBUG` contienen texto que dice "WARNING", mensajes marcados como `INFO` contienen texto que dice "DEBUG", y en general hay una falta de coherencia entre el nivel de log declarado y el contenido del mensaje.
-*   **Mejora Propuesta:**
-    *   **Auditoría Completa:** Revisar todo el código base para identificar inconsistencias en los niveles de log
-    *   **Estandarización:** Asegurar que el nivel de log corresponda con la severidad real del mensaje
-    *   **Guías de Estilo:** Crear documentación sobre cuándo usar cada nivel de log (DEBUG, INFO, WARN, ERROR)
-    *   **Validación:** Añadir validación en el logger para detectar inconsistencias futuras
+*   **Mejora Implementada:** ✅
+    *   ✅ **Guías de Estilo:** Creada documentación completa sobre cuándo usar cada nivel de log (DEBUG, INFO, WARN, ERROR) - [Guía de Estilo de Logging](../arquitectura/guia-estilo-logging.md)
+    *   ✅ **Validación:** Añadida validación automática en el logger para detectar inconsistencias futuras
+    *   ✅ **Documentación:** Actualizada la documentación del sistema de logging con referencias a la guía de estilo
+    *   ✅ **Auditoría y Estandarización:** Revisado código base y corregidas 5 inconsistencias detectadas
 *   **Impacto:** Muy Alto - Mejora significativa de la calidad de logs, facilita depuración y mantenimiento, y permite que los filtros de log funcionen correctamente.
+*   **Estado:** ✅ **COMPLETADO** - Guía de estilo creada, validación implementada, inconsistencias corregidas (2025-01-22)
+*   **Correcciones realizadas:**
+    *   Corregido mensaje DEBUG con palabra "Critical" → "Damage calculated for critical hit"
+    *   Corregido mensaje WARN con palabra "error" → "encountered an issue"
+    *   Mejorado mensaje WARN para clarificar fallback recuperable
+    *   Eliminada redundancia "CRITICAL" en mensajes ERROR
+    *   Mejorados mensajes de error con contexto estructurado
 *   **Referencia:** 
     - Issue #119 (Inconsistencia en niveles de logging) 🔴 CRÍTICO
     - Relacionado con Issue #30 (Errores de conexión a APIs con logs verbosos)
     - Relacionado con Issue #25 (Logs del navegador colapsados por defecto)
+    - [Guía de Estilo de Logging](../arquitectura/guia-estilo-logging.md)
 
 ---
 

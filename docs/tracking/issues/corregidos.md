@@ -2,8 +2,8 @@
 
 Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 44 issues  
-**Última actualización:** 2025-11-21 (Issue #117 añadido - Simplificación de Arquitectura de Combate completada)
+**Total:** 45 issues  
+**Última actualización:** 2025-01-22 (Issue #118 resuelto y verificado - Narración de inicio de combate corregida con agrupación natural)
 
 ---
 
@@ -446,6 +446,42 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 - **Impacto:** Alto - Mejora arquitectura, reduce errores, mejora consistencia narrativa y experiencia del usuario
 - **Estado:** ✅ **RESUELTO** - Implementación completada y verificada
 - **Referencia:** [Plan Completado](../../planes-desarrollo/completados/issue-94-refactorizacion-prompts-tacticians.md)
+
+---
+
+### Issue #118: Narración de inicio de combate menciona enemigos incorrectos ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-20
+- **Fecha de corrección:** 2025-01-22
+- **Ubicación:** `src/ai/flows/narrative-manager.ts`, `src/lib/combat/initialization/narration-processor.ts`
+- **Severidad:** 🟡 **ALTA** (afecta la inmersión y la coherencia narrativa)
+- **Descripción:** La narración de inicio de combate generada por `combatInitiationPrompt` mencionaba nombres de enemigos incorrectos. Por ejemplo, cuando se combatía contra goblins, la narración mencionaba "gnomos" en lugar de "goblins".
+- **Problema identificado:**
+  - La IA estaba inventando o confundiendo los nombres de los enemigos en la narración de inicio
+  - El prompt de `combatInitiationPrompt` no era lo suficientemente explícito sobre usar los nombres exactos del `combatContext`
+  - La IA podía estar usando información del historial de conversación o inventando nombres en lugar de usar los del contexto de combate
+- **Solución implementada:** ✅
+  - Reforzado el prompt de `combatInitiationPrompt` con instrucciones explícitas sobre usar los tipos exactos de enemigos del `combatContext`
+  - Añadida sección "CRITICAL - ENEMY TYPES" con instrucciones detalladas:
+    - Extraer el tipo base de los nombres diferenciados (remove numbers: "Goblin 1" → "Goblin")
+    - Usar el tipo exacto en español (Goblin → goblin, Orc → orco, NO "gnomo" o nombres inventados)
+    - Permitir agrupación natural: "dos goblins" en lugar de "Goblin 1 y Goblin 2"
+    - Ser inmersivo y descriptivo mientras se mantiene la precisión sobre los tipos de enemigos
+    - Ejemplo: "Goblin 1", "Goblin 2", "Orco 1" → narrar como "dos goblins y un orco"
+  - Verificado que el `combatContext` se está pasando correctamente con los nombres diferenciados
+- **Mejora adicional (2025-01-22):**
+  - Actualizado el prompt para permitir agrupación natural de enemigos, mejorando la inmersión
+  - La narración ahora agrupa enemigos del mismo tipo de forma natural ("dos goblins" en lugar de listar "Goblin 1 y Goblin 2")
+  - Mantiene la precisión sobre tipos de enemigos mientras mejora la fluidez narrativa
+  - Prompt refinado manualmente para mayor claridad y permisividad (uso de "You can" en lugar de imperativos)
+- **Archivos modificados:**
+  - ✅ `src/ai/flows/narrative-manager.ts` (prompt de `combatInitiationPrompt` reforzado con instrucciones explícitas y agrupación natural, refinado manualmente)
+  - ✅ `src/lib/combat/initialization/narration-processor.ts` (verificado correcto - construye combatContext con nombres diferenciados)
+- **Impacto:** Alto - Mejora la inmersión y la coherencia narrativa del inicio de combate, asegurando que los tipos de enemigos sean exactos mientras permite narraciones más naturales y fluidas
+- **Estado:** ✅ **RESUELTO Y VERIFICADO** - Prompt reforzado con instrucciones explícitas y agrupación natural, refinado y verificado (2025-01-22)
+- **Relacionado con:**
+  - Issue #34 (AI de enemigos traduce/inventa nombres) - Similar problema pero en narraciones de turnos
+- **Tiempo invertido:** ~45 minutos (incluyendo mejora de inmersión)
 
 ---
 

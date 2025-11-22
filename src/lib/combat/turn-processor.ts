@@ -468,7 +468,7 @@ export class TurnProcessor {
                 }
             } catch (error) {
                 // If narration fails, log but continue
-                log.warn('Failed to generate resolution narration', {
+                log.warn('Could not generate resolution narration, continuing without it', {
                     module: 'TurnProcessor',
                     error: error instanceof Error ? error.message : String(error),
                 });
