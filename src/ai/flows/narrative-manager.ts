@@ -152,7 +152,8 @@ export const narrativeManagerFlow = ai.defineFlow(
                     playerAction: input.playerAction,
                     locationId: input.locationId,
                     locationContext: input.locationContext,
-                    interpretedAction: input.interpretedAction
+                    interpretedAction: input.interpretedAction,
+                    deadEntities: input.deadEntities, // Pass dead entities info
                 });
                 finalNarration = expResult.explorationNarration;
                 if (expResult.debugLogs) debugLogs.push(...expResult.debugLogs);
@@ -175,7 +176,8 @@ export const narrativeManagerFlow = ai.defineFlow(
                         playerAction: input.playerAction,
                         locationId: input.locationId,
                         locationContext: input.locationContext,
-                        interpretedAction: input.interpretedAction
+                        interpretedAction: input.interpretedAction,
+                        deadEntities: input.deadEntities, // Pass dead entities info
                     }),
                     interactionExpert({
                         playerAction: input.playerAction,

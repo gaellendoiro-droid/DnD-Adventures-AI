@@ -37,6 +37,9 @@ export const gameCoordinatorFlow = ai.defineFlow(
         const { playerAction, inCombat, conversationHistory, party, turnIndex } = input;
         let { locationId } = input;
 
+        // Get enemies for current location from enemiesByLocation, fallback to enemies for backward compatibility
+        let currentLocationEnemies = input.enemiesByLocation?.[locationId] || input.enemies || [];
+
         const debugLogs: string[] = [];
         const localLog = (message: string) => {
             log.gameCoordinator(message, { action: playerAction, inCombat, turnIndex });
@@ -143,7 +146,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 playerAction,
                 locationContext: JSON.stringify(currentLocationData),
                 party: party,
-                updatedEnemies: input.enemies, // Issue #27: Pass enemies to filter dead ones
+                updatedEnemies: currentLocationEnemies, // Issue #27: Pass enemies to filter dead ones
             });
             interpretation = result.interpretation;
             interpreterLogs = result.debugLogs;
@@ -229,8 +232,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
             }
 
             // Verificar enemigos muertos
-            if (currentLocationData?.entitiesPresent && input.enemies) {
-                const targetEnemy = input.enemies.find(e =>
+            if (currentLocationData?.entitiesPresent && currentLocationEnemies.length > 0) {
+                const targetEnemy = currentLocationEnemies.find(e =>
                     e.id === interpretation.targetId ||
                     (e as any).uniqueId === interpretation.targetId ||
                     e.name === interpretation.targetId
@@ -270,7 +273,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 targetId: interpretation.targetId || '',
                 locationContext: currentLocationData,
                 party,
-                updatedEnemies: input.enemies, // Issue #27: Pass enemies to filter dead ones
+                updatedEnemies: currentLocationEnemies, // Issue #27: Pass enemies to filter dead ones
             });
 
             log.gameCoordinator('Combat initiated', {
@@ -314,6 +317,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 });
                 throw new Error(`Could not find data for location: ${locationId}.`);
             }
+            // Update currentLocationEnemies for the new location
+            currentLocationEnemies = input.enemiesByLocation?.[locationId] || input.enemies || [];
         }
 
         // Generate companion reactions BEFORE DM narration (optional, selective reactions to player's proposal)
@@ -370,19 +375,31 @@ export const gameCoordinatorFlow = ai.defineFlow(
         // Filter out dead enemies from entitiesPresent before passing to narrative expert
         // This ensures the DM doesn't mention dead enemies when describing the location
         const filteredLocationData = { ...finalLocationData };
-        if (filteredLocationData.entitiesPresent && input.enemies) {
+        const deadEntities: string[] = []; // Track defeated enemies for context
+        
+        if (filteredLocationData.entitiesPresent && currentLocationEnemies.length > 0) {
             filteredLocationData.entitiesPresent = filteredLocationData.entitiesPresent.filter((entityId: string) => {
-                const enemy = input.enemies?.find((e: any) =>
+                const enemy = currentLocationEnemies.find((e: any) =>
                     e.id === entityId ||
                     (e as any).uniqueId === entityId ||
                     (e as any).adventureId === entityId
                 );
+                
+                const isDead = enemy && (enemy.hp && enemy.hp.current <= 0);
+                
+                if (isDead) {
+                    // Collect names of dead enemies for explicit context
+                    deadEntities.push(enemy.name || enemy.id || 'Unknown enemy');
+                    return false; // Remove from active entities list
+                }
+                
                 // Include entity if it's not an enemy, or if it's an enemy that's still alive
-                return !enemy || (enemy.hp && enemy.hp.current > 0);
+                return !enemy || !isDead;
             });
             log.gameCoordinator('Filtered dead enemies from location context', {
                 originalCount: finalLocationData.entitiesPresent?.length || 0,
                 filteredCount: filteredLocationData.entitiesPresent.length,
+                deadEntities: deadEntities.length > 0 ? deadEntities : undefined,
             });
         }
 
@@ -392,6 +409,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
             locationContext: JSON.stringify(filteredLocationData),
             conversationHistory: narrativeHistoryTranscript,
             interpretedAction: JSON.stringify(interpretation),
+            // Pass explicit list of dead entities so the AI knows to describe them as corpses
+            deadEntities: deadEntities.length > 0 ? deadEntities.join(', ') : undefined,
         };
 
         const narrativeResult = await narrativeExpert(narrativeInput);

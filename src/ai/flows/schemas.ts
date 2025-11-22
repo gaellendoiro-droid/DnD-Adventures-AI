@@ -32,6 +32,7 @@ export const NarrativeExpertInputSchema = z.object({
   interpretedAction: z.string().describe("A JSON string of the structured interpretation of the player's action, provided by the actionInterpreter."),
   phase: z.enum(['normal', 'combat_initiation']).optional().describe("The narrative phase. Use 'combat_initiation' for the initial combat narration before any turns are processed."),
   combatContext: z.string().optional().describe("A JSON string with combat-specific information (initiative order, combatants list) for combat_initiation phase."),
+  deadEntities: z.string().optional().describe("Comma-separated list of entity names that have been defeated/killed in this location. The location description may mention them as alive, but they should be described as dead bodies."),
 });
 export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
 
@@ -59,11 +60,13 @@ export const GameCoordinatorOutputSchema = z.object({
   diceRolls: z.array(z.any()).optional(),
   debugLogs: z.array(z.string()).optional(),
   updatedParty: z.array(z.any()).optional(),
-  updatedEnemies: z.array(z.any()).optional(), // Added: Updated enemies with HP changes
+  updatedEnemies: z.array(z.any()).optional(), // Deprecated: Use updatedEnemiesByLocation instead
+  updatedEnemiesByLocation: z.record(z.string(), z.array(z.any())).optional(), // Map of locationId -> updated enemies array
   nextLocationId: z.string().optional().nullable(),
   inCombat: z.boolean().optional(),
   initiativeOrder: z.array(z.any()).optional(), // Combatant[]
-  enemies: z.array(z.any()).optional(),
+  enemies: z.array(z.any()).optional(), // Deprecated: Use enemiesByLocation instead
+  enemiesByLocation: z.record(z.string(), z.array(z.any())).optional(), // Map of locationId -> enemies array
   error: z.string().optional(),
   turnIndex: z.number().optional(), // Added turnIndex to the output
   hasMoreAITurns: z.boolean().optional(), // Step-by-step combat: indicates if more AI turns are pending
@@ -79,7 +82,8 @@ export const GameStateSchema = z.object({
   conversationHistory: z.array(z.any()), // This is an array of GameMessage objects
   turnIndex: z.number().optional(),
   initiativeOrder: z.array(z.any()).optional(), // This represents Combatant[]
-  enemies: z.array(z.any()).optional(),
+  enemies: z.array(z.any()).optional(), // Deprecated: Use enemiesByLocation instead
+  enemiesByLocation: z.record(z.string(), z.array(z.any())).optional(), // Map of locationId -> enemies array
 });
 export type GameState = z.infer<typeof GameStateSchema>;
 
@@ -89,6 +93,7 @@ export const ExplorationExpertInputSchema = z.object({
   locationId: z.string().describe('The ID of the current location.'),
   locationContext: z.string().describe('A JSON string with the full data of the current location, including its description, exits, and interactable objects.'),
   interpretedAction: z.string().describe("A JSON string of the structured interpretation of the player's action."),
+  deadEntities: z.string().optional().describe("Comma-separated list of entity names that have been defeated/killed in this location. The location description may mention them as alive, but they should be described as dead bodies."),
 });
 export type ExplorationExpertInput = z.infer<typeof ExplorationExpertInputSchema>;
 

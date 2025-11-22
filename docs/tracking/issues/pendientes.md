@@ -2,8 +2,8 @@
 
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 27 issues  
-**Última actualización:** 2025-11-21 (Issue #117 movido a corregidos - Simplificación de Arquitectura de Combate completada)
+**Total:** 28 issues  
+**Última actualización:** 2025-11-22 (Issue #119 añadido - Testeo profundo del sistema de combate)
 
 ---
 
@@ -158,6 +158,60 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
   - Issue #94 (Refactorización de Prompts de Tacticians) - Similar problema de coordinación narrativa
   - Roadmap - Sección 9 "Narración Unificada para Todos los Turnos"
 - **Detección:** Observado durante gameplay manual - duplicación de contenido entre mensajes de compañeros y narraciones del DM
+
+---
+
+### Issue #119: Testeo profundo del sistema de combate después de refactorización 🟢 TESTING
+
+- **Fecha de creación:** 2025-11-22
+- **Ubicación:** Sistema de combate completo (`src/lib/combat/`, `src/ai/tools/combat-manager.ts`, `src/ai/flows/action-interpreter.ts`)
+- **Severidad:** 🟢 **MEDIA** (necesario para asegurar estabilidad y corrección del sistema refactorizado)
+- **Descripción:** Después de la refactorización profunda del sistema de combate (Issue #117), han reaparecido algunos problemas que ya existían antes. Aunque algunos casos específicos parecen estar corregidos, es necesario realizar un testeo profundo y sistemático para verificar que todos los casos de uso funcionan correctamente.
+- **Problema:**
+  - Después de la refactorización, problemas anteriores han vuelto a aparecer:
+    - Fallos al hacer target sobre enemigos con el mismo nombre en ubicaciones diferentes
+    - A veces los enemigos no hacían nada en sus turnos
+  - Estos problemas específicos parecen estar corregidos, pero no se ha verificado sistemáticamente el resto de casos
+  - La refactorización cambió significativamente la arquitectura, por lo que es necesario validar que todos los flujos funcionan correctamente
+- **Casos específicos mencionados (aparentemente corregidos):**
+  - ✅ Fallos al hacer target sobre enemigos con el mismo nombre en ubicaciones diferentes (corregido con `enemiesByLocation`)
+  - ✅ Enemigos que no hacían nada en sus turnos (corregido con mejoras en `actionInterpreter` y `enemyTactician`)
+- **Casos que requieren verificación:**
+  - Identificación correcta de objetivos en combate (enemigos con nombres similares, múltiples enemigos del mismo tipo)
+  - Turnos de enemigos se procesan correctamente en todos los escenarios
+  - Turnos de compañeros funcionan correctamente
+  - Manejo de enemigos muertos/inconscientes
+  - Cambio de ubicación durante o después del combate
+  - Inicio de combate desde diferentes estados (exploración, interacción)
+  - Finalización de combate y transición a exploración
+  - Manejo de múltiples combates en la misma sesión
+  - Persistencia de estado de enemigos entre ubicaciones
+  - Sincronización entre UI y estado del servidor
+- **Comportamiento esperado:**
+  - Todos los casos de uso del sistema de combate funcionan correctamente
+  - No hay regresiones de problemas anteriores
+  - El sistema es estable y predecible en todos los escenarios
+- **Impacto:** Medio - Afecta la confiabilidad y estabilidad del sistema de combate, pero no es bloqueador ya que los problemas críticos parecen estar resueltos
+- **Solución propuesta:**
+  - **Fase 1:** Crear suite de tests sistemáticos para casos de uso comunes y edge cases
+  - **Fase 2:** Testing manual exhaustivo de escenarios de combate
+  - **Fase 3:** Verificar que no hay regresiones de problemas anteriores
+  - **Fase 4:** Documentar casos de uso verificados y casos problemáticos encontrados
+  - **Fase 5:** Crear issues específicos para cualquier problema encontrado durante el testing
+- **Archivos afectados:**
+  - `src/lib/combat/` (todos los módulos del sistema de combate)
+  - `src/ai/tools/combat-manager.ts`
+  - `src/ai/flows/action-interpreter.ts`
+  - `src/ai/flows/game-coordinator.ts`
+  - Tests existentes y nuevos tests a crear
+- **Estado:** 📝 **PENDIENTE**
+- **Prioridad:** Media (testing necesario pero no crítico ya que problemas específicos parecen resueltos)
+- **Relacionado con:**
+  - Issue #117 (Simplificación de Arquitectura de Combate) - La refactorización que requiere este testing
+  - Issue #92 (Identificación incorrecta de enemigo en combate) - Problema relacionado que puede reaparecer
+  - Issue #112 (Sincronización entre DM y combat tracker) - Problema de sincronización que puede estar relacionado
+- **Estimación:** 8-12 horas (testing exhaustivo y documentación)
+- **Referencia:** Reportado por usuario después de la refactorización (2025-11-22)
 
 ---
 

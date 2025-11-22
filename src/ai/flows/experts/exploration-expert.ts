@@ -42,6 +42,10 @@ Your job is to describe the world, the environment, and the immediate consequenc
 - **Interpreted Action:** \`\`\`json
 {{{interpretedAction}}}
 \`\`\`
+{{#if deadEntities}}
+- **DEFEATED ENEMIES / DEAD BODIES:** {{{deadEntities}}}
+  **CRITICAL:** The location description in the context may mention these entities as alive or threatening. You MUST IGNORE those parts. Instead, describe them as DEAD BODIES lying on the ground, defeated, or as corpses. Do NOT describe them as attacking, moving, or alive in any way.
+{{/if}}
 
 **GUIDELINES:**
 1.  **Focus on the Environment:** Describe the setting vividly. If the player moves, describe the transition. If they look at something, describe it in detail using the context.
@@ -52,6 +56,9 @@ Your job is to describe the world, the environment, and the immediate consequenc
 3.  **Atmosphere:** Is it dark? Damp? Noisy? Silent? Use these details to build immersion.
 4.  **No Dialogue:** Do NOT generate dialogue for NPCs. If an NPC is present, you can describe their *physical appearance* or *actions* (e.g., "The guard watches you suspiciously"), but do not make them speak. That is the job of the Interaction Expert.
 5.  **Dungeon Turns (Implicit):** If the action takes time (searching a room), imply the passage of time in your narration.
+{{#if deadEntities}}
+6.  **DEFEATED ENEMIES:** If "DEFEATED ENEMIES" is provided, those entities are DEAD. The location description may incorrectly mention them as alive - ignore that. Describe them as corpses, dead bodies, or defeated enemies lying on the ground. You can mention blood, wounds, or the aftermath of combat if appropriate.
+{{/if}}
 
 **OUTPUT:**
 Return a JSON object with:

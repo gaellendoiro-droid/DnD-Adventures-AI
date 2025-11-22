@@ -4,8 +4,8 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 
 **Nota:** Para ver las mejoras ya implementadas, consulta el [CHANGELOG.md](../CHANGELOG.md).
 
-**Última actualización:** 2025-11-21  
-**Estado:** Actualizado - Issue #119 añadido (Inconsistencia en niveles de logging)
+**Última actualización:** 2025-11-22  
+**Estado:** Actualizado - Sistema de Mundo Persistente: añadida información sobre `AdventureUpdateState`
 
 ---
 
@@ -139,16 +139,25 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Problema Actual:** El mundo del juego no persiste cambios entre sesiones. Cuando los jugadores derrotan enemigos, interactúan con objetos, o modifican el estado del mundo, estos cambios se pierden al recargar la partida o al volver a una ubicación. El sistema actual mantiene los enemigos derrotados en el estado del juego, pero no actualiza el `locationContext` original, lo que puede causar inconsistencias narrativas.
 *   **Mejora Propuesta:**
     *   **Sistema de Estado del Mundo:** Implementar un sistema que rastree y persista cambios en el mundo del juego (enemigos derrotados, objetos recogidos, puertas abiertas/cerradas, NPCs con actitudes modificadas, etc.)
-    *   **Actualización de LocationContext:** Cuando el estado del mundo cambia (ej: enemigos derrotados), actualizar el `locationContext` original para reflejar estos cambios. Esto asegura que el DM siempre tenga información correcta sobre el estado actual de cada ubicación.
+    *   **`AdventureUpdateState` - Registro de Cambios por Localización:** La idea central es tener un `AdventureUpdateState` (o similar) que registre cada cambio que se produzca en cada localización de la aventura original. Este sistema funcionaría como un "diff" o registro incremental de modificaciones:
+        *   **Registro Incremental:** Cada vez que ocurre un cambio en una localización (enemigo derrotado, objeto recogido, puerta abierta, etc.), se registra en el `AdventureUpdateState` asociado a esa localización
+        *   **Lectura Combinada:** Cuando sea necesario leer información de la aventura original, el sistema leerá primero los datos base de la localización y luego aplicará los cambios registrados en `AdventureUpdateState` para obtener una visión actualizada del mundo
+        *   **Persistencia Separada:** El `AdventureUpdateState` se guarda junto con el estado del jugador, manteniendo la aventura original intacta y permitiendo múltiples partidas con diferentes estados del mundo
+    *   **Actualización de LocationContext:** Cuando el estado del mundo cambia (ej: enemigos derrotados), el `AdventureUpdateState` se actualiza y se aplica al `locationContext` original para reflejar estos cambios. Esto asegura que el DM siempre tenga información correcta sobre el estado actual de cada ubicación.
     *   **Persistencia entre Sesiones:** Los cambios en el mundo deben persistir entre sesiones de juego, guardándose en el archivo de partida junto con el estado del jugador.
-    *   **Sistema de Entidades Dinámicas:** Las entidades (enemigos, NPCs, objetos) deben tener estados que puedan cambiar (vivo/muerto, presente/ausente, hostil/amistoso, etc.) y estos estados deben persistir.
+    *   **Sistema de Entidades Dinámicas:** Las entidades (enemigos, NPCs, objetos) deben tener estados que puedan cambiar (vivo/muerto, presente/ausente, hostil/amistoso, etc.) y estos estados deben persistir en el `AdventureUpdateState`.
     *   **Filtrado Inteligente:** El sistema debe filtrar automáticamente entidades muertas o ausentes del `locationContext` antes de pasarlo al `narrativeExpert`, pero mantener la información de cadáveres para narración contextual.
     *   **Sistema de Marcadores de Estado:** Implementar marcadores de estado para ubicaciones (ej: "combate_reciente", "sangre_en_suelo", "cadáveres_presentes") que el DM pueda usar para generar narraciones contextuales.
 *   **Componentes Técnicos:**
-    *   **WorldStateManager:** Módulo que gestiona el estado del mundo, rastreando cambios y actualizando `locationContext` dinámicamente
-    *   **EntityStateTracker:** Sistema que rastrea el estado de cada entidad (HP, posición, actitud, etc.)
-    *   **LocationStateUpdater:** Módulo que actualiza el `locationContext` basándose en el estado actual del mundo
-    *   **PersistentWorldStorage:** Sistema de almacenamiento que guarda y carga el estado del mundo junto con el estado del jugador
+    *   **`AdventureUpdateState`:** Estructura de datos que registra cambios por localización. Formato: `Record<locationId, LocationUpdateState>` donde cada `LocationUpdateState` contiene:
+        *   Cambios en entidades (enemigos muertos, NPCs con actitud modificada, objetos recogidos/colocados)
+        *   Cambios en el entorno (puertas abiertas/cerradas, trampas activadas/desactivadas)
+        *   Marcadores de estado (eventos recientes, efectos visuales, etc.)
+    *   **WorldStateManager:** Módulo que gestiona el estado del mundo, rastreando cambios y actualizando `AdventureUpdateState` dinámicamente
+    *   **AdventureStateMerger:** Módulo que combina los datos base de la aventura original con el `AdventureUpdateState` para generar la visión actualizada del mundo
+    *   **EntityStateTracker:** Sistema que rastrea el estado de cada entidad (HP, posición, actitud, etc.) y lo registra en `AdventureUpdateState`
+    *   **LocationStateUpdater:** Módulo que actualiza el `locationContext` basándose en el `AdventureUpdateState` aplicado a los datos originales
+    *   **PersistentWorldStorage:** Sistema de almacenamiento que guarda y carga el `AdventureUpdateState` junto con el estado del jugador
 *   **Beneficios:**
     *   ✅ **Consistencia Narrativa:** El DM siempre describe el mundo correctamente, sin mencionar enemigos muertos como vivos
     *   ✅ **Inmersión Mejorada:** Los cambios en el mundo persisten, haciendo que las acciones del jugador tengan consecuencias duraderas
@@ -160,7 +169,11 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   Sistema de Progresión (Roadmap #2) - Base para un sistema de campaña duradera
 *   **Impacto:** Alto - Fundamental para crear un mundo coherente y persistente que reaccione a las acciones del jugador. Mejora significativamente la inmersión y la sensación de que las acciones tienen consecuencias.
 *   **Plan Detallado:** ❌ No creado
-*   **Estado:** 📝 Documentado como mejora futura - Solución temporal implementada (mantener enemigos en estado)
+*   **Estado:** 📝 Documentado como mejora futura - **Solución temporal implementada:**
+    *   ✅ **Mantenimiento de estado de enemigos:** Los enemigos derrotados se mantienen en el estado del cliente (`enemies` array) incluso después de que termine el combate
+    *   ✅ **Filtrado de entidades muertas:** El `GameCoordinator` filtra automáticamente los IDs de enemigos muertos de `entitiesPresent` antes de pasar el contexto al `NarrativeManager`
+    *   ✅ **Contexto explícito de cadáveres:** Se pasa una lista explícita de enemigos derrotados (`deadEntities`) al `ExplorationExpert` para que el DM sepa que debe describirlos como cadáveres, incluso si la descripción original del JSON los menciona como vivos
+    *   ⚠️ **Limitación:** Esta solución funciona durante la sesión actual, pero no persiste entre recargas de página. Para persistencia completa, se requiere el sistema completo de "Mundo Persistente"
 
 ### 8. Compendio de D&D Local - Base de Datos Local
 *   **Problema Actual:** El sistema depende completamente de la API externa de D&D 5e para obtener información sobre monstruos, hechizos, reglas, etc. Esto causa latencia, dependencia de conectividad, y múltiples llamadas redundantes a la API.

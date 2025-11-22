@@ -309,7 +309,8 @@ export class CombatActionExecutor {
                     combatResult.targetPreviousHP = targetObj.hp.current;
 
                     // Apply damage using RulesEngine
-                    const damageResult = applyDamage(targetObj as CombatantState, damage);
+                    // Pass targetIsEnemy to correctly handle death vs unconsciousness
+                    const damageResult = applyDamage(targetObj as CombatantState, damage, targetIsEnemy);
                     const newHP = damageResult.newHP;
 
                     // Update target state

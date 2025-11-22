@@ -130,8 +130,14 @@ export function checkEndOfCombat(updatedParty: CombatantState[], updatedEnemies:
  * - Regular damage
  * - Massive damage (Instant death)
  * - Unconsciousness
+ * 
+ * @param target The combatant receiving damage
+ * @param damage The amount of damage to apply
+ * @param isEnemy Whether the target is an enemy (true) or an ally/party member (false)
+ *                Enemies die at 0 HP. Party members (Player and AI companions) become unconscious at 0 HP
+ *                unless massive damage rule applies.
  */
-export function applyDamage(target: CombatantState, damage: number): DamageResult {
+export function applyDamage(target: CombatantState, damage: number, isEnemy: boolean = false): DamageResult {
     const currentHP = target.hp.current;
     const maxHP = target.hp.max;
 
@@ -157,31 +163,23 @@ export function applyDamage(target: CombatantState, damage: number): DamageResul
         newHP = 0;
         isUnconscious = true;
 
-        // Massive Damage Rule:
+        // Massive Damage Rule (D&D 5e):
         // If damage reduces you to 0 HP and there is damage remaining,
-        // and that remaining damage equals or exceeds your hit point maximum, you die.
-        // ONLY applies to Player/Companions usually, but we can apply generally or flag it.
-        // For monsters, 0 HP is usually death anyway.
+        // and that remaining damage equals or exceeds your hit point maximum, you die instantly.
+        // This applies to both enemies and party members.
 
         if (remainingDamage >= maxHP) {
             isDead = true;
             isMassiveDamage = true;
         } else {
-            // For monsters, 0 HP is death (unless special trait).
-            // For players, 0 HP is unconscious.
-            // We'll let the caller decide based on 'controlledBy', but here we just return the flags.
-            // Defaulting isDead to true if it's a monster (controlledBy AI and not in party? context needed).
-            // Actually, let's stick to pure math here.
-            // The caller (CombatManager) knows if it's a monster or player.
-            // BUT, to be useful, we should probably handle the "Monster dies at 0" rule here if we know it's a monster.
-            // However, `applyDamage` should be generic.
-            // Let's return the flags and let the manager decide the final state text, 
-            // OR we assume standard rules:
-
-            if (target.controlledBy !== 'Player') {
-                // Monsters die at 0 usually
+            // Standard rules:
+            // - Enemies die at 0 HP (unless special trait)
+            // - Party members (Player and AI companions) become unconscious at 0 HP
+            if (isEnemy) {
+                // Enemies die at 0 HP
                 isDead = true;
             }
+            // If not enemy, isDead stays false (party member becomes unconscious)
         }
     }
 

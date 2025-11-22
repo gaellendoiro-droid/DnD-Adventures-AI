@@ -53,7 +53,7 @@ export interface TurnProcessorInput {
     dependencies: {
         /** For AI: tactician tool (enemy or companion) */
         tactician?: (input: any) => Promise<any>;
-        /** Narration expert for intention and resolution */
+        /** Narration expert for generating complete combat narrations (includes preparation, execution, and result) */
         narrationExpert: (input: any) => Promise<{ narration: string }>;
         /** Dice roller tool */
         diceRollerTool: (input: any) => Promise<any>;
@@ -94,9 +94,8 @@ export class TurnProcessor {
      * 
      * Flow:
      * 1. Planning: Get action decision (from interpretedAction for Player, from tactician for AI)
-     * 2. Intention: Generate intention narration (optional, mainly for AI)
-     * 3. Execution: Execute action using CombatActionExecutor
-     * 4. Resolution: Generate resolution narration
+     * 2. Execution: Execute action using CombatActionExecutor
+     * 3. Resolution: Generate complete narration using combatNarrationExpertTool
      * 
      * @param input Turn processing input
      * @returns Turn processing result
@@ -381,45 +380,11 @@ export class TurnProcessor {
             }
 
             // ============================================================
-            // STEP 2: INTENTION NARRATION (Optional, mainly for AI)
+            // STEP 2: EXECUTION
             // ============================================================
-            
-            // For AI, we can generate intention narration
-            // For Player, we skip this step (player action is already clear)
-            if (combatant.controlledBy === 'AI') {
-                try {
-                    const targetVisualName = getVisualName(
-                        plannedAction.targetId,
-                        initiativeOrder,
-                        initialEnemies
-                    );
-
-                    // Generate intention narration
-                    const intentionNarration = await dependencies.narrationExpert({
-                        attackerName: combatant.characterName,
-                        targetName: targetVisualName,
-                        actionDescription: plannedAction.actionDescription,
-                        attackResult: 'intention', // Special value for intention
-                    });
-
-                    if (intentionNarration.narration) {
-                        messages.push({
-                            sender: 'DM',
-                            content: intentionNarration.narration,
-                        });
-                    }
-                } catch (error) {
-                    // If intention narration fails, continue anyway
-                    log.warn('Failed to generate intention narration', {
-                        module: 'TurnProcessor',
-                        error: error instanceof Error ? error.message : String(error),
-                    });
-                }
-            }
-
-            // ============================================================
-            // STEP 3: EXECUTION
-            // ============================================================
+            // Note: Intention narration was removed in Issue #94.
+            // combatNarrationExpertTool now generates complete narrations
+            // that include preparation, execution, and result in a single message.
             
             const actionInput: CombatActionInput = {
                 combatant,
@@ -456,7 +421,7 @@ export class TurnProcessor {
             updatedEnemies = executionResult.updatedEnemies;
 
             // ============================================================
-            // STEP 4: RESOLUTION NARRATION
+            // STEP 3: RESOLUTION NARRATION
             // ============================================================
             
             try {

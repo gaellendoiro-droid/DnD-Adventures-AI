@@ -3,15 +3,15 @@
 Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras identificados durante el desarrollo del proyecto.
 
 **Fecha de inicio:** Durante el saneamiento general de la aplicación (2025-11-10)  
-**Última actualización:** 2025-01-20 (Issue #116 añadido - Coordinación narraciones DM y compañeros)
+**Última actualización:** 2025-11-22 (Issue #119 añadido - Testeo profundo del sistema de combate)
 
 ---
 
 ## 📊 Resumen Estadístico
 
-- **Total de issues:** 57
-- **Issues corregidos:** 34 (60%)
-- **Issues pendientes:** 23 (40%)
+- **Total de issues:** 58
+- **Issues corregidos:** 34 (59%)
+- **Issues pendientes:** 24 (41%)
 
 ### Por Prioridad
 
@@ -24,7 +24,7 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 **Issues Pendientes:**
 - 🔴 PMA (Prioridad Muy Alta): 0 issues ✅
 - 🟡 PA (Prioridad Alta): 3 issues (Issues #93, #94, #115)
-- 🟢 PM (Prioridad Media): 16 issues (incluye Issues #63, #65, #76, #77, #80, #116)
+- 🟢 PM (Prioridad Media): 17 issues (incluye Issues #63, #65, #76, #77, #80, #116, #119)
 - ⚪ PB (Prioridad Baja): 3 issues
 - ⚫ PMB (Prioridad Muy Baja): 1 issue
 
@@ -42,8 +42,8 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 
 ## 📁 Estructura de Archivos
 
-- **[pendientes.md](./pendientes.md)** - Issues activos que requieren atención (24 issues)
-- **[corregidos.md](./corregidos.md)** - Issues resueltos y verificados (31 issues) - Histórico
+- **[pendientes.md](./pendientes.md)** - Issues activos que requieren atención (25 issues)
+- **[corregidos.md](./corregidos.md)** - Issues resueltos y verificados (34 issues) - Histórico
 
 ---
 
@@ -60,6 +60,7 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 - [Issue #75: DM inventa armas en narración de ataques sin consultar inventario](./pendientes.md#issue-75-dm-inventa-armas-en-narración-de-ataques-sin-consultar-inventario-advertencia) *[Detectado en testing]*
 
 **🟢 Prioridad Media (PM):**
+- [Issue #119: Testeo profundo del sistema de combate después de refactorización](./pendientes.md#issue-119-testeo-profundo-del-sistema-de-combate-después-de-refactorización-verde-testing) *[Testing necesario - Post-refactorización]*
 - [Issue #116: DM narra palabras textuales de compañeros cuando tienen su propia voz](./pendientes.md#issue-116-dm-narra-palabras-textuales-de-compañeros-cuando-tienen-su-propia-voz-mejora) *[Detectado en gameplay manual - Coordinación narrativa]*
 - [Issue #38: Auto-redirección de ataque a enemigo diferente cuando target está muerto](./pendientes.md#issue-38-auto-redirección-de-ataque-a-enemigo-diferente-cuando-target-está-muerto-mejora--decisión-de-diseño) *[Detectado en testing - Decisión de diseño pendiente]*
 - [Issue #65: Ataque a compañero fuera de combate no inicia combate](./pendientes.md#issue-65-ataque-a-compañero-fuera-de-combate-no-inicia-combate-mejora) *[Detectado en testing - Mejora futura]*

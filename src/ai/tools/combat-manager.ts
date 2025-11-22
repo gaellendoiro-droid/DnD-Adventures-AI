@@ -50,11 +50,13 @@ export const CombatManagerOutputSchema = z.object({
     messages: z.array(z.any()),
     diceRolls: z.array(z.any()).optional(),
     updatedParty: z.array(z.any()).optional(),
-    updatedEnemies: z.array(z.any()).optional(),
+    updatedEnemies: z.array(z.any()).optional(), // Deprecated: Use updatedEnemiesByLocation instead
+    updatedEnemiesByLocation: z.record(z.string(), z.array(z.any())).optional(), // Map of locationId -> updated enemies array
     nextLocationId: z.string().optional().nullable(),
     inCombat: z.boolean(),
     initiativeOrder: z.array(z.any()).optional(),
-    enemies: z.array(z.any()).optional(),
+    enemies: z.array(z.any()).optional(), // Deprecated: Use enemiesByLocation instead
+    enemiesByLocation: z.record(z.string(), z.array(z.any())).optional(), // Map of locationId -> enemies array
     // debugLogs removed - UI DebugLog panel is being deprecated
     turnIndex: z.number().optional(),
     hasMoreAITurns: z.boolean().optional(),
@@ -91,10 +93,13 @@ export async function executeCombatManager(
 
     const { playerAction, inCombat, locationId, interpretedAction, locationContext, conversationHistory, combatantIds } = input;
 
+    // Get enemies for current location from enemiesByLocation, fallback to enemies for backward compatibility
+    const currentLocationEnemies = input.enemiesByLocation?.[locationId] || input.enemies || [];
+
     // Create or hydrate CombatSession from input
     const session = CombatSession.fromInput({
         party: input.party || [],
-        enemies: input.enemies || [],
+        enemies: currentLocationEnemies, // Use location-specific enemies
         initiativeOrder: input.initiativeOrder || [],
         turnIndex: input.turnIndex ?? 0,
         inCombat: inCombat || false,

@@ -20,6 +20,7 @@ const actionInterpreterPrompt = ai.definePrompt({
         locationContext: z.string(), 
         party: ActionInterpreterInputSchema.shape.party,
         allLocationNames: z.array(z.string()), // Provide all possible location names
+        updatedEnemies: z.array(z.any()).optional(),
     }) },
     output: { schema: ActionInterpreterOutputSchema },
     prompt: `You are an expert action interpreter for a D&D game. Your ONLY job is to determine the player's intent and return a structured JSON object. You must follow a strict priority flow.
@@ -33,8 +34,9 @@ const actionInterpreterPrompt = ai.definePrompt({
     *   Analyze for a clear intent to attack.
     *   If detected, classify as 'attack'.
     *   **IMPORTANT - Target Identification:**
-    *     - If the player explicitly mentions a specific target (e.g., "ataco al goblin", "ataco a la mantícora"), use that target's ID from the context.
-    *     - If the player's action is generic (e.g., "atacamos", "ataco", "luchamos") without specifying a target, you MAY leave 'targetId' as null or use the first hostile entity ID from 'entitiesPresent' as a fallback.
+    *     - **Combat State Priority:** If 'updatedEnemies' is provided, look there FIRST. It contains the current state of combatants with unique IDs (e.g., "Goblin 2", "Orc 1"). Match the player's target (e.g., "ataco al goblin 2") to the 'id' or 'name' in 'updatedEnemies'.
+    *     - If the player explicitly mentions a specific target (e.g., "ataco al goblin", "ataco a la mantícora"), use that target's ID from 'updatedEnemies' or 'entitiesPresent'.
+    *     - If the player's action is generic (e.g., "atacamos", "ataco", "luchamos") without specifying a target, you MAY leave 'targetId' as null or use the first hostile entity ID as a fallback.
     *     - The 'targetId' is just the INITIAL target - other hostile entities in the location will join combat automatically.
     *   Stop here.
 
@@ -61,6 +63,9 @@ const actionInterpreterPrompt = ai.definePrompt({
 **CONTEXT:**
 - Player's Party: \`\`\`json
 {{{json party}}}
+\`\`\`
+- Updated Enemies (Current Combat State): \`\`\`json
+{{{json updatedEnemies}}}
 \`\`\`
 - Current Location: \`\`\`json
 {{{locationContext}}}
@@ -100,6 +105,7 @@ export const actionInterpreterFlow = ai.defineFlow(
                         locationContext: input.locationContext,
                         party: input.party,
                         allLocationNames: allLocationNames,
+                        updatedEnemies: input.updatedEnemies,
                     }),
                     3, // maxRetries (4 total attempts)
                     1000, // initialDelayMs

@@ -23,7 +23,8 @@ interface InitialGameData {
   inCombat?: boolean;
   initiativeOrder?: Combatant[];
   turnIndex?: number;
-  enemies?: any[];
+  enemies?: any[]; // Deprecated: kept for backward compatibility
+  enemiesByLocation?: Record<string, any[]>; // New: enemies by location
 }
 
 export default function Home() {
@@ -45,7 +46,8 @@ export default function Home() {
     locationId: z.string(),
     inCombat: z.boolean().optional(),
     initiativeOrder: z.array(z.any()).optional(),
-    enemies: z.array(z.any()).optional(),
+    enemies: z.array(z.any()).optional(), // Deprecated: kept for backward compatibility
+    enemiesByLocation: z.record(z.string(), z.array(z.any())).optional(), // New: enemies by location
     turnIndex: z.number().optional(),
   });
 
@@ -90,6 +92,8 @@ export default function Home() {
         inCombat: false,
         initiativeOrder: [],
         turnIndex: 0,
+        enemies: [], // Deprecated: kept for backward compatibility
+        enemiesByLocation: {}, // New: enemies by location (empty initially)
       });
 
       setGameInProgress(true);
@@ -221,6 +225,8 @@ export default function Home() {
           inCombat: false,
           initiativeOrder: [],
           turnIndex: 0,
+          enemies: [], // Deprecated: kept for backward compatibility
+          enemiesByLocation: {}, // New: enemies by location (empty initially)
         });
 
         setGameInProgress(true);
@@ -264,7 +270,8 @@ export default function Home() {
           inCombat: validatedSaveData.inCombat || false,
           initiativeOrder: validatedSaveData.initiativeOrder || [],
           turnIndex: validatedSaveData.turnIndex || 0,
-          enemies: validatedSaveData.enemies || [],
+          enemies: validatedSaveData.enemies || [], // Deprecated: kept for backward compatibility
+          enemiesByLocation: validatedSaveData.enemiesByLocation || {}, // New: enemies by location
         });
 
         setGameInProgress(true);

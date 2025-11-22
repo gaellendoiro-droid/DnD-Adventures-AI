@@ -27,7 +27,8 @@ interface GameViewProps {
     inCombat?: boolean;
     initiativeOrder?: Combatant[];
     turnIndex?: number;
-    enemies?: any[];
+    enemies?: any[]; // Deprecated: kept for backward compatibility
+    enemiesByLocation?: Record<string, any[]>; // New: enemies by location
   };
   onSaveGame: (saveData: any) => void;
 }
@@ -39,7 +40,10 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const [locationId, setLocationId] = useState(initialData.locationId);
   const [inCombat, setInCombat] = useState(initialData.inCombat || false);
   const [initiativeOrder, setInitiativeOrder] = useState<Combatant[]>(initialData.initiativeOrder || []);
-  const [enemies, setEnemies] = useState<any[]>(initialData.enemies || []);
+  const [enemies, setEnemies] = useState<any[]>(initialData.enemies || []); // Deprecated: kept for backward compatibility
+  const [enemiesByLocation, setEnemiesByLocation] = useState<Record<string, any[]>>(
+    initialData.enemiesByLocation || {}
+  );
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
     initialData.party.find(c => c.controlledBy === 'Player') || null
   );
@@ -53,7 +57,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   const autoAdvancingRef = useRef(false); // Use ref for synchronous access
   const turnIndexRef = useRef(initialData.turnIndex || 0); // Use ref for synchronous access
   const initiativeOrderRef = useRef<Combatant[]>(initialData.initiativeOrder || []); // Use ref for synchronous access
-  const enemiesRef = useRef<any[]>(initialData.enemies || []); // Use ref for synchronous access
+  const enemiesRef = useRef<any[]>(initialData.enemies || []); // Deprecated: kept for backward compatibility
+  const enemiesByLocationRef = useRef<Record<string, any[]>>(initialData.enemiesByLocation || {}); // Use ref for synchronous access
   const partyRef = useRef<Character[]>(initialData.party); // Use ref for synchronous access
   const locationIdRef = useRef<string>(initialData.locationId); // Use ref for synchronous access
   const inCombatRef = useRef<boolean>(initialData.inCombat || false); // Use ref for synchronous access
@@ -69,13 +74,14 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
   // to maintain the "next turn" index separate from the visual display index
   useEffect(() => {
     initiativeOrderRef.current = initiativeOrder;
-    enemiesRef.current = enemies;
+    enemiesRef.current = enemies; // Deprecated: kept for backward compatibility
+    enemiesByLocationRef.current = enemiesByLocation;
     partyRef.current = party;
     locationIdRef.current = locationId;
     inCombatRef.current = inCombat;
     messagesRef.current = messages;
     selectedCharacterRef.current = selectedCharacter;
-  }, [initiativeOrder, enemies, party, locationId, inCombat, messages, selectedCharacter]);
+  }, [initiativeOrder, enemies, enemiesByLocation, party, locationId, inCombat, messages, selectedCharacter]);
 
   const addDebugMessages = useCallback((newLogs: string[] | undefined) => {
     if (!newLogs || newLogs.length === 0) return;
@@ -110,12 +116,14 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
     inCombatRef.current = initialData.inCombat || false; // Update ref synchronously
     setInitiativeOrder(initialData.initiativeOrder || []);
     setTurnIndex(initialData.turnIndex || 0);
-    setEnemies(initialData.enemies || []);
+    setEnemies(initialData.enemies || []); // Deprecated: kept for backward compatibility
+    setEnemiesByLocation(initialData.enemiesByLocation || {});
     setDebugMessages([]);
     // Sync refs with initial data
     turnIndexRef.current = initialData.turnIndex || 0;
     initiativeOrderRef.current = initialData.initiativeOrder || [];
-    enemiesRef.current = initialData.enemies || [];
+    enemiesRef.current = initialData.enemies || []; // Deprecated: kept for backward compatibility
+    enemiesByLocationRef.current = initialData.enemiesByLocation || {};
     partyRef.current = initialData.party;
     addDebugMessages(["Game state initialized from initialData."]);
   }, [initialData, addDebugMessages]);
@@ -127,7 +135,8 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
       inCombat,
       initiativeOrderLength: initiativeOrder.length,
       turnIndex,
-      enemiesLength: enemies.length,
+      enemiesLength: enemies.length, // Deprecated
+      enemiesByLocationKeys: Object.keys(enemiesByLocation),
       locationId,
       partySize: party.length,
     });
@@ -161,9 +170,9 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         console.log('🗡️ Orden de iniciativa:', 'Vacío (no hay combate activo)');
       }
       
-      // Enemigos - expandido
+      // Enemigos - expandido (deprecated, usar enemiesByLocation)
       if (enemies.length > 0) {
-        console.log('👹 Enemigos:', enemies.length, 'enemigos');
+        console.log('👹 Enemigos (deprecated):', enemies.length, 'enemigos');
         enemies.forEach((enemy: any, index) => {
           const enemyName = enemy.name || enemy.characterName || enemy.id || 'Unknown';
           console.log(`  ${index + 1}. ${enemyName}`, {
@@ -175,7 +184,30 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
           });
         });
       } else {
-        console.log('👹 Enemigos:', 'Vacío (no hay enemigos)');
+        console.log('👹 Enemigos (deprecated):', 'Vacío (no hay enemigos)');
+      }
+      
+      // Enemigos por ubicación - expandido
+      const locationKeys = Object.keys(enemiesByLocation);
+      if (locationKeys.length > 0) {
+        console.log('🗺️ Enemigos por Ubicación:', locationKeys.length, 'ubicaciones');
+        locationKeys.forEach(locId => {
+          const locEnemies = enemiesByLocation[locId];
+          console.log(`  📍 ${locId}:`, locEnemies.length, 'enemigos');
+          locEnemies.forEach((enemy: any, index) => {
+            const enemyName = enemy.name || enemy.characterName || enemy.id || 'Unknown';
+            const isDead = enemy.hp && enemy.hp.current <= 0;
+            console.log(`    ${index + 1}. ${enemyName}${isDead ? ' (MUERTO)' : ''}`, {
+              id: enemy.id,
+              name: enemyName,
+              ...(enemy.hp && { hp: enemy.hp }),
+              ...(enemy.ac && { ac: enemy.ac }),
+              isDead,
+            });
+          });
+        });
+      } else {
+        console.log('🗺️ Enemigos por Ubicación:', 'Vacío (no hay enemigos en ninguna ubicación)');
       }
       
       // Resumen compacto para referencia rápida
@@ -183,14 +215,16 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         inCombat,
         initiativeOrderCount: initiativeOrder.length,
         turnIndex,
-        enemiesCount: enemies.length,
+        enemiesCount: enemies.length, // Deprecated
+        enemiesByLocationCount: Object.keys(enemiesByLocation).length,
+        currentLocationEnemiesCount: enemiesByLocation[locationId]?.length || 0,
         locationId,
         partySize: party.length,
       });
       
       console.groupEnd();
     }
-  }, [inCombat, initiativeOrder, turnIndex, enemies, locationId, party.length]);
+  }, [inCombat, initiativeOrder, turnIndex, enemies, enemiesByLocation, locationId, party.length]);
 
   // Counter to ensure unique IDs even when messages are created in the same millisecond
   const messageIdCounterRef = useRef(0);
@@ -365,9 +399,28 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         }
       }
       
-      // Update enemies with HP changes if provided
+      // Update enemies with HP changes if provided (backward compatibility)
       if (result.updatedEnemies) {
         setEnemies(result.updatedEnemies);
+        enemiesRef.current = result.updatedEnemies;
+      }
+      
+      // Update enemiesByLocation if provided (new preferred method)
+      if (result.updatedEnemiesByLocation) {
+        setEnemiesByLocation(prev => {
+          const updated = { ...prev, ...result.updatedEnemiesByLocation };
+          enemiesByLocationRef.current = updated;
+          return updated;
+        });
+      }
+      
+      // Also update from enemiesByLocation if provided (for initial state)
+      if (result.enemiesByLocation) {
+        setEnemiesByLocation(prev => {
+          const updated = { ...prev, ...result.enemiesByLocation };
+          enemiesByLocationRef.current = updated;
+          return updated;
+        });
       }
       
       // Update combat-related states with synchronization
@@ -378,11 +431,12 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
         if (!result.inCombat) {
           setInitiativeOrder([]);
           setTurnIndex(0);
-          setEnemies([]);
+          // Don't clear enemies here - we need them for context (dead bodies, etc.)
+          // setEnemies([]); 
           // Update refs
           initiativeOrderRef.current = [];
           turnIndexRef.current = 0;
-          enemiesRef.current = [];
+          // enemiesRef.current = [];
         } else {
           // If combat starts or continues, update combat states
           if (result.initiativeOrder) {
@@ -434,10 +488,19 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
               setTurnIndex(result.turnIndex);
             }
           }
-          // Only update enemies if updatedEnemies is not provided (fallback to enemies)
+          // Only update enemies if updatedEnemies is not provided (fallback to enemies) - backward compatibility
           if (!result.updatedEnemies && result.enemies) {
             setEnemies(result.enemies);
             enemiesRef.current = result.enemies;
+          }
+          
+          // Update enemiesByLocation if provided
+          if (result.updatedEnemiesByLocation) {
+            setEnemiesByLocation(prev => {
+              const updated = { ...prev, ...result.updatedEnemiesByLocation };
+              enemiesByLocationRef.current = updated;
+              return updated;
+            });
           }
         }
       } else {
@@ -474,16 +537,20 @@ export function GameView({ initialData, onSaveGame }: GameViewProps) {
             setTurnIndex(result.turnIndex);
           }
         }
-        // Only update enemies if updatedEnemies is not provided (fallback to enemies)
+        // Only update enemies if updatedEnemies is not provided (fallback to enemies) - backward compatibility
         if (!result.updatedEnemies && result.enemies) {
           setEnemies(result.enemies);
           enemiesRef.current = result.enemies;
         }
-      }
       
-      // Update enemies ref if updatedEnemies is provided
-      if (result.updatedEnemies) {
-        enemiesRef.current = result.updatedEnemies;
+        // Update enemiesByLocation if provided
+        if (result.enemiesByLocation) {
+          setEnemiesByLocation(prev => {
+            const updated = { ...prev, ...result.enemiesByLocation };
+            enemiesByLocationRef.current = updated;
+            return updated;
+          });
+        }
       }
       
       // Step-by-step combat: Update hasMoreAITurns state

@@ -15,6 +15,90 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+---
+
+## [0.5.51] - 2025-11-22
+
+### Fixed
+- **✅ Corrección: Enemigos muertos no se mantienen en estado después del combate (2025-11-21):**
+  - **Problema:** Al terminar el combate, el sistema vaciaba completamente el array de enemigos, causando que el DM describiera enemigos muertos como vivos cuando el jugador exploraba la ubicación después del combate
+  - **Solución:** Modificado `CombatSession` para mantener los enemigos derrotados (con `hp.current = 0`) en el estado después del combate
+  - **Beneficios:**
+    - ✅ El filtro existente en `game-coordinator.ts` puede identificar correctamente enemigos muertos
+    - ✅ El DM no describe enemigos muertos como vivos
+    - ✅ El estado persiste entre sesiones (se guarda en el archivo de partida)
+  - **Archivos modificados:**
+    - `src/lib/combat/combat-session.ts` - Eliminada línea que vaciaba array de enemigos al terminar combate
+  - **Nota:** Esta fue una solución temporal. Ver entrada en `### Changed` sobre `enemiesByLocation` (2025-11-22) para la solución arquitectónica completa
+
+- **✅ Mejora: Consistencia en narración de inicio de combate (2025-11-21):**
+  - **Problema:** La narración de inicio de combate a veces mencionaba tipos de criaturas incorrectos (ej: orcos o gnomos cuando se enfrentaban goblins), causando inconsistencias narrativas
+  - **Solución:** Mejorado el prompt de `combatInitiationPrompt` en `narrative-manager.ts` para ser más explícito sobre usar los nombres exactos de enemigos del `combatContext`
+  - **Cambios:**
+    - Eliminado ejemplo confuso que mencionaba "Orco 1"
+    - Añadida instrucción explícita para identificar enemigos usando SOLO los nombres del contexto
+    - Añadida instrucción crítica para NO inventar tipos de enemigos
+    - Instrucciones simplificadas y más directas
+  - **Beneficios:**
+    - ✅ Narración consistente con los enemigos reales presentes
+    - ✅ El DM menciona correctamente los tipos de criaturas (goblins, bandits, etc.)
+    - ✅ Mejor coherencia narrativa al inicio del combate
+  - **Archivos modificados:**
+    - `src/ai/flows/narrative-manager.ts` - Mejorado prompt `combatInitiationPrompt`
+
+- **✅ Corrección: Compañeros de IA mueren en lugar de quedar inconscientes a 0 HP (2025-11-22):**
+  - **Problema:** Los compañeros de IA con `controlledBy === 'AI'` morían automáticamente al llegar a 0 HP, incluso con daño menor que su HP máximo. Esto violaba las reglas de D&D 5e donde los aliados deberían quedar inconscientes a menos que sea daño masivo
+  - **Solución:** Añadido parámetro `isEnemy: boolean` a la función `applyDamage()` en `rules-engine.ts` para distinguir entre enemigos (que mueren a 0 HP) y aliados/party members (que quedan inconscientes a 0 HP)
+  - **Cambios:**
+    - `applyDamage()` ahora acepta `isEnemy` como tercer parámetro (por defecto `false`)
+    - Lógica actualizada: enemigos mueren a 0 HP; aliados quedan inconscientes a menos que sea daño masivo (daño restante ≥ HP máximo)
+    - `action-executor.ts` actualizado para pasar `targetIsEnemy` al llamar `applyDamage()`
+    - Tests actualizados para reflejar el nuevo comportamiento
+  - **Beneficios:**
+    - ✅ Comportamiento correcto según reglas de D&D 5e
+    - ✅ Compañeros de IA pueden ser curados/estabilizados después de caer inconscientes
+    - ✅ Solo mueren con daño masivo o ataques específicos de remate
+  - **Archivos modificados:**
+    - `src/lib/combat/rules-engine.ts` - Añadido parámetro `isEnemy` a `applyDamage()`
+    - `src/lib/combat/action-executor.ts` - Pasa `targetIsEnemy` a `applyDamage()`
+    - `tests/unit/combat/rules-engine.test.ts` - Tests actualizados y añadido test específico para compañeros
+
+- **✅ Corrección: ActionInterpreter no identifica objetivos específicos en combate (2025-11-22):**
+  - **Problema:** Cuando el jugador atacaba a un enemigo específico en combate (ej: "Ataco al goblin 2"), el `actionInterpreter` devolvía `targetId=null` porque no tenía acceso al estado actual de los enemigos con sus IDs únicos generados dinámicamente
+  - **Solución:** Añadido `updatedEnemies` al contexto del prompt de `actionInterpreter` para que el modelo tenga acceso a la lista actual de enemigos con sus nombres e IDs únicos
+  - **Cambios:**
+    - Schema del prompt `actionInterpreterPrompt` actualizado para incluir `updatedEnemies`
+    - Prompt text actualizado con instrucciones explícitas para buscar objetivos en `updatedEnemies` primero
+    - Añadido bloque de contexto "Updated Enemies (Current Combat State)" al prompt
+    - `game-coordinator.ts` ya estaba pasando `currentLocationEnemies` correctamente
+  - **Beneficios:**
+    - ✅ El sistema identifica correctamente objetivos específicos en combate (ej: "goblin 2", "orco 1")
+    - ✅ Funciona correctamente después de múltiples rondas cuando los enemigos tienen IDs únicos
+    - ✅ Mejor experiencia de usuario: el jugador puede atacar a enemigos específicos sin confusión
+  - **Archivos modificados:**
+    - `src/ai/flows/action-interpreter.ts` - Añadido `updatedEnemies` al schema y contexto del prompt
+
+- **✅ Corrección: Crash al cambiar de ubicación - Assignment to constant variable (2025-11-22):**
+  - **Problema:** Al intentar moverse a una nueva ubicación durante el combate, el sistema lanzaba un error `TypeError: Assignment to constant variable` porque `currentLocationEnemies` estaba declarado como `const` pero se intentaba reasignar cuando cambiaba la ubicación
+  - **Solución:** Cambiado `const currentLocationEnemies` a `let currentLocationEnemies` en `game-coordinator.ts` para permitir la actualización cuando el jugador cambia de ubicación
+  - **Beneficios:**
+    - ✅ El sistema puede actualizar correctamente la lista de enemigos al cambiar de ubicación
+    - ✅ No más crashes al moverse entre habitaciones durante o después del combate
+  - **Archivos modificados:**
+    - `src/ai/flows/game-coordinator.ts` - Cambiado `const` a `let` para `currentLocationEnemies`
+
+- **✅ Issue #93 - Stack traces completos en errores de API call (2025-11-21):**
+  - **Problema:** Los errores de red/timeout (como `TypeError: fetch failed` con `ConnectTimeoutError`) mostraban stack traces completos muy largos en los logs, dificultando la lectura y diagnóstico
+  - **Solución:** Modificado `retryWithExponentialBackoff` en `src/ai/flows/retry-utils.ts` para crear errores limpios sin stack traces completos:
+    - Cuando se agotan los reintentos, se crea un nuevo error con mensaje limpio: `API call failed: [mensaje] ([código])`
+    - Se usa `Error.captureStackTrace` para limitar el stack trace solo a la función `retryWithExponentialBackoff`
+    - Los errores se registran con `log.error` antes de lanzarse, mostrando solo información relevante
+    - Fallback para entornos sin `Error.captureStackTrace`: stack trace mínimo
+  - **Resultado:** Los logs ahora muestran solo mensajes limpios como `Error: API call failed: Connect Timeout Error (UND_ERR_CONNECT_TIMEOUT)` sin stack traces de 20+ líneas
+  - **Archivos modificados:**
+    - `src/ai/flows/retry-utils.ts` - Manejo mejorado de errores con stack traces limitados
+  - **Referencia:** [Issue #93](../../docs/tracking/issues/pendientes.md#issue-93-manejo-de-errores-cuando-se-agotan-los-reintentos-especialmente-errores-503-de-sobrecarga-🟡-advertencia)
+
 ### Changed
 - **✅ Issue #117 - Simplificación de Arquitectura de Combate - Arquitectura Unificada (2025-11-21):**
   - **Problema:** El sistema de combate tenía una arquitectura excesivamente compleja con múltiples capas de delegación y duplicación de lógica. El flujo del jugador y el de la IA eran diferentes, causando inconsistencias y dificultando el mantenimiento
@@ -52,6 +136,36 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - `docs/testing/README.md` - Actualizado con nuevos tests
   - **Referencia:** [Issue #117](../../docs/tracking/issues/corregidos.md#issue-117-simplificación-de-arquitectura-de-combate--resuelto) | [Plan Completado](../../docs/planes-desarrollo/completados/issue-117-simplificacion-arquitectura-combate.md)
 
+- **✅ Sistema de Enemigos por Ubicación (`enemiesByLocation`) - Persistencia de Estado del Mundo (2025-11-22):**
+  - **Problema:** El sistema usaba un array plano `enemies` que causaba varios problemas:
+    - Enemigos muertos no se mantenían correctamente al cambiar de ubicación
+    - Duplicación de IDs de enemigos en diferentes ubicaciones causaba conflictos
+    - El DM mencionaba enemigos muertos como vivos al volver a una ubicación después del combate
+    - No había forma de rastrear qué enemigos pertenecían a cada ubicación específica
+  - **Solución:** Implementado sistema `enemiesByLocation` que asocia enemigos a sus ubicaciones específicas
+  - **Cambios principales:**
+    - **Nuevo esquema `enemiesByLocation`:** Estructura `Record<string, any[]>` que mapea `locationId` → array de enemigos
+    - **GameCoordinator actualizado:** Obtiene enemigos de la ubicación actual desde `enemiesByLocation[locationId]`
+    - **CombatSession refactorizado:** `toJSON()` ahora devuelve `enemiesByLocation` asociado a la ubicación del combate
+    - **CombatManager actualizado:** Obtiene enemigos de la ubicación actual antes de iniciar combate
+    - **GameView refactorizado:** Estado y refs actualizados para manejar `enemiesByLocation` en lugar de array plano
+    - **Sistema de guardado:** `enemiesByLocation` se incluye en el estado guardado de la partida
+    - **Compatibilidad hacia atrás:** El sistema sigue funcionando con `enemies` si `enemiesByLocation` no está presente
+  - **Beneficios:**
+    - ✅ Enemigos correctamente asociados a sus ubicaciones específicas
+    - ✅ Cadáveres persisten al cambiar de ubicación y volver
+    - ✅ Sin conflictos de IDs: enemigos con mismo ID en diferentes ubicaciones se manejan por separado
+    - ✅ El DM describe correctamente el estado de los enemigos (vivos/muertos) según la ubicación
+    - ✅ Base sólida para el sistema de mundo persistente futuro
+  - **Archivos modificados:**
+    - `src/ai/flows/schemas.ts` - Añadido `enemiesByLocation` a `GameStateSchema`, `GameCoordinatorOutputSchema` y `CombatManagerOutputSchema`
+    - `src/ai/flows/game-coordinator.ts` - Actualizado para usar `enemiesByLocation[locationId]` y actualizar `currentLocationEnemies` al cambiar de ubicación
+    - `src/lib/combat/combat-session.ts` - `toJSON()` devuelve `enemiesByLocation` asociado a `locationId`
+    - `src/ai/tools/combat-manager.ts` - Obtiene enemigos de `enemiesByLocation[locationId]` antes de crear `CombatSession`
+    - `src/components/game/game-view.tsx` - Estado `enemiesByLocation` y ref, merge correcto de actualizaciones, envía `enemiesByLocation` en acciones
+    - `src/app/page.tsx` - `InitialGameData` y `SaveGameDataSchema` actualizados para incluir `enemiesByLocation`
+  - **Nota:** Esta implementación mejora significativamente la corrección anterior (2025-11-21) sobre enemigos muertos, proporcionando una solución arquitectónica completa en lugar de una solución temporal
+
 - **✅ Issue #94 - Refactorización de Prompts de Tacticians - Narración Centralizada (2025-11-21):**
   - **Problema:** Los tacticians (`enemyTacticianTool` y `companionTacticianTool`) generaban tanto la decisión táctica como la narración, creando prompts complejos, inconsistencias narrativas y dificultando el mantenimiento
   - **Solución:** Separación completa de responsabilidades - Tacticians solo deciden táctica, `combatNarrationExpertTool` genera todas las narraciones
@@ -79,19 +193,6 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - `src/lib/combat/combat-initializer.ts` - Añadido `combatNarrationExpertTool` al contexto
     - `src/lib/combat/initialization/types.ts` - Añadido `combatNarrationExpertTool` al contexto
   - **Referencia:** [Issue #94](../../docs/tracking/issues/corregidos.md#issue-94-refactorización-de-prompts-de-tacticians---separación-de-narración-y-decisión-táctica--resuelto) | [Plan Completado](../../docs/planes-desarrollo/completados/issue-94-refactorizacion-prompts-tacticians.md)
-
-### Fixed
-- **✅ Issue #93 - Stack traces completos en errores de API call (2025-11-21):**
-  - **Problema:** Los errores de red/timeout (como `TypeError: fetch failed` con `ConnectTimeoutError`) mostraban stack traces completos muy largos en los logs, dificultando la lectura y diagnóstico
-  - **Solución:** Modificado `retryWithExponentialBackoff` en `src/ai/flows/retry-utils.ts` para crear errores limpios sin stack traces completos:
-    - Cuando se agotan los reintentos, se crea un nuevo error con mensaje limpio: `API call failed: [mensaje] ([código])`
-    - Se usa `Error.captureStackTrace` para limitar el stack trace solo a la función `retryWithExponentialBackoff`
-    - Los errores se registran con `log.error` antes de lanzarse, mostrando solo información relevante
-    - Fallback para entornos sin `Error.captureStackTrace`: stack trace mínimo
-  - **Resultado:** Los logs ahora muestran solo mensajes limpios como `Error: API call failed: Connect Timeout Error (UND_ERR_CONNECT_TIMEOUT)` sin stack traces de 20+ líneas
-  - **Archivos modificados:**
-    - `src/ai/flows/retry-utils.ts` - Manejo mejorado de errores con stack traces limitados
-  - **Referencia:** [Issue #93](../../docs/tracking/issues/pendientes.md#issue-93-manejo-de-errores-cuando-se-agotan-los-reintentos-especialmente-errores-503-de-sobrecarga-🟡-advertencia)
 
 ---
 

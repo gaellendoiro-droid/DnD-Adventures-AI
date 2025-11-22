@@ -269,160 +269,160 @@ export const initialParty: Character[] = [
     //     { id: "spell-14", name: "Armadura de mago", level: 1, description: "Una fuerza mágica protectora te rodea, estableciendo tu CA base en 13 + tu modificador de Destreza." },
     // ]
   },
-  // {
-  //   id: "3",
-  //   name: "Elara",
-  //   race: "Semielfa",
-  //   characterClass: "Clériga",
-  //   level: 1,
-  //   sex: "Mujer",
-  //   background: "Acólita",
-  //   color: '#f97316', // orange-500
-  //   personality: "Una clériga devota pero pragmática. Tiende a ser la voz de la razón y la moral del grupo, pero no es ingenua. Es protectora y cautelosa, y a menudo desconfía de la magia arcana.",
-  //   alignment: "Legal Bueno",
-  //   abilityScores: {
-  //     fuerza: 14,
-  //     destreza: 8,
-  //     constitución: 15,
-  //     inteligencia: 10,
-  //     sabiduría: 16,
-  //     carisma: 12,
-  //   },
-  //   abilityModifiers: {
-  //     fuerza: 2,
-  //     destreza: -1,
-  //     constitución: 2,
-  //     inteligencia: 0,
-  //     sabiduría: 3,
-  //     carisma: 1,
-  //   },
-  //   proficiencyBonus: 2, // Nivel 1: BC +2
-  //   hp: { current: 20, max: 20 }, // Corregido: Clériga nivel 1 (8) + CON mod (2) = 10
-  //   ac: 13, // Corregido: Armadura de escamas (14) + DES mod (-1) = 13
-  //   speed: 30, // Semielfa base
-  //   initiative: -1, // Modificador de Destreza
-  //   savingThrows: {
-  //     fuerza: 2,
-  //     destreza: -1,
-  //     constitución: 2,
-  //     inteligencia: 0,
-  //     sabiduría: 5, // Modificador + BC (competente)
-  //     carisma: 3, // Modificador + BC (competente)
-  //   },
-  //   isDead: false,
-  //   skills: [
-  //     // Todas las habilidades de D&D 5e
-  //     { name: "Atletismo", proficient: false }, // FUE
-  //     { name: "Acrobacias", proficient: false }, // DES
-  //     { name: "Juego de Manos", proficient: false }, // DES
-  //     { name: "Sigilo", proficient: false }, // DES
-  //     { name: "Arcano", proficient: false }, // INT
-  //     { name: "Historia", proficient: false }, // INT
-  //     { name: "Investigación", proficient: false }, // INT
-  //     { name: "Naturaleza", proficient: false }, // INT
-  //     { name: "Religión", proficient: true }, // INT - Competente (clase + trasfondo)
-  //     { name: "Trato con Animales", proficient: false }, // SAB
-  //     { name: "Percepción", proficient: false }, // SAB
-  //     { name: "Perspicacia", proficient: true }, // SAB - Competente (clase)
-  //     { name: "Medicina", proficient: true }, // SAB - Competente (clase + trasfondo)
-  //     { name: "Supervivencia", proficient: false }, // SAB
-  //     { name: "Engañar", proficient: false }, // CAR
-  //     { name: "Intimidar", proficient: false }, // CAR
-  //     { name: "Interpretación", proficient: false }, // CAR
-  //     { name: "Persuasión", proficient: false }, // CAR
-  //   ],
-  //   controlledBy: "AI",
-  //   inventory: [
-  //       { id: "item-5", name: "Maza", quantity: 1, description: "Un arma contundente simple pero efectiva. Ataque: +4, Daño: 1d6+2 (Contundente), Alcance: 5 pies." },
-  //       { id: "item-6", name: "Armadura de escamas", quantity: 1, description: "Armadura de cuero reforzada con escamas de metal. CA 14." },
-  //       { id: "item-7", name: "Símbolo sagrado", quantity: 1, description: "Un amuleto de plata que canaliza su poder divino." },
-  //       { id: "item-8", name: "Paquete de sacerdote", quantity: 1, description: "Incluye agua bendita, viales y otros objetos para sus rituales." },
-  //       { id: "item-gp-2", name: "Monedas de Oro", quantity: 15, description: "Dinero contante y sonante." },
-  //   ],
-  //   attacks: [
-  //     {
-  //       id: "attack-3",
-  //       name: "Maza",
-  //       attackBonus: 4, // FUE mod (2) + BC (2)
-  //       damage: "1d6+2",
-  //       damageType: "Contundente",
-  //       range: "5 pies",
-  //       properties: []
-  //     },
-  //   ],
-  //   racialTraits: [
-  //     {
-  //       name: "Aumento de Características",
-  //       description: "Tu puntuación de Carisma aumenta en 2 y otras dos puntuaciones de característica de tu elección aumentan en 1."
-  //     },
-  //     {
-  //       name: "Edad",
-  //       description: "Los semielfos maduran al mismo ritmo que los humanos y alcanzan la edad adulta alrededor de los 20 años. Viven mucho más que los humanos, a menudo superando los 180 años."
-  //     },
-  //     {
-  //       name: "Tamaño",
-  //       description: "Los semielfos tienen el mismo rango de altura y peso que los humanos. Tu tamaño es Mediano."
-  //     },
-  //     {
-  //       name: "Velocidad",
-  //       description: "Tu velocidad base al caminar es de 30 pies."
-  //     },
-  //     {
-  //       name: "Visión en la Oscuridad",
-  //       description: "Gracias a tu sangre élfica, tienes una visión superior en la oscuridad y la penumbra. Puedes ver en penumbra dentro de 60 pies de ti como si fuera luz brillante, y en oscuridad como si fuera penumbra."
-  //     },
-  //     {
-  //       name: "Ascendencia Feérica",
-  //       description: "Tienes ventaja en las tiradas de salvación contra ser hechizado y no puedes ser puesto a dormir por magia."
-  //     },
-  //     {
-  //       name: "Idiomas",
-  //       description: "Puedes hablar, leer y escribir Común, Élfico y un idioma adicional de tu elección."
-  //     }
-  //   ],
-  //   classFeatures: [
-  //     {
-  //       name: "Lanzamiento de Conjuros",
-  //       description: "Como estudiante de la magia divina, tienes acceso a una lista de conjuros basada en tu sabiduría."
-  //     },
-  //     {
-  //       name: "Dominio Divino",
-  //       description: "Al nivel 1, eliges un dominio asociado con tu deidad. Cada dominio tiene características especiales y te da acceso a conjuros de dominio."
-  //     },
-  //     {
-  //       name: "Canalizar Divinidad",
-  //       description: "A nivel 2, obtienes la capacidad de canalizar energía divina directamente de tu deidad, usando esa energía para alimentar efectos mágicos."
-  //     }
-  //   ],
-  //   spellSlots: {
-  //     level0: 999, // Trucos ilimitados
-  //     level1: 2, // Ranuras de nivel 1
-  //   },
-  //   spellSaveDC: 13, // 8 + BC (2) + SAB mod (3)
-  //   spellAttackBonus: 5, // BC (2) + SAB mod (3)
-  //   appearance: "Una mujer semielfa con rasgos delicados que combinan lo mejor de humanos y elfos. Tiene cabello castaño claro y ojos verdes. Viste túnicas simples pero bien cuidadas con símbolos sagrados bordados.",
-  //   ideals: "Servicio. Es mi deber servir a mi deidad y ayudar a aquellos que lo necesitan.",
-  //   bonds: "Mi templo y mi orden son mi familia. Debo protegerlos y mantener sus valores.",
-  //   flaws: "A veces soy demasiado rígida en mis creencias y puedo ser desconfiada de la magia arcana.",
-  //   experience: 0,
-  //   deathSaves: {
-  //     successes: 0,
-  //     failures: 0
-  //   },
-  //   spells: []
-  //   // TEMPORALMENTE DESHABILITADO PARA TESTS DE ARMAS - Restaurar después
-  //   // spells: [
-  //   //     { id: "spell-1", name: "Luz", level: 0, description: "Haces que un objeto brille como una antorcha." },
-  //   //     { id: "spell-2", name: "Llama sagrada", level: 0, description: "Una llama divina desciende sobre una criatura, que debe superar una salvación de Destreza o recibir daño radiante." },
-  //   //     { id: "spell-3", name: "Orientación divina", level: 0, description: "Tocas a una criatura y le otorgas un d4 extra en una prueba de habilidad." },
-  //   //     // TEMPORALMENTE DESHABILITADO PARA TESTS - Restaurar después de los tests
-  //   //     // { id: "spell-4", name: "Curar heridas", level: 1, description: "Restauras puntos de golpe a una criatura que toques." },
-  //   //     { id: "spell-5", name: "Escudo de fe", level: 1, description: "Proteges a una criatura con un campo divino, otorgándole +2 a la CA." },
-  //   //     // TEMPORALMENTE DESHABILITADO PARA TESTS - Restaurar después de los tests
-  //   //     // { id: "spell-6", name: "Palabra de curación", level: 1, description: "Curación a distancia como una acción adicional." },
-  //   //     { id: "spell-7", name: "Infligir heridas", level: 1, description: "Un toque necrótico que causa un gran daño." },
-  //   // ]
-  // },
+  {
+    id: "3",
+    name: "Elara",
+    race: "Semielfa",
+    characterClass: "Clériga",
+    level: 1,
+    sex: "Mujer",
+    background: "Acólita",
+    color: '#f97316', // orange-500
+    personality: "Una clériga devota pero pragmática. Tiende a ser la voz de la razón y la moral del grupo, pero no es ingenua. Es protectora y cautelosa, y a menudo desconfía de la magia arcana.",
+    alignment: "Legal Bueno",
+    abilityScores: {
+      fuerza: 14,
+      destreza: 8,
+      constitución: 15,
+      inteligencia: 10,
+      sabiduría: 16,
+      carisma: 12,
+    },
+    abilityModifiers: {
+      fuerza: 2,
+      destreza: -1,
+      constitución: 2,
+      inteligencia: 0,
+      sabiduría: 3,
+      carisma: 1,
+    },
+    proficiencyBonus: 2, // Nivel 1: BC +2
+    hp: { current: 20, max: 20 }, // Corregido: Clériga nivel 1 (8) + CON mod (2) = 10
+    ac: 13, // Corregido: Armadura de escamas (14) + DES mod (-1) = 13
+    speed: 30, // Semielfa base
+    initiative: -1, // Modificador de Destreza
+    savingThrows: {
+      fuerza: 2,
+      destreza: -1,
+      constitución: 2,
+      inteligencia: 0,
+      sabiduría: 5, // Modificador + BC (competente)
+      carisma: 3, // Modificador + BC (competente)
+    },
+    isDead: false,
+    skills: [
+      // Todas las habilidades de D&D 5e
+      { name: "Atletismo", proficient: false }, // FUE
+      { name: "Acrobacias", proficient: false }, // DES
+      { name: "Juego de Manos", proficient: false }, // DES
+      { name: "Sigilo", proficient: false }, // DES
+      { name: "Arcano", proficient: false }, // INT
+      { name: "Historia", proficient: false }, // INT
+      { name: "Investigación", proficient: false }, // INT
+      { name: "Naturaleza", proficient: false }, // INT
+      { name: "Religión", proficient: true }, // INT - Competente (clase + trasfondo)
+      { name: "Trato con Animales", proficient: false }, // SAB
+      { name: "Percepción", proficient: false }, // SAB
+      { name: "Perspicacia", proficient: true }, // SAB - Competente (clase)
+      { name: "Medicina", proficient: true }, // SAB - Competente (clase + trasfondo)
+      { name: "Supervivencia", proficient: false }, // SAB
+      { name: "Engañar", proficient: false }, // CAR
+      { name: "Intimidar", proficient: false }, // CAR
+      { name: "Interpretación", proficient: false }, // CAR
+      { name: "Persuasión", proficient: false }, // CAR
+    ],
+    controlledBy: "AI",
+    inventory: [
+        { id: "item-5", name: "Maza", quantity: 1, description: "Un arma contundente simple pero efectiva. Ataque: +4, Daño: 1d6+2 (Contundente), Alcance: 5 pies." },
+        { id: "item-6", name: "Armadura de escamas", quantity: 1, description: "Armadura de cuero reforzada con escamas de metal. CA 14." },
+        { id: "item-7", name: "Símbolo sagrado", quantity: 1, description: "Un amuleto de plata que canaliza su poder divino." },
+        { id: "item-8", name: "Paquete de sacerdote", quantity: 1, description: "Incluye agua bendita, viales y otros objetos para sus rituales." },
+        { id: "item-gp-2", name: "Monedas de Oro", quantity: 15, description: "Dinero contante y sonante." },
+    ],
+    attacks: [
+      {
+        id: "attack-3",
+        name: "Maza",
+        attackBonus: 4, // FUE mod (2) + BC (2)
+        damage: "1d6+2",
+        damageType: "Contundente",
+        range: "5 pies",
+        properties: []
+      },
+    ],
+    racialTraits: [
+      {
+        name: "Aumento de Características",
+        description: "Tu puntuación de Carisma aumenta en 2 y otras dos puntuaciones de característica de tu elección aumentan en 1."
+      },
+      {
+        name: "Edad",
+        description: "Los semielfos maduran al mismo ritmo que los humanos y alcanzan la edad adulta alrededor de los 20 años. Viven mucho más que los humanos, a menudo superando los 180 años."
+      },
+      {
+        name: "Tamaño",
+        description: "Los semielfos tienen el mismo rango de altura y peso que los humanos. Tu tamaño es Mediano."
+      },
+      {
+        name: "Velocidad",
+        description: "Tu velocidad base al caminar es de 30 pies."
+      },
+      {
+        name: "Visión en la Oscuridad",
+        description: "Gracias a tu sangre élfica, tienes una visión superior en la oscuridad y la penumbra. Puedes ver en penumbra dentro de 60 pies de ti como si fuera luz brillante, y en oscuridad como si fuera penumbra."
+      },
+      {
+        name: "Ascendencia Feérica",
+        description: "Tienes ventaja en las tiradas de salvación contra ser hechizado y no puedes ser puesto a dormir por magia."
+      },
+      {
+        name: "Idiomas",
+        description: "Puedes hablar, leer y escribir Común, Élfico y un idioma adicional de tu elección."
+      }
+    ],
+    classFeatures: [
+      {
+        name: "Lanzamiento de Conjuros",
+        description: "Como estudiante de la magia divina, tienes acceso a una lista de conjuros basada en tu sabiduría."
+      },
+      {
+        name: "Dominio Divino",
+        description: "Al nivel 1, eliges un dominio asociado con tu deidad. Cada dominio tiene características especiales y te da acceso a conjuros de dominio."
+      },
+      {
+        name: "Canalizar Divinidad",
+        description: "A nivel 2, obtienes la capacidad de canalizar energía divina directamente de tu deidad, usando esa energía para alimentar efectos mágicos."
+      }
+    ],
+    spellSlots: {
+      level0: 999, // Trucos ilimitados
+      level1: 2, // Ranuras de nivel 1
+    },
+    spellSaveDC: 13, // 8 + BC (2) + SAB mod (3)
+    spellAttackBonus: 5, // BC (2) + SAB mod (3)
+    appearance: "Una mujer semielfa con rasgos delicados que combinan lo mejor de humanos y elfos. Tiene cabello castaño claro y ojos verdes. Viste túnicas simples pero bien cuidadas con símbolos sagrados bordados.",
+    ideals: "Servicio. Es mi deber servir a mi deidad y ayudar a aquellos que lo necesitan.",
+    bonds: "Mi templo y mi orden son mi familia. Debo protegerlos y mantener sus valores.",
+    flaws: "A veces soy demasiado rígida en mis creencias y puedo ser desconfiada de la magia arcana.",
+    experience: 0,
+    deathSaves: {
+      successes: 0,
+      failures: 0
+    },
+    spells: []
+    // TEMPORALMENTE DESHABILITADO PARA TESTS DE ARMAS - Restaurar después
+    // spells: [
+    //     { id: "spell-1", name: "Luz", level: 0, description: "Haces que un objeto brille como una antorcha." },
+    //     { id: "spell-2", name: "Llama sagrada", level: 0, description: "Una llama divina desciende sobre una criatura, que debe superar una salvación de Destreza o recibir daño radiante." },
+    //     { id: "spell-3", name: "Orientación divina", level: 0, description: "Tocas a una criatura y le otorgas un d4 extra en una prueba de habilidad." },
+    //     // TEMPORALMENTE DESHABILITADO PARA TESTS - Restaurar después de los tests
+    //     // { id: "spell-4", name: "Curar heridas", level: 1, description: "Restauras puntos de golpe a una criatura que toques." },
+    //     { id: "spell-5", name: "Escudo de fe", level: 1, description: "Proteges a una criatura con un campo divino, otorgándole +2 a la CA." },
+    //     // TEMPORALMENTE DESHABILITADO PARA TESTS - Restaurar después de los tests
+    //     // { id: "spell-6", name: "Palabra de curación", level: 1, description: "Curación a distancia como una acción adicional." },
+    //     { id: "spell-7", name: "Infligir heridas", level: 1, description: "Un toque necrótico que causa un gran daño." },
+    // ]
+  },
 ];
 
 export const initialMessage: GameMessage = {
