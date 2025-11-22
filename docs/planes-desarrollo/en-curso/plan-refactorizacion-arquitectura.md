@@ -114,6 +114,7 @@ El `GameCoordinator` conoce demasiado sobre la estructura interna del turno narr
 - ✅ Lógica de movimiento y filtrado de enemigos encapsulada
 - ✅ Build compilado exitosamente
 - ✅ Comportamiento idéntico garantizado (lógica movida, no reescrita)
+- ✅ **Tests validados:** No se introdujeron nuevos fallos (7 tests de combate fallaban antes y después - fallos pre-existentes no relacionados)
 
 ### Fase 4: Normalización de Comandos de Sistema (Prioridad Baja)
 
