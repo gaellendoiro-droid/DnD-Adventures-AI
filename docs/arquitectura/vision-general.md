@@ -97,18 +97,265 @@ graph TD
     A[Usuario: Acción] --> B[Frontend: Recopila Estado]
     B --> C[Server Action: processPlayerAction]
     C --> D[Backend: gameCoordinator]
-    D --> E{¿Tipo de Acción?}
-    E -->|Combate| F[combatManagerTool]
-    F --> F1[CombatSession]
-    F1 --> F2[Inicializar/Procesar Turno]
-    E -->|Narrativa| G[actionInterpreter]
-    G --> H[narrativeExpert]
-    H --> I[companionExpertTool]
-    I --> J[Ensambla Respuesta]
-    F --> J
-    J --> K[Server Action: Devuelve Estado]
-    K --> L[Frontend: Actualiza UI]
-    L --> M[Usuario: Ve Resultado]
+    D --> E[actionInterpreter]
+    E --> F{¿Tipo de Acción?}
+    F -->|Combate| G[combatManagerTool]
+    G --> G1[CombatSession]
+    G1 --> G2[Inicializar/Procesar Turno]
+    F -->|Narrativa| H[Flujo Narrativo]
+    H --> I[companionExpertTool <br/>(Reacción Previa)]
+    I --> J[narrativeExpert <br/>(DM Narration)]
+    J --> K[companionExpertTool <br/>(Reacción Posterior)]
+    K --> L[Ensambla Respuesta]
+    G --> L
+    L --> M[Server Action: Devuelve Estado]
+    M --> N[Frontend: Actualiza UI]
+    N --> O[Usuario: Ve Resultado]
+```
+
+## Diagramas Detallados del Sistema
+
+### Sistema de Combate Completo
+
+El sistema de combate utiliza `CombatSession` (patrón State Object) para encapsular todo el estado del combate. El flujo completo desde la detección hasta el procesamiento de turnos:
+
+```mermaid
+graph TD
+    A[Usuario: Acción de Combate<br/>Ej: 'Ataco al orco'] --> B[gameCoordinator]
+    B --> C[actionInterpreter]
+    C --> D{¿Acción es Ataque?}
+    D -->|Sí| E[combatInitiationExpertTool]
+    E --> F{¿Iniciar Combate?}
+    F -->|Sí| G[combatManagerTool]
+    F -->|No| H[Flujo Narrativo]
+    
+    G --> I{¿Ya en Combate?}
+    I -->|No| J[CombatSession.initialize]
+    I -->|Sí| K[CombatSession.processCurrentTurn]
+    
+    subgraph Fase de Inicialización
+    J --> L[CombatInitializer]
+    L --> M[Valida Enemigos & Calcula Iniciativa]
+    M --> N[Establece Orden de Turnos]
+    end
+    
+    N --> O[CombatSession: Bucle de Turnos]
+    K --> O
+    
+    O --> P{¿Turno de Jugador?}
+    P -->|Sí| Q[Espera Acción del Jugador]
+    P -->|No| R[TurnProcessor.processTurn]
+    
+    R --> S{¿Tipo de IA?}
+    S -->|Compañero| T[companionTacticianTool]
+    S -->|Enemigo| U[enemyTacticianTool]
+    
+    T --> V[Planificación de Acción]
+    U --> V
+    
+    V --> W[CombatActionExecutor.execute]
+    W --> X[Procesa Tiradas & Aplica Daño]
+    X --> Y[combatNarrationExpertTool]
+    
+    Y --> Z[Genera Narración Completa]
+    Z --> AA{¿Fin Combate?}
+    AA -->|No| AB[CombatSession.advanceTurn]
+    AB --> O
+    AA -->|Sí| AC[Fin Combate]
+    
+    Q --> AD[Usuario Responde]
+    AD --> AE[actionInterpreter]
+    AE --> AF[TurnProcessor (Jugador)]
+    AF --> W
+    
+    AC --> AG[Devuelve Estado Actualizado]
+    H --> AG
+    AG --> AH[Frontend: Actualiza UI]
+```
+
+**Componentes Clave del Sistema de Combate:**
+- **CombatSession**: Encapsula todo el estado del combate (turnIndex, party, enemies, initiativeOrder)
+- **CombatInitializer**: Inicializa el combate (valida enemigos, calcula iniciativa, ordena turnos)
+- **TurnProcessor**: Procesa turnos de forma unificada (jugador e IA) - planifica, ejecuta y genera narración
+- **CombatActionExecutor**: Ejecuta acciones de combate (procesa tiradas, aplica daño con RulesEngine)
+- **Tacticians**: Deciden acciones para IA (companionTacticianTool, enemyTacticianTool) - solo lógica táctica, sin narración
+- **combatNarrationExpertTool**: Genera una única narración completa que incluye preparación, ejecución y resultado (ya no hay narraciones de intención y resolución separadas)
+
+### Carga de Aventuras desde JSON
+
+El sistema permite cargar aventuras desde archivos JSON. El proceso incluye validación, parsing con IA y caché en el servidor:
+
+```mermaid
+graph TD
+    A[Usuario: Selecciona Archivo JSON] --> B[Frontend: FileReader]
+    B --> C[Lee Contenido del Archivo]
+    C --> D[parseAdventureFromJson]
+    
+    D --> E{¿JSON Válido?}
+    E -->|No| F[Error: JSON Inválido]
+    E -->|Sí| G[parseAdventureFromJsonFlow]
+    
+    G --> H[IA Prompt: Extrae Título y Resumen]
+    H --> I{¿Respuesta IA OK?}
+    I -->|No| J[Retry con Exponential Backoff]
+    J --> H
+    I -->|Sí| K[Retorna: título, resumen, datos completos]
+    
+    K --> L[Frontend: Valida con AdventureDataSchema]
+    L --> M{¿Validación OK?}
+    M -->|No| N[Error: Estructura Inválida]
+    M -->|Sí| O[setAdventureDataCache]
+    
+    O --> P[Server: Guarda en Cache]
+    P --> Q[Frontend: Actualiza Estado Local]
+    Q --> R[Aventura Lista para Jugar]
+    
+    S[gameCoordinator] --> T[getAdventureData]
+    T --> U{¿Cache Existe?}
+    U -->|Sí| V[Retorna Cache]
+    U -->|No| W[Lee Archivo del Sistema]
+    W --> X[JSON_adventures/el-dragon-del-pico-agujahelada.json]
+    X --> Y[Parsea JSON]
+    Y --> Z[Guarda en Cache]
+    Z --> V
+    V --> AA[Busca Location por ID]
+    AA --> AB[Retorna Location Context]
+```
+
+**Componentes Clave de Carga de Aventuras:**
+- **parseAdventureFromJson**: Flujo de IA que extrae título y resumen del JSON
+- **setAdventureDataCache**: Guarda la aventura en caché del servidor
+- **getAdventureData**: Obtiene datos de aventura (usa caché o lee archivo)
+- **AdventureDataSchema**: Valida la estructura de datos de la aventura
+
+### Flujo Narrativo (Exploración e Interacción)
+
+Cuando el jugador no está en combate, el `gameCoordinator` orquesta la narrativa y las reacciones de los compañeros:
+
+```mermaid
+graph TD
+    A[Usuario: Acción Narrativa] --> B[gameCoordinator]
+    B --> C[actionInterpreter]
+    C --> D{¿Es Combate?}
+    D -->|No| E[Flujo Narrativo]
+    D -->|Sí| F[Sistema de Combate]
+    
+    E --> G[Reacciones Previas (gameCoordinator)]
+    G --> H{¿Compañeros Vivos?}
+    H -->|Sí| I[companionExpertTool: Reacción a Intención]
+    H -->|No| J[Salta Reacciones]
+    
+    I --> K[narrativeExpert (NarrativeManager)]
+    J --> K
+    
+    K --> L[narrativeRouterPrompt]
+    L --> M{¿Tipo de Acción?}
+    
+    M -->|EXPLORATION| N[explorationExpert]
+    M -->|INTERACTION| O[interactionExpert]
+    M -->|HYBRID| P[Ambos en Paralelo]
+    
+    N --> Q[Genera Descripción Ambiental]
+    O --> R[Genera Diálogo NPC]
+    
+    P --> S[narrativeSynthesizerPrompt]
+    S --> T[Combina Resultados]
+    
+    Q --> U[dmNarration]
+    R --> U
+    T --> U
+    
+    U --> V[Reacciones Posteriores (gameCoordinator)]
+    V --> W{¿Compañeros Vivos?}
+    W -->|Sí| X[companionExpertTool: Reacción a Resultado]
+    W -->|No| Y[Salta Reacciones]
+    
+    X --> Z[Ensambla Mensajes Finales]
+    Y --> Z
+    Z --> AA[Frontend: Actualiza UI]
+```
+
+**Componentes Clave del Flujo Narrativo:**
+- **gameCoordinator**: Controla el flujo global y llama a los compañeros antes y después de la narración del DM.
+- **NarrativeManager (narrativeExpert)**: Orquestador que decide qué expertos usar (Exploración/Interacción).
+- **explorationExpert**: Genera descripciones ambientales y gestiona movimiento.
+- **interactionExpert**: Gestiona diálogos con NPCs y tiradas sociales.
+- **companionExpertTool**: Genera reacciones de compañeros. Se llama dos veces: antes (reacción a la intención) y después (reacción a lo sucedido).
+
+### Flujo Detallado de una Acción del Jugador
+
+Secuencia completa desde que el usuario envía una acción hasta que recibe la respuesta:
+
+```mermaid
+sequenceDiagram
+    participant U as Usuario
+    participant F as Frontend
+    participant SA as Server Action
+    participant GC as gameCoordinator
+    participant AI as actionInterpreter
+    participant CI as combatInitiationExpert
+    participant CM as combatManagerTool
+    participant CS as CombatSession
+    participant TP as TurnProcessor
+    participant NE as NarrativeManager
+    participant CE as companionExpertTool
+    participant AB as Backend
+
+    U->>F: Escribe acción
+    F->>F: Recopila estado completo
+    F->>F: Valida con GameStateSchema
+    F->>SA: processPlayerAction(estado)
+    
+    SA->>GC: gameCoordinatorFlow(estado)
+    GC->>GC: Carga datos de aventura
+    GC->>GC: Busca locationContext
+    
+    GC->>AI: actionInterpreter(acción, contexto)
+    AI-->>GC: {actionType, targetId, ...}
+    
+    GC->>GC: Evalúa tipo de acción
+    
+    alt Es acción de combate
+        GC->>CI: combatInitiationExpertTool
+        CI-->>GC: {shouldInitiate, enemies}
+        
+        alt Debe iniciar combate
+            GC->>CM: combatManagerTool(estado)
+            CM->>CS: CombatSession.initialize()
+            CS->>CS: CombatInitializer
+            CS->>CS: Calcula iniciativa
+            CS->>TP: TurnProcessor.processTurn()
+            TP-->>CS: Resultado del turno
+            CS-->>CM: Estado actualizado
+            CM-->>GC: Estado de combate
+        end
+    else Es acción narrativa
+        GC->>CE: companionExpertTool (Reacción Previa)
+        CE-->>GC: Reacciones a intención
+        
+        GC->>NE: narrativeExpert(acción, contexto)
+        NE->>NE: narrativeRouterPrompt
+        alt Exploración
+            NE->>NE: explorationExpert
+        else Interacción
+            NE->>NE: interactionExpert
+        else Híbrido
+            NE->>NE: Ambos expertos en paralelo
+            NE->>NE: narrativeSynthesizerPrompt
+        end
+        NE-->>GC: dmNarration
+        
+        GC->>CE: companionExpertTool (Reacción Posterior)
+        CE-->>GC: Reacciones a resultado
+    end
+    
+    GC->>AB: Ensambla mensajes y estado
+    AB-->>GC: GameCoordinatorOutput
+    GC->>GC: Valida con GameCoordinatorOutputSchema
+    GC-->>SA: Respuesta validada
+    SA-->>F: Estado + Mensajes
+    F->>F: Actualiza estado local
+    F->>U: Muestra resultado en UI
 ```
 
 ## Gestión de Datos

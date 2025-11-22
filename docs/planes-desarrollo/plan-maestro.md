@@ -8,7 +8,23 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** Ninguno activo | **Última implementación:** Issue #117 - Simplificación de Arquitectura de Combate (2025-11-21) - COMPLETADO
+**Estado:** 1 plan activo | **Última implementación:** Issue #117 - Simplificación de Arquitectura de Combate (2025-11-21) - COMPLETADO
+
+### [Refactorización y Simplificación Arquitectónica](en-curso/plan-refactorizacion-arquitectura.md) 🚧 **EN CURSO**
+- **Estado:** Iniciado - Fase de planificación completada
+- **Objetivo:** Descongestionar el `GameCoordinator` y mejorar la modularidad del flujo narrativo
+- **Prioridad:** Muy Alta
+- **Fases:**
+  - [ ] Fase 1: Extracción de Lógica de Compañeros (Prioridad Alta)
+  - [ ] Fase 2: Centralización de Utilidades de Entidades (Prioridad Media)
+  - [ ] Fase 3: Encapsulamiento del Turno Narrativo (Prioridad Media-Alta)
+  - [ ] Fase 4: Normalización de Comandos de Sistema (Prioridad Baja)
+- **Beneficios Esperados:**
+  - Reducción de `GameCoordinator.ts` de ~500 → ~200 líneas
+  - Mejor testabilidad y modularidad
+  - Mayor escalabilidad para futuras mejoras
+- **Fecha de inicio:** 2025-11-22
+- **Referencia:** [Plan Detallado](en-curso/plan-refactorizacion-arquitectura.md)
 
 ---
 
@@ -278,8 +294,9 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 
 ### Prioridad Muy Alta
 
-1. **Simplificación de Arquitectura de Combate** - Unificar procesamiento de turnos (jugador e IA), eliminar duplicación, reducir complejidad de 8-9 a 3-4 niveles - **PENDIENTE**
-2. **✅ Sistema de Turnos Paso a Paso en Combate** - Control manual del jugador para pasar turnos uno a uno - **COMPLETADO**
+1. **🚧 Refactorización y Simplificación Arquitectónica** - Descongestionar GameCoordinator, modularizar flujo narrativo, centralizar utilidades - **EN CURSO**
+2. **✅ Simplificación de Arquitectura de Combate** - Unificar procesamiento de turnos (jugador e IA), eliminar duplicación, reducir complejidad de 8-9 a 3-4 niveles - **COMPLETADO**
+3. **✅ Sistema de Turnos Paso a Paso en Combate** - Control manual del jugador para pasar turnos uno a uno - **COMPLETADO**
 
 ### Prioridad Alta
 
@@ -320,10 +337,10 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 
 ## 📊 Estado General del Proyecto
 
-- **Planes Completados:** 11 (incluyendo 1 parcialmente completado)
-- **Planes en Curso:** 0
+- **Planes Completados:** 12 (incluyendo 1 parcialmente completado)
+- **Planes en Curso:** 1
 - **Planes Sin Comenzar:** 13
-  - **Prioridad Muy Alta:** 2 planes
+  - **Prioridad Muy Alta:** 0 planes (1 en curso)
   - **Prioridad Alta:** 4 planes
   - **Prioridad Media:** 10 planes
   - **Prioridad Baja:** 2 planes
@@ -363,11 +380,12 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 ### Estado General del Proyecto
 
 **Progreso Total:**
-- ✅ **8 planes completados** (incluyendo 1 parcialmente completado)
-- 🚧 **0 planes en curso** actualmente
+- ✅ **12 planes completados** (incluyendo 1 parcialmente completado)
+- 🚧 **1 plan en curso** actualmente
 - 📝 **13 planes sin comenzar** identificados y planificados
 
 **Distribución por Prioridad:**
+- **Prioridad Muy Alta:** 1 plan en curso (Refactorización Arquitectónica)
 - **Prioridad Alta:** 4 planes pendientes
 - **Prioridad Media:** 10 planes pendientes (incluyendo 2 relacionados con testing)
 - **Prioridad Baja:** 2 planes pendientes
