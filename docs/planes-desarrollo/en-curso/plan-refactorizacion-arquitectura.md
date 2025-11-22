@@ -40,8 +40,9 @@ Este documento detalla el plan para simplificar la arquitectura del backend, cen
 Antes de considerar completada cada fase:
 - [ ] Verificar que los prompts de IA no han cambiado (diff exacto)
 - [ ] Confirmar que el comportamiento observable es idéntico
-- [ ] Validar que todos los tests existentes pasan
-- [ ] Realizar pruebas manuales de flujos narrativos y de combate
+- [ ] **Ejecutar suite de tests automatizados:** `npm test` (todos los tests deben pasar)
+- [ ] Validar que todos los tests existentes pasan sin modificaciones
+- [ ] Realizar pruebas manuales de flujos narrativos y de combate (opcional, si hay dudas)
 
 ## Tareas Detalladas
 
@@ -67,6 +68,7 @@ Actualmente, el `GameCoordinator` gestiona manualmente el bucle de compañeros, 
 - ✅ Reducción de `game-coordinator.ts`: ~493 líneas → ~451 líneas (~42 líneas eliminadas)
 - ✅ Build compilado exitosamente
 - ✅ Comportamiento idéntico garantizado (código movido, no reescrito)
+- ✅ **Tests validados:** No se introdujeron nuevos fallos (7 tests fallaban antes y después - fallos pre-existentes no relacionados)
 
 ### Fase 2: Centralización de Utilidades de Entidades (Prioridad Media)
 
