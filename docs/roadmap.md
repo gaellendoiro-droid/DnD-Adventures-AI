@@ -36,20 +36,23 @@ Mejoras críticas que mejoran significativamente la arquitectura, mantenibilidad
 
 ---
 
-### 1. Refactorización y Simplificación Arquitectónica 🚧 EN CURSO
+### 1. Refactorización y Simplificación Arquitectónica ✅ COMPLETADO
 *   **Problema Actual:** El `GameCoordinator` ha asumido demasiadas responsabilidades de "micro-gestión", convirtiéndose en un controlador demasiado complejo. Contiene bucles explícitos para gestionar compañeros, lógica de filtrado de enemigos muertos, y conoce demasiado sobre la estructura interna del turno narrativo.
-*   **Mejora Propuesta:**
-    *   **Fase 1 - CompanionReactionManager:** Extraer toda la lógica de reacciones de compañeros (antes y después del DM) a un manager dedicado.
-    *   **Fase 2 - EntityStatusUtils:** Centralizar las utilidades para verificar estados de entidades (vivo/muerto/consciente) y filtrado de entidades.
-    *   **Fase 3 - NarrativeTurnManager:** Encapsular el flujo completo del turno narrativo (Reacción Pre → DM → Reacción Post) en un manager especializado, similar al CombatManager.
-    *   **Fase 4 - SystemCommandDetector:** Normalizar la detección de comandos de sistema ("pasar turno", "continuar") para evitar strings hardcodeados.
-*   **Impacto:** Transformacional - Reducción de `GameCoordinator.ts` de ~500 → ~200 líneas, mejora significativa de testabilidad, modularidad y escalabilidad. Facilita enormemente futuras mejoras al flujo narrativo.
-*   **Beneficios Esperados:**
-    *   Código más limpio y enfocado en orquestación de alto nivel
-    *   Testabilidad mejorada (tests unitarios aislados para cada manager)
-    *   Escalabilidad (añadir nuevas fases al turno narrativo sin tocar el coordinador)
-*   **Estado:** 🚧 **EN CURSO** - Fase de planificación completada (2025-11-22)
-*   **Plan Detallado:** ✅ [Refactorización y Simplificación Arquitectónica](../planes-desarrollo/en-curso/plan-refactorizacion-arquitectura.md)
+*   **Mejora Implementada:** ✅
+    *   ✅ **Fase 1 - CompanionReactionManager:** Extraída toda la lógica de reacciones de compañeros a `src/ai/flows/managers/companion-reaction-manager.ts`
+    *   ✅ **Fase 2 - EntityStatusUtils:** Centralizadas 11 funciones de verificación de estados en `src/lib/game/entity-status-utils.ts`
+    *   ✅ **Fase 3 - NarrativeTurnManager:** Encapsulado el flujo narrativo completo en `src/ai/flows/managers/narrative-turn-manager.ts` + extraído `TranscriptFormatter`
+    *   ⏸️ **Fase 4 - SystemCommandDetector:** Pospuesta por baja prioridad (no necesaria actualmente)
+*   **Impacto:** Transformacional - Reducción de `GameCoordinator.ts` de 493 → 321 líneas (-35%), mejora significativa de testabilidad, modularidad y escalabilidad.
+*   **Resultados Obtenidos:**
+    *   ✅ Código más limpio y enfocado en orquestación de alto nivel
+    *   ✅ Testabilidad mejorada (4 nuevos módulos especializados)
+    *   ✅ Escalabilidad (añadir nuevas fases al turno narrativo sin tocar el coordinador)
+    *   ✅ Prompts de IA preservados sin modificaciones
+    *   ✅ Tests validados: Sin nuevos fallos introducidos
+    *   ✅ Pruebas manuales: Flujo narrativo funcionando correctamente
+*   **Estado:** ✅ **COMPLETADO** - 3 de 4 fases implementadas (Fase 4 pospuesta) (2025-11-22)
+*   **Referencia:** [Plan Detallado](planes-desarrollo/completados/plan-refactorizacion-arquitectura.md)
 *   **Referencia:** 
     - Análisis de arquitectura realizado el 2025-11-22
     - Relacionado con la complejidad del GameCoordinator (~500 líneas)

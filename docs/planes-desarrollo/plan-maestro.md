@@ -8,31 +8,34 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** 1 plan activo | **Última implementación:** Issue #117 - Simplificación de Arquitectura de Combate (2025-11-21) - COMPLETADO
+**Estado:** 0 planes activos | **Última implementación:** Refactorización y Simplificación Arquitectónica (2025-11-22) - COMPLETADO
 
-### [Refactorización y Simplificación Arquitectónica](en-curso/plan-refactorizacion-arquitectura.md) 🚧 **EN CURSO**
-- **Estado:** Iniciado - Fase de planificación completada
-- **Objetivo:** Descongestionar el `GameCoordinator` y mejorar la modularidad del flujo narrativo
-- **Prioridad:** Muy Alta
-- **Fases:**
-  - [ ] Fase 1: Extracción de Lógica de Compañeros (Prioridad Alta)
-  - [ ] Fase 2: Centralización de Utilidades de Entidades (Prioridad Media)
-  - [ ] Fase 3: Encapsulamiento del Turno Narrativo (Prioridad Media-Alta)
-  - [ ] Fase 4: Normalización de Comandos de Sistema (Prioridad Baja)
-- **Beneficios Esperados:**
-  - Reducción de `GameCoordinator.ts` de ~500 → ~200 líneas
-  - Mejor testabilidad y modularidad
-  - Mayor escalabilidad para futuras mejoras
-- **Fecha de inicio:** 2025-11-22
-- **Referencia:** [Plan Detallado](en-curso/plan-refactorizacion-arquitectura.md)
+_No hay planes en curso actualmente._
 
 ---
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 12 planes
+**Estado:** Finalizados | **Cantidad:** 13 planes
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Refactorización y Simplificación Arquitectónica](completados/plan-refactorizacion-arquitectura.md) ✅ **COMPLETADO**
+- **Estado:** 3 de 4 fases completadas (Fase 4 pospuesta por baja prioridad)
+- **Objetivo:** Descongestionar el `GameCoordinator` y mejorar la modularidad del flujo narrativo
+- **Prioridad:** Muy Alta
+- **Resultados:**
+  - ✅ **Fase 1:** `CompanionReactionManager` creado - Reducción de 42 líneas
+  - ✅ **Fase 2:** `EntityStatusUtils` con 11 funciones centralizadas - Lógica duplicada eliminada
+  - ✅ **Fase 3:** `NarrativeTurnManager` + `TranscriptFormatter` - Reducción de 130 líneas
+  - ✅ **Reducción total:** `game-coordinator.ts` de 493 → 321 líneas (-35% de código)
+  - ✅ **Archivos nuevos:** 4 managers/utilidades especializadas
+  - ✅ **Tests validados:** Sin nuevos fallos introducidos
+  - ✅ **Pruebas manuales:** Flujo narrativo funcionando correctamente
+  - ⏸️ **Fase 4 pospuesta:** Normalización de comandos de sistema (no prioritaria)
+- **Fecha de finalización:** 2025-11-22
+- **Tiempo invertido:** ~4-5 horas
+- **Referencia:** [Plan Detallado](completados/plan-refactorizacion-arquitectura.md)
 
 ### [Issue #117 - Simplificación de Arquitectura de Combate](completados/issue-117-simplificacion-arquitectura-combate.md) ✅ **COMPLETADO**
 - **Estado:** Todas las 6 fases completadas y documentadas
