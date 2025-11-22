@@ -90,6 +90,7 @@ La lógica para filtrar enemigos muertos y verificar estados de actores está di
 - ✅ Eliminada lógica duplicada de verificación de estados en 3 archivos
 - ✅ Build compilado exitosamente
 - ✅ Comportamiento idéntico garantizado (lógica movida, no reescrita)
+- ✅ **Tests validados:** No se introdujeron nuevos fallos (7 tests de combate fallaban antes y después - fallos pre-existentes no relacionados)
 
 ### Fase 3: Encapsulamiento del Turno Narrativo (Prioridad Media-Alta)
 
