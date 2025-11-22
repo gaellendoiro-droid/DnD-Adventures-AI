@@ -1,6 +1,7 @@
 
 "use client";
 
+import React from 'react';
 import type { DiceRoll } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -9,7 +10,7 @@ interface DiceRollResultProps {
   rollNumber: number;
 }
 
-const outcomeStyles: { [key in DiceRoll['outcome'] | 'damage'] : string } = {
+const outcomeStyles: { [key in DiceRoll['outcome'] | 'damage']: string } = {
   crit: "border-4 border-yellow-400 bg-gradient-to-br from-yellow-500/20 via-green-500/15 to-yellow-500/20 shadow-lg shadow-yellow-500/50 animate-pulse",
   success: "border-green-500 bg-green-500/10",
   fail: "border-red-500 bg-red-500/10",
@@ -22,14 +23,14 @@ const outcomeStyles: { [key in DiceRoll['outcome'] | 'damage'] : string } = {
 };
 
 const outcomeTextStyles: { [key in DiceRoll['outcome'] | 'damage']?: string } = {
-    crit: "text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]",
-    success: "text-green-400",
-    fail: "text-red-400",
-    pifia: "text-red-500 drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]",
-    initiative: "text-blue-400",
-    damage: "text-yellow-300",
-    victory: "text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]",
-    defeat: "text-red-400 drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]",
+  crit: "text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]",
+  success: "text-green-400",
+  fail: "text-red-400",
+  pifia: "text-red-500 drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]",
+  initiative: "text-blue-400",
+  damage: "text-yellow-300",
+  victory: "text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]",
+  defeat: "text-red-400 drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]",
 }
 
 // Helper function to get critical styles based on roll type
@@ -58,24 +59,24 @@ const getCriticalStyles = (isAttackRoll: boolean, isDamageRoll: boolean) => {
 }
 
 const outcomeLabels: { [key in DiceRoll['outcome'] | 'damage']?: string } = {
-    crit: "⭐ ¡CRÍTICO!",
-    pifia: "☠️ ¡PIFIA!",
+  crit: "⭐ ¡CRÍTICO!",
+  pifia: "☠️ ¡PIFIA!",
 }
 
 export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
   const totalResult = roll.totalResult;
   // Always show the breakdown for maximum clarity, as requested.
   const showBreakdown = true;
-  
+
   // Determine if this is an attack roll
   const isAttackRoll = roll.description?.toLowerCase().includes('ataque') || roll.description?.toLowerCase().includes('attack');
   const isDamageRoll = roll.description?.toLowerCase().includes('daño') || roll.description?.toLowerCase().includes('damage');
   const isHealingRoll = roll.description?.toLowerCase().includes('curación') || roll.description?.toLowerCase().includes('healing') || roll.description?.toLowerCase().includes('cura');
-  
+
   // Detect saving throw spells (damage without attack roll)
   const descLower = roll.description?.toLowerCase() || '';
   const isSavingThrowSpell = isDamageRoll && !isAttackRoll && (
-    descLower.includes('radiante') || 
+    descLower.includes('radiante') ||
     descLower.includes('radiant') ||
     descLower.includes('sagrada') ||
     descLower.includes('sacred') ||
@@ -84,7 +85,7 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
     descLower.includes('salvación') ||
     descLower.includes('saving')
   );
-  
+
   let finalOutcome: DiceRoll['outcome'] | 'damage';
 
   // Check for victory/defeat outcomes first (special combat end messages)
@@ -94,13 +95,13 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
     finalOutcome = 'initiative';
   } else if (isDamageRoll) {
     // For damage rolls, check if it's critical (either by outcome or description)
-    const isCriticalDamage = roll.outcome === 'crit' || 
-                             roll.description?.toLowerCase().includes('(crítico)') ||
-                             roll.description?.toLowerCase().includes('(critico)');
+    const isCriticalDamage = roll.outcome === 'crit' ||
+      roll.description?.toLowerCase().includes('(crítico)') ||
+      roll.description?.toLowerCase().includes('(critico)');
     if (isCriticalDamage) {
       finalOutcome = 'crit';
     } else if (roll.outcome === 'neutral') {
-    finalOutcome = 'damage';
+      finalOutcome = 'damage';
     } else {
       // Use the outcome from the roll (could be success, fail, etc.)
       finalOutcome = roll.outcome;
@@ -134,132 +135,132 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
       )}
       <div className={cn("flex-grow", isCombatEndMessage ? "grid grid-cols-1" : "grid grid-cols-[1fr_auto] items-start gap-x-2")}>
         <div className="text-left">
-            {isCombatEndMessage ? (
-              <div className="text-center">
-                <p className={cn(
-                  "text-lg font-bold tracking-wide",
-                  finalOutcome === 'victory' 
-                    ? "text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]"
-                    : "text-red-400 drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]"
-                )}>
-                  {finalOutcome === 'victory' ? '🎉 ¡VICTORIA! 🎉' : '💀 ¡DERROTA! 💀'}
-                </p>
-                <p className={cn(
-                  "text-sm font-semibold mt-2",
-                  finalOutcome === 'victory' ? "text-green-200" : "text-red-300"
-                )}>
-                  {roll.description || 'El combate ha finalizado.'}
-                </p>
-              </div>
-            ) : (
-              <>
-                <p className="font-semibold leading-tight">
-                    {roll.roller}
-                </p>
-                <p className="text-xs font-semibold text-muted-foreground leading-tight">
-                  {roll.description}
-                  {roll.rollNotation && (
-                    <span className="ml-1 text-muted-foreground/70">({roll.rollNotation})</span>
-                  )}
-                </p>
-              </>
-            )}
-            {/* Show special label for crits and fumbles */}
-            {outcomeLabels[finalOutcome] && (
+          {isCombatEndMessage ? (
+            <div className="text-center">
               <p className={cn(
-                "text-sm font-black tracking-wide mt-1",
-                finalOutcome === 'crit' 
-                  ? (criticalStyles ? criticalStyles.label : "text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]")
-                  : "text-red-500 drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]"
+                "text-lg font-bold tracking-wide",
+                finalOutcome === 'victory'
+                  ? "text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]"
+                  : "text-red-400 drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]"
               )}>
-                {outcomeLabels[finalOutcome]}
+                {finalOutcome === 'victory' ? '🎉 ¡VICTORIA! 🎉' : '💀 ¡DERROTA! 💀'}
               </p>
-            )}
-            {/* Show target information for attack rolls */}
-            {isAttackRoll && (
-              <>
-                {roll.targetName ? (
-                  <>
-                    <p className="text-xs text-muted-foreground/80 leading-tight mt-0.5">
-                      Contra: <span className="font-semibold">{roll.targetName}</span>
-                      {roll.targetAC !== undefined && (
-                        <span className="ml-1">(AC {roll.targetAC})</span>
-                      )}
-                    </p>
-                    {roll.attackHit !== undefined && (
-                      <p className={cn(
-                        "text-xs font-semibold leading-tight mt-0.5",
-                        roll.attackHit ? "text-green-400" : "text-red-400"
-                      )}>
-                        {roll.attackHit ? "✓ Acierta" : "✗ Fallo"}
-                      </p>
+              <p className={cn(
+                "text-sm font-semibold mt-2",
+                finalOutcome === 'victory' ? "text-green-200" : "text-red-300"
+              )}>
+                {roll.description || 'El combate ha finalizado.'}
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className="font-semibold leading-tight">
+                {roll.roller}
+              </p>
+              <p className="text-xs font-semibold text-muted-foreground leading-tight">
+                {roll.description}
+                {roll.rollNotation && (
+                  <span className="ml-1 text-muted-foreground/70">({roll.rollNotation})</span>
+                )}
+              </p>
+            </>
+          )}
+          {/* Show special label for crits and fumbles */}
+          {outcomeLabels[finalOutcome] && (
+            <p className={cn(
+              "text-sm font-black tracking-wide mt-1",
+              finalOutcome === 'crit'
+                ? (criticalStyles ? criticalStyles.label : "text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]")
+                : "text-red-500 drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]"
+            )}>
+              {outcomeLabels[finalOutcome]}
+            </p>
+          )}
+          {/* Show target information for attack rolls */}
+          {isAttackRoll && (
+            <>
+              {roll.targetName ? (
+                <>
+                  <p className="text-xs text-muted-foreground/80 leading-tight mt-0.5">
+                    Contra: <span className="font-semibold">{roll.targetName}</span>
+                    {roll.targetAC !== undefined && (
+                      <span className="ml-1">(AC {roll.targetAC})</span>
                     )}
-                  </>
-                ) : (
-                  <p className="text-xs text-muted-foreground/60 italic leading-tight mt-0.5">
-                    (Información de combate no disponible)
                   </p>
-                )}
-              </>
-            )}
-            {/* Show target information for damage rolls */}
-            {isDamageRoll && roll.targetName && roll.damageDealt !== undefined && (
-              <>
-                {isSavingThrowSpell ? (
-                  <p className="text-xs text-muted-foreground/80 leading-tight mt-0.5">
-                    <span className="font-semibold">{roll.targetName}</span> sufre <span className="font-semibold text-yellow-300">{roll.damageDealt}</span> puntos de daño {descLower.includes('radiante') || descLower.includes('radiant') ? 'radiante' : ''}
-                    <span className="ml-1 italic text-muted-foreground/60">(hechizo de salvación)</span>
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground/80 leading-tight mt-0.5">
-                    {roll.roller} ha hecho <span className="font-semibold text-yellow-300">{roll.damageDealt}</span> puntos de daño a <span className="font-semibold">{roll.targetName}</span>
-                  </p>
-                )}
-                {/* Show death message if target was killed */}
-                {roll.targetKilled && (
-                  <p className="text-xs font-bold text-red-400 leading-tight mt-1">
-                    💀 ¡{roll.roller} ha matado a {roll.targetName}!
-                  </p>
-                )}
-              </>
-            )}
-            {/* Show target information for healing rolls */}
-            {isHealingRoll && roll.targetName && roll.healingAmount !== undefined && (
-              <p className="text-xs text-muted-foreground/80 leading-tight mt-0.5">
-                {roll.roller} ha curado <span className="font-semibold text-green-300">{roll.healingAmount}</span> puntos de vida a <span className="font-semibold">{roll.targetName}</span>
-              </p>
-            )}
+                  {roll.attackHit !== undefined && (
+                    <p className={cn(
+                      "text-xs font-semibold leading-tight mt-0.5",
+                      roll.attackHit ? "text-green-400" : "text-red-400"
+                    )}>
+                      {roll.attackHit ? "✓ Acierta" : "✗ Fallo"}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground/60 italic leading-tight mt-0.5">
+                  (Información de combate no disponible)
+                </p>
+              )}
+            </>
+          )}
+          {/* Show target information for damage rolls */}
+          {isDamageRoll && roll.targetName && roll.damageDealt !== undefined && (
+            <>
+              {isSavingThrowSpell ? (
+                <p className="text-xs text-muted-foreground/80 leading-tight mt-0.5">
+                  <span className="font-semibold">{roll.targetName}</span> sufre <span className="font-semibold text-yellow-300">{roll.damageDealt}</span> puntos de daño {descLower.includes('radiante') || descLower.includes('radiant') ? 'radiante' : ''}
+                  <span className="ml-1 italic text-muted-foreground/60">(hechizo de salvación)</span>
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground/80 leading-tight mt-0.5">
+                  {roll.roller} ha hecho <span className="font-semibold text-yellow-300">{roll.damageDealt}</span> puntos de daño a <span className="font-semibold">{roll.targetName}</span>
+                </p>
+              )}
+              {/* Show death message if target was killed */}
+              {roll.targetKilled && (
+                <p className="text-xs font-bold text-red-400 leading-tight mt-1">
+                  💀 ¡{roll.roller} ha matado a {roll.targetName}!
+                </p>
+              )}
+            </>
+          )}
+          {/* Show target information for healing rolls */}
+          {isHealingRoll && roll.targetName && roll.healingAmount !== undefined && (
+            <p className="text-xs text-muted-foreground/80 leading-tight mt-0.5">
+              {roll.roller} ha curado <span className="font-semibold text-green-300">{roll.healingAmount}</span> puntos de vida a <span className="font-semibold">{roll.targetName}</span>
+            </p>
+          )}
         </div>
         {!isCombatEndMessage && (
           <div className="text-right">
-              <p className={cn(
-                  "text-2xl font-bold font-mono leading-none",
-                  finalOutcome === 'crit' && criticalStyles 
-                    ? criticalStyles.text 
-                    : outcomeTextStyles[finalOutcome]
-              )}>
-                  {totalResult}
+            <p className={cn(
+              "text-2xl font-bold font-mono leading-none",
+              finalOutcome === 'crit' && criticalStyles
+                ? criticalStyles.text
+                : outcomeTextStyles[finalOutcome]
+            )}>
+              {totalResult}
+            </p>
+            {showBreakdown ? (
+              <p className="text-xs font-mono text-muted-foreground text-right leading-tight">
+                {roll.modifiers && roll.modifiers.length > 0 ? (
+                  // Show individual dice rolls + modifiers (e.g., "1+2+3" for 2d4+3 with rolls [1,2] and modifier 3)
+                  `${roll.individualRolls.join('+')}${roll.modifiers.map(mod => mod.value >= 0 ? `+${mod.value}` : `${mod.value}`).join('')}`
+                ) : (
+                  // Fallback: use same format without spaces for consistency
+                  (() => {
+                    // Show individual dice rolls if multiple, or just the sum if single die
+                    const diceDisplay = roll.individualRolls.length > 1
+                      ? roll.individualRolls.join('+')
+                      : roll.individualRolls[0]?.toString() || '0';
+                    const modifierStr = roll.modifier !== undefined
+                      ? (roll.modifier >= 0 ? `+${roll.modifier}` : `${roll.modifier}`)
+                      : '';
+                    return `${diceDisplay}${modifierStr}`;
+                  })()
+                )}
               </p>
-              {showBreakdown ? (
-                  <p className="text-xs font-mono text-muted-foreground text-right leading-tight">
-                      {roll.modifiers && roll.modifiers.length > 0 ? (
-                          // Show individual dice rolls + modifiers (e.g., "1+2+3" for 2d4+3 with rolls [1,2] and modifier 3)
-                          `${roll.individualRolls.join('+')}${roll.modifiers.map(mod => mod.value >= 0 ? `+${mod.value}` : `${mod.value}`).join('')}`
-                      ) : (
-                          // Fallback: use same format without spaces for consistency
-                          (() => {
-                              // Show individual dice rolls if multiple, or just the sum if single die
-                              const diceDisplay = roll.individualRolls.length > 1 
-                                  ? roll.individualRolls.join('+')
-                                  : roll.individualRolls[0]?.toString() || '0';
-                              const modifierStr = roll.modifier !== undefined 
-                                  ? (roll.modifier >= 0 ? `+${roll.modifier}` : `${roll.modifier}`)
-                                  : '';
-                              return `${diceDisplay}${modifierStr}`;
-                          })()
-                      )}
-                  </p>
-              ) : null}
+            ) : null}
           </div>
         )}
       </div>

@@ -370,7 +370,8 @@ Esta sección es para apuntar ideas rápidas, fallos detectados y notas informal
 Al clasificar un item de esta sección, debe moverse a su sección correspondiente y eliminarse de aquí, manteniendo esta sección como un área de trabajo temporal.
 
 1. NUEVA FUNCIONALIDAD: Implementar peso de inventario, peso de cada item y el concepto de estar cargado y sus consecuencias. (PMB)
-2. 
+2. NUEVA FUNCIONALIDAD: Implementar niveles de dificaltad en los combates: Enemigos con más HP, IAs más inteligentes, etc (PMB)
+
 
 
 

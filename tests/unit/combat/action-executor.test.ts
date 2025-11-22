@@ -215,6 +215,103 @@ describe('CombatActionExecutor', () => {
       expect(result.updatedEnemies[0].hp.current).toBe(10); // No damage
     });
 
+    it('should execute an attack with 0 damage (negative roll clamped)', async () => {
+      const combatant: Combatant = {
+        id: 'player-1',
+        characterName: 'Test Player',
+        total: 15,
+        type: 'player',
+        controlledBy: 'Player',
+      };
+
+      const party: Character[] = [
+        {
+          id: 'player-1',
+          name: 'Test Player',
+          hp: { current: 20, max: 20 },
+          ac: 16,
+          abilityScores: { fuerza: 16, destreza: 14, constitución: 14, inteligencia: 10, sabiduría: 10, carisma: 12 },
+          abilityModifiers: { fuerza: 3, destreza: 2, constitución: 2, inteligencia: 0, sabiduría: 0, carisma: 1 },
+          skills: [],
+          inventory: [],
+          spells: [],
+          proficiencyBonus: 2,
+          controlledBy: 'Player',
+        } as Character,
+      ];
+
+      const enemies = [
+        {
+          uniqueId: 'goblin-1',
+          id: 'goblin-1',
+          name: 'Goblin 1',
+          hp: { current: 10, max: 10 },
+          ac: 15,
+        },
+      ];
+
+      const initiativeOrder: Combatant[] = [combatant];
+
+      // Mock dice roller - attack hits, damage is negative
+      mockDiceRoller
+        .mockResolvedValueOnce({
+          id: 'roll-1',
+          roller: 'Test Player',
+          rollNotation: '1d20+5',
+          individualRolls: [15],
+          modifier: 5,
+          totalResult: 20,
+          outcome: 'success',
+          timestamp: new Date(),
+          description: 'Tirada de ataque',
+        })
+        .mockResolvedValueOnce({
+          id: 'roll-2',
+          roller: 'Test Player',
+          rollNotation: '1d4-5',
+          individualRolls: [1],
+          modifier: -5,
+          totalResult: -4,
+          outcome: 'neutral',
+          timestamp: new Date(),
+          description: 'Tirada de daño',
+        });
+
+      const input: CombatActionInput = {
+        combatant,
+        action: {
+          type: 'attack',
+          targetId: 'goblin-1',
+          diceRollRequests: [
+            {
+              rollNotation: '1d20+5',
+              description: 'Tirada de ataque',
+              roller: 'Test Player',
+            },
+            {
+              rollNotation: '1d4-5',
+              description: 'Tirada de daño',
+              roller: 'Test Player',
+            },
+          ],
+          actionDescription: 'ataque débil',
+        },
+        party,
+        enemies,
+        initiativeOrder,
+        diceRollerTool: mockDiceRoller,
+        updateRollNotationWithModifiers: mockUpdateRollNotation,
+      };
+
+      const result = await CombatActionExecutor.execute(input);
+
+      expect(result.success).toBe(true);
+      expect(result.diceRolls).toHaveLength(2); // Should include damage roll even if 0
+      expect(result.combatResult.attackHit).toBe(true);
+      expect(result.combatResult.damageDealt).toBe(0); // Clamped to 0
+      expect(result.updatedEnemies[0].hp.current).toBe(10); // No damage taken
+    });
+
     it('should execute a critical hit', async () => {
       const combatant: Combatant = {
         id: 'player-1',
@@ -268,7 +365,7 @@ describe('CombatActionExecutor', () => {
         .mockResolvedValueOnce({
           id: 'roll-2',
           roller: 'Test Player',
-          rollNotation: '2d8+3', // Critical doubles dice
+          rollNotation: '2d8+3', // CombatActionExecutor automatically doubles dice for critical
           individualRolls: [6, 5],
           modifier: 3,
           totalResult: 14,
@@ -289,7 +386,7 @@ describe('CombatActionExecutor', () => {
               roller: 'Test Player',
             },
             {
-              rollNotation: '2d8+3',
+              rollNotation: '1d8+3', // Base damage dice - will be doubled by CombatActionExecutor
               description: 'Tirada de daño',
               roller: 'Test Player',
             },
@@ -312,6 +409,13 @@ describe('CombatActionExecutor', () => {
       expect(result.combatResult.damageDealt).toBe(14);
       expect(result.updatedEnemies[0].hp.current).toBe(0); // 10 - 14 = 0 (dead)
       expect(result.combatResult.targetKilled).toBe(true);
+
+      // Verify that the dice roller was called with doubled notation for damage
+      expect(mockDiceRoller).toHaveBeenNthCalledWith(2, {
+        roller: 'Test Player',
+        rollNotation: '2d8+3', // Should be doubled from 1d8+3
+        description: 'Tirada de daño',
+      });
     });
 
     it('should handle target not found', async () => {

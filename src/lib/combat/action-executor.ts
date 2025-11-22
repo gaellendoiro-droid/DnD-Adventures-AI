@@ -193,10 +193,29 @@ export class CombatActionExecutor {
                 const isDamageRoll = rollDescription.includes('damage') || rollDescription.includes('daño');
                 const isHealingRoll = rollDescription.includes('healing') || rollDescription.includes('curación') || rollDescription.includes('cura');
 
+                // Adjust damage dice notation for critical hits BEFORE rolling
+                let adjustedRollNotation = rollRequest.rollNotation;
+                if (isDamageRoll && wasCritical && action.type === 'attack') {
+                    // Parse the damage notation to extract die and modifier
+                    const match = rollRequest.rollNotation.match(/^(\d+d\d+)(?:\+(\d+))?$/);
+                    if (match) {
+                        const damageDie = match[1]; // e.g., "1d6"
+                        const damageMod = match[2] ? parseInt(match[2], 10) : 0;
+                        adjustedRollNotation = getCriticalDamageNotation(damageDie, damageMod, true);
+
+                        log.debug('Doubling damage dice for crit outcome', {
+                            module: 'CombatActionExecutor',
+                            combatant: combatant.characterName,
+                            originalNotation: rollRequest.rollNotation,
+                            criticalNotation: adjustedRollNotation,
+                        });
+                    }
+                }
+
                 // Execute the dice roll
                 const rollResult = await diceRollerTool({
                     roller: rollRequest.roller || combatant.characterName,
-                    rollNotation: rollRequest.rollNotation,
+                    rollNotation: adjustedRollNotation,
                     description: rollRequest.description,
                 });
 
@@ -271,25 +290,15 @@ export class CombatActionExecutor {
                         continue;
                     }
 
-                    // Adjust damage for critical hits
-                    let damage = rollResult.totalResult;
-                    if (wasCritical && action.type === 'attack') {
-                        // Damage dice should already be doubled, but we verify
-                        log.debug('Damage calculated for critical hit', {
-                            module: 'CombatActionExecutor',
-                            damage,
-                            wasCritical,
-                        });
-                    }
+                    // Ensure damage is not negative for application, but keep the roll result for display
+                    let damage = Math.max(0, rollResult.totalResult);
 
-                    // Validate damage is positive
-                    if (damage <= 0) {
-                        log.warn('Damage roll resulted in non-positive damage', {
+                    if (rollResult.totalResult <= 0) {
+                        log.debug('Damage roll resulted in non-positive damage, clamping to 0', {
                             module: 'CombatActionExecutor',
-                            damage,
+                            originalTotal: rollResult.totalResult,
                             combatant: combatant.characterName,
                         });
-                        continue;
                     }
 
                     // Get target's current HP
@@ -358,17 +367,16 @@ export class CombatActionExecutor {
                 }
                 // Process healing roll
                 else if (isHealingRoll) {
-                    // Validate healing is positive
+                    // Ensure healing is not negative
+                    let healing = Math.max(0, rollResult.totalResult);
+
                     if (rollResult.totalResult <= 0) {
-                        log.warn('Healing roll resulted in non-positive healing', {
+                        log.debug('Healing roll resulted in non-positive healing, clamping to 0', {
                             module: 'CombatActionExecutor',
-                            healing: rollResult.totalResult,
+                            originalTotal: rollResult.totalResult,
                             combatant: combatant.characterName,
                         });
-                        continue;
                     }
-
-                    const healing = rollResult.totalResult;
                     const targetIsEnemy = updatedEnemies.some(e => (e as any).uniqueId === (target as any).uniqueId || e.id === target.id);
                     const targetObj = targetIsEnemy
                         ? updatedEnemies.find(e => (e as any).uniqueId === (target as any).uniqueId || e.id === target.id)
