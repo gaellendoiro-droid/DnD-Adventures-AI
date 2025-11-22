@@ -14,19 +14,16 @@ import { markdownToHtml } from './markdown-to-html';
 import { narrativeExpert } from './narrative-manager';
 import { getAdventureData } from '@/app/game-state-actions';
 import { processCompanionReactions } from './managers/companion-reaction-manager';
+import { executeNarrativeTurn } from './managers/narrative-turn-manager';
 import { areAllEntitiesOutOfCombat, areAllEntitiesDead, isEntityOutOfCombat } from '@/lib/game/entity-status-utils';
+import { formatMessageForTranscript } from '@/lib/utils/transcript-formatter';
 import { actionInterpreter } from './action-interpreter';
 import { GameStateSchema, GameCoordinatorOutputSchema, type GameState, type GameCoordinatorOutput } from '@/ai/flows/schemas';
 import { combatManagerTool } from '../tools/combat-manager';
 import { combatInitiationExpertTool } from '../tools/combat-initiation-expert';
 import { log } from '@/lib/logger';
 
-const formatMessageForTranscript = (msg: Partial<GameMessage>): string => {
-    if (msg.sender === 'Player') return `${msg.senderName || 'Player'}: ${msg.content}`;
-    if (msg.sender === 'DM') return `Dungeon Master: ${msg.originalContent || msg.content}`;
-    if (msg.sender === 'Character' && msg.senderName) return `${msg.senderName}: ${msg.originalContent || msg.content}`;
-    return '';
-};
+
 
 export const gameCoordinatorFlow = ai.defineFlow(
     {
@@ -293,136 +290,27 @@ export const gameCoordinatorFlow = ai.defineFlow(
             return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
         }
 
-        let messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
-
-        // Check if this is the start of an adventure (empty conversation history and action is about starting)
-        const isAdventureStart = conversationHistory.length === 0 &&
-            (playerAction.toLowerCase().includes('comenzar') ||
-                playerAction.toLowerCase().includes('empezar') ||
-                playerAction.toLowerCase().includes('iniciar'));
-
-        let newLocationId: string | null = null;
-        let finalLocationData = currentLocationData;
-        if (interpretation.actionType === 'move' && interpretation.targetId) {
-            newLocationId = interpretation.targetId;
-            locationId = newLocationId;
-            log.gameCoordinator('Player moving to new location', {
-                from: input.locationId,
-                to: newLocationId,
-            });
-            finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
-            if (!finalLocationData) {
-                log.error('Location not found', {
-                    module: 'GameCoordinator',
-                    locationId,
-                });
-                throw new Error(`Could not find data for location: ${locationId}.`);
-            }
-            // Update currentLocationEnemies for the new location
-            currentLocationEnemies = input.enemiesByLocation?.[locationId] || input.enemies || [];
-        }
-
-        // Generate companion reactions BEFORE DM narration
-        const beforeDmReactions = await processCompanionReactions({
-            party,
+        // Execute narrative turn (outside of combat)
+        const narrativeResult = await executeNarrativeTurn({
             playerAction,
             interpretation,
-            inCombat,
-            timing: 'before_dm',
-            isAdventureStart,
-        });
-        beforeDmReactions.debugLogs.forEach(localLog);
-        messages.push(...beforeDmReactions.messages);
-
-        // Generate DM narration AFTER companion reactions to player's proposal
-        log.gameCoordinator('Generating DM narration', {
-            actionType: interpretation.actionType,
-            isAdventureStart,
-        });
-        localLog("GameCoordinator: Generating DM narration...");
-        const historyForNarrator = [...conversationHistory, ...messages];
-        const narrativeHistoryTranscript = historyForNarrator.map(formatMessageForTranscript).join('\n');
-
-        // Filter out dead enemies from entitiesPresent before passing to narrative expert
-        // This ensures the DM doesn't mention dead enemies when describing the location
-        const filteredLocationData = { ...finalLocationData };
-        const deadEntities: string[] = []; // Track defeated enemies for context
-
-        if (filteredLocationData.entitiesPresent && currentLocationEnemies.length > 0) {
-            filteredLocationData.entitiesPresent = filteredLocationData.entitiesPresent.filter((entityId: string) => {
-                const enemy = currentLocationEnemies.find((e: any) =>
-                    e.id === entityId ||
-                    (e as any).uniqueId === entityId ||
-                    (e as any).adventureId === entityId
-                );
-
-                const isDead = enemy && isEntityOutOfCombat(enemy);
-
-                if (isDead) {
-                    // Collect names of dead enemies for explicit context
-                    deadEntities.push(enemy.name || enemy.id || 'Unknown enemy');
-                    return false; // Remove from active entities list
-                }
-
-                // Include entity if it's not an enemy, or if it's an enemy that's still alive
-                return !enemy || !isDead;
-            });
-            log.gameCoordinator('Filtered dead enemies from location context', {
-                originalCount: finalLocationData.entitiesPresent?.length || 0,
-                filteredCount: filteredLocationData.entitiesPresent.length,
-                deadEntities: deadEntities.length > 0 ? deadEntities : undefined,
-            });
-        }
-
-        const narrativeInput = {
-            playerAction,
-            locationId,
-            locationContext: JSON.stringify(filteredLocationData),
-            conversationHistory: narrativeHistoryTranscript,
-            interpretedAction: JSON.stringify(interpretation),
-            // Pass explicit list of dead entities so the AI knows to describe them as corpses
-            deadEntities: deadEntities.length > 0 ? deadEntities.join(', ') : undefined,
-        };
-
-        const narrativeResult = await narrativeExpert(narrativeInput);
-        (narrativeResult.debugLogs || []).forEach(localLog);
-
-        if (narrativeResult.dmNarration) {
-            const { html } = await markdownToHtml({ markdown: narrativeResult.dmNarration });
-            messages.push({
-                sender: 'DM',
-                content: html,
-                originalContent: narrativeResult.dmNarration,
-            });
-        }
-
-        // Generate companion reactions AFTER DM narration
-        const afterDmReactions = await processCompanionReactions({
             party,
-            playerAction,
-            interpretation,
-            inCombat,
-            timing: 'after_dm',
-            isAdventureStart,
-            dmNarration: narrativeResult.dmNarration,
+            currentLocationId: locationId,
+            adventureData,
+            conversationHistory,
+            enemiesByLocation: input.enemiesByLocation,
+            enemies: input.enemies,
         });
-        afterDmReactions.debugLogs.forEach(localLog);
-        messages.push(...afterDmReactions.messages);
 
-        const finalInCombat = false;
-        log.gameCoordinator('Turn finished', {
-            messagesCount: messages.length,
-            locationId,
-            inCombat: finalInCombat,
-        });
-        localLog(`GameCoordinator: Turn finished. Final location: ${locationId}. InCombat: ${finalInCombat}. Returning ${messages.length} messages.`);
+        // Merge logs
+        narrativeResult.debugLogs.forEach(localLog);
 
         return {
-            messages,
+            messages: narrativeResult.messages,
             debugLogs,
-            updatedParty: party,
-            nextLocationId: newLocationId,
-            inCombat: finalInCombat,
+            updatedParty: narrativeResult.updatedParty,
+            nextLocationId: narrativeResult.nextLocationId,
+            inCombat: false,
             turnIndex: 0,
         };
     }

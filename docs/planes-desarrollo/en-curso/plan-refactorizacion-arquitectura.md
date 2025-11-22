@@ -86,32 +86,6 @@ La lógica para filtrar enemigos muertos y verificar estados de actores está di
 **Resultado:**
 - ✅ `EntityStatusUtils` creado con 11 funciones centralizadas
 - ✅ Refactorizado `companion-reaction-manager.ts` para usar `canEntityReact`
-- ✅ Refactorizado `game-coordinator.ts` para usar `areAllEntitiesOutOfCombat`, `areAllEntitiesDead`, `isEntityOutOfCombat`
-- ✅ Eliminada lógica duplicada de verificación de estados en 3 archivos
-- ✅ Build compilado exitosamente
-- ✅ Comportamiento idéntico garantizado (lógica movida, no reescrita)
-- ✅ **Tests validados:** No se introdujeron nuevos fallos (7 tests de combate fallaban antes y después - fallos pre-existentes no relacionados)
-
-### Fase 3: Encapsulamiento del Turno Narrativo (Prioridad Media-Alta)
-
-El `GameCoordinator` conoce demasiado sobre la estructura interna del turno narrativo (Reacción -> DM -> Reacción).
-
-- [ ] **Crear `NarrativeTurnManager`**
-    - Crear `src/ai/flows/managers/narrative-turn-manager.ts`.
-    - Esta función orquestará el flujo completo de un turno fuera de combate:
-        1.  Recibe el estado y la acción interpretada.
-        2.  Llama a `CompanionReactionManager` (Pre).
-        3.  Llama a `NarrativeExpert` (Exploración/Interacción).
-        4.  Llama a `CompanionReactionManager` (Post).
-        5.  Ensambla y devuelve los mensajes.
-- [ ] **Simplificar `GameCoordinator`**
-    - Reducir la rama `else` (no combate) del coordinador a una simple llamada: `await narrativeTurnManager.execute(...)`.
-
-### Fase 4: Normalización de Comandos de Sistema (Prioridad Baja)
-
-- [ ] **Crear Constantes de Comandos**
-    - Definir una lista de comandos de sistema (ej: "pasar turno", "continuar") en un archivo de configuración o constantes.
-    - Crear una utilidad `SystemCommandDetector.detect(actionString)` que devuelva un tipo de acción normalizado o `null`.
     - Usar esta utilidad en `GameCoordinator` y `ActionInterpreter` para evitar comprobaciones de strings hardcodeadas.
 
 ## Beneficios Esperados

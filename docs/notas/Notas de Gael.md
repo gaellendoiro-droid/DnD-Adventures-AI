@@ -79,18 +79,6 @@ _(No hay issues críticos pendientes en este momento)_
 
 ### PRIORIDAD MEDIA
 
-#### [#92] `[ISSUE]` `[PM]` `[SISTEMA DE COMBATE]` `[EN ROADMAP]`
-**Identificación incorrecta de enemigo en combate**
-
-- En combate, al escribir "Con mis últimas fuerzas ataco al goblin que me acaba de dar un tajo" refiriéndose al Goblin 2 que acababa de atacar y acertar con su cimitarra, el DM narró que el personaje atacó al Goblin 1.
-- Revisar la identificación de enemigos cuando se hace referencia a acciones recientes.
-
-#### [#112] `[ISSUE]` `[PM]` `[SISTEMA DE COMBATE]` `[EN ROADMAP]`
-**Sincronización entre DM y combat tracker**
-
-- En combate, cuando se pasa 1 turno mientras en el chat sale "el DM está pensando..." el combat tracker aún está en el turno anterior.
-- Mejorar la sincronización entre el estado del DM y el combat tracker para que ambos reflejen el mismo estado del combate.
-
 ---
 
 ## NUEVAS FUNCIONALIDADES
@@ -381,7 +369,8 @@ Esta sección es para apuntar ideas rápidas, fallos detectados y notas informal
 
 Al clasificar un item de esta sección, debe moverse a su sección correspondiente y eliminarse de aquí, manteniendo esta sección como un área de trabajo temporal.
 
-1. Implementar peso de cada item y el concepto de estar cargado. (PMB)
+1. NUEVA FUNCIONALIDAD: Implementar peso de inventario, peso de cada item y el concepto de estar cargado y sus consecuencias. (PMB)
+2. 
 
 
 
