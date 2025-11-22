@@ -70,18 +70,26 @@ Actualmente, el `GameCoordinator` gestiona manualmente el bucle de compañeros, 
 - ✅ Comportamiento idéntico garantizado (código movido, no reescrito)
 - ✅ **Tests validados:** No se introdujeron nuevos fallos (7 tests fallaban antes y después - fallos pre-existentes no relacionados)
 
-### Fase 2: Centralización de Utilidades de Entidades (Prioridad Media)
+### Fase 2: Centralización de Utilidades de Entidades (Prioridad Media) ✅ COMPLETADA
 
 La lógica para filtrar enemigos muertos y verificar estados de actores está dispersa.
 
-- [ ] **Crear `EntityStatusUtils`**
+- [x] **Crear `EntityStatusUtils`**
     - Crear `src/lib/game/entity-status-utils.ts`.
     - Implementar `isEntityActive(entity)`: Verifica si una entidad está viva y consciente.
     - Implementar `canEntityReact(entity)`: Lógica específica para reacciones (puede ser diferente a `isActive` si hay estados como "silenciado").
     - Implementar `filterDeadEntities(entities)`: Devuelve solo entidades vivas.
-- [ ] **Refactorizar Filtrado de Contexto**
+- [x] **Refactorizar Filtrado de Contexto**
     - Mover la lógica de filtrado de `entitiesPresent` (líneas 375-404 de `game-coordinator.ts`) a una función reutilizable en `EntityStatusUtils` o `NarrativeUtils`.
     - Usar estas utilidades en `GameCoordinator`, `CombatManager` y `CompanionReactionManager`.
+
+**Resultado:**
+- ✅ `EntityStatusUtils` creado con 11 funciones centralizadas
+- ✅ Refactorizado `companion-reaction-manager.ts` para usar `canEntityReact`
+- ✅ Refactorizado `game-coordinator.ts` para usar `areAllEntitiesOutOfCombat`, `areAllEntitiesDead`, `isEntityOutOfCombat`
+- ✅ Eliminada lógica duplicada de verificación de estados en 3 archivos
+- ✅ Build compilado exitosamente
+- ✅ Comportamiento idéntico garantizado (lógica movida, no reescrita)
 
 ### Fase 3: Encapsulamiento del Turno Narrativo (Prioridad Media-Alta)
 

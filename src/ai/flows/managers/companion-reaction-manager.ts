@@ -12,6 +12,7 @@
 import { companionExpertTool } from '../../tools/companion-expert';
 import type { Character, GameMessage } from '@/lib/types';
 import { log } from '@/lib/logger';
+import { canEntityReact } from '@/lib/game/entity-status-utils';
 
 /**
  * Timing de las reacciones de compañeros
@@ -80,7 +81,7 @@ export async function processCompanionReactions(
 
             for (const character of party) {
                 // Issue #26/#27: Skip dead/unconscious companions - they cannot react
-                if (character.controlledBy === 'AI' && character.hp.current > 0 && character.isDead !== true) {
+                if (canEntityReact(character)) {
                     const isTargeted = interpretation.actionType === 'interact' && interpretation.targetId === character.name;
                     const companionContext = `The player just proposed/said: "${playerAction}"${isTargeted ? `\n\n(You are being directly addressed.)` : ''}`;
 
@@ -116,7 +117,7 @@ export async function processCompanionReactions(
             localLog("GameCoordinator: Generating companion reactions after DM narration...");
             for (const character of party) {
                 // Issue #26/#27: Skip dead/unconscious companions - they cannot react
-                if (character.controlledBy === 'AI' && character.hp.current > 0 && character.isDead !== true) {
+                if (canEntityReact(character)) {
                     const isTargeted = interpretation.actionType === 'interact' && interpretation.targetId === character.name;
                     // Include DM narration in context so companions react to the CURRENT SITUATION, not just the player's original action
                     const dmNarrationContext = dmNarration

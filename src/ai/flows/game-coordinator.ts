@@ -14,6 +14,7 @@ import { markdownToHtml } from './markdown-to-html';
 import { narrativeExpert } from './narrative-manager';
 import { getAdventureData } from '@/app/game-state-actions';
 import { processCompanionReactions } from './managers/companion-reaction-manager';
+import { areAllEntitiesOutOfCombat, areAllEntitiesDead, isEntityOutOfCombat } from '@/lib/game/entity-status-utils';
 import { actionInterpreter } from './action-interpreter';
 import { GameStateSchema, GameCoordinatorOutputSchema, type GameState, type GameCoordinatorOutput } from '@/ai/flows/schemas';
 import { combatManagerTool } from '../tools/combat-manager';
@@ -57,10 +58,10 @@ export const gameCoordinatorFlow = ai.defineFlow(
 
         // Issue #27 & #54: Verificar muerte del jugador y game over
         // SOLO detener el combate si TODOS los miembros del grupo están muertos/inconscientes
-        const allDead = party.every(p => p.hp && (p.hp.current <= 0 || p.isDead === true));
+        const allDead = areAllEntitiesOutOfCombat(party);
         if (allDead) {
             // Distinguish between all unconscious and all dead
-            const allDeadFlag = party.every(p => p.isDead === true);
+            const allDeadFlag = areAllEntitiesDead(party);
             const gameOverMessage = allDeadFlag
                 ? '¡Game Over! Todos los miembros del grupo han muerto en combate. Vuestro viaje termina aquí, pero vuestra historia será recordada. La aventura ha terminado.'
                 : '¡Game Over! Todos los miembros del grupo han caído inconscientes. Sin nadie que pueda ayudarlos, vuestro viaje termina aquí. La aventura ha terminado.';
@@ -355,7 +356,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
                     (e as any).adventureId === entityId
                 );
 
-                const isDead = enemy && (enemy.hp && enemy.hp.current <= 0);
+                const isDead = enemy && isEntityOutOfCombat(enemy);
 
                 if (isDead) {
                     // Collect names of dead enemies for explicit context
