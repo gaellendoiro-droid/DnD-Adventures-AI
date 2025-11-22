@@ -13,7 +13,7 @@ import type { GameMessage } from '@/lib/types';
 import { markdownToHtml } from './markdown-to-html';
 import { narrativeExpert } from './narrative-manager';
 import { getAdventureData } from '@/app/game-state-actions';
-import { companionExpertTool } from '../tools/companion-expert';
+import { processCompanionReactions } from './managers/companion-reaction-manager';
 import { actionInterpreter } from './action-interpreter';
 import { GameStateSchema, GameCoordinatorOutputSchema, type GameState, type GameCoordinatorOutput } from '@/ai/flows/schemas';
 import { combatManagerTool } from '../tools/combat-manager';
@@ -321,47 +321,17 @@ export const gameCoordinatorFlow = ai.defineFlow(
             currentLocationEnemies = input.enemiesByLocation?.[locationId] || input.enemies || [];
         }
 
-        // Generate companion reactions BEFORE DM narration (optional, selective reactions to player's proposal)
-        // Skip on adventure start and only for significant actions
-        const significantActions = ['move', 'attack', 'interact'];
-        if (!isAdventureStart && significantActions.includes(interpretation.actionType || '')) {
-            log.gameCoordinator('Generating companion reactions (before DM)', {
-                partySize: party.length,
-                actionType: interpretation.actionType,
-            });
-            localLog("GameCoordinator: Generating companion reactions before DM narration...");
-
-            for (const character of party) {
-                // Issue #26/#27: Skip dead/unconscious companions - they cannot react
-                if (character.controlledBy === 'AI' && character.hp.current > 0 && character.isDead !== true) {
-                    const isTargeted = interpretation.actionType === 'interact' && interpretation.targetId === character.name;
-                    const companionContext = `The player just proposed/said: "${playerAction}"${isTargeted ? `\n\n(You are being directly addressed.)` : ''}`;
-
-                    const companionResult = await companionExpertTool({
-                        party: party,
-                        characterName: character.name,
-                        context: companionContext,
-                        inCombat: inCombat,
-                        reactionTiming: 'before_dm',
-                    });
-
-                    if (companionResult.action && companionResult.action.trim() !== '') {
-                        log.gameCoordinator('Companion reacted (before DM)', {
-                            character: character.name,
-                            action: companionResult.action.substring(0, 50) + '...',
-                        });
-                        localLog(`${character.name} reacted before DM: "${companionResult.action}"`);
-                        messages.push({
-                            sender: 'Character',
-                            senderName: character.name,
-                            characterColor: character.color,
-                            content: companionResult.action,
-                            originalContent: companionResult.action,
-                        });
-                    }
-                }
-            }
-        }
+        // Generate companion reactions BEFORE DM narration
+        const beforeDmReactions = await processCompanionReactions({
+            party,
+            playerAction,
+            interpretation,
+            inCombat,
+            timing: 'before_dm',
+            isAdventureStart,
+        });
+        beforeDmReactions.debugLogs.forEach(localLog);
+        messages.push(...beforeDmReactions.messages);
 
         // Generate DM narration AFTER companion reactions to player's proposal
         log.gameCoordinator('Generating DM narration', {
@@ -376,7 +346,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         // This ensures the DM doesn't mention dead enemies when describing the location
         const filteredLocationData = { ...finalLocationData };
         const deadEntities: string[] = []; // Track defeated enemies for context
-        
+
         if (filteredLocationData.entitiesPresent && currentLocationEnemies.length > 0) {
             filteredLocationData.entitiesPresent = filteredLocationData.entitiesPresent.filter((entityId: string) => {
                 const enemy = currentLocationEnemies.find((e: any) =>
@@ -384,15 +354,15 @@ export const gameCoordinatorFlow = ai.defineFlow(
                     (e as any).uniqueId === entityId ||
                     (e as any).adventureId === entityId
                 );
-                
+
                 const isDead = enemy && (enemy.hp && enemy.hp.current <= 0);
-                
+
                 if (isDead) {
                     // Collect names of dead enemies for explicit context
                     deadEntities.push(enemy.name || enemy.id || 'Unknown enemy');
                     return false; // Remove from active entities list
                 }
-                
+
                 // Include entity if it's not an enemy, or if it's an enemy that's still alive
                 return !enemy || !isDead;
             });
@@ -425,48 +395,18 @@ export const gameCoordinatorFlow = ai.defineFlow(
             });
         }
 
-        // Generate companion reactions AFTER DM narration (and skip on adventure start)
-        if (!isAdventureStart) {
-            log.gameCoordinator('Generating companion reactions (after DM)', { partySize: party.length });
-            localLog("GameCoordinator: Generating companion reactions after DM narration...");
-            for (const character of party) {
-                // Issue #26/#27: Skip dead/unconscious companions - they cannot react
-                if (character.controlledBy === 'AI' && character.hp.current > 0 && character.isDead !== true) {
-                    const isTargeted = interpretation.actionType === 'interact' && interpretation.targetId === character.name;
-                    // Include DM narration in context so companions react to the CURRENT SITUATION, not just the player's original action
-                    const dmNarrationContext = narrativeResult.dmNarration
-                        ? `\n\nDM narration (what just happened):\n"${narrativeResult.dmNarration}"`
-                        : '';
-                    const companionContext = `The player's action was: "${playerAction}"${dmNarrationContext}${isTargeted ? `\n\n(You are being directly addressed.)` : ''}`;
-
-                    const companionResult = await companionExpertTool({
-                        party: party,
-                        characterName: character.name,
-                        context: companionContext,
-                        inCombat: inCombat,
-                        reactionTiming: 'after_dm',
-                    });
-
-                    if (companionResult.action && companionResult.action.trim() !== '') {
-                        log.gameCoordinator('Companion reacted (after DM)', {
-                            character: character.name,
-                            action: companionResult.action.substring(0, 50) + '...',
-                        });
-                        localLog(`${character.name} reacted after DM: "${companionResult.action}"`);
-                        messages.push({
-                            sender: 'Character',
-                            senderName: character.name,
-                            characterColor: character.color,
-                            content: companionResult.action,
-                            originalContent: companionResult.action,
-                        });
-                    }
-                }
-            }
-        } else {
-            log.gameCoordinator('Skipping companion reactions (adventure start)', { partySize: party.length });
-            localLog("GameCoordinator: Skipping companion reactions because this is the start of the adventure.");
-        }
+        // Generate companion reactions AFTER DM narration
+        const afterDmReactions = await processCompanionReactions({
+            party,
+            playerAction,
+            interpretation,
+            inCombat,
+            timing: 'after_dm',
+            isAdventureStart,
+            dmNarration: narrativeResult.dmNarration,
+        });
+        afterDmReactions.debugLogs.forEach(localLog);
+        messages.push(...afterDmReactions.messages);
 
         const finalInCombat = false;
         log.gameCoordinator('Turn finished', {

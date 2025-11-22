@@ -45,11 +45,11 @@ Antes de considerar completada cada fase:
 
 ## Tareas Detalladas
 
-### Fase 1: Extracción de Lógica de Compañeros (Prioridad Alta)
+### Fase 1: Extracción de Lógica de Compañeros (Prioridad Alta) ✅ COMPLETADA
 
 Actualmente, el `GameCoordinator` gestiona manualmente el bucle de compañeros, la construcción de prompts y el manejo de respuestas en dos puntos diferentes (antes y después del DM).
 
-- [ ] **Crear `CompanionReactionManager`**
+- [x] **Crear `CompanionReactionManager`**
     - Crear `src/ai/flows/managers/companion-reaction-manager.ts`.
     - Implementar función `processCompanionReactions` que acepte:
         - `party`: Lista de personajes.
@@ -58,8 +58,15 @@ Actualmente, el `GameCoordinator` gestiona manualmente el bucle de compañeros, 
         - `inCombat`: Estado de combate.
     - Mover la lógica de filtrado (vivos/conscientes) dentro de este manager.
     - Mover la lógica de construcción de prompts dentro de este manager.
-- [ ] **Integrar en `GameCoordinator`**
+- [x] **Integrar en `GameCoordinator`**
     - Reemplazar los bucles `for` explícitos en `gameCoordinator.ts` con llamadas a `CompanionReactionManager`.
+
+**Resultado:** 
+- ✅ `CompanionReactionManager` creado con lógica exacta movida desde `game-coordinator.ts`
+- ✅ Prompts de IA preservados sin modificaciones
+- ✅ Reducción de `game-coordinator.ts`: ~493 líneas → ~451 líneas (~42 líneas eliminadas)
+- ✅ Build compilado exitosamente
+- ✅ Comportamiento idéntico garantizado (código movido, no reescrito)
 
 ### Fase 2: Centralización de Utilidades de Entidades (Prioridad Media)
 
