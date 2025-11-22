@@ -6,15 +6,24 @@ Este documento proporciona una visión de alto nivel de la arquitectura del proy
 
 El proyecto sigue un modelo cliente-servidor claramente separado:
 
-```
-┌─────────────────┐         ┌─────────────────┐
-│   Frontend      │         │    Backend      │
-│   (Next.js)     │◄───────►│   (Genkit IA)   │
-│                 │         │                 │
-│ - React UI      │         │ - Flujos IA     │
-│ - Estado Local  │         │ - Herramientas  │
-│ - Componentes  │         │ - Lógica Juego  │
-└─────────────────┘         └─────────────────┘
+```mermaid
+graph LR
+    subgraph Frontend["🖥️ Frontend (Next.js)"]
+        A[React UI]
+        B[Estado Local]
+        C[Componentes]
+    end
+    
+    subgraph Backend["⚙️ Backend (Genkit IA)"]
+        D[Flujos IA]
+        E[Herramientas]
+        F[Lógica Juego]
+    end
+    
+    Frontend <-->|Server Actions| Backend
+    
+    style Frontend fill:#bbdefb,stroke:#0d47a1,stroke-width:2px
+    style Backend fill:#e1bee7,stroke:#4a148c,stroke-width:2px
 ```
 
 ### Frontend (Cliente)
@@ -108,9 +117,9 @@ graph TD
     G --> G1[CombatSession]
     G1 --> G2[Inicializar/Procesar Turno]
     F -->|Narrativa| H[NarrativeTurnManager]
-    H --> I[CompanionReactionManager<br/>(Reacción Previa)]
-    I --> J[narrativeExpert<br/>(DM Narration)]
-    J --> K[CompanionReactionManager<br/>(Reacción Posterior)]
+    H --> I["CompanionReactionManager (Previa)"]
+    I --> J["narrativeExpert (DM)"]
+    J --> K["CompanionReactionManager (Posterior)"]
     K --> L[Ensambla Respuesta]
     G --> L
     L --> M[Server Action: Devuelve Estado]
@@ -126,7 +135,7 @@ El sistema de combate utiliza `CombatSession` (patrón State Object) para encaps
 
 ```mermaid
 graph TD
-    A[Usuario: Acción de Combate<br/>Ej: 'Ataco al orco'] --> B[gameCoordinator]
+    A["Usuario: Acción de Combate (Ej: Ataco al orco)"] --> B[gameCoordinator]
     B --> C[actionInterpreter]
     C --> D{¿Acción es Ataque?}
     D -->|Sí| E[combatInitiationExpertTool]
@@ -138,13 +147,13 @@ graph TD
     I -->|No| J[CombatSession.initialize]
     I -->|Sí| K[CombatSession.processCurrentTurn]
     
-    subgraph Fase de Inicialización
+    subgraph "Fase de Inicialización"
     J --> L[CombatInitializer]
-    L --> M[Valida Enemigos & Calcula Iniciativa]
+    L --> M["Valida Enemigos y Calcula Iniciativa"]
     M --> N[Establece Orden de Turnos]
     end
     
-    N --> O[CombatSession: Bucle de Turnos]
+    N --> O["CombatSession: Bucle de Turnos"]
     K --> O
     
     O --> P{¿Turno de Jugador?}
@@ -155,14 +164,14 @@ graph TD
     S -->|Compañero| T[companionTacticianTool]
     S -->|Enemigo| U[enemyTacticianTool]
     
-    T --> V[Planificación de Acción]
+    T --> V["Planificación de Acción"]
     U --> V
     
     V --> W[CombatActionExecutor.execute]
-    W --> X[Procesa Tiradas & Aplica Daño]
+    W --> X["Procesa Tiradas y Aplica Daño"]
     X --> Y[combatNarrationExpertTool]
     
-    Y --> Z[Genera Narración Completa]
+    Y --> Z["Genera Narración Completa"]
     Z --> AA{¿Fin Combate?}
     AA -->|No| AB[CombatSession.advanceTurn]
     AB --> O
@@ -170,7 +179,7 @@ graph TD
     
     Q --> AD[Usuario Responde]
     AD --> AE[actionInterpreter]
-    AE --> AF[TurnProcessor (Jugador)]
+    AE --> AF["TurnProcessor (Jugador)"]
     AF --> W
     
     AC --> AG[Devuelve Estado Actualizado]
@@ -247,10 +256,10 @@ graph TD
     
     E --> G[CompanionReactionManager]
     G --> H{¿Compañeros Vivos?}
-    H -->|Sí| I[companionExpertTool: Reacción a Intención]
+    H -->|Sí| I["companionExpertTool: Reacción a Intención"]
     H -->|No| J[Salta Reacciones]
     
-    I --> K[narrativeExpert (NarrativeManager)]
+    I --> K["narrativeExpert (NarrativeManager)"]
     J --> K
     
     K --> L[narrativeRouterPrompt]
@@ -272,7 +281,7 @@ graph TD
     
     U --> V[CompanionReactionManager]
     V --> W{¿Compañeros Vivos?}
-    W -->|Sí| X[companionExpertTool: Reacción a Resultado]
+    W -->|Sí| X["companionExpertTool: Reacción a Resultado"]
     W -->|No| Y[Salta Reacciones]
     
     X --> Z[Ensambla Mensajes Finales]
