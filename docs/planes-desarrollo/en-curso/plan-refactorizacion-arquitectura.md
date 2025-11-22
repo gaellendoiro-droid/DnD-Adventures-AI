@@ -86,6 +86,40 @@ La lógica para filtrar enemigos muertos y verificar estados de actores está di
 **Resultado:**
 - ✅ `EntityStatusUtils` creado con 11 funciones centralizadas
 - ✅ Refactorizado `companion-reaction-manager.ts` para usar `canEntityReact`
+- ✅ Refactorizado `game-coordinator.ts` para usar `areAllEntitiesOutOfCombat`, `areAllEntitiesDead`, `isEntityOutOfCombat`
+- ✅ Eliminada lógica duplicada de verificación de estados en 3 archivos
+- ✅ Build compilado exitosamente
+- ✅ Comportamiento idéntico garantizado (lógica movida, no reescrita)
+- ✅ **Tests validados:** No se introdujeron nuevos fallos (7 tests de combate fallaban antes y después - fallos pre-existentes no relacionados)
+
+### Fase 3: Encapsulamiento del Turno Narrativo (Prioridad Media-Alta) ✅ COMPLETADA
+
+El `GameCoordinator` conoce demasiado sobre la estructura interna del turno narrativo (Reacción -> DM -> Reacción).
+
+- [x] **Crear `NarrativeTurnManager`**
+    - Crear `src/ai/flows/managers/narrative-turn-manager.ts`.
+    - Implementar `executeNarrativeTurn` que orqueste:
+        1.  Llamada a `CompanionReactionManager` (pre-DM).
+        2.  Llamada a `NarrativeManager` (DM).
+        3.  Llamada a `CompanionReactionManager` (post-DM).
+    - Mover la lógica de gestión de movimiento y cambio de ubicación a este manager.
+    - Extraer `formatMessageForTranscript` a `src/lib/utils/transcript-formatter.ts`.
+- [x] **Simplificar `GameCoordinator`**
+    - Reemplazar toda la rama `else` (no combate) en `gameCoordinator.ts` con una llamada a `NarrativeTurnManager.executeNarrativeTurn`.
+
+**Resultado:**
+- ✅ `NarrativeTurnManager` creado encapsulando todo el flujo narrativo
+- ✅ `TranscriptFormatter` extraído para reutilización
+- ✅ `game-coordinator.ts` simplificado drásticamente: ~451 líneas → ~321 líneas (~130 líneas eliminadas)
+- ✅ Lógica de movimiento y filtrado de enemigos encapsulada
+- ✅ Build compilado exitosamente
+- ✅ Comportamiento idéntico garantizado (lógica movida, no reescrita)
+
+### Fase 4: Normalización de Comandos de Sistema (Prioridad Baja)
+
+- [ ] **Crear Constantes de Comandos**
+    - Definir una lista de comandos de sistema (ej: "pasar turno", "continuar") en un archivo de configuración o constantes.
+    - Crear una utilidad `SystemCommandDetector.detect(actionString)` que devuelva un tipo de acción normalizado o `null`.
     - Usar esta utilidad en `GameCoordinator` y `ActionInterpreter` para evitar comprobaciones de strings hardcodeadas.
 
 ## Beneficios Esperados
