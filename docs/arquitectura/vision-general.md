@@ -83,12 +83,17 @@ Usuario → Frontend → Server Action → Backend IA → Respuesta → Frontend
 
 ### Backend
 
-- **`ai/flows/game-coordinator.ts`:** Orquestador lógico del juego
+- **`ai/flows/game-coordinator.ts`:** Orquestador lógico del juego (simplificado, delega a managers)
+- **`ai/flows/managers/`:** Managers especializados:
+  - **`companion-reaction-manager.ts`:** Gestiona reacciones de compañeros (antes y después del DM)
+  - **`narrative-turn-manager.ts`:** Orquesta el flujo narrativo completo
 - **`ai/flows/action-interpreter.ts`:** Interpreta acciones del jugador
-- **`ai/flows/narrative-expert.ts`:** Genera narrativa
+- **`ai/flows/narrative-manager.ts`:** Genera narrativa (narrativeExpert)
 - **`ai/tools/`:** Herramientas especializadas (combate, dados, etc.)
 - **`lib/combat/combat-session.ts`:** Clase principal que encapsula el estado del combate (patrón State Object)
 - **`lib/combat/`:** Módulos especializados de combate (rules-engine, turn-manager, turn-processor, action-executor, combat-session, etc.)
+- **`lib/game/entity-status-utils.ts`:** Utilidades centralizadas para verificación de estados de entidades
+- **`lib/utils/transcript-formatter.ts`:** Utilidad para formatear historial de conversación
 
 ## Flujo de un Turno Típico
 
@@ -102,10 +107,10 @@ graph TD
     F -->|Combate| G[combatManagerTool]
     G --> G1[CombatSession]
     G1 --> G2[Inicializar/Procesar Turno]
-    F -->|Narrativa| H[Flujo Narrativo]
-    H --> I[companionExpertTool <br/>(Reacción Previa)]
-    I --> J[narrativeExpert <br/>(DM Narration)]
-    J --> K[companionExpertTool <br/>(Reacción Posterior)]
+    F -->|Narrativa| H[NarrativeTurnManager]
+    H --> I[CompanionReactionManager<br/>(Reacción Previa)]
+    I --> J[narrativeExpert<br/>(DM Narration)]
+    J --> K[CompanionReactionManager<br/>(Reacción Posterior)]
     K --> L[Ensambla Respuesta]
     G --> L
     L --> M[Server Action: Devuelve Estado]
@@ -237,10 +242,10 @@ graph TD
     A[Usuario: Acción Narrativa] --> B[gameCoordinator]
     B --> C[actionInterpreter]
     C --> D{¿Es Combate?}
-    D -->|No| E[Flujo Narrativo]
+    D -->|No| E[NarrativeTurnManager]
     D -->|Sí| F[Sistema de Combate]
     
-    E --> G[Reacciones Previas (gameCoordinator)]
+    E --> G[CompanionReactionManager]
     G --> H{¿Compañeros Vivos?}
     H -->|Sí| I[companionExpertTool: Reacción a Intención]
     H -->|No| J[Salta Reacciones]
@@ -265,7 +270,7 @@ graph TD
     R --> U
     T --> U
     
-    U --> V[Reacciones Posteriores (gameCoordinator)]
+    U --> V[CompanionReactionManager]
     V --> W{¿Compañeros Vivos?}
     W -->|Sí| X[companionExpertTool: Reacción a Resultado]
     W -->|No| Y[Salta Reacciones]
@@ -276,7 +281,10 @@ graph TD
 ```
 
 **Componentes Clave del Flujo Narrativo:**
-- **gameCoordinator**: Controla el flujo global y llama a los compañeros antes y después de la narración del DM.
+- **gameCoordinator**: Orquestador principal que delega el flujo narrativo al NarrativeTurnManager.
+- **NarrativeTurnManager**: Encapsula todo el flujo narrativo (movimiento, reacciones, narración).
+- **CompanionReactionManager**: Gestiona las reacciones de compañeros (antes y después del DM).
+- **EntityStatusUtils**: Utilidades centralizadas para verificar estados (vivo/muerto/consciente).
 - **NarrativeManager (narrativeExpert)**: Orquestador que decide qué expertos usar (Exploración/Interacción).
 - **explorationExpert**: Genera descripciones ambientales y gestiona movimiento.
 - **interactionExpert**: Gestiona diálogos con NPCs y tiradas sociales.
@@ -297,6 +305,8 @@ sequenceDiagram
     participant CM as combatManagerTool
     participant CS as CombatSession
     participant TP as TurnProcessor
+    participant NTM as NarrativeTurnManager
+    participant CRM as CompanionReactionManager
     participant NE as NarrativeManager
     participant CE as companionExpertTool
     participant AB as Backend
@@ -330,10 +340,13 @@ sequenceDiagram
             CM-->>GC: Estado de combate
         end
     else Es acción narrativa
-        GC->>CE: companionExpertTool (Reacción Previa)
-        CE-->>GC: Reacciones a intención
+        GC->>NTM: executeNarrativeTurn(estado)
+        NTM->>CRM: processCompanionReactions (Reacción Previa)
+        CRM->>CE: companionExpertTool
+        CE-->>CRM: Reacciones a intención
+        CRM-->>NTM: Mensajes de reacciones
         
-        GC->>NE: narrativeExpert(acción, contexto)
+        NTM->>NE: narrativeExpert(acción, contexto)
         NE->>NE: narrativeRouterPrompt
         alt Exploración
             NE->>NE: explorationExpert
@@ -343,10 +356,13 @@ sequenceDiagram
             NE->>NE: Ambos expertos en paralelo
             NE->>NE: narrativeSynthesizerPrompt
         end
-        NE-->>GC: dmNarration
+        NE-->>NTM: dmNarration
         
-        GC->>CE: companionExpertTool (Reacción Posterior)
-        CE-->>GC: Reacciones a resultado
+        NTM->>CRM: processCompanionReactions (Reacción Posterior)
+        CRM->>CE: companionExpertTool
+        CE-->>CRM: Reacciones a resultado
+        CRM-->>NTM: Mensajes de reacciones
+        NTM-->>GC: Estado narrativo completo
     end
     
     GC->>AB: Ensambla mensajes y estado
