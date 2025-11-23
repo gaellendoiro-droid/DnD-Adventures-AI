@@ -1,8 +1,7 @@
 # Patrones de Dependency Injection (DI)
 
-**Versión:** 1.0.0  
-**Fecha de creación:** 2025-01-20  
-**Estado:** ✅ Implementado
+**Última actualización:** 2025-01-20  
+**Estado:** ✅ Actualizado
 
 ---
 

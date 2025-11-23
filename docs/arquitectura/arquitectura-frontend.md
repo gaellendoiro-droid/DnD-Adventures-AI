@@ -1,5 +1,10 @@
 # Arquitectura del Frontend
 
+**Última actualización:** 2025-01-23  
+**Estado:** ✅ Actualizado
+
+---
+
 Este documento detalla la estructura y el flujo de datos de la aplicación cliente construida con Next.js y React.
 
 ## Principios de Diseño
@@ -10,9 +15,11 @@ El frontend está diseñado en torno a un componente principal que actúa como o
 
 ## Componentes Clave
 
-### 1. El Orquestador: `app/game-view.tsx`
+### 1. El Orquestador: `components/game/game-view.tsx`
 
 Este es el componente más importante del lado del cliente. Una vez que se inicia una partida, `game-view.tsx` toma el control y gestiona toda la sesión de juego activa.
+
+**Ubicación:** `src/components/game/game-view.tsx` (no `app/game-view.tsx`)
 
 #### Gestión de Estado
 
@@ -20,9 +27,19 @@ Este es el componente más importante del lado del cliente. Una vez que se inici
 
 - `party`: Un array de objetos con los datos completos de todos los personajes del grupo.
 - `messages`: Un array con todos los mensajes de la partida (narración del DM, diálogos, acciones).
+- `diceRolls`: Un array con todas las tiradas de dados realizadas.
 - `locationId`: El ID de la ubicación actual del jugador.
 - `inCombat`: Un booleano que indica si el modo de combate está activo.
-- `isLoading`: Un booleano para controlar el estado de carga y deshabilitar la entrada del usuario mientras la IA procesa la acción.
+- `initiativeOrder`: Array con el orden de iniciativa durante el combate.
+- `turnIndex`: Índice del turno actual en combate.
+- `enemies`: Array de enemigos (deprecated, mantenido para compatibilidad).
+- `enemiesByLocation`: Objeto que mapea ubicaciones a arrays de enemigos (nuevo).
+- `selectedCharacter`: Personaje seleccionado para ver su hoja.
+- `isDMThinking`: Un booleano para controlar el estado de carga y deshabilitar la entrada del usuario mientras la IA procesa la acción.
+- `debugMessages`: Array de mensajes de depuración.
+- `hasMoreAITurns`: Indica si hay más turnos de IA pendientes.
+- `autoAdvancing`: Indica si el sistema está avanzando turnos automáticamente.
+- `playerActionCompleted`: Indica si el jugador ya ha completado su acción en el turno actual.
 
 #### Lógica Principal: `handleSendMessage`
 

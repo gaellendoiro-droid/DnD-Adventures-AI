@@ -1,8 +1,7 @@
 # Guía de Uso: CombatSession
 
-**Versión:** 1.0.0  
-**Fecha:** 2025-01-20  
-**Estado:** ✅ Completado
+**Última actualización:** 2025-01-20  
+**Estado:** ✅ Actualizado
 
 ---
 

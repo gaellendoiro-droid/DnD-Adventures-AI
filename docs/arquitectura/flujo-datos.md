@@ -1,5 +1,10 @@
 # Flujo de Datos Detallado
 
+**Última actualización:** 2025-01-23  
+**Estado:** ✅ Actualizado
+
+---
+
 Este documento describe en detalle cómo fluyen los datos a través del sistema, desde la interacción del usuario hasta la respuesta final.
 
 ## Flujo General de una Acción
@@ -26,10 +31,14 @@ sequenceDiagram
         T->>T: Procesa turnos IA
         T-->>GC: Resultado combate
     else Es narrativa
-        GC->>T: companionExpertTool
-        T-->>GC: Reacciones compañeros
-        GC->>AI: narrativeExpert
-        AI-->>GC: Narración DM
+        GC->>M: NarrativeTurnManager.executeNarrativeTurn
+        M->>M: processCompanionReactions (before_dm)
+        M-->>GC: Reacciones pre-DM
+        M->>AI: NarrativeManager (narrativeExpert)
+        AI->>AI: Router → ExplorationExpert/InteractionExpert
+        AI-->>M: Narración DM
+        M->>M: processCompanionReactions (after_dm)
+        M-->>GC: Reacciones post-DM + Narración completa
     end
     GC-->>SA: Estado + Mensajes
     SA-->>F: Respuesta
@@ -94,23 +103,21 @@ export async function processPlayerAction(state: GameState) {
 
 ```typescript
 // gameCoordinator continúa...
-1. Decide qué compañeros deben reaccionar
-2. Para cada compañero:
-   - Llama a companionExpertTool({
-       party: party,
-       characterName: "Elara",
-       context: "El jugador quiere ir a la posada",
-       inCombat: false
-     })
-   - Recibe diálogo del compañero
-3. Llama a narrativeExpert({
-     action: interpretación,
-     locationContext: datos de ubicación,
-     party: party,
-     conversationHistory: historial
-   })
-4. Recibe narración del DM
-5. Ensambla mensajes: [reacciones..., narración]
+1. Llama a NarrativeTurnManager.executeNarrativeTurn()
+2. NarrativeTurnManager:
+   a. Gestiona movimiento (si aplica)
+   b. Llama a processCompanionReactions(timing: 'before_dm')
+      - Para cada compañero: llama a companionExpertTool
+      - Recibe reacciones a la intención del jugador
+   c. Filtra enemigos muertos del contexto
+   d. Llama a narrativeExpert (wrapper de NarrativeManager):
+      - NarrativeManager clasifica acción (EXPLORATION/INTERACTION/HYBRID)
+      - Llama a ExplorationExpert o InteractionExpert según corresponda
+      - Recibe narración del DM
+   e. Llama a processCompanionReactions(timing: 'after_dm')
+      - Para cada compañero: llama a companionExpertTool
+      - Recibe reacciones al resultado
+3. Ensambla mensajes: [reacciones pre-DM..., narración DM, reacciones post-DM]
 ```
 
 ### 7. Respuesta al Frontend

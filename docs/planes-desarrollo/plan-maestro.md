@@ -1,24 +1,66 @@
 # Plan Maestro de Desarrollo
 
+> ⚠️ **IMPORTANTE:** Cada vez que se modifique este archivo (añadir, mover o actualizar planes), **debe actualizarse también el [README.md](./README.md)** si hay cambios en la estructura de carpetas, flujo de trabajo o referencias.
+
+---
+
 Este documento es el plan general que coordina todos los planes de desarrollo específicos del proyecto D&D Adventures AI. Aquí encontrarás una visión de alto nivel de las mejoras planificadas, organizadas por estado y prioridad.
 
+> 💡 **Para información sobre cómo crear nuevos planes o el flujo de trabajo, consulta el [README.md](./README.md)**
+
 ## 📋 Índice de Planes
+
+- [🚧 Planes en Curso](#-planes-en-curso) (1 plan activo)
+- [✅ Planes Completados](#-planes-completados) (15 planes)
+- [💡 Planes Sin Comenzar](#-planes-sin-comenzar-priorizados) (12 planes)
+- [🎯 Prioridades Estratégicas](#-prioridades-estratégicas)
+- [📊 Resumen Ejecutivo](#-resumen-ejecutivo)
 
 ---
 
 ## 🚧 Planes en Curso
 
-**Estado:** 0 planes activos | **Última implementación:** Sistema de Tiradas Robusto y Unificado (2025-01-22) - COMPLETADO
+**Estado:** 1 plan activo | **Última implementación:** Issue #122 - Nombres de Enemigos (2025-11-23) - COMPLETADO
 
-_No hay planes en curso actualmente._
+### [Issue #121 - Fix Weapon Parsing Regression](en-curso/issue-121-fix-weapon-parsing.md) 🚧 **EN CURSO**
+- **Estado:** En desarrollo
+- **Objetivo:** Restaurar la funcionalidad de ataques de jugadores implementando parsing robusto de nombres de armas
+- **Prioridad:** 🔴 Muy Alta (Crítico - Bloquea ataques de jugadores)
+- **Problema:**
+  - Tras Issue #120, el sistema pasa toda la acción del jugador como `weaponQuery`
+  - Busca armas con nombres como "Ataco al goblin 1" en lugar de extraer el nombre del arma
+  - Bloquea completamente los ataques de jugadores en combate
+- **Solución:**
+  - Implementar función `extractWeaponName()` para parsear acciones de jugador
+  - Extraer nombres de armas de patrones comunes ("con [arma]", "mi [arma]", etc.)
+  - Fallback seguro a `'ataque'` si no se menciona arma específica
+- **Estimación:** 1-2 horas
+- **Referencia:** [Plan Detallado](en-curso/issue-121-fix-weapon-parsing.md) | [Issue #121](../tracking/issues/pendientes.md#issue-121-regresión-en-parsing-de-armas-en-ataques-de-jugador--crítico)
 
 ---
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 14 planes
+**Estado:** Finalizados | **Cantidad:** 16 planes
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Issue #120 - Fix Dice Rolls Inconsistencias](completados/issue-120-fix-dice-rolls.md) ✅ **COMPLETADO**
+- **Estado:** Todas las 4 fases completadas y documentadas
+- **Objetivo:** Implementar arquitectura "Cerebro Centralizado, Frontend Obediente" para resolver inconsistencias en cálculo y visualización de tiradas de dados
+- **Prioridad:** Muy Alta
+- **Resultados:**
+  - ✅ Selección inteligente de habilidad basada en reglas D&D 5e (FUE/DES según tipo de arma)
+  - ✅ Campo `attributeUsed` inyectado en toda la cadena de resolución
+  - ✅ Formateo correcto de modificadores negativos (`1d8-1` en lugar de `1d8+-1`)
+  - ✅ Parser robusto con regex mejorada para manejar espacios y signos
+  - ✅ Frontend usa `attributeUsed` explícitamente en lugar de adivinar
+  - ✅ Notación con etiquetas (`1d20+FUE+BC`) en lugar de valores numéricos
+  - ✅ Cálculos correctos: Modificadores negativos aplicados correctamente
+  - ✅ Visualización fiel: Desglose muestra atributo realmente usado
+- **Fecha de finalización:** 2025-11-23
+- **Tiempo invertido:** ~8-10 horas
+- **Referencia:** [Plan Detallado](completados/issue-120-fix-dice-rolls.md) | [Issue #120](../tracking/issues/pendientes.md#issue-120-inconsistencia-en-cálculos-de-tiradas-y-visualización-merryl-crítico)
 
 ### [Sistema de Tiradas Robusto y Unificado](completados/plan-sistema-tiradas-robusto.md) ✅ **COMPLETADO**
 - **Estado:** Todas las 4 fases completadas y documentadas
@@ -227,35 +269,80 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 - **Fecha de finalización:** Implementado en v0.4.70
 - **Referencia:** [Plan Detallado](completados/refactor-esquemas.md)
 
----
-
-## 💡 Planes Sin Comenzar (Priorizados)
-
-### Prioridad Muy Alta
-
-#### [Estandarización de Niveles de Logging](sin-comenzar/issue-119-estandarizacion-logging.md) ✅ COMPLETADO
-- **Estado:** Completado
+### [Estandarización de Niveles de Logging](../roadmap.md#0-estandarización-de-niveles-de-logging--completado) ✅ **COMPLETADO**
+- **Estado:** 100% completado
+- **Objetivo:** Estandarizar los niveles de logging en todo el código base para mejorar la calidad de logs y facilitar depuración
 - **Prioridad:** Muy Alta
-- **Fecha de finalización:** 2025-01-22
 - **Resultados:**
   - ✅ Guía de estilo de logging creada
   - ✅ Validación automática implementada en el logger
   - ✅ 5 inconsistencias detectadas y corregidas
   - ✅ Documentación actualizada
+- **Fecha de finalización:** 2025-01-22
 - **Referencia:** 
-  - Issue #119 (Inconsistencia en niveles de logging) 🔴 CRÍTICO
-  - [Roadmap - Sección 0](../roadmap.md#0-estandarización-de-niveles-de-logging) - ✅ COMPLETADO
+  - [Roadmap - Sección 0](../roadmap.md#0-estandarización-de-niveles-de-logging--completado)
   - [Guía de Estilo de Logging](../arquitectura/guia-estilo-logging.md)
 
+### [Plan de Implementación: NarrativeManager](completados/plan-implementacion-narrative-manager.md) ✅ **COMPLETADO**
+- **Estado:** 100% completado
+- **Objetivo:** Refactorizar el sistema de narración actual (`narrativeExpert`) para convertirlo en un Gestor de Narrativa (`NarrativeManager`) que orqueste módulos especializados de Exploración e Interacción
+- **Prioridad:** Alta
+- **Resultados:**
+  - ✅ `ExplorationExpert` creado para descripciones ambientales y movimiento
+  - ✅ `InteractionExpert` creado para diálogos con NPCs y tiradas sociales
+  - ✅ `NarrativeManager` implementado como orquestador
+  - ✅ Arquitectura híbrida funcional (Modo Blando vs Modo Duro)
+- **Referencia:** [Plan Detallado](completados/plan-implementacion-narrative-manager.md)
+
 ---
 
+## 💡 Planes Sin Comenzar (Priorizados)
+
+**Estado:** 12 planes identificados y planificados
 
 ---
 
-### 1. Sistema de Compendio de D&D Local (Prioridad Alta)
+### Prioridad Alta
+
+#### [Sistema de Compendio de D&D Local](sin-comenzar/compendio-dnd-local.md)
 - **Estado:** Sin comenzar
 - **Prioridad:** Alta
-- **Referencia:** Ver detalles completos en [Roadmap - Sección 4](../roadmap.md#4-compendio-de-dd-local---base-de-datos-local-prioridad-media) - Visión general
+- **Referencia:** [Plan Detallado](sin-comenzar/compendio-dnd-local.md) | [Roadmap - Sección 8](../roadmap.md#8-compendio-de-dd-local---base-de-datos-local-prioridad-media)
+
+#### [Issue #115 - Validación de Inventario](sin-comenzar/issue-115-validacion-inventario.md)
+- **Estado:** Sin comenzar (pospuesto)
+- **Prioridad:** Alta
+- **Referencia:** [Plan Detallado](sin-comenzar/issue-115-validacion-inventario.md) | [Issue #115](../../tracking/issues/pendientes.md#issue-115-validación-de-inventario-al-usar-armas-u-objetos-advertencia)
+
+#### [Sistema de Progresión y Gestión](../roadmap.md#2-sistema-de-progresión-y-gestión-prioridad-alta)
+- **Estado:** Sin comenzar
+- **Prioridad:** Alta
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 2](../roadmap.md#2-sistema-de-progresión-y-gestión-prioridad-alta)
+
+#### [Sistema de Inicio de Combate Dinámico](../roadmap.md#3-sistema-de-inicio-de-combate-dinámico-prioridad-alta)
+- **Estado:** Sin comenzar
+- **Prioridad:** Alta
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 3](../roadmap.md#3-sistema-de-inicio-de-combate-dinámico-prioridad-alta)
+
+#### [Mejora de Estructura de Fichas de Personajes](../roadmap.md#4-mejora-de-estructura-de-fichas-de-personajes-prioridad-alta)
+- **Estado:** Sin comenzar
+- **Prioridad:** Alta
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 4](../roadmap.md#4-mejora-de-estructura-de-fichas-de-personajes-prioridad-alta)
+
+#### [Sistema Completo de Saving Throws](../roadmap.md#6-revisiones-de-sistema-de-combate-prioridad-alta)
+- **Estado:** Sin comenzar
+- **Prioridad:** Alta
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 6](../roadmap.md#6-revisiones-de-sistema-de-combate-prioridad-alta) | [Issue #22](../../tracking/issues/pendientes.md#issue-22-sistema-completo-de-saving-throws-tiradas-de-salvación-del-objetivo-feature-incompleta)
+
+### Prioridad Media
+
+#### [Sistema de Testing - Integración y E2E](sin-comenzar/sistema-testing-integracion-e2e.md)
+- **Estado:** Sin comenzar
+- **Prioridad:** Media
+- **Objetivo:** Implementar tests de integración (Vitest) y tests E2E (Playwright) para cobertura completa
+- **Estimación:** 28-40 horas
+- **Dependencias:** Sistema de Unit Tests (✅ Completado), Mejora de Testabilidad (✅ Completado)
+- **Referencia:** [Plan Detallado](sin-comenzar/sistema-testing-integracion-e2e.md)
 
 #### [Convertidor de PDF a JSON - Aplicación Auxiliar](sin-comenzar/pdf-to-json-converter.md)
 - **Estado:** Sin comenzar
@@ -264,15 +351,15 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
   - [Plan Detallado](sin-comenzar/pdf-to-json-converter.md) - Plan completo de implementación
   - [Roadmap - Sección 10](../roadmap.md#10-convertidor-de-pdf-a-json---aplicación-auxiliar-prioridad-media) - Visión general
 
-#### [IA Conversacional Avanzada - Streaming](roadmap.md#5-ia-conversacional-avanzada-prioridad-media)
+#### [IA Conversacional Avanzada - Streaming](../roadmap.md#9-ia-conversacional-avanzada-prioridad-media)
 - **Estado:** Sin comenzar
 - **Prioridad:** Media
-- **Referencia:** Ver detalles completos en [Roadmap - Sección 5](../roadmap.md#5-ia-conversacional-avanzada-prioridad-media)
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 9](../roadmap.md#9-ia-conversacional-avanzada-prioridad-media)
 
-#### [Calidad y Profundidad de la IA - RAG](roadmap.md#6-calidad-y-profundidad-de-la-ia-prioridad-media)
+#### [Calidad y Profundidad de la IA - RAG](../roadmap.md#10-calidad-y-profundidad-de-la-ia-prioridad-media)
 - **Estado:** Sin comenzar
 - **Prioridad:** Media
-- **Referencia:** Ver detalles completos en [Roadmap - Sección 6](../roadmap.md#6-calidad-y-profundidad-de-la-ia-prioridad-media)
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 10](../roadmap.md#10-calidad-y-profundidad-de-la-ia-prioridad-media)
 
 #### [Sistema de Death Saving Throws y Revivencia (D&D 5e)](sin-comenzar/sistema-death-saving-throws.md)
 - **Estado:** Sin comenzar
@@ -280,32 +367,32 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 - **Estimación:** 15-20 horas
 - **Referencia:** [Plan Detallado](sin-comenzar/sistema-death-saving-throws.md) - Plan completo de implementación
 
-#### [Sistema de Estados y Condiciones en Combate](roadmap.md#9-mejoras-de-mecánicas-de-dd-5e-prioridad-media)
+#### [Sistema de Estados y Condiciones en Combate](../roadmap.md#12-mejoras-de-mecánicas-de-dd-5e-prioridad-media)
 - **Estado:** Sin comenzar
 - **Prioridad:** Media
-- **Referencia:** Ver detalles completos en [Roadmap - Sección 9](../roadmap.md#9-mejoras-de-mecánicas-de-dd-5e-prioridad-media) (subsección "Estados y Condiciones")
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 12](../roadmap.md#12-mejoras-de-mecánicas-de-dd-5e-prioridad-media) (subsección "Estados y Condiciones")
 
-#### [Sistema de Foco de Objetivo en Combate](roadmap.md#9-mejoras-de-mecánicas-de-dd-5e-prioridad-media)
+#### [Sistema de Foco de Objetivo en Combate](../roadmap.md#12-mejoras-de-mecánicas-de-dd-5e-prioridad-media)
 - **Estado:** Sin comenzar
 - **Prioridad:** Media
-- **Referencia:** Ver detalles completos en [Roadmap - Sección 9](../roadmap.md#9-mejoras-de-mecánicas-de-dd-5e-prioridad-media) (subsección "Sistema de Foco de Objetivo")
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 12](../roadmap.md#12-mejoras-de-mecánicas-de-dd-5e-prioridad-media) (subsección "Sistema de Foco de Objetivo")
 
-#### [Música y Sonido Dinámicos](roadmap.md#11-música-y-sonido-dinámicos-prioridad-media)
+#### [Música y Sonido Dinámicos](../roadmap.md#15-música-y-sonido-dinámicos-prioridad-media)
 - **Estado:** Sin comenzar
 - **Prioridad:** Media-Baja
-- **Referencia:** Ver detalles completos en [Roadmap - Sección 11](../roadmap.md#11-música-y-sonido-dinámicos-prioridad-media)
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 15](../roadmap.md#15-música-y-sonido-dinámicos-prioridad-media)
 
 ### Prioridad Baja
 
-#### [Comandos de Voz](roadmap.md#16-comandos-de-voz-prioridad-baja)
+#### [Comandos de Voz](../roadmap.md#19-comandos-de-voz-prioridad-baja)
 - **Estado:** Sin comenzar
 - **Prioridad:** Baja
-- **Referencia:** Ver detalles completos en [Roadmap - Sección 16](../roadmap.md#16-comandos-de-voz-prioridad-baja)
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 19](../roadmap.md#19-comandos-de-voz-prioridad-baja)
 
-#### [Automatización del Versionado y Changelog](roadmap.md#17-automatización-del-versionado-y-changelog-prioridad-baja)
+#### [Automatización del Versionado y Changelog](../roadmap.md#20-automatización-del-versionado-y-changelog-prioridad-baja)
 - **Estado:** Sin comenzar
 - **Prioridad:** Baja
-- **Referencia:** Ver detalles completos en [Roadmap - Sección 17](../roadmap.md#17-automatización-del-versionado-y-changelog-prioridad-baja)
+- **Referencia:** Ver detalles completos en [Roadmap - Sección 20](../roadmap.md#20-automatización-del-versionado-y-changelog-prioridad-baja)
 
 ---
 
@@ -330,8 +417,7 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 
 ### Prioridad Media
 
-
-2. **Sistema de Testing - Integración y E2E** - Extender sistema de testing con tests de integración y E2E
+1. **Sistema de Testing - Integración y E2E** - Extender sistema de testing con tests de integración y E2E
    - **Estado:** Sin comenzar
    - **Objetivo:** Implementar tests de integración (Vitest) y tests E2E (Playwright) para cobertura completa
    - **Componentes:**
@@ -339,15 +425,15 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
      - Tests E2E para flujos de usuario completos (inicio de partida, combate, interacción con DM)
    - **Beneficios:** Cobertura completa del sistema, detección temprana de bugs, confianza en refactorizaciones
    - **Estimación:** 28-40 horas
-   - **Dependencias:** Sistema de Unit Tests (✅ Completado), Mejora de Testabilidad (⏳ Prerequisito)
+   - **Dependencias:** Sistema de Unit Tests (✅ Completado), Mejora de Testabilidad (✅ Completado)
    - **Referencia:** [Plan Detallado](sin-comenzar/sistema-testing-integracion-e2e.md)
-3. **Compendio de D&D Local** - Base de datos local para consultas rápidas y modo offline
-4. **IA Conversacional Avanzada** - Streaming y turnos por pasos para reacciones orgánicas
-5. **Calidad y Profundidad de la IA** - RAG y memoria a largo plazo
-6. **Sistema de Estados y Condiciones en Combate** - Estados temporales, condiciones, recursos gastados
-7. **Sistema de Foco de Objetivo en Combate** - Selección inteligente de objetivos basada en táctica
-8. **Convertidor de PDF a JSON** - Aplicación auxiliar para convertir aventuras de PDF a JSON
-9. **Música y Sonido Dinámicos** - Sistema de audio adaptativo según estado del juego
+2. **Compendio de D&D Local** - Base de datos local para consultas rápidas y modo offline
+3. **IA Conversacional Avanzada** - Streaming y turnos por pasos para reacciones orgánicas
+4. **Calidad y Profundidad de la IA** - RAG y memoria a largo plazo
+5. **Sistema de Estados y Condiciones en Combate** - Estados temporales, condiciones, recursos gastados
+6. **Sistema de Foco de Objetivo en Combate** - Selección inteligente de objetivos basada en táctica
+7. **Convertidor de PDF a JSON** - Aplicación auxiliar para convertir aventuras de PDF a JSON
+8. **Música y Sonido Dinámicos** - Sistema de audio adaptativo según estado del juego
 
 ### Prioridad Baja
 
@@ -356,44 +442,12 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 
 ---
 
-## 📊 Estado General del Proyecto
-
-- **Planes Completados:** 12 (incluyendo 1 parcialmente completado)
-- **Planes en Curso:** 1
-- **Planes Sin Comenzar:** 13
-  - **Prioridad Muy Alta:** 0 planes (1 en curso)
-  - **Prioridad Alta:** 4 planes
-  - **Prioridad Media:** 10 planes
-  - **Prioridad Baja:** 2 planes
-
-### ✅ Logros Recientes
-
-- **Sistema de Tiradas Robusto y Unificado:** ✅ Completado - Arquitectura "Intención vs. Resolución" implementada, `CombatActionResolver` centraliza cálculo de tiradas, consistencia total entre jugador e IA, sistema de fallback robusto
-- **Refactorización CombatSession - State Object Pattern:** ✅ Completado - Reducción de ~926 → ~165 líneas (~80%), patrón State Object implementado, 52 tests pasando (100%), documentación completa
-- **Mejora de Testabilidad y Refactorización:** ✅ Objetivos principales logrados - DI completa en `combatManagerTool`, refactorización de lógica pura finalizada, documentación de patrones DI creada
-- **Plan de Testeo v0.5.0:** ✅ Completado - 20/20 tests completados, verificación exhaustiva de todas las funcionalidades de v0.5.0, 3 bugs corregidos durante el testeo
-- **Sistema de Turnos Paso a Paso:** ✅ 100% Completado - Control total del jugador sobre el avance de turnos, botones "Pasar 1 Turno" y "Avanzar Todos", 68 unit tests + 38 integration tests, indicadores visuales y animaciones implementadas
-- **Sistema de Testing:** ✅ Implementado - Vitest configurado, 106 tests (68 unit + 38 integration), documentación completa
-- **Refactorización de `combat-manager.ts`:** ✅ Fases 1-2 Completadas - Reducción de 2723 → 1235 líneas (54.6%), 5 módulos especializados creados
-- **Sistema de Combate por Turnos:** ✅ Completado al 100% - Sistema completamente funcional con detección de fin de combate, sistema de HP sincronizado, y validación completa de tiradas de dados
-- **Saneamiento General:** ✅ Completado - 10 issues corregidos, sistema de logging centralizado, sanitización HTML implementada
-
----
-
 ## 🔗 Referencias
 
 - [Roadmap](../roadmap.md) - Mejoras futuras y visiones a largo plazo
 - [CHANGELOG.md](../../CHANGELOG.md) - Historial de cambios implementados
 - [Arquitectura General](../arquitectura/vision-general.md) - Visión técnica del sistema
-
----
-
-## 📝 Notas para Desarrolladores
-
-- Cada plan específico contiene pasos detallados con checkboxes para seguimiento
-- Los planes se mueven entre carpetas según su estado
-- Al completar un plan, actualiza este documento y muévelo a `completados/`
-- Al iniciar un nuevo plan, créalo en `sin-comenzar/` y muévelo a `planes-en-curso/` cuando empieces a trabajar en él
+- [Issues Tracker](../tracking/issues/README.md) - Seguimiento de bugs y mejoras
 
 ---
 
@@ -402,14 +456,14 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 ### Estado General del Proyecto
 
 **Progreso Total:**
-- ✅ **14 planes completados** (incluyendo 1 parcialmente completado)
-- 🚧 **0 planes en curso** actualmente
-- 📝 **13 planes sin comenzar** identificados y planificados
+- ✅ **15 planes completados** (incluyendo 1 parcialmente completado)
+- 🚧 **1 plan en curso** actualmente
+- 📝 **12 planes sin comenzar** identificados y planificados
 
 **Distribución por Prioridad:**
-- **Prioridad Muy Alta:** 0 planes pendientes (todos completados)
-- **Prioridad Alta:** 4 planes pendientes
-- **Prioridad Media:** 10 planes pendientes (incluyendo 2 relacionados con testing)
+- **Prioridad Muy Alta:** 1 plan en curso (Issue #120)
+- **Prioridad Alta:** 6 planes pendientes
+- **Prioridad Media:** 8 planes pendientes (incluyendo 1 relacionado con testing)
 - **Prioridad Baja:** 2 planes pendientes
 
 ### Logros Principales

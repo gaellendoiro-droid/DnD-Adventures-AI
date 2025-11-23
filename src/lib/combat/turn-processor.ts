@@ -376,7 +376,12 @@ export class TurnProcessor {
                         }
 
                         const targetName = getVisualName(resolvedTargetId || 'objetivo', initiativeOrder, initialEnemies);
-                        const resolution = CombatActionResolver.resolveAttack(combatantData, weaponQuery, targetName);
+                        const resolution = CombatActionResolver.resolveAttack(
+                            combatantData,
+                            weaponQuery,
+                            targetName,
+                            combatant.characterName // Use visual name with number (e.g., "Goblin 1")
+                        );
 
                         if (resolution.success) {
                             diceRollRequests = resolution.diceRollRequests;

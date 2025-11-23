@@ -2,12 +2,14 @@
 
 > ⚠️ **IMPORTANTE:** Cada vez que se modifique este archivo (añadir, mover o actualizar issues), **debe actualizarse también el [README.md](./README.md)** de esta carpeta con las estadísticas y enlaces actualizados.
 
+> ✅ **NOTA:** Si un issue se completa o resuelve, **debe moverse al archivo [corregidos.md](./corregidos.md)**. Este archivo (`pendientes.md`) solo debe contener issues que aún están pendientes de resolver.
+
 ---
 
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 25 issues  
-**Última actualización:** 2025-01-22 (Issue #76 movido a corregidos - Input deshabilitado cuando DM está pensando)
+**Total:** 26 issues  
+**Última actualización:** 2025-11-23 (Issue #122 completado - Nombres de enemigos con número distintivo restaurados)
 
 ---
 
@@ -40,8 +42,86 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
         3.  **Inyección de Contexto:** `CombatActionResolver` inyectará el campo `attributeUsed: 'FUE' | 'DES'` en el objeto de la tirada.
         4.  **Frontend Determinista:** `updateRollNotationWithModifiers` dejará de "adivinar" basándose en el stat más alto y usará estrictamente el `attributeUsed` proporcionado por el backend.
     - **Robustecer Parser:** Mejorar la regex en `diceRollerTool` para soportar variaciones en la notación por seguridad.
-- **Estado:** 📝 **PENDIENTE**
+- **Estado:** ✅ **COMPLETADO** (2025-11-23)
 - **Prioridad:** Muy Alta
+
+### Issue #121: Regresión en Parsing de Armas en Ataques de Jugador 🔴 CRÍTICO
+
+- **Fecha de creación:** 2025-11-23
+- **Ubicación:** `src/lib/combat/turn-processor.ts` (línea 225)
+- **Severidad:** 🔴 **CRÍTICA** (Bloquea completamente los ataques de jugadores)
+- **Descripción:** Tras implementar el Issue #120, se introdujo una regresión en el procesamiento de ataques de jugadores. El sistema ahora pasa **toda la acción del jugador** (ej: "Ataco al goblin 1") como `weaponQuery` a `CombatActionResolver.resolveAttack()`, en lugar de extraer solo el nombre del arma.
+- **Problema:**
+    - Cuando el jugador escribe "Ataco al goblin 1", el sistema busca un arma llamada "Ataco al goblin 1" en el inventario.
+    - Como no encuentra esa arma, devuelve el error: `No tienes el arma "Ataco al goblin 1".`
+    - Esto bloquea completamente los ataques de jugadores en combate.
+- **Causa raíz:**
+    - En `turn-processor.ts` línea 225, se cambió de usar una heurística para extraer el nombre del arma a simplemente pasar `playerAction` completo:
+      ```typescript
+      const weaponQuery = playerAction || 'ataque'; // ❌ INCORRECTO
+      ```
+    - Antes del Issue #120, existía lógica para extraer el nombre del arma de la acción del jugador, pero se perdió durante la refactorización.
+- **Comportamiento esperado:**
+    - El sistema debe **parsear la acción del jugador** para extraer el nombre del arma mencionada (si existe).
+    - Si no se menciona un arma específica, debe usar `'ataque'` como valor por defecto para que `CombatActionResolver` seleccione el arma principal del personaje.
+    - Ejemplos:
+        - "Ataco con mi espada al goblin" → `weaponQuery = "espada"`
+        - "Ataco al goblin 1" → `weaponQuery = "ataque"`
+        - "Disparo mi arco" → `weaponQuery = "arco"`
+- **Solución propuesta:**
+    **Enfoque Unificado (Aprovechando Issue #120):**
+    1. Implementar una función helper ligera `extractWeaponName(playerAction: string): string | null` en `turn-processor.ts` que:
+        - Busque patrones comunes: `"con [arma]"`, `"usando [arma]"`, `"mi [arma]"`
+        - Devuelva el nombre del arma si se encuentra (ej: "espada", "arco")
+        - Devuelva `null` si no se menciona arma específica
+    2. Usar esta función para determinar `weaponQuery`:
+        ```typescript
+        const weaponQuery = extractWeaponName(playerAction) || 'ataque';
+        ```
+    3. Aprovechar la lógica existente de `CombatActionResolver.resolveAttack()`:
+        - Si `weaponQuery = 'ataque'`, selecciona automáticamente el arma principal del personaje
+        - Si `weaponQuery = nombre específico`, busca esa arma en el inventario
+    
+    **Ventajas:**
+    - ✅ Unificado con la arquitectura del Issue #120
+    - ✅ Simple y robusto (fallback seguro a `'ataque'`)
+    - ✅ Consistente entre jugadores e IA
+    - ✅ No requiere duplicar lógica de selección de armas
+- **Impacto:** Crítico - Bloquea completamente la funcionalidad de combate para jugadores.
+- **Estado:** 📝 **PENDIENTE**
+- **Prioridad:** 🔴 Muy Alta
+- **Relacionado con:**
+  - Issue #120 (Inconsistencia en Cálculos de Tiradas) - Regresión introducida durante su implementación
+  - Issue #115 (Validación de inventario) - Problema relacionado de validación de armas en inventario
+
+### Issue #122: Nombres de Enemigos sin Número Distintivo en Panel de Tiradas 🟡
+
+- **Fecha de creación:** 2025-11-23
+- **Ubicación:** `src/lib/combat/action-resolver.ts` o `src/lib/combat/action-executor.ts`
+- **Severidad:** 🟡 **MEDIA** (Afecta claridad visual pero no bloquea funcionalidad)
+- **Descripción:** Tras implementar el Issue #120, los nombres de los enemigos en el panel de tiradas ya no muestran el número distintivo (ej: "Goblin 1", "Goblin 2"). En su lugar, solo muestran el nombre base (ej: "Goblin").
+- **Problema:**
+    - En el panel de tiradas, cuando un enemigo ataca, se muestra solo "Goblin" en lugar de "Goblin 1".
+    - Esto dificulta identificar qué enemigo específico realizó la acción cuando hay múltiples enemigos del mismo tipo.
+    - Ejemplo observado:
+        - **Antes:** "Goblin 1 - Ataque básico a Merryl"
+        - **Ahora:** "Goblin - Ataque básico a Merryl"
+- **Causa raíz probable:**
+    - Durante la refactorización del Issue #120, es posible que se haya perdido la lógica que añade el número distintivo al nombre del enemigo en las descripciones de tiradas.
+    - El `targetName` usado en `CombatActionResolver.resolveAttack()` podría estar usando el nombre base en lugar del nombre visual (con número).
+    - Alternativamente, el problema podría estar en cómo se pasa el `roller` name al crear los `DiceRollRequest`.
+- **Comportamiento esperado:**
+    - Los nombres de enemigos en el panel de tiradas deben incluir siempre el número distintivo cuando hay múltiples enemigos del mismo tipo.
+    - Esto debe aplicar tanto para el `roller` (quien hace la tirada) como para el `targetName` (objetivo de la tirada).
+- **Solución propuesta:**
+    1. Investigar dónde se pierde el número distintivo en la cadena de resolución de acciones.
+    2. Asegurar que `CombatActionResolver` use `getVisualName()` para obtener nombres con números distintivos.
+    3. Verificar que el `roller` name en `DiceRollRequest` también use el nombre visual.
+- **Impacto:** Medio - Reduce claridad visual en combates con múltiples enemigos del mismo tipo.
+- **Estado:** ✅ **COMPLETADO** (2025-11-23)
+- **Prioridad:** 🟡 Alta
+- **Relacionado con:**
+  - Issue #120 (Inconsistencia en Cálculos de Tiradas) - Regresión introducida durante su implementación
 
 
 ## 🟡 Prioridad Alta (PA) - Advertencias
@@ -69,6 +149,8 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
 - **Referencia:** [Notas de Gael - #115](../notas/Notas%20de%20Gael.md)
 - **Plan de implementación:** [Issue #115 - Validación de Inventario](../../planes-desarrollo/sin-comenzar/issue-115-validacion-inventario.md)
 - **Razón de posposición:** Priorizar otras mejoras arquitectónicas (Issue #94) y features del roadmap. Este issue mejora la calidad pero no es bloqueador.
+- **Relacionado con:**
+  - Issue #121 (Regresión en Parsing de Armas) - Problema relacionado de validación/búsqueda de armas en inventario. El Issue #121 es una regresión crítica que bloquea ataques, mientras que el Issue #115 es el problema más amplio de falta de validación general de inventario.
 
 
 

@@ -1,6 +1,13 @@
 # Sistema de Logging Estructurado
 
+**Última actualización:** 2025-01-22  
+**Estado:** ✅ Actualizado
+
+---
+
 Este documento describe el sistema de logging estructurado implementado en D&D Adventures AI, que proporciona visibilidad completa de la aplicación tanto en el servidor como en el cliente, con centralización de logs en la terminal del servidor.
+
+> 💡 **Para información sobre cuándo usar cada nivel de logging (DEBUG, INFO, WARN, ERROR), consulta la [Guía de Estilo de Logging](./guia-estilo-logging.md)**
 
 ---
 

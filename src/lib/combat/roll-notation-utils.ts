@@ -26,36 +26,81 @@ export function updateRollNotationWithModifiers(
         return; // Can't update without character data
     }
 
-    const strMod = character.abilityModifiers.fuerza || 0;
-    const dexMod = character.abilityModifiers.destreza || 0;
-    const abilityMod = Math.max(strMod, dexMod);
-    const proficiencyBonus = character.proficiencyBonus ?? 2;
-
     // Parse the original rollNotation to extract base dice (e.g., "1d20" or "1d8")
     const diceMatch = roll.rollNotation.match(/^(\d+d\d+)/);
     if (!diceMatch) {
         return; // Can't parse, return as-is
     }
-
     const baseDice = diceMatch[1];
     const modifiers: Array<{ value: number; label: string }> = [];
+    const proficiencyBonus = character.proficiencyBonus ?? 2;
+
+    // NEW LOGIC: Use explicit attribute if provided by backend ("Obedient Frontend")
+    if (roll.attributeUsed) {
+        const attrMap: Record<string, string> = {
+            'FUE': 'fuerza',
+            'DES': 'destreza',
+            'CON': 'constitución',
+            'INT': 'inteligencia',
+            'SAB': 'sabiduría',
+            'CAR': 'carisma'
+        };
+
+        const modKey = attrMap[roll.attributeUsed];
+        // Handle potential missing keys or typos safely
+        const abilityMod = (character.abilityModifiers as any)[modKey] !== undefined
+            ? (character.abilityModifiers as any)[modKey]
+            : 0;
+
+        if (isAttackRoll) {
+            // Attack roll: ability modifier + proficiency bonus
+            modifiers.push(
+                { value: abilityMod, label: roll.attributeUsed },
+                { value: proficiencyBonus, label: 'BC' }
+            );
+
+            // Use labels instead of values in notation (Issue #120 enhancement)
+            roll.rollNotation = `${baseDice}+${roll.attributeUsed}+BC`;
+        } else {
+            // Damage roll: only ability modifier (no proficiency)
+            if (abilityMod !== 0) {
+                modifiers.push({ value: abilityMod, label: roll.attributeUsed });
+                // Use label instead of value in notation
+                const sign = abilityMod >= 0 ? '+' : '';
+                roll.rollNotation = `${baseDice}${sign}${roll.attributeUsed}`;
+            }
+        }
+
+        // Apply changes
+        roll.modifier = undefined;
+        roll.modifiers = modifiers;
+        return;
+    }
+
+    // LEGACY LOGIC: Fallback to guessing based on highest modifier (FUE vs DES)
+    // This is kept for backward compatibility or for entities that don't provide attributeUsed (e.g. some enemies)
+
+    const strMod = character.abilityModifiers.fuerza || 0;
+    const dexMod = character.abilityModifiers.destreza || 0;
+    const abilityMod = Math.max(strMod, dexMod);
+    const abilityLabel = abilityMod === strMod ? 'FUE' : 'DES';
 
     if (isAttackRoll) {
         // Attack roll: ability modifier + proficiency bonus
         modifiers.push(
-            { value: abilityMod, label: abilityMod === strMod ? 'FUE' : 'DES' },
+            { value: abilityMod, label: abilityLabel },
             { value: proficiencyBonus, label: 'BC' }
         );
 
-        const abilityStr = abilityMod >= 0 ? `+${abilityMod}` : `${abilityMod}`;
-        const profStr = proficiencyBonus >= 0 ? `+${proficiencyBonus}` : `${proficiencyBonus}`;
-        roll.rollNotation = `${baseDice}${abilityStr}${profStr}`;
+        // Use labels instead of values in notation (Issue #120 enhancement)
+        roll.rollNotation = `${baseDice}+${abilityLabel}+BC`;
     } else {
         // Damage roll: only ability modifier (no proficiency)
         if (abilityMod !== 0) {
-            modifiers.push({ value: abilityMod, label: abilityMod === strMod ? 'FUE' : 'DES' });
-            const abilityStr = abilityMod >= 0 ? `+${abilityMod}` : `${abilityMod}`;
-            roll.rollNotation = `${baseDice}${abilityStr}`;
+            modifiers.push({ value: abilityMod, label: abilityLabel });
+            // Use label instead of value in notation
+            const sign = abilityMod >= 0 ? '+' : '';
+            roll.rollNotation = `${baseDice}${sign}${abilityLabel}`;
         }
     }
 

@@ -45,6 +45,50 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
   - **Referencia:** [Plan Detallado](../../docs/planes-desarrollo/completados/plan-sistema-tiradas-robusto.md)
 
 ### Fixed
+- **✅ Issue #120 - Inconsistencias en Cálculos de Tiradas y Visualización (2025-11-23):**
+  - **Problema:** Dos bugs críticos que interactuaban causando cálculos incorrectos y feedback visual engañoso:
+    1. **Visualización engañosa:** `updateRollNotationWithModifiers` seleccionaba automáticamente el modificador más alto (DES +3) para el desglose visual, incluso si el ataque se calculó usando otro atributo (FUE -1)
+    2. **Cálculo erróneo:** `CombatActionResolver` generaba notaciones inválidas para modificadores negativos (`1d8+-1`), y el parser de `diceRollerTool` fallaba al parsearlas, tratando el modificador como 0
+  - **Solución implementada:** Arquitectura "Cerebro Centralizado, Frontend Obediente"
+    - **Backend como fuente de verdad:**
+      - `CombatActionResolver.getAttackAbility()`: Determina qué atributo usar (FUE/DES) basándose en propiedades del arma (Melee, Ranged, Finesse)
+      - `CombatActionResolver.formatDiceNotation()`: Formatea correctamente modificadores negativos (`1d8-1` en lugar de `1d8+-1`)
+      - Campo `attributeUsed` inyectado en toda la cadena de resolución (DiceRollRequest → diceRollerTool → DiceRoll)
+    - **Parser robusto:** Regex mejorada en `diceRollerTool` para manejar espacios opcionales y signos negativos
+    - **Frontend obediente:** `updateRollNotationWithModifiers` usa `attributeUsed` explícitamente en lugar de adivinar
+    - **Notación con etiquetas:** Las tiradas ahora muestran etiquetas de modificadores (`1d20+FUE+BC`) en lugar de valores numéricos (`1d20+1`)
+  - **Beneficios:**
+    - ✅ Cálculos correctos: Modificadores negativos se aplican correctamente (ej: 7-1=6, no 7+0=7)
+    - ✅ Visualización fiel: El desglose muestra el atributo realmente usado (FUE -1, no DES +3)
+    - ✅ Notación educativa: `1d20+FUE+BC` es más descriptivo que `1d20+1`
+    - ✅ Arquitectura robusta: Backend decide, frontend muestra
+  - **Archivos modificados:**
+    - `src/lib/types.ts` - Añadido `attributeUsed` a `DiceRoll`
+    - `src/lib/combat/action-resolver.ts` - Añadido `attributeUsed` a `DiceRollRequest`, implementados helpers `getAttackAbility` y `formatDiceNotation`
+    - `src/ai/tools/dice-roller.ts` - Añadido `attributeUsed` a schemas, mejorada regex de parsing
+    - `src/lib/combat/roll-notation-utils.ts` - Usa `attributeUsed` para notación determinista con etiquetas
+    - `src/lib/combat/action-executor.ts` - Añadido `attributeUsed` a `DiceRollRequest`, preserva `rollNotation` actualizado
+  - **Impacto:** Crítico - Corrige cálculos matemáticos incorrectos y feedback visual engañoso
+  - **Referencia:** [Issue #120](../../docs/tracking/issues/pendientes.md#issue-120-inconsistencia-en-cálculos-de-tiradas-y-visualización-merryl--crítico) | [Plan Completado](../../docs/planes-desarrollo/completados/issue-120-fix-dice-rolls.md)
+
+- **✅ Issue #122 - Nombres de Enemigos sin Número Distintivo en Panel de Tiradas (2025-11-23):**
+  - **Problema:** Tras implementar el Issue #120, los nombres de enemigos en el panel de tiradas perdieron el número distintivo (mostraban "Goblin" en lugar de "Goblin 1")
+  - **Causa:** Durante la refactorización, `CombatActionResolver` usaba `enemy.name` (nombre base) en lugar del nombre visual con número
+  - **Solución implementada:**
+    - Añadido parámetro opcional `rollerName` a `CombatActionResolver.resolveAttack()`
+    - `resolveEnemyAttack()` ahora usa `rollerName || enemy.name` para el campo `roller` en todos los `DiceRollRequest`
+    - `TurnProcessor` pasa `combatant.characterName` (que incluye el número) como `rollerName` para enemigos de IA
+  - **Beneficios:**
+    - ✅ Nombres de enemigos con número distintivo restaurados (ej: "Goblin 1", "Goblin 2")
+    - ✅ Mejor claridad visual en combates con múltiples enemigos del mismo tipo
+    - ✅ Solución simple y no invasiva (parámetro opcional)
+  - **Archivos modificados:**
+    - `src/lib/combat/action-resolver.ts` - Añadido parámetro `rollerName` opcional
+    - `src/lib/combat/turn-processor.ts` - Pasa `combatant.characterName` como `rollerName`
+  - **Impacto:** Medio - Mejora claridad visual en combates
+  - **Referencia:** [Issue #122](../../docs/tracking/issues/pendientes.md#issue-122-nombres-de-enemigos-sin-número-distintivo-en-panel-de-tiradas-)
+
+### Fixed
 - **✅ Issue #118 - Narración de inicio de combate mejorada (2025-01-22):**
   - **Problema:** La narración de inicio de combate mencionaba nombres de enemigos incorrectos (ej: "gnomos" cuando debería decir "goblins") y usaba nombres técnicos como "Goblin 1, Goblin 2" en lugar de descripciones naturales
   - **Solución:** Mejorado el prompt de `combatInitiationPrompt` para:

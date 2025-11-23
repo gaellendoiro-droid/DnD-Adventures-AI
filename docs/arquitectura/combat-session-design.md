@@ -1,8 +1,7 @@
 # Diseño: CombatSession - State Object Pattern
 
-**Versión:** 1.0.0  
-**Fecha de creación:** 2025-01-20  
-**Estado:** ✅ Diseño Completado
+**Última actualización:** 2025-01-20  
+**Estado:** ✅ Actualizado
 
 ---
 

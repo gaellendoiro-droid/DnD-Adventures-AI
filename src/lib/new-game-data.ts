@@ -67,9 +67,11 @@ export const initialParty: Character[] = [
     controlledBy: "Player",
     inventory: [
       { id: "item-1", name: "Mandoble", quantity: 1, description: "Una espada a dos manos pesada y fiable. Daño: 2d6 (Cortante), Alcance: 5 pies. Propiedades: Pesada, Dos manos." },
+      { id: "item-1b", name: "Arco pequeño", quantity: 1, description: "Un arco ligero y versátil. Daño: 1d6 (Perforante), Alcance: 80/320 pies. Propiedades: Munición, Dos manos." },
       { id: "item-2", name: "Armadura de placas", quantity: 1, description: "Cubre todo el cuerpo y ofrece una gran protección. CA 18." },
       { id: "item-3", name: "Escudo", quantity: 1, description: "Un escudo de madera reforzado con acero. +2 CA." },
       { id: "item-4", name: "Paquete de aventurero", quantity: 1, description: "Contiene raciones, una cuerda, un saco de dormir y otros enseres básicos." },
+      { id: "item-4b", name: "Flechas", quantity: 20, description: "Munición para arcos." },
       { id: "item-gp-1", name: "Monedas de Oro", quantity: 25, description: "Dinero contante y sonante." },
     ],
     attacks: [
@@ -81,6 +83,15 @@ export const initialParty: Character[] = [
         damageType: "Cortante",
         range: "5 pies",
         properties: ["Pesada", "Dos manos", "Versátil"]
+      },
+      {
+        id: "attack-1b",
+        name: "Arco pequeño",
+        attackBonus: 2, // DES mod (0) + BC (2)
+        damage: "1d6",
+        damageType: "Perforante",
+        range: "80/320 pies",
+        properties: ["Munición", "Dos manos"]
       },
     ],
     racialTraits: [

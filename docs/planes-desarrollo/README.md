@@ -1,5 +1,9 @@
 # Planes de Desarrollo
 
+> ⚠️ **IMPORTANTE:** Cada vez que se modifique este archivo, **debe actualizarse también el [plan-maestro.md](./plan-maestro.md)** si hay cambios en la estructura, flujo de trabajo o referencias.
+
+---
+
 Esta carpeta contiene todos los planes de desarrollo del proyecto D&D Adventures AI, organizados por estado de implementación.
 
 ## 📁 Estructura
@@ -7,8 +11,8 @@ Esta carpeta contiene todos los planes de desarrollo del proyecto D&D Adventures
 ```
 planes-desarrollo/
 ├── plan-maestro.md          # Plan general que coordina todos los planes
-├── planes-en-curso/         # Planes activos en desarrollo
-├── completados/             # Planes finalizados exitosamente
+├── en-curso/                # Planes activos en desarrollo
+├── completados/              # Planes finalizados exitosamente
 └── sin-comenzar/            # Planes identificados pero no iniciados
 ```
 
@@ -18,17 +22,11 @@ planes-desarrollo/
 
 ## 📋 Categorías
 
-### 🚧 Planes en Curso (`planes-en-curso/`)
+Para ver el estado detallado de todos los planes, consulta el [Plan Maestro](./plan-maestro.md).
 
-Planes que están siendo trabajados activamente. Cuando un plan se completa, se mueve a `completados/`.
-
-### ✅ Planes Completados (`completados/`)
-
-Planes que han sido implementados exitosamente. Estos sirven como referencia histórica y documentación de mejoras realizadas.
-
-### 📝 Planes Sin Comenzar (`sin-comenzar/`)
-
-Planes identificados pero aún no iniciados. Consulta el [Roadmap](../roadmap.md) para ideas de futuros planes.
+- **🚧 Planes en Curso** (`en-curso/`) - Planes activos en desarrollo
+- **✅ Planes Completados** (`completados/`) - Planes finalizados exitosamente
+- **📝 Planes Sin Comenzar** (`sin-comenzar/`) - Planes identificados pero aún no iniciados
 
 ## 📝 Cómo Crear un Nuevo Plan
 
@@ -40,16 +38,16 @@ Planes identificados pero aún no iniciados. Consulta el [Roadmap](../roadmap.md
    - Criterios de verificación
    - Referencias a archivos afectados
 4. **Actualiza el Plan Maestro:** Añade el nuevo plan a `plan-maestro.md`
-5. **Mueve cuando comiences:** Al iniciar el trabajo, mueve el archivo a `planes-en-curso/`
+5. **Mueve cuando comiences:** Al iniciar el trabajo, mueve el archivo a `en-curso/`
 
 ## 🔄 Flujo de Trabajo
 
 ```
-sin-comenzar/ → planes-en-curso/ → completados/
+sin-comenzar/ → en-curso/ → completados/
 ```
 
 1. **Plan identificado** → Creado en `sin-comenzar/`
-2. **Trabajo iniciado** → Movido a `planes-en-curso/`
+2. **Trabajo iniciado** → Movido a `en-curso/`
 3. **Plan completado** → Movido a `completados/` y actualizado en `plan-maestro.md`
 
 ## 📚 Referencias

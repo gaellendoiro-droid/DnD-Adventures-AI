@@ -1,6 +1,13 @@
 # Guía de Estilo de Logging
 
+**Última actualización:** 2025-01-22  
+**Estado:** ✅ Actualizado
+
+---
+
 Esta guía define cuándo y cómo usar cada nivel de logging en D&D Adventures AI para mantener consistencia y facilitar la depuración.
+
+> 💡 **Para información sobre la arquitectura del sistema de logging (componentes, flujo, centralización), consulta el [Sistema de Logging](./sistema-logging.md)**
 
 ---
 

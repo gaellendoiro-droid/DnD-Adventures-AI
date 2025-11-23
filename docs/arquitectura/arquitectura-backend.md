@@ -1,5 +1,10 @@
 # Arquitectura del Backend (Sistema de IA)
 
+**Última actualización:** 2025-01-23  
+**Estado:** ✅ Actualizado
+
+---
+
 En este proyecto, la totalidad de la lógica del lado del servidor (el **backend**) está contenida en el sistema de Inteligencia Artificial construido con Genkit. Por lo tanto, este documento describe la arquitectura de dicho sistema, que es la base de todo el funcionamiento del juego. 
 
 El sistema está diseñado para ser modular, predecible y extensible.
@@ -43,9 +48,19 @@ graph TD
     B --> E{¿Es Combate?};
     E -- Sí --> F[Subsistema de Combate];
     E -- No --> G[Subsistema Narrativo];
-    G -- 1. Reacciones de Compañeros --> H(companionExpertTool);
-    H -- 2. Narración del DM --> I(narrativeExpert);
-    I --> J(Ensambla Mensajes);
+    G --> G1[NarrativeTurnManager];
+    G1 -- 1. Reacciones Pre-DM --> H(CompanionReactionManager);
+    H --> G1;
+    G1 -- 2. Narración DM --> I(NarrativeManager);
+    I --> I1{Router};
+    I1 -- Exploración --> I2(ExplorationExpert);
+    I1 -- Interacción --> I3(InteractionExpert);
+    I1 -- Híbrido --> I4[Ambos + Synthesizer];
+    I2 --> G1;
+    I3 --> G1;
+    I4 --> G1;
+    G1 -- 3. Reacciones Post-DM --> H;
+    H --> J(Ensambla Mensajes);
     J --> K[Devuelve Respuesta al Usuario];
 ```
 
@@ -72,17 +87,42 @@ graph TD
     4.  Ensamblar todas las respuestas generadas en el turno en un único array de mensajes.
     5.  Devolver el estado final y los mensajes al cliente, respetando el orden de generación.
 
-### 2. Expertos de IA Primarios
+### 2. Managers Especializados
+
+#### `NarrativeTurnManager`
+-   **Archivo**: `src/ai/flows/managers/narrative-turn-manager.ts`
+-   **Rol**: Orquestador del flujo narrativo completo (fuera de combate).
+-   **Responsabilidades**:
+    1. Gestiona movimiento y cambio de ubicación
+    2. Genera reacciones de compañeros **antes** de la narración del DM (reacciones a la intención)
+    3. Filtra contexto (enemigos muertos) antes de pasar a la narración
+    4. Genera narración del DM usando `NarrativeManager`
+    5. Genera reacciones de compañeros **después** de la narración del DM (reacciones al resultado)
+-   **Flujo**: `executeNarrativeTurn()` encapsula todo el proceso de un turno narrativo
+-   **Uso**: Invocado por `gameCoordinator` cuando la acción no es de combate
+
+### 3. Expertos de IA Primarios
 
 #### `actionInterpreter`
 -   **Archivo**: `src/ai/flows/action-interpreter.ts`
 -   **Rol**: Traduce el lenguaje natural del jugador a un objeto de acción estructurado.
 
-#### `narrativeExpert`
--   **Archivo**: `src/ai/flows/narrative-expert.ts`
--   **Rol**: Genera la descripción de escenas y el resultado de acciones no combativas.
+#### `NarrativeManager` (Reemplaza al antiguo `narrativeExpert`)
+-   **Archivo**: `src/ai/flows/narrative-manager.ts`
+-   **Rol**: Orquestador del "Modo Blando" que analiza la intención del jugador y enruta a expertos especializados.
+-   **Responsabilidades**:
+    1. Analizar la intención del jugador (Exploración vs Interacción vs Híbrido)
+    2. Enrutar a los expertos apropiados (`ExplorationExpert`, `InteractionExpert`)
+    3. Sintetizar respuestas para acciones híbridas
+    4. Manejar iniciación de combate (modo legacy/especial)
+-   **Arquitectura**:
+    - **Router**: Clasifica la acción en EXPLORATION, INTERACTION, o HYBRID
+    - **ExplorationExpert**: Genera descripciones ambientales y gestiona movimiento
+    - **InteractionExpert**: Gestiona diálogos con NPCs y tiradas sociales
+    - **Synthesizer**: Combina ambas narrativas para acciones híbridas
+-   **Compatibilidad**: Exporta `narrativeExpert` como wrapper para mantener compatibilidad con código existente.
 
-### 3. El Subsistema de Combate
+### 4. El Subsistema de Combate
 
 El subsistema de combate ha sido simplificado significativamente (Issue #117) para unificar el procesamiento de turnos de jugador e IA, eliminando duplicación y mejorando la consistencia.
 
@@ -161,19 +201,32 @@ El subsistema de combate ha sido simplificado significativamente (Issue #117) pa
 
 #### `combatNarrationExpertTool`
 -   **Archivo**: `src/ai/tools/combat/combat-narration-expert.ts`
--   **Rol**: Genera narrativas descriptivas y emocionantes para acciones de combate.
+-   **Rol**: Genera una narrativa descriptiva y completa para acciones de combate.
 -   **Funcionalidad**:
-    - **Intención**: Narra la preparación de una acción antes de las tiradas.
-    - **Resolución**: Narra el resultado de una acción después de las tiradas (golpe, fallo, daño, etc.).
--   **Salida**: Texto narrativo en español de España.
+    - Genera una **única narración completa** que incluye:
+      1. **Preparación/Intención**: Cómo el atacante se prepara o inicia la acción
+      2. **Ejecución**: El movimiento del ataque, sonidos, detalles visuales
+      3. **Impacto**: Cómo conecta (o falla) y la reacción del objetivo
+      4. **Resultado**: Resultado final (efecto de daño, muerte, fallo)
+    - **NO genera narraciones separadas** de intención y resolución (esto cambió tras Issue #94)
+-   **Salida**: Texto narrativo completo en español de España, integrando todos los elementos en una narrativa fluida.
 
-### 4. Herramientas de Apoyo
+### 5. Herramientas de Apoyo
 
-#### `companionExpertTool`
+#### `CompanionReactionManager`
+-   **Archivo**: `src/ai/flows/managers/companion-reaction-manager.ts`
+-   **Rol**: Gestiona las reacciones de compañeros en flujos narrativos (fuera de combate).
+-   **Funcionalidad**:
+    - Se invoca **dos veces** durante un turno narrativo:
+      1. **Antes de la narración del DM** (`timing: 'before_dm'`): Reacciones a la intención del jugador
+      2. **Después de la narración del DM** (`timing: 'after_dm'`): Reacciones al resultado de lo sucedido
+    - Utiliza `companionExpertTool` internamente para generar los diálogos
+-   **Uso**: Invocado por `NarrativeTurnManager` para gestionar el flujo completo de reacciones de compañeros.
+
+#### `companionExpertTool` (Herramienta interna)
 -   **Archivo**: `src/ai/tools/companion-expert.ts`
--   **Rol**: Genera los diálogos de los compañeros de IA durante la exploración (fuera de combate).
+-   **Rol**: Genera los diálogos de los compañeros de IA (usado internamente por `CompanionReactionManager`).
 -   **Patrón**: Sigue un patrón robusto de dos pasos: primero consulta los datos del personaje con `characterLookupTool` y luego inyecta esa información en un prompt para generar la reacción.
--   **Uso**: Se invoca cuando el jugador realiza una acción y el `gameCoordinator` decide que un compañero debe reaccionar.
 
 #### `characterLookupTool`
 -   **Archivo**: `src/ai/tools/character-lookup.ts`
@@ -205,7 +258,7 @@ El subsistema de combate ha sido simplificado significativamente (Issue #117) pa
 -   **API**: Utiliza `https://www.dnd5eapi.co/api`
 -   **Uso**: Permite a la IA obtener información precisa sobre reglas de D&D cuando es necesario.
 
-### 5. Flujos de Utilidad
+### 6. Flujos de Utilidad
 
 #### `oocAssistant`
 -   **Archivo**: `src/ai/flows/ooc-assistant.ts`

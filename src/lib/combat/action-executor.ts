@@ -33,6 +33,7 @@ export interface DiceRollRequest {
     description: string; // e.g., "Tirada de ataque", "Tirada de daño"
     roller?: string; // Character name (defaults to combatant.characterName)
     attackType?: 'attack' | 'saving_throw' | 'attack_roll' | 'damage_roll' | 'healing'; // Expanded types
+    attributeUsed?: 'FUE' | 'DES' | 'CON' | 'INT' | 'SAB' | 'CAR';
 }
 
 /**
@@ -217,6 +218,7 @@ export class CombatActionExecutor {
                     roller: rollRequest.roller || combatant.characterName,
                     rollNotation: adjustedRollNotation,
                     description: rollRequest.description,
+                    attributeUsed: rollRequest.attributeUsed,
                 });
 
                 // Update roll notation with modifiers if function provided
@@ -239,11 +241,17 @@ export class CombatActionExecutor {
                 }
 
                 // Create roll with combat information
+                // Preserve attributeUsed from rollResult (passed through from diceRollerTool)
+                // IMPORTANT: Use rollResult.rollNotation (updated by updateRollNotationWithModifiers)
+                // instead of rollRequest.rollNotation (original with numeric values)
                 const roll: DiceRoll = {
                     ...rollResult,
                     roller: rollRequest.roller || combatant.characterName,
-                    rollNotation: rollRequest.rollNotation,
+                    // Keep the updated rollNotation from rollResult (e.g., "1d20+FUE+BC")
+                    // Don't overwrite with rollRequest.rollNotation (e.g., "1d20+1")
                     description: rollRequest.description,
+                    // Explicitly preserve attributeUsed if it came from rollResult
+                    attributeUsed: rollResult.attributeUsed || rollRequest.attributeUsed,
                 };
 
                 // Process attack roll

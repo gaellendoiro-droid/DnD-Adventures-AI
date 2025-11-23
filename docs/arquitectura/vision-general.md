@@ -1,5 +1,10 @@
 # Visión General de la Arquitectura
 
+**Última actualización:** 2025-01-23  
+**Estado:** ✅ Actualizado
+
+---
+
 Este documento proporciona una visión de alto nivel de la arquitectura del proyecto D&D Adventures AI.
 
 ## 📋 Tabla de Contenidos
@@ -476,10 +481,19 @@ El estado completo del juego se mantiene en el frontend y se envía al backend e
 
 ## Documentación Relacionada
 
+### Documentos de Arquitectura
 - [Arquitectura del Frontend](./arquitectura-frontend.md) - Detalles del cliente
 - [Arquitectura del Backend IA](./arquitectura-backend.md) - Detalles del servidor
 - [Flujo de Datos](./flujo-datos.md) - Diagramas detallados
 - [Referencia API](./referencia-api.md) - Contratos de datos
+
+### Guías Especializadas
 - [CombatSession - Guía de Uso](./combat-session-guia.md) - Guía completa de uso de CombatSession
 - [CombatSession - Diseño](./combat-session-design.md) - Diseño detallado y decisiones arquitectónicas
+- [Sistema de Logging](./sistema-logging.md) - Arquitectura del sistema de logs
+- [Guía de Estilo de Logging](./guia-estilo-logging.md) - Cuándo usar cada nivel de log
+- [Patrones de Dependency Injection](./patrones-dependency-injection.md) - Patrón DI implementado
+
+### Índice Completo
+- [README de Arquitectura](./README.md) - Índice completo de documentos de arquitectura
 

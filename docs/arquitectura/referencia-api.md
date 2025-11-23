@@ -1,5 +1,10 @@
 # Referencia de API y Esquemas
 
+**Última actualización:** 2025-01-23  
+**Estado:** ✅ Actualizado
+
+---
+
 Este documento proporciona una referencia completa de los esquemas de datos, Server Actions y contratos de las herramientas de IA.
 
 ## Esquemas de Datos Principales
@@ -321,11 +326,17 @@ ActionInterpreterOutput = {
 }
 ```
 
-### narrativeExpert
+### NarrativeManager (narrativeExpert)
 
-**Ubicación:** `src/ai/flows/narrative-expert.ts`
+**Ubicación:** `src/ai/flows/narrative-manager.ts`
 
-Genera narrativa del DM.
+Orquestador del "Modo Blando" que genera narrativa del DM. Reemplaza al antiguo `narrativeExpert`. Exporta `narrativeExpert` como wrapper para compatibilidad.
+
+**Arquitectura:**
+- **Router**: Clasifica la acción en EXPLORATION, INTERACTION, o HYBRID
+- **ExplorationExpert**: Genera descripciones ambientales y gestiona movimiento
+- **InteractionExpert**: Gestiona diálogos con NPCs y tiradas sociales
+- **Synthesizer**: Combina ambas narrativas para acciones híbridas
 
 **Entrada:**
 ```typescript
@@ -334,7 +345,9 @@ NarrativeExpertInput = {
   locationId: string,
   locationContext: string,  // JSON string
   conversationHistory?: string,
-  interpretedAction: string  // JSON string de ActionInterpreterOutput
+  interpretedAction: string,  // JSON string de ActionInterpreterOutput
+  phase?: 'combat_initiation' | 'normal',  // Modo especial para iniciación de combate
+  deadEntities?: string  // Lista de enemigos muertos para contexto
 }
 ```
 
@@ -346,6 +359,8 @@ NarrativeExpertOutput = {
   debugLogs?: Array<string>
 }
 ```
+
+**Nota:** `NarrativeManager` es invocado por `NarrativeTurnManager` que gestiona el flujo completo narrativo (reacciones de compañeros antes y después de la narración del DM).
 
 ### oocAssistant
 

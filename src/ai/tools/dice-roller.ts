@@ -10,6 +10,7 @@ const DiceRollRequestSchema = z.object({
   roller: z.string().describe("The name of the character or monster rolling the dice."),
   rollNotation: z.string().describe("The dice notation (e.g., '1d20+5', '2d6', '1d4-1')."),
   description: z.string().describe("A brief description of the roll's purpose (e.g., 'Attack Roll', 'Damage Roll')."),
+  attributeUsed: z.enum(['FUE', 'DES', 'CON', 'INT', 'SAB', 'CAR']).optional().describe("The attribute used for the roll."),
 });
 
 // Output schema for a completed dice roll
@@ -23,6 +24,7 @@ const DiceRollResultSchema = z.object({
   outcome: z.enum(['crit', 'success', 'fail', 'pifia', 'neutral', 'initiative']),
   timestamp: z.date(),
   description: z.string().optional(),
+  attributeUsed: z.enum(['FUE', 'DES', 'CON', 'INT', 'SAB', 'CAR']).optional(),
 });
 
 export const diceRollerTool = ai.defineTool(
@@ -32,16 +34,18 @@ export const diceRollerTool = ai.defineTool(
     inputSchema: DiceRollRequestSchema,
     outputSchema: z.any(), // Using any because DiceRoll type is complex for zod
   },
-  async (request): Promise<Omit<DiceRoll, 'id'|'timestamp'>> => {
-    const { rollNotation, roller, description } = request;
-    
+  async (request): Promise<Omit<DiceRoll, 'id' | 'timestamp'>> => {
+    const { rollNotation, roller, description, attributeUsed } = request;
+
     // Validation: Check for empty or invalid notation
     if (!rollNotation || typeof rollNotation !== 'string' || rollNotation.trim() === '') {
       throw new Error(`Invalid dice notation: notation is empty or invalid`);
     }
-    
+
     // Validation: Parse dice notation
-    const regex = /(\d+)d(\d+)([+-]\d+)?/;
+    // Improved regex to handle optional spaces and potential double signs (e.g. +-1)
+    // Captures: 1=numDice, 2=numSides, 3=modifier (optional)
+    const regex = /(\d+)d(\d+)\s*([+-]?\s*-?\d+)?/;
     const match = rollNotation.trim().match(regex);
 
     if (!match) {
@@ -50,7 +54,28 @@ export const diceRollerTool = ai.defineTool(
 
     const numDice = parseInt(match[1], 10);
     const numSides = parseInt(match[2], 10);
-    const modifier = match[3] ? parseInt(match[3], 10) : 0;
+
+    // Parse modifier: remove spaces and handle signs
+    let modifier = 0;
+    if (match[3]) {
+      // Clean up the modifier string (remove spaces)
+      const modStr = match[3].replace(/\s/g, '');
+      // If it's something like "+-1", parseInt might handle it or we might need to be careful.
+      // JS parseInt("+-1") is NaN. parseInt("-1") is -1. parseInt("+1") is 1.
+      // We need to handle the double sign case if it exists.
+      if (modStr.includes('+-') || modStr.includes('-+')) {
+        modifier = parseInt(modStr.replace('+', ''), 10); // Treat "+-1" as "-1"
+      } else if (modStr.startsWith('+')) {
+        modifier = parseInt(modStr.substring(1), 10);
+      } else {
+        modifier = parseInt(modStr, 10);
+      }
+
+      if (isNaN(modifier)) {
+        // Fallback for weird cases, though regex should restrict it mostly
+        modifier = 0;
+      }
+    }
 
     // Validation: Reasonable limits for dice count and sides
     const MAX_DICE = 20;
@@ -96,11 +121,11 @@ export const diceRollerTool = ai.defineTool(
     // Determine outcome: Only for d20 rolls
     let outcome: DiceRoll['outcome'] = 'neutral';
     if (numDice === 1 && numSides === 20) {
-        if (individualRolls[0] === 20) {
-          outcome = 'crit';
-        } else if (individualRolls[0] === 1) {
-          outcome = 'pifia';
-        }
+      if (individualRolls[0] === 20) {
+        outcome = 'crit';
+      } else if (individualRolls[0] === 1) {
+        outcome = 'pifia';
+      }
     }
 
     return {
@@ -111,6 +136,7 @@ export const diceRollerTool = ai.defineTool(
       totalResult,
       outcome,
       description,
+      attributeUsed,
     };
   }
 );

@@ -26,19 +26,21 @@ export class CombatActionResolver {
     /**
      * Resolves a physical attack into dice roll requests.
      * Calculates bonuses based on stats (Ability + Proficiency).
+     * @param rollerName - Optional visual name of the roller (e.g., "Goblin 1"). If not provided, uses combatant.name
      */
     static resolveAttack(
         combatant: Character | EnemyWithStats,
         weaponName: string,
-        targetName: string = 'objetivo'
+        targetName: string = 'objetivo',
+        rollerName?: string
     ): ResolutionResult {
         try {
             const isPlayer = (combatant as any).inventory !== undefined;
 
             if (isPlayer) {
-                return this.resolvePlayerAttack(combatant as Character, weaponName, targetName);
+                return this.resolvePlayerAttack(combatant as Character, weaponName, targetName, rollerName);
             } else {
-                return this.resolveEnemyAttack(combatant as EnemyWithStats, weaponName, targetName);
+                return this.resolveEnemyAttack(combatant as EnemyWithStats, weaponName, targetName, rollerName);
             }
         } catch (error) {
             log.error('Error resolving attack', {
@@ -58,7 +60,8 @@ export class CombatActionResolver {
     private static resolvePlayerAttack(
         player: Character,
         weaponQuery: string,
-        targetName: string
+        targetName: string,
+        rollerName?: string
     ): ResolutionResult {
         // 1. Find weapon in inventory
         const weapon = player.inventory.find((item: any) =>
@@ -136,7 +139,8 @@ export class CombatActionResolver {
     private static resolveEnemyAttack(
         enemy: EnemyWithStats,
         weaponQuery: string,
-        targetName: string
+        targetName: string,
+        rollerName?: string
     ): ResolutionResult {
         // 1. Find action in enemy stats
         let action = null;
@@ -166,13 +170,13 @@ export class CombatActionResolver {
                     {
                         rollNotation: `1d20+${attackBonus}`,
                         description: `Ataque básico a ${targetName}`,
-                        roller: enemy.name,
+                        roller: rollerName || enemy.name,
                         attackType: 'attack_roll'
                     },
                     {
                         rollNotation: `1d4+${strMod}`,
                         description: `Daño básico`,
-                        roller: enemy.name,
+                        roller: rollerName || enemy.name,
                         attackType: 'damage_roll'
                     }
                 ],
@@ -205,13 +209,13 @@ export class CombatActionResolver {
             {
                 rollNotation: `1d20+${attackBonus}`,
                 description: `Ataque con ${action.name} a ${targetName}`,
-                roller: enemy.name,
+                roller: rollerName || enemy.name,
                 attackType: 'attack_roll'
             },
             {
                 rollNotation: damageNotation, // API usually includes the bonus in the string (e.g. "1d6+2")
                 description: `Daño de ${action.name}`,
-                roller: enemy.name,
+                roller: rollerName || enemy.name,
                 attackType: 'damage_roll'
             }
         ];
