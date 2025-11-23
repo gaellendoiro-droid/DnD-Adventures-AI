@@ -8,7 +8,7 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** 0 planes activos | **Última implementación:** Refactorización y Simplificación Arquitectónica (2025-11-22) - COMPLETADO
+**Estado:** 0 planes activos | **Última implementación:** Sistema de Tiradas Robusto y Unificado (2025-01-22) - COMPLETADO
 
 _No hay planes en curso actualmente._
 
@@ -16,9 +16,26 @@ _No hay planes en curso actualmente._
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 13 planes
+**Estado:** Finalizados | **Cantidad:** 14 planes
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Sistema de Tiradas Robusto y Unificado](completados/plan-sistema-tiradas-robusto.md) ✅ **COMPLETADO**
+- **Estado:** Todas las 4 fases completadas y documentadas
+- **Objetivo:** Eliminar la discrepancia entre la lógica de tiradas de la IA y del Jugador, centralizando la "fuente de la verdad" en las estadísticas del sistema
+- **Prioridad:** Muy Alta
+- **Resultados:**
+  - ✅ Arquitectura "Intención vs. Resolución" implementada: La IA solo provee intención, el sistema calcula las tiradas
+  - ✅ `CombatActionResolver` creado: Clase centralizada que calcula tiradas usando estadísticas reales
+  - ✅ Tacticians simplificados: `EnemyTactician` y `CompanionTactician` devuelven intenciones de alto nivel (arrays vacíos para ataques)
+  - ✅ `TurnProcessor` integrado: Usa `CombatActionResolver` para turnos de IA, asegurando consistencia
+  - ✅ Sistema de fallback robusto: Si no encuentra acción específica, calcula tirada básica usando stats del enemigo
+  - ✅ Consistencia total: Jugadores y enemigos siguen las mismas reglas matemáticas
+  - ✅ Visualización perfecta: El desglose visual siempre coincide con el cálculo matemático
+  - ✅ Menor coste de tokens: Prompts más simples y respuestas JSON más pequeñas
+- **Fecha de finalización:** 2025-01-22
+- **Tiempo invertido:** ~6-8 horas
+- **Referencia:** [Plan Detallado](completados/plan-sistema-tiradas-robusto.md)
 
 ### [Refactorización y Simplificación Arquitectónica](completados/plan-refactorizacion-arquitectura.md) ✅ **COMPLETADO**
 - **Estado:** 3 de 4 fases completadas (Fase 4 pospuesta por baja prioridad)
@@ -297,9 +314,10 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 
 ### Prioridad Muy Alta
 
-1. **🚧 Refactorización y Simplificación Arquitectónica** - Descongestionar GameCoordinator, modularizar flujo narrativo, centralizar utilidades - **EN CURSO**
-2. **✅ Simplificación de Arquitectura de Combate** - Unificar procesamiento de turnos (jugador e IA), eliminar duplicación, reducir complejidad de 8-9 a 3-4 niveles - **COMPLETADO**
-3. **✅ Sistema de Turnos Paso a Paso en Combate** - Control manual del jugador para pasar turnos uno a uno - **COMPLETADO**
+1. **✅ Sistema de Tiradas Robusto y Unificado** - Centralizar lógica de tiradas en el sistema, eliminar "doble verdad" entre IA y jugador - **COMPLETADO**
+2. **✅ Refactorización y Simplificación Arquitectónica** - Descongestionar GameCoordinator, modularizar flujo narrativo, centralizar utilidades - **COMPLETADO**
+3. **✅ Simplificación de Arquitectura de Combate** - Unificar procesamiento de turnos (jugador e IA), eliminar duplicación, reducir complejidad de 8-9 a 3-4 niveles - **COMPLETADO**
+4. **✅ Sistema de Turnos Paso a Paso en Combate** - Control manual del jugador para pasar turnos uno a uno - **COMPLETADO**
 
 ### Prioridad Alta
 
@@ -350,6 +368,7 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 
 ### ✅ Logros Recientes
 
+- **Sistema de Tiradas Robusto y Unificado:** ✅ Completado - Arquitectura "Intención vs. Resolución" implementada, `CombatActionResolver` centraliza cálculo de tiradas, consistencia total entre jugador e IA, sistema de fallback robusto
 - **Refactorización CombatSession - State Object Pattern:** ✅ Completado - Reducción de ~926 → ~165 líneas (~80%), patrón State Object implementado, 52 tests pasando (100%), documentación completa
 - **Mejora de Testabilidad y Refactorización:** ✅ Objetivos principales logrados - DI completa en `combatManagerTool`, refactorización de lógica pura finalizada, documentación de patrones DI creada
 - **Plan de Testeo v0.5.0:** ✅ Completado - 20/20 tests completados, verificación exhaustiva de todas las funcionalidades de v0.5.0, 3 bugs corregidos durante el testeo
@@ -383,12 +402,12 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 ### Estado General del Proyecto
 
 **Progreso Total:**
-- ✅ **12 planes completados** (incluyendo 1 parcialmente completado)
-- 🚧 **1 plan en curso** actualmente
+- ✅ **14 planes completados** (incluyendo 1 parcialmente completado)
+- 🚧 **0 planes en curso** actualmente
 - 📝 **13 planes sin comenzar** identificados y planificados
 
 **Distribución por Prioridad:**
-- **Prioridad Muy Alta:** 1 plan en curso (Refactorización Arquitectónica)
+- **Prioridad Muy Alta:** 0 planes pendientes (todos completados)
 - **Prioridad Alta:** 4 planes pendientes
 - **Prioridad Media:** 10 planes pendientes (incluyendo 2 relacionados con testing)
 - **Prioridad Baja:** 2 planes pendientes

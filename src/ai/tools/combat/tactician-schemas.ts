@@ -27,7 +27,7 @@ export const EnemyTacticianOutputSchema = z.object({
         rollNotation: z.string().describe("The dice notation for the roll (e.g., '1d20+5', '2d6+3')."),
         description: z.string().describe("A brief description of the roll's purpose. For attacks: MUST be 'Tirada de ataque con [weapon]' for attack roll (1d20+modifier), then 'Tirada de daño con [weapon]' for damage roll. ATTACK ROLL MUST ALWAYS COME FIRST."),
         attackType: z.enum(['attack_roll', 'saving_throw', 'other']).describe("IMPORTANT: Specify the type of roll. 'attack_roll' for weapons/spells that use 1d20 to hit. 'saving_throw' for spells where the target rolls to avoid damage (rare for basic enemies). 'other' for utility rolls. This field is MANDATORY for all attack/damage rolls."),
-    })).describe("An array of dice rolls. FOR STANDARD ATTACKS: Leave empty []. The system will calculate rolls automatically. FOR SPECIAL ABILITIES/SPELLS: You may provide rolls if needed."),
+    })).optional().default([]).describe("An array of dice rolls. FOR STANDARD ATTACKS: Leave empty []. The system will calculate rolls automatically. FOR SPECIAL ABILITIES/SPELLS: You may provide rolls if needed."),
 });
 export type EnemyTacticianOutput = z.infer<typeof EnemyTacticianOutputSchema>;
 
@@ -63,7 +63,7 @@ export const CompanionTacticianOutputSchema = z.object({
         rollNotation: z.string().describe("The dice notation for the roll (e.g., '1d20+5', '1d4')."),
         description: z.string().describe("A brief description of the roll's purpose. For attacks: MUST be 'Tirada de ataque con [weapon]' for attack roll (1d20+modifier), then 'Tirada de daño con [weapon]' for damage roll. ATTACK ROLL MUST ALWAYS COME FIRST."),
         attackType: z.enum(['attack_roll', 'saving_throw', 'healing', 'other']).describe("IMPORTANT: Specify the type of roll. 'attack_roll' for weapons/spells that use 1d20 to hit (Ray of Frost, Mace). 'saving_throw' for spells where the target rolls to avoid damage (Sacred Flame, Fireball). 'healing' for healing spells. 'other' for utility rolls. This field is MANDATORY for all attack/damage rolls."),
-    })).describe("An array of dice rolls. FOR STANDARD ATTACKS: Leave empty []. The system will calculate rolls automatically. FOR HEALING/SPECIAL SPELLS: Provide the necessary rolls."),
+    })).optional().default([]).describe("An array of dice rolls. FOR STANDARD ATTACKS: Leave empty []. The system will calculate rolls automatically. FOR HEALING/SPECIAL SPELLS: Provide the necessary rolls."),
 });
 export type CompanionTacticianOutput = z.infer<typeof CompanionTacticianOutputSchema>;
 

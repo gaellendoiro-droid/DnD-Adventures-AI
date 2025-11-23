@@ -116,7 +116,7 @@ export class EnemyValidator {
             let fullStats: any = null;
 
             if (hpValue === undefined || hpMax === undefined || ac === undefined || ac === null) {
-                localLog(`Enemy ${enemy.name} missing hp or ac, fetching from D&D API...`);
+                localLog(`Enemy ${enemy.name} missing stats, fetching...`);
                 const stats = await getMonsterStatsFromDndApi(enemy.name);
 
                 if (stats) {
@@ -124,7 +124,8 @@ export class EnemyValidator {
                     hpMax = hpMax !== undefined ? hpMax : stats.hp;
                     ac = ac !== undefined && ac !== null ? ac : stats.ac;
                     fullStats = stats;
-                    localLog(`Fetched stats for ${enemy.name}: HP=${hpMax}, AC=${ac}`);
+                    const abilitiesCount = stats.abilityScores ? Object.keys(stats.abilityScores).length : 0;
+                    localLog(`Fetched stats for ${enemy.name}: HP=${hpMax}, AC=${ac}, Actions=${stats.actions?.length || 0}, Abilities=${abilitiesCount}, ProfBonus=${stats.proficiencyBonus || 'N/A'}`);
                 } else {
                     hpValue = hpValue !== undefined ? hpValue : 10;
                     hpMax = hpMax !== undefined ? hpMax : 10;

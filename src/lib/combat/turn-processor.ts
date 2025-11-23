@@ -303,7 +303,7 @@ export class TurnProcessor {
                 };
 
                 const tacticianResponse = await dependencies.tactician(tacticianInput);
-                const { actionDescription, targetId, diceRolls: requestedRolls } = tacticianResponse;
+                const { actionDescription, targetId, diceRolls: requestedRolls = [] } = tacticianResponse;
 
                 // DEBUG: Log tactician response to investigate duplicate attacks
                 log.debug('Tactician response received', {
@@ -315,7 +315,9 @@ export class TurnProcessor {
                     diceRolls: requestedRolls,
                 });
 
-                if (!targetId || !requestedRolls || requestedRolls.length === 0) {
+                // Validate that we have at least a target and action description
+                // requestedRolls can be empty now - CombatActionResolver will generate them
+                if (!targetId || !actionDescription) {
                     return {
                         success: false,
                         messages: [{ sender: 'DM', content: `${combatant.characterName} no realiza ninguna acción.` }],

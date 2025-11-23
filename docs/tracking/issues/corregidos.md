@@ -2,8 +2,8 @@
 
 Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 45 issues  
-**Última actualización:** 2025-01-22 (Issue #118 resuelto y verificado - Narración de inicio de combate corregida con agrupación natural)
+**Total:** 47 issues  
+**Última actualización:** 2025-01-22 (Issue #76 movido a corregidos - Input deshabilitado cuando DM está pensando)
 
 ---
 
@@ -910,6 +910,50 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 - **Impacto:** Medio – Mejora la consistencia de feedback y la claridad de las acciones del jugador
 - **Estado:** ✅ **RESUELTO** - Implementación completada y verificada
 - **Referencia:** [Notas de Gael - #113](../notas/Notas%20de%20Gael.md)
+
+---
+
+### Issue #112: Sincronización entre DM y combat tracker ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-18
+- **Fecha de corrección:** 2025-01-22
+- **Ubicación:** `src/components/game/game-view.tsx`, `src/components/game/initiative-tracker.tsx`, `src/ai/tools/combat-manager.ts`
+- **Severidad:** 🟢 **MEDIA** (afecta sincronización visual del estado del combate)
+- **Descripción:** En combate, cuando se pasa 1 turno mientras en el chat sale "el DM está pensando..." el combat tracker aún estaba en el turno anterior.
+- **Problema resuelto:** Había un desfase entre el estado del DM (procesando) y el estado visual del combat tracker, lo que podía confundir al jugador sobre qué turno estaba activo.
+- **Solución implementada:** ✅
+  - Mejorada la sincronización entre el estado del DM y el combat tracker
+  - Actualizado el `turnIndex` en el frontend inmediatamente cuando se inicia el procesamiento de un turno
+  - Asegurado que ambos reflejen el mismo estado del combate
+- **Archivos afectados:**
+  - `src/components/game/game-view.tsx` (gestión de estado de combate)
+  - `src/components/game/initiative-tracker.tsx` (visualización del orden de combate)
+  - `src/ai/tools/combat-manager.ts` (procesamiento de turnos)
+- **Impacto:** Medio – Mejora la claridad visual del estado del combate, eliminando confusión sobre qué turno está activo
+- **Estado:** ✅ **RESUELTO** - Sincronización implementada y verificada
+- **Referencia:** [Notas de Gael - #112](../notas/Notas%20de%20Gael.md)
+
+---
+
+### Issue #76: Input debe deshabilitarse cuando el DM está "pensando" ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-17
+- **Fecha de corrección:** 2025-01-22
+- **Ubicación:** `src/components/game/player-input.tsx`, `src/components/game/chat-panel.tsx`
+- **Severidad:** 🟢 **MEDIA** (posible pérdida de acciones y UX confusa)
+- **Descripción:** Mientras el DM estaba procesando (estado "El DM está pensando"), el cuadro de texto seguía habilitado, permitiendo que el jugador enviara nuevas órdenes que se perdían o quedaban en cola sin feedback.
+- **Problema resuelto:** El textarea no estaba completamente deshabilitado cuando el DM estaba pensando, solo el botón de enviar estaba deshabilitado. Esto permitía que el jugador escribiera mensajes que luego se perdían o causaban confusión.
+- **Solución implementada:** ✅
+  - Añadida prop `isDMThinking` al componente `PlayerInput` para recibir el estado del DM
+  - Deshabilitado el textarea cuando `disabled` es `true` (incluyendo cuando `isDMThinking` es `true`)
+  - Actualizado el placeholder para mostrar "El DM está pensando..." cuando el DM está procesando
+  - El input se rehabilita automáticamente cuando el backend responde (el flag `isDMThinking` se establece a `false` en el bloque `finally` de `handleSendMessage`)
+- **Archivos modificados:**
+  - ✅ `src/components/game/player-input.tsx` (añadida prop `isDMThinking`, textarea deshabilitado cuando `disabled` es true, placeholder actualizado)
+  - ✅ `src/components/game/chat-panel.tsx` (pasada prop `isDMThinking` al componente `PlayerInput`)
+- **Impacto:** Medio – Evita confusiones y asegura que las acciones se registren en el orden correcto. Mejora la UX al proporcionar feedback visual claro cuando el sistema está procesando.
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada
+- **Detección:** Testing manual en la UI de combate
 
 ---
 

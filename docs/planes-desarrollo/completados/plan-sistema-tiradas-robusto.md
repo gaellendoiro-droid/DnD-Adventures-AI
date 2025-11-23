@@ -1,7 +1,8 @@
 # Plan: Sistema de Tiradas Robusto y Unificado
 
 **Fecha:** 2025-11-22
-**Estado:** Borrador
+**Estado:** ✅ COMPLETADO
+**Fecha de finalización:** 2025-01-22
 **Objetivo:** Eliminar la discrepancia entre la lógica de tiradas de la IA y del Jugador, centralizando la "fuente de la verdad" en las estadísticas del sistema.
 
 ## 1. Análisis de la Situación Actual
@@ -77,3 +78,50 @@ graph TD
 *   **Visualización Perfecta:** El desglose visual siempre coincidirá con el cálculo matemático.
 *   **Menor coste de Tokens:** Prompts más simples y respuestas JSON más pequeñas.
 *   **Robustez:** Si la IA alucina, el sistema corrige usando las reglas reales.
+
+## 5. Resultados de la Implementación
+
+### ✅ Fases Completadas
+
+**Fase 1: Estandarización de Datos**
+- ✅ Todos los enemigos tienen `abilityScores`, `proficiencyBonus` y `actions` definidos en `EnemyWithStats`
+- ✅ La estructura de datos es compartida entre `Character` y `EnemyWithStats` (aunque no hay una interfaz común explícita `CombatantStats`, la funcionalidad está implementada)
+
+**Fase 2: Motor de Resolución**
+- ✅ Clase `CombatActionResolver` creada en `src/lib/combat/action-resolver.ts`
+- ✅ Método `resolveAttack()` implementado para jugadores y enemigos
+- ✅ Sistema de fallback robusto: si no encuentra una acción específica, calcula una tirada básica usando las estadísticas del enemigo
+- ⏸️ Método `resolveSpell()` pendiente para futura implementación (no crítico para ataques)
+
+**Fase 3: Refactorización de IA**
+- ✅ `EnemyTactician` y `CompanionTactician` modificados para devolver intenciones de alto nivel
+- ✅ Los prompts instruyen a la IA a dejar `diceRolls` como array vacío `[]` para ataques estándar
+- ✅ `TurnProcessor` actualizado para usar `CombatActionResolver` en turnos de IA (líneas 358-380)
+- ✅ La lógica intercepta la intención de ataque de la IA y calcula las tiradas correctas usando las estadísticas reales
+
+**Fase 4: Limpieza**
+- ✅ `roll-notation-utils.ts` verificado y mantenido (necesario para evitar duplicación visual en el frontend)
+
+### Archivos Modificados
+
+- `src/lib/combat/action-resolver.ts` - **NUEVO** - Clase `CombatActionResolver` con lógica centralizada
+- `src/lib/combat/turn-processor.ts` - Integración de `CombatActionResolver` para turnos de IA
+- `src/ai/tools/enemy-tactician.ts` - Prompt modificado para devolver intenciones en lugar de tiradas
+- `src/ai/tools/companion-tactician.ts` - Prompt modificado para devolver intenciones en lugar de tiradas
+- `src/lib/combat/initialization/types.ts` - `EnemyWithStats` con estructura de datos completa
+
+### Verificación del Código
+
+✅ **Implementación Correcta:** El código sigue fielmente la arquitectura propuesta en el plan
+✅ **Robustez:** Sistema de fallback implementado para manejar datos incompletos
+✅ **Consistencia:** Jugadores y enemigos usan la misma lógica de cálculo
+✅ **Separación de Responsabilidades:** La IA solo provee intención, el sistema calcula las tiradas
+
+### Trabajo Futuro
+
+- ⏸️ Implementar `resolveSpell()` para centralizar la lógica de hechizos
+- 💡 Crear interfaz común `CombatantStats` explícita para mejorar la documentación del código (opcional, funcionalidad ya implementada)
+
+### Tiempo Invertido
+
+~6-8 horas (estimación basada en la complejidad de la implementación)

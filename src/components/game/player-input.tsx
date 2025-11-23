@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Dices } from "lucide-react";
@@ -14,9 +14,10 @@ interface PlayerInputProps {
   disabled?: boolean;
   isPlayerTurn?: boolean;
   waitingForTurnAdvance?: boolean;
+  isDMThinking?: boolean;
 }
 
-export function PlayerInput({ onSendMessage, onDiceRoll, disabled = false, isPlayerTurn = false, waitingForTurnAdvance = false }: PlayerInputProps) {
+export function PlayerInput({ onSendMessage, onDiceRoll, disabled = false, isPlayerTurn = false, waitingForTurnAdvance = false, isDMThinking = false }: PlayerInputProps) {
   const [inputValue, setInputValue] = useState("");
   const { toast } = useToast();
   const [isDicePopoverOpen, setIsDicePopoverOpen] = useState(false);
@@ -59,18 +60,20 @@ export function PlayerInput({ onSendMessage, onDiceRoll, disabled = false, isPla
           onKeyDown={handleKeyDown}
           placeholder={
             disabled
-              ? waitingForTurnAdvance
-                ? "No es tu turno. Pulsa un botón de avanzar turno para continuar."
-                : isPlayerTurn
-                  ? "Es tu turno! ¿Qué quieres hacer?"
-                  : "El DM está pensando... pero puedes ir escribiendo."
+              ? isDMThinking
+                ? "El DM está pensando..."
+                : waitingForTurnAdvance
+                  ? "No es tu turno. Pulsa un botón de avanzar turno para continuar."
+                  : isPlayerTurn
+                    ? "Es tu turno! ¿Qué quieres hacer?"
+                    : "El DM está pensando..."
               : isPlayerTurn
                 ? "Es tu turno! ¿Qué quieres hacer?"
                 : "¿Qué quieres hacer?"
           }
           className="flex-1 resize-none"
           rows={1}
-          disabled={isDicePopoverOpen}
+          disabled={disabled || isDicePopoverOpen}
         />
         <Button type="submit" size="icon" aria-label="Enviar acción" disabled={disabled || isDicePopoverOpen}>
           <Send className="h-5 w-5" />

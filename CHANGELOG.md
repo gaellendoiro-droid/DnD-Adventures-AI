@@ -15,6 +15,35 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+### Changed
+- **✅ Sistema de Tiradas Robusto y Unificado (2025-01-22):**
+  - **Problema:** Existía una discrepancia entre la lógica de tiradas de la IA y del Jugador. La IA generaba tiradas de dados (`rollNotation`) que podían no coincidir con las estadísticas reales del personaje/enemigo, causando inconsistencias visuales (ej: desglose que suma 3 cuando el total suma 5).
+  - **Solución implementada:**
+    - Arquitectura "Intención vs. Resolución": La IA solo provee la intención de atacar, el sistema calcula las tiradas usando las estadísticas reales
+    - Clase `CombatActionResolver` creada para centralizar el cálculo de tiradas
+    - Tacticians (`EnemyTactician` y `CompanionTactician`) simplificados para devolver intenciones de alto nivel
+    - `TurnProcessor` integrado para usar `CombatActionResolver` en turnos de IA
+  - **Cambios:**
+    - Nueva clase `CombatActionResolver` en `src/lib/combat/action-resolver.ts` con método `resolveAttack()`
+    - Método `resolveAttack()` calcula tiradas para jugadores y enemigos usando estadísticas reales
+    - Sistema de fallback robusto: si no encuentra acción específica, calcula tirada básica usando stats del enemigo
+    - `TurnProcessor` intercepta intenciones de ataque de IA y calcula tiradas correctas (líneas 358-380)
+    - Prompts de `EnemyTactician` y `CompanionTactician` modificados para devolver arrays vacíos `[]` para ataques estándar
+    - La IA ya no genera `rollNotation` para ataques, solo provee `actionDescription` y `targetId`
+  - **Beneficios:**
+    - ✅ Consistencia total: Jugadores y enemigos siguen las mismas reglas matemáticas
+    - ✅ Visualización perfecta: El desglose visual siempre coincide con el cálculo matemático
+    - ✅ Menor coste de tokens: Prompts más simples y respuestas JSON más pequeñas
+    - ✅ Robustez: Si la IA alucina, el sistema corrige usando las reglas reales
+    - ✅ Eliminación de la "doble verdad": Una sola fuente de verdad (las estadísticas del sistema)
+  - **Archivos modificados:**
+    - `src/lib/combat/action-resolver.ts` - **NUEVO** - Clase `CombatActionResolver` con lógica centralizada
+    - `src/lib/combat/turn-processor.ts` - Integración de `CombatActionResolver` para turnos de IA
+    - `src/ai/tools/enemy-tactician.ts` - Prompt modificado para devolver intenciones en lugar de tiradas
+    - `src/ai/tools/companion-tactician.ts` - Prompt modificado para devolver intenciones en lugar de tiradas
+    - `src/lib/combat/initialization/types.ts` - `EnemyWithStats` con estructura de datos completa
+  - **Referencia:** [Plan Detallado](../../docs/planes-desarrollo/completados/plan-sistema-tiradas-robusto.md)
+
 ### Fixed
 - **✅ Issue #118 - Narración de inicio de combate mejorada (2025-01-22):**
   - **Problema:** La narración de inicio de combate mencionaba nombres de enemigos incorrectos (ej: "gnomos" cuando debería decir "goblins") y usaba nombres técnicos como "Goblin 1, Goblin 2" en lugar de descripciones naturales

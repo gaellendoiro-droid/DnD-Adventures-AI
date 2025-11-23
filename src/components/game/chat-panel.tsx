@@ -109,6 +109,7 @@ export function ChatPanel({
           onDiceRoll={onDiceRoll}
           isPlayerTurn={isPlayerTurn}
           waitingForTurnAdvance={inCombat && !isThinking && !isPlayerTurn && (hasMoreAITurns || justProcessedAITurn || autoAdvancing || playerActionCompleted) && !!onPassTurn && !!onAdvanceAll}
+          isDMThinking={isThinking}
         />
       </div>
     </div>

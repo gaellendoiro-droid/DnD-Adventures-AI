@@ -4,8 +4,8 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 
 **Nota:** Para ver las mejoras ya implementadas, consulta el [CHANGELOG.md](../CHANGELOG.md).
 
-**Última actualización:** 2025-11-22  
-**Estado:** Actualizado - Sistema de Mundo Persistente: añadida información sobre `AdventureUpdateState`
+**Última actualización:** 2025-01-22  
+**Estado:** Actualizado - Verificado estado de todas las entradas. Issue #117 (Simplificación de Arquitectura de Combate) marcado como ✅ COMPLETADO. Narración Unificada marcada como ✅ PARCIALMENTE IMPLEMENTADA.
 
 ---
 
@@ -60,20 +60,27 @@ Mejoras críticas que mejoran significativamente la arquitectura, mantenibilidad
 
 ---
 
-### 1. Simplificación de Arquitectura de Combate
-*   **Problema Actual:** El sistema de combate tiene una arquitectura excesivamente compleja con múltiples capas de delegación (8-9 niveles de profundidad). El flujo del jugador y el de la IA son diferentes, causando duplicación de código, inconsistencias y dificultando el mantenimiento.
-*   **Mejora Propuesta:**
-    *   **Unificar Procesamiento de Turnos:** Crear un `TurnProcessor` único que funcione igual para jugador e IA, eliminando la duplicación entre `action-processor.ts` y `dice-roll-processor.ts`.
-    *   **Crear `CombatActionExecutor` Unificado:** Fusionar la lógica de procesamiento de acciones en un solo módulo que maneje cualquier acción de combate independientemente de quién la ejecute.
-    *   **Simplificar Inicialización:** Eliminar `first-turn-handler.ts` y hacer que el primer turno se procese como cualquier otro usando el flujo normal.
-    *   **Flujo Simplificado:** Reducir de 8-9 niveles de profundidad a 3-4 niveles, haciendo el código más fácil de seguir y depurar.
+### 1. Simplificación de Arquitectura de Combate ✅ COMPLETADO
+*   **Problema Actual:** El sistema de combate tenía una arquitectura excesivamente compleja con múltiples capas de delegación (8-9 niveles de profundidad). El flujo del jugador y el de la IA eran diferentes, causando duplicación de código, inconsistencias y dificultando el mantenimiento.
+*   **Mejora Implementada:** ✅
+    *   ✅ **TurnProcessor Unificado:** Creado `TurnProcessor` único que funciona igual para jugador e IA, eliminando la duplicación entre `action-processor.ts` y `dice-roll-processor.ts`.
+    *   ✅ **CombatActionExecutor Unificado:** Creado módulo unificado que maneja cualquier acción de combate independientemente de quién la ejecute.
+    *   ✅ **Inicialización Simplificada:** Eliminado `first-turn-handler.ts`, el primer turno se procesa como cualquier otro usando el flujo normal.
+    *   ✅ **Flujo Simplificado:** Reducido de 8-9 niveles de profundidad a 3-4 niveles.
 *   **Impacto:** Transformacional - Mejora significativa de la arquitectura, elimina duplicación, garantiza consistencia total entre jugador e IA, y facilita enormemente el mantenimiento futuro. Resuelve problemas como mensajes de muerte duplicados y otras inconsistencias.
-*   **Plan Detallado:** ✅ [Simplificación de Arquitectura de Combate](../planes-desarrollo/sin-comenzar/issue-117-simplificacion-arquitectura-combate.md)
+*   **Resultados Obtenidos:**
+    *   ✅ Consistencia total: Jugador e IA usan exactamente el mismo código
+    *   ✅ Complejidad reducida: De 8-9 niveles de profundidad a 3-4 niveles
+    *   ✅ Duplicación eliminada: Lógica unificada en módulos centralizados
+    *   ✅ Mantenibilidad mejorada: Menos archivos, menos duplicación, más fácil de depurar
+    *   ✅ Módulos eliminados: `action-processor.ts`, `dice-roll-processor.ts`, `first-turn-handler.ts`
+*   **Estado:** ✅ **COMPLETADO** - Implementación completada y verificada (2025-11-21)
+*   **Plan Detallado:** ✅ [Simplificación de Arquitectura de Combate](../planes-desarrollo/completados/issue-117-simplificacion-arquitectura-combate.md)
 *   **Referencia:** 
-    - Issue #117 (Simplificación de Arquitectura de Combate) 🔴 CRÍTICO
+    - Issue #117 (Simplificación de Arquitectura de Combate) ✅ RESUELTO
     - Relacionado con Issue #94 (Refactorización de Prompts de Tacticians)
-    - Resuelve Issue #82 (Unificar sistema de procesamiento de tiradas)
-    - Resuelve Issue #21 (Código duplicado en combat-manager)
+    - Resuelve Issue #82 (Unificar sistema de procesamiento de tiradas) ✅ RESUELTO
+    - Resuelve Issue #21 (Código duplicado en combat-manager) ✅ RESUELTO
 
 ---
 
@@ -157,9 +164,11 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
     *   **Minimizar Mensajes del DM en Combate:** En combate, a veces en un solo turno el DM puede llegar a mandar 5 mensajes (narración inicial, acción, daño, mensaje de "ha dejado inconsciente a X" y mensaje de "X cae inconsciente"). Buscar la forma de minimizar esta cantidad de mensajes a lo mínimo, diferenciando entre mensajes narrativos y mensajes informativos y agrupando estos últimos en un solo mensaje del DM.
     *   **Ignorar Turnos de Personajes Muertos o Inconscientes:** En combate, los turnos de los personajes muertos o inconscientes ya no deberían ni ejecutarse para no perder tiempo. El bucle debería ignorar a los personajes que están muertos o inconscientes, pero si un personaje se recupera de la inconsciencia o revive habría que volver a tenerlo en cuenta en el bucle. Esto tiene que ir acompañado de alguna señal visual de qué personajes están fuera del combate (quizás tachando su nombre en el combat tracker o con algún tipo de símbolos para marcar su estado).
     *   **Revisar o Eliminar Botón de Tiradas:** Evaluar si eliminar el botón de tiradas y su funcionalidad (las tiradas ya se ejecutan en el server), o si hacer que cuando sea el turno del jugador en combate o se le pida una tirada, la haga el mismo.
+    *   **Comprobar Sistema de Tiradas de Dados y Notación en Panel Tiradas:** Verificar que las notaciones de tiradas se muestran correctamente y que el desglose de modificadores es preciso. Asegurar que la información mostrada en el panel de tiradas es clara y consistente con los cálculos reales.
+    *   **Verificar Datos Conocidos por Enemigos al Decidir Acciones:** Comprobar que los tacticians de enemigos tienen acceso a toda la información necesaria (HP, AC, habilidades, estado de los aventureros) para tomar decisiones tácticas adecuadas. Asegurar que la información proporcionada a la IA es completa y precisa.
 *   **Impacto:** Mejora el flujo de combate, reduce ruido visual y mejora la experiencia del jugador.
 *   **Plan Detallado:** ❌ No creado
-*   **Referencia:** [Notas de Gael - #102, #104, #109](../notas/Notas%20de%20Gael.md)
+*   **Referencia:** [Notas de Gael - #102, #104, #109, #122, #123](../notas/Notas%20de%20Gael.md)
 
 ---
 
@@ -260,20 +269,21 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   **Impacto:** Mejora significativa en la calidad y coherencia de las narraciones de combate, aumentando la inmersión y haciendo que cada acción se sienta parte de un flujo narrativo continuo.
     *   **Relacionado con:** Issue #79 (Narraciones de combate para turnos del jugador)
 
-*   **Mejora Propuesta: Narración Unificada para Todos los Turnos**
-    *   **Problema Actual:** Solo el turno del jugador utiliza `combat-narration-expert`. Los tacticians (`enemyTacticianTool` y `companionTacticianTool`) generan narraciones de intención por su cuenta y no cuentan con narración de resolución, lo que produce diferencias de estilo y calidad narrativa entre turnos.
-    *   **Mejora Propuesta:**
-        *   **Extender `combat-narration-expert`:** Adaptar el tool para manejar tanto narraciones de intención (antes de las tiradas) como de resolución (después de aplicar resultados).
-        *   **Integración con Tacticians:** Los tacticians se enfocarían únicamente en decidir la acción táctica (target, tiradas necesarias), delegando toda narración en `combat-narration-expert`.
-        *   **Narrativa Consistente:** Garantizar que enemigos, compañeros y jugador compartan el mismo tono narrativo, reglas de estilo y uso del contexto (incluyendo el resumen generado por `combat-context-summarizer`).
-        *   **Hooks de Intención/Resolución:** Definir dos entradas claras para el tool (pre-roll / post-roll) para permitir que IA y jugador compartan narraciones cohesivas en ambos momentos del turno.
+*   **Mejora Propuesta: Narración Unificada para Todos los Turnos** ✅ PARCIALMENTE IMPLEMENTADO
+    *   **Problema Actual:** Solo el turno del jugador utilizaba `combat-narration-expert`. Los tacticians (`enemyTacticianTool` y `companionTacticianTool`) generaban narraciones de intención por su cuenta y no contaban con narración de resolución, lo que producía diferencias de estilo y calidad narrativa entre turnos.
+    *   **Mejora Implementada:** ✅
+        *   ✅ **TurnProcessor Unificado:** Con la refactorización del Issue #117, el `TurnProcessor` ahora usa `combat-narration-expert` para todos los turnos (jugador e IA) en ambos momentos (intención y resolución).
+        *   ✅ **Tacticians Simplificados:** Los tacticians ahora se enfocan únicamente en decidir la acción táctica (target, intención), delegando toda narración en `combat-narration-expert` a través del `TurnProcessor`.
+        *   ✅ **Narrativa Consistente:** Enemigos, compañeros y jugador comparten el mismo tono narrativo y reglas de estilo.
+        *   ✅ **Hooks de Intención/Resolución:** El `TurnProcessor` maneja ambos momentos del turno (pre-roll / post-roll) de forma unificada.
+    *   **Estado:** ✅ **PARCIALMENTE IMPLEMENTADO** - La arquitectura unificada del Issue #117 implementa esta mejora. Pendiente: Tool de resumen de contexto de combate (`combat-context-summarizer`) para mejorar aún más la calidad narrativa.
     *   **Impacto:** Consistencia narrativa total en el combate, reducción de lógica duplicada en tacticians y posibilidad de aplicar mejoras de narración (como el contexto resumido) a todos los turnos por igual.
     *   **Relacionado con:** 
         - Issue #79 (Narraciones de combate para turnos del jugador) ✅ RESUELTO
-        - Issue #14 (AI Tacticians output inválido/null) ✅ RESUELTO - La refactorización futura podría simplificar aún más los prompts
-        - Issue #94 (Refactorización de Prompts de Tacticians) - Issue dedicado a esta mejora
-        - Refactorización futura de `enemyTacticianTool` / `companionTacticianTool`
-*   **Plan Detallado:** ❌ No creado
+        - Issue #14 (AI Tacticians output inválido/null) ✅ RESUELTO
+        - Issue #117 (Simplificación de Arquitectura de Combate) ✅ RESUELTO - Implementa esta mejora
+        - Issue #94 (Refactorización de Prompts de Tacticians) - Mejora adicional pendiente
+*   **Plan Detallado:** ❌ No creado (parcialmente implementado por Issue #117)
 
 ### 11. Separación de IDs de Fichas de Personajes
 *   **Problema Actual:** Las fichas de personajes (`new-game-data.ts`) incluyen IDs hardcodeados (ej: `id: "1"`, `id: "6"`, `id: "3"`). Esto mezcla datos de ficha (stats, habilidades, inventario) con metadatos del sistema (IDs para identificación interna). Las fichas deberían ser datos puros y portables, mientras que los IDs son una necesidad interna del procesamiento del juego.
@@ -322,11 +332,12 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   **Narración Post-Combate:** El DM debe hacer una narración con las consecuencias y un breve resumen al finalizar cada combate para continuar con la historia.
     *   **Sistema de Pifias y Críticos Narrativos:** Implementar un sistema para pifias y críticos donde el DM las identifique y les dé una narración especial con alguna consecuencia creativa. Ejemplos: Pifia: un compañero pierde su arma o le da a otro compañero sin querer. Crítico: el ataque es especialmente destructivo, o si es una prueba de habilidad el éxito es especialmente efectivo.
     *   **Verificar Reglas de Persuasión en Combate:** Comprobar en las reglas de D&D 5e si en modo combate el jugador puede intentar persuadir a un enemigo.
+    *   **Niveles de Dificultad en Combates:** Implementar niveles de dificultad en los combates: Enemigos con más HP, IAs más inteligentes, etc. El sistema debe permitir ajustar la dificultad de los encuentros para adaptarse a diferentes niveles de desafío. Puede incluir modificadores a las estadísticas de enemigos o mejoras en la inteligencia táctica de la IA.
 *   **Impacto:** Mayor fidelidad a las reglas oficiales de D&D 5e, mejor balance de combate, opciones tácticas más ricas, y combate más narrativo e inmersivo.
 *   **Plan Detallado:** ✅ Parcial (solo Death Saving Throws) - [Sistema de Death Saving Throws](../planes-desarrollo/sin-comenzar/sistema-death-saving-throws.md)
 *   **Documentación:** 
     *   [Issues Tracker - Issue #22](../tracking/issues/pendientes.md#issue-22-sistema-completo-de-saving-throws-tiradas-de-salvación-del-objetivo-feature-incompleta)
-    *   [Notas de Gael - #04, #10, #12, #13, #23, #24, #25, #26, #27, #36, #37, #38, #40, #45, #53, #68, #70, #71, #72](../notas/Notas%20de%20Gael.md)
+    *   [Notas de Gael - #04, #10, #12, #13, #23, #24, #25, #26, #27, #36, #37, #38, #40, #45, #53, #68, #70, #71, #72, #121](../notas/Notas%20de%20Gael.md)
 
 ### 13. Actualización Automática de Fichas desde Archivos JSON
 *   **Problema Actual:** Cuando se modifican los archivos JSON de las fichas de personajes, el panel de fichas del juego no se actualiza automáticamente, requiriendo recargar la partida.
@@ -415,9 +426,10 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
     *   **Sistema de Detección de Fichas Sospechosas o Corruptas:** Implementar un sistema por el que el DM avise de fichas sospechosas o corruptas, validando la integridad de los datos de las fichas de personajes.
     *   **Ventana Especial para Equipar/Desequipar Objetos:** En el inventario, implementar una ventana especial para equipar o desequipar objetos, mejorando la gestión del equipamiento de los personajes.
     *   **Sistema de Equipamiento con Límites y Validación:** Las fichas de los personajes deberían incluir en la parte de equipamiento qué elementos están equipados o no. Los elementos equipados deberían seguir un esquema del que no se pueden salir, por ejemplo: 2 anillos máximo, 1 botas máximo, 2 armas máximo, etc. Tener en cuenta armas a 2 manos y versátiles, etc.
+    *   **Sistema de Peso de Inventario y Capacidad de Carga:** Implementar peso de inventario, peso de cada item y el concepto de estar cargado y sus consecuencias. El sistema debe calcular el peso total del inventario y aplicar las reglas de D&D 5e sobre capacidad de carga. Las consecuencias de estar sobrecargado deben afectar el movimiento y las acciones del personaje.
 *   **Impacto:** Mejora la interacción con compañeros y la gestión de personajes.
 *   **Plan Detallado:** ❌ No creado
-*   **Referencia:** [Notas de Gael - #39, #42, #54, #56, #67, #73, #85, #87, #93, #98, #118](../notas/Notas%20de%20Gael.md)
+*   **Referencia:** [Notas de Gael - #39, #42, #54, #56, #67, #73, #85, #87, #93, #98, #118, #120](../notas/Notas%20de%20Gael.md)
 
 ### 17. Mejoras de Sistema de Aventuras y Datos
 *   **Mejoras Propuestas:**
@@ -441,9 +453,10 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
     *   **Expandir Funciones de Resolución de IDs:** Actualmente hay una función resolveEnemyId. ¿Deberíamos implementar más funciones similares para identificar mejor localizaciones o PNJs?
     *   **Optimización de Velocidad de Respuestas del DM:** Revisar la velocidad a la que el DM genera sus respuestas. Hay que optimizar esto al máximo para que la partida sea más fluida. Relacionado con la optimización de prompts.
     *   **Optimización General de Prompts:** Optimización de prompts en general urgente. En común con otros issues ya documentados. Mejorar la eficiencia y velocidad de respuesta del sistema.
+    *   **Revisar Sistema de Documentación y Changelog:** Revisar el sistema de documentación y de changelog. Pasar a un sistema más profesional. Evaluar herramientas y procesos para mejorar la gestión de documentación y registro de cambios. Considerar automatización y mejores prácticas para mantener la documentación actualizada.
 *   **Impacto:** Mejoras de calidad y pulido que mejoran la experiencia general del juego, especialmente la fluidez y velocidad de respuesta.
 *   **Plan Detallado:** ❌ No creado
-*   **Referencia:** [Notas de Gael - #11, #19, #41, #62, #111, #114](../notas/Notas%20de%20Gael.md)
+*   **Referencia:** [Notas de Gael - #11, #19, #41, #62, #111, #114, #124](../notas/Notas%20de%20Gael.md)
 
 ### 19. Comandos de Voz
 *   **Mejora Propuesta:** Integrar la API de Reconocimiento de Voz del navegador (`SpeechRecognition`) para añadir un botón de "dictar" en la interfaz.

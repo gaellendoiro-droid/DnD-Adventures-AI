@@ -2,8 +2,8 @@
 
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 27 issues  
-**Última actualización:** 2025-01-22 (Issue #118 movido a corregidos - Narración de inicio de combate corregida)
+**Total:** 25 issues  
+**Última actualización:** 2025-01-22 (Issue #76 movido a corregidos - Input deshabilitado cuando DM está pensando)
 
 ---
 
@@ -185,21 +185,6 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
 
 ---
 
-### Issue #76: Input debe deshabilitarse cuando el DM está "pensando" 🟢 MEJORA
-
-- **Fecha de creación:** 2025-11-17
-- **Ubicación:** `src/components/game/player-input.tsx`, `src/app/game-state-actions.ts`
-- **Severidad:** 🟢 **MEDIA** (posible pérdida de acciones y UX confusa)
-- **Descripción:** Mientras el DM está procesando (estado “El DM está pensando”), el cuadro de texto sigue habilitado, permitiendo que el jugador envíe nuevas órdenes que se pierden o quedan en cola sin feedback.
-- **Comportamiento esperado:** El input debe deshabilitarse automáticamente y mostrar un indicador visual hasta que el sistema termine de procesar y vuelva a aceptar comandos.
-- **Impacto:** Medio – Evita confusiones y asegura que las acciones se registren en el orden correcto.
-- **Solución propuesta:**
-  - Propagar un flag `isDmThinking` al estado global y usarlo para deshabilitar `player-input`.
-  - Mostrar un mensaje contextual (“El DM está pensando...”) mientras el flag esté activo.
-  - Rehabilitar el input al recibir la respuesta del backend o tras un timeout seguro.
-- **Estado:** 📝 **PENDIENTE**
-- **Detección:** Testing manual en la UI de combate.
-
 ---
 
 ### Issue #92: Identificación incorrecta de enemigo en combate 🟢 MEJORA
@@ -223,27 +208,6 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
   - `src/lib/combat/target-resolver.ts` (resolución de targets)
 - **Estado:** 📝 **PENDIENTE**
 - **Detección:** Testing manual durante combate
-
-### Issue #112: Sincronización entre DM y combat tracker 🟢 MEJORA
-
-- **Fecha de creación:** 2025-11-18
-- **Ubicación:** `src/components/game/game-view.tsx`, `src/components/game/initiative-tracker.tsx`, `src/ai/tools/combat-manager.ts`
-- **Severidad:** 🟢 **MEDIA** (afecta sincronización visual del estado del combate)
-- **Descripción:** En combate, cuando se pasa 1 turno mientras en el chat sale "el DM está pensando..." el combat tracker aún está en el turno anterior.
-- **Problema:** Hay un desfase entre el estado del DM (procesando) y el estado visual del combat tracker, lo que puede confundir al jugador sobre qué turno está activo.
-- **Comportamiento esperado:** El combat tracker debe actualizarse inmediatamente cuando se avanza un turno, reflejando el mismo estado que el DM está procesando.
-- **Impacto:** Medio – Puede confundir al jugador sobre el estado actual del combate
-- **Solución propuesta:**
-  - Mejorar la sincronización entre el estado del DM y el combat tracker
-  - Actualizar el `turnIndex` en el frontend inmediatamente cuando se inicia el procesamiento de un turno
-  - Asegurar que ambos reflejen el mismo estado del combate
-- **Archivos afectados:**
-  - `src/components/game/game-view.tsx` (gestión de estado de combate)
-  - `src/components/game/initiative-tracker.tsx` (visualización del orden de combate)
-  - `src/ai/tools/combat-manager.ts` (procesamiento de turnos)
-- **Estado:** 📝 **PENDIENTE**
-- **Referencia:** [Notas de Gael - #112](../notas/Notas%20de%20Gael.md)
-
 
 ---
 
