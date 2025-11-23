@@ -155,6 +155,8 @@ Esta sección es para apuntar ideas rápidas, fallos detectados y notas informal
 
 Al clasificar un item de esta sección, debe moverse a su sección correspondiente y eliminarse de aquí, manteniendo esta sección como un área de trabajo temporal.
 
+1. FUTURA MEJORA: implementar el nuevo file search para tener un compendio local de reglas y monstruos basados en los libros oficiales de d&d. (PA)
+2. 
 
 
 

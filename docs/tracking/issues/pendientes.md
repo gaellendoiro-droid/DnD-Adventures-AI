@@ -1,5 +1,9 @@
 # Issues Pendientes
 
+> ⚠️ **IMPORTANTE:** Cada vez que se modifique este archivo (añadir, mover o actualizar issues), **debe actualizarse también el [README.md](./README.md)** de esta carpeta con las estadísticas y enlaces actualizados.
+
+---
+
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
 **Total:** 25 issues  
@@ -8,6 +12,36 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
 ---
 
 ## 🔴 Prioridad Muy Alta (PMA) - Críticos
+
+### Issue #120: Inconsistencia en Cálculos de Tiradas y Visualización (Merryl) 🔴 CRÍTICO
+
+- **Fecha de creación:** 2025-11-23
+- **Ubicación:** `src/lib/combat/roll-notation-utils.ts`, `src/lib/combat/action-resolver.ts`, `src/ai/tools/dice-roller.ts`
+- **Severidad:** 🔴 **CRÍTICA** (Cálculos de daño incorrectos y feedback visual engañoso)
+- **Descripción:** Se han detectado dos bugs críticos que interactúan entre sí causando que las tiradas de daño sean incorrectas y que la UI muestre información falsa.
+    1. **Visualización engañosa:** `updateRollNotationWithModifiers` selecciona automáticamente el modificador más alto (ej: DES +3) para "embellecer" el desglose visual, incluso si el ataque se calculó usando otro atributo (ej: FUE -1). Esto hace que el usuario vea "19+3+2" (Total 24) cuando el resultado real es 20.
+    2. **Cálculo de daño erróneo:** `CombatActionResolver` genera notaciones inválidas para modificadores negativos (ej: `1d8+-1`). La regex del `diceRollerTool` no soporta el formato `+-`, por lo que ignora el modificador y lo trata como 0. Esto hace que un daño que debería ser 6 (7-1) se calcule como 7.
+- **Problema:**
+    - El usuario recibe información contradictoria: el desglose visual dice una cosa, el total dice otra, y el cálculo interno es incorrecto.
+    - Los personajes con modificadores negativos de fuerza (como Merryl) hacen más daño del que deberían.
+- **Comportamiento esperado:**
+    - **Selección Inteligente de Habilidad:** El sistema debe identificar correctamente qué habilidad usar (FUE o DES) basándose en las reglas de D&D 5e:
+        - **Cuerpo a cuerpo:** Usa FUE por defecto.
+        - **A distancia:** Usa DES por defecto.
+        - **Sutil (Finesse):** Permite elegir la más alta entre FUE y DES.
+    - `updateRollNotationWithModifiers` debe recibir explícitamente qué atributo se usó para el cálculo, en lugar de adivinar o asumir el más alto.
+    - `CombatActionResolver` debe formatear correctamente los números negativos (ej: `1d8-1` en lugar de `1d8+-1`).
+    - `diceRollerTool` debe ser capaz de parsear correctamente notaciones con signos negativos o rechazar formatos inválidos como `+-`.
+- **Impacto:** Crítico - Afecta la integridad matemática del juego y la confianza del usuario en el sistema.
+- **Solución propuesta:**
+    - **Arquitectura "Cerebro Centralizado, Frontend Obediente":**
+        1.  **Helper `getWeaponAbility`:** Crear una función pura en `CombatActionResolver` que determine el atributo (FUE/DES) basándose en propiedades del arma (Sutil, Alcance) y stats del personaje.
+        2.  **Helper `formatDiceNotation`:** Implementar una función simple para formatear correctamente los signos (ej: `1d8-1` en vez de `1d8+-1`).
+        3.  **Inyección de Contexto:** `CombatActionResolver` inyectará el campo `attributeUsed: 'FUE' | 'DES'` en el objeto de la tirada.
+        4.  **Frontend Determinista:** `updateRollNotationWithModifiers` dejará de "adivinar" basándose en el stat más alto y usará estrictamente el `attributeUsed` proporcionado por el backend.
+    - **Robustecer Parser:** Mejorar la regex en `diceRollerTool` para soportar variaciones en la notación por seguridad.
+- **Estado:** 📝 **PENDIENTE**
+- **Prioridad:** Muy Alta
 
 
 ## 🟡 Prioridad Alta (PA) - Advertencias

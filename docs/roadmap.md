@@ -130,7 +130,7 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
 *   **Impacto Estratégico:** Crítico. Es la mejora más importante para la credibilidad del mundo de juego. Hará que el mundo se sienta vivo, reactivo y peligroso, y que las acciones de los jugadores tengan un peso y consecuencias reales.
 *   **Plan Detallado:** ❌ No creado
 
-### 4. Mejora de Estructura de Fichas de Personajes
+### 4. Mejora de Estructura de Fichas de Personajes en la UI
 *   **Problema Actual:** Las fichas de personajes pueden ser abrumadoras con toda la información mostrada a la vez. Falta organización y visualización de estados temporales.
 *   **Mejora Propuesta:**
     *   **Mejor Organización:** Reestructurar la información en secciones lógicas y accesibles
