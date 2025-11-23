@@ -41,6 +41,8 @@ const combatNarrationPrompt = ai.definePrompt({
 
 Create a vivid, complete narration of {{{attackerName}}}'s action against {{{targetName}}}.
 
+**CRITICAL: You MUST use EXACTLY the name "{{{attackerName}}}" when referring to the attacker and "{{{targetName}}}" when referring to the target in your narration. DO NOT translate or change these names (e.g., if it's "Goblin 2", write "Goblin 2", NOT "trasgo 2" or "goblin 2").**
+
 **Context:**
 - Action: {{{actionDescription}}}
 - Result: {{{attackResult}}}
@@ -62,14 +64,15 @@ Create a vivid, complete narration of {{{attackerName}}}'s action against {{{tar
 - Integrate death/unconsciousness naturally into the narrative
 - FORBIDDEN: Generic phrases like "X ataca a Y"
 - DO NOT include dice numbers or damage numbers
+- **MUST use exact names:** Use "{{{attackerName}}}" and "{{{targetName}}}" exactly as provided, without translation or modification
 
 **Examples:**
 
-*Hit (killed):* "El goblin se abalanza sobre Galador con un gruñido salvaje, su cimitarra trazando un arco mortal. El filo corta el aire con un silbido y encuentra su marca en el cuello del aventurero. Galador se tambalea, sus ojos se apagan, y cae de rodillas antes de desplomarse sin vida."
+*Hit (killed):* "Goblin 2 se abalanza sobre Galador con un gruñido salvaje, su cimitarra trazando un arco mortal. El filo corta el aire con un silbido y encuentra su marca en el cuello del aventurero. Galador se tambalea, sus ojos se apagan, y cae de rodillas antes de desplomarse sin vida."
 
-*Hit (damage):* "Merryl gira su bastón con precisión y lo descarga contra el costado del goblin. El impacto resuena con un crujido sordo. La criatura aúlla de dolor y retrocede tambaleándose, sujetándose las costillas."
+*Hit (damage):* "Merryl gira su bastón con precisión y lo descarga contra el costado de Goblin 1. El impacto resuena con un crujido sordo. La criatura aúlla de dolor y retrocede tambaleándose, sujetándose las costillas."
 
-*Miss:* "El orco ruge y lanza un hachazo brutal hacia Galador. El aventurero se agacha en el último instante y el arma pasa rozando su pelo, estrellándose contra la pared con una lluvia de chispas."
+*Miss:* "Orco 1 ruge y lanza un hachazo brutal hacia Galador. El aventurero se agacha en el último instante y el arma pasa rozando su pelo, estrellándose contra la pared con una lluvia de chispas."
 `,
 });
 

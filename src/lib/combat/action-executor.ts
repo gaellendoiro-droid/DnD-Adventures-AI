@@ -252,6 +252,8 @@ export class CombatActionExecutor {
                     description: rollRequest.description,
                     // Explicitly preserve attributeUsed if it came from rollResult
                     attributeUsed: rollResult.attributeUsed || rollRequest.attributeUsed,
+                    // Preserve attackRange from rollRequest
+                    attackRange: rollRequest.attackRange,
                 };
 
                 // Process attack roll
@@ -382,6 +384,7 @@ export class CombatActionExecutor {
                     roll.targetName = targetVisualName;
                     roll.damageDealt = damage;
                     roll.targetKilled = damageResult.isDead;
+                    roll.targetKnockedOut = damageResult.isUnconscious && !damageResult.isDead;
                     roll.outcome = wasCritical ? 'crit' : rollResult.outcome;
 
                     diceRolls.push(roll);

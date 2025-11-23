@@ -89,6 +89,42 @@ export interface TurnProcessorResult {
 
 // --- Turn Processor ---
 
+/**
+ * Extracts weapon name from player action.
+ * Returns null if no specific weapon is mentioned.
+ * 
+ * @param action - Player action string (e.g., "Ataco con mi espada al goblin")
+ * @returns Weapon name if found, null otherwise
+ * 
+ * @example
+ * extractWeaponName("Ataco con mi espada") // "espada"
+ * extractWeaponName("Disparo mi arco") // "arco"
+ * extractWeaponName("Ataco al goblin 1") // null
+ */
+export function extractWeaponName(action: string): string | null {
+    if (!action) return null;
+
+    const actionLower = action.toLowerCase();
+
+    // Patterns to match: "con [weapon]", "usando [weapon]", "mi [weapon]", "el/la [weapon]"
+    // Using [a-záéíóúñü]+ to match Spanish words with accents
+    const patterns = [
+        /con (?:mi |el |la |un |una )?([a-záéíóúñü]+)/i,
+        /usando (?:mi |el |la |un |una )?([a-záéíóúñü]+)/i,
+        /mi ([a-záéíóúñü]+)/i,
+        /(?:el|la) ([a-záéíóúñü]+)/i,
+    ];
+
+    for (const pattern of patterns) {
+        const match = actionLower.match(pattern);
+        if (match && match[1]) {
+            return match[1]; // e.g., "espada", "arco"
+        }
+    }
+
+    return null; // No specific weapon mentioned
+}
+
 export class TurnProcessor {
     /**
      * Processes a complete combat turn.
@@ -220,9 +256,8 @@ export class TurnProcessor {
                 // Use CombatActionResolver to calculate rolls
                 // This ensures consistency with the new robust system
                 const targetName = getVisualName(resolvedTargetId, initiativeOrder, initialEnemies);
-                // Extract weapon name from player action or default to "ataque"
-                // Simple heuristic: look for weapon names in the action text
-                const weaponQuery = playerAction || 'ataque';
+                // Extract weapon name from player action using helper function
+                const weaponQuery = extractWeaponName(playerAction) || 'ataque';
 
                 const resolution = CombatActionResolver.resolveAttack(playerChar, weaponQuery, targetName);
 
@@ -367,13 +402,21 @@ export class TurnProcessor {
                     if (combatantData) {
                         // Extract weapon name from description or use "ataque"
                         // Heuristic: "Ataque con Cimitarra" -> "Cimitarra"
+                        // Also handles: "Ataque con Cimitarra a X" -> "Cimitarra"
                         let weaponQuery = 'ataque';
                         if (actionDescription && actionDescription.toLowerCase().includes('con ')) {
                             const parts = actionDescription.toLowerCase().split('con ');
                             if (parts.length > 1) {
-                                weaponQuery = parts[1].trim();
+                                // Extract weapon name, removing "a [target]" if present
+                                weaponQuery = parts[1].trim().split(/\s+a\s+/)[0].trim();
                             }
                         }
+                        
+                        log.debug('Extracted weapon query from actionDescription', {
+                            module: 'TurnProcessor',
+                            actionDescription,
+                            weaponQuery,
+                        });
 
                         const targetName = getVisualName(resolvedTargetId || 'objetivo', initiativeOrder, initialEnemies);
                         const resolution = CombatActionResolver.resolveAttack(

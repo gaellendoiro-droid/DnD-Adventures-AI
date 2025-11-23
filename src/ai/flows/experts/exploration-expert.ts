@@ -12,7 +12,7 @@ import { dndApiLookupTool } from '../../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../../tools/adventure-lookup';
 import { ExplorationExpertInputSchema, ExplorationExpertOutputSchema, type ExplorationExpertInput, type ExplorationExpertOutput } from '../schemas';
 import { log } from '@/lib/logger';
-import { retryWithExponentialBackoff } from '../retry-utils';
+import { executePromptWithRetry } from '../retry-utils';
 
 const explorationExpertPrompt = ai.definePrompt({
     name: 'explorationExpertPrompt',
@@ -81,11 +81,10 @@ export const explorationExpertFlow = ai.defineFlow(
         try {
             localLog("ExplorationExpert: Generating narration...");
 
-            const llmResponse = await retryWithExponentialBackoff(
-                () => explorationExpertPrompt(input),
-                3,
-                1000,
-                'explorationExpert'
+            const llmResponse = await executePromptWithRetry(
+                explorationExpertPrompt,
+                input,
+                { flowName: 'explorationExpert' }
             );
 
             let output = llmResponse.output;

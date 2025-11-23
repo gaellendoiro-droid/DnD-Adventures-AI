@@ -140,3 +140,49 @@ export async function retryWithExponentialBackoff<T>(
     throw new Error('Retry failed with unknown error');
 }
 
+/**
+ * Execute a Genkit prompt with automatic retries for network errors.
+ * 
+ * Centralizes the common pattern of executing Genkit prompts with retry logic.
+ * This helper encapsulates the retry pattern used across multiple flows and tools.
+ * 
+ * @param prompt The Genkit prompt to execute
+ * @param input The input for the prompt
+ * @param options Optional configuration
+ * @param options.maxRetries Maximum number of retry attempts (default: 3, so 4 total attempts)
+ * @param options.initialDelayMs Initial delay in milliseconds (default: 1000)
+ * @param options.flowName Name of the flow using this function (for logging)
+ * @returns The prompt response with output
+ * @throws The last error if all retries fail
+ * 
+ * @example
+ * ```typescript
+ * const response = await executePromptWithRetry(
+ *   enemyTacticianPrompt,
+ *   input,
+ *   { flowName: 'enemyTactician' }
+ * );
+ * const output = response.output;
+ * ```
+ */
+export async function executePromptWithRetry<TInput, TOutput>(
+    prompt: (input: TInput) => Promise<{ output: TOutput }>,
+    input: TInput,
+    options?: {
+        maxRetries?: number;
+        initialDelayMs?: number;
+        flowName?: string;
+    }
+): Promise<{ output: TOutput }> {
+    const maxRetries = options?.maxRetries ?? 3;
+    const initialDelayMs = options?.initialDelayMs ?? 1000;
+    const flowName = options?.flowName ?? 'unknown';
+
+    return await retryWithExponentialBackoff(
+        () => prompt(input),
+        maxRetries,
+        initialDelayMs,
+        flowName
+    );
+}
+

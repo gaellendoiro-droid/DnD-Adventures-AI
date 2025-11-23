@@ -1,6 +1,6 @@
 # Arquitectura del Backend (Sistema de IA)
 
-**Última actualización:** 2025-01-23  
+**Última actualización:** 2025-01-23 (v0.5.6 - Sistema Data-Driven)  
 **Estado:** ✅ Actualizado
 
 ---
@@ -156,17 +156,71 @@ El subsistema de combate ha sido simplificado significativamente (Issue #117) pa
 -   **Rol**: Procesa un turno completo (planificación → intención → ejecución → resolución) de forma unificada para jugador e IA.
 -   **Flujo**:
     1. **Planificación**: Si es IA, consulta al tactician correspondiente. Si es jugador, usa la acción interpretada.
-    2. **Narración de Intención**: Genera narración descriptiva de la acción planificada.
-    3. **Ejecución**: Llama a `CombatActionExecutor` para ejecutar la acción (tiradas, daño, efectos).
-    4. **Narración de Resolución**: Genera narración descriptiva del resultado.
+    2. **Extracción de Arma** (v0.5.6): Para jugadores, usa `extractWeaponName()` para parsear el nombre del arma de la acción del jugador.
+    3. **Resolución de Acción**: Llama a `CombatActionResolver.resolveAttack()` para calcular tiradas usando estadísticas reales.
+    4. **Narración de Intención**: Genera narración descriptiva de la acción planificada.
+    5. **Ejecución**: Llama a `CombatActionExecutor` para ejecutar la acción (tiradas, daño, efectos).
+    6. **Narración de Resolución**: Genera narración descriptiva del resultado.
+-   **Función `extractWeaponName()`** (v0.5.6):
+    - Extrae nombres de armas desde acciones de jugador usando patrones regex
+    - Soporta caracteres acentuados en español (á, é, í, ó, ú, ñ, ü)
+    - Patrones: "con [arma]", "usando [arma]", "mi [arma]", "el/la [arma]"
+    - Fallback seguro a `'ataque'` cuando no se menciona arma específica
 -   **Beneficios**: Elimina duplicación entre flujos de jugador e IA, garantiza consistencia.
+
+#### `CombatActionResolver` (Nuevo - v0.5.6)
+-   **Archivo**: `src/lib/combat/action-resolver.ts`
+-   **Rol**: Centraliza la lógica para resolver acciones de combate (ataques, hechizos) en tiradas de dados. Es la "fuente única de verdad" para cálculos de combate.
+-   **Responsabilidades**:
+    - Calcula tiradas de ataque y daño basándose en estadísticas reales del combatiente
+    - Determina qué atributo usar (FUE/DES) según tipo de arma (melee/ranged/finesse) usando sistema data-driven
+    - Establece `attributeUsed` y `attackRange` en las tiradas para el frontend
+    - Proporciona fallback robusto si no encuentra arma específica
+-   **Sistema Data-Driven para Propiedades de Armas** (v0.5.6):
+    - **Prioridad 1 - Datos Estructurados:** Lee `attacks[].properties` explícitas (ej: `['Finesse', 'Light']`) de jugadores/compañeros
+    - **Prioridad 2 - Análisis de Texto:** Parsea descripciones buscando palabras clave ("Sutil", "Finesse", "Alcance", "Ranged Weapon Attack")
+    - **Prioridad 3 - Heurística de Nombres (Fallback):** Solo si lo anterior falla, usa lista de nombres como red de seguridad
+    - **Funciones helper comunes:**
+      - `getWeaponProperties()`: Extrae propiedades de armas usando las 3 fuentes de datos
+      - `determineWeaponAttribute()`: Determina qué atributo usar (FUE/DES) basándose en propiedades detectadas
+      - Ambas funciones son comunes para jugadores, compañeros y enemigos
+-   **Arquitectura "Cerebro Centralizado, Frontend Obediente"**:
+    - El backend (`CombatActionResolver`) es la única fuente de verdad para cálculos
+    - El frontend recibe `attributeUsed` y `attackRange` explícitamente, sin adivinar
+    - Elimina inconsistencias entre cálculos de jugador e IA
+-   **Métodos principales**:
+    - `resolveAttack()`: Resuelve un ataque físico en `DiceRollRequest[]` (detecta automáticamente si es jugador o enemigo)
+    - `resolvePlayerAttack()`: Lógica específica para jugadores y compañeros (usa inventario y `attacks` array)
+    - `resolveEnemyAttack()`: Lógica específica para enemigos (usa `actions` de la API de D&D)
+    - `getWeaponProperties()`: Helper común para extraer propiedades de armas (privado)
+    - `determineWeaponAttribute()`: Helper común para determinar atributo usado (privado)
+-   **Diferencias entre `resolvePlayerAttack` y `resolveEnemyAttack`**:
+    - **Jugadores/Compañeros (`resolvePlayerAttack`):**
+      - Busca arma en `inventory` del personaje
+      - Calcula bonos desde cero usando `abilityModifiers` + `proficiencyBonus`
+      - Usa `player.attacks` array (datos estructurados) y `weapon.description` (inventario)
+      - Extrae `damageDie` de la descripción del inventario
+    - **Enemigos (`resolveEnemyAttack`):**
+      - Busca acción en `enemy.actions` (datos de la API de D&D)
+      - Usa `attack_bonus` pre-calculado de la API (ya viene calculado)
+      - Usa `action.desc` (descripción de la API) para parsear propiedades
+      - Usa `damage_dice` pre-calculado de la API
+    - **Ambos usan las mismas funciones helper** para detectar propiedades (finesse, ranged)
+-   **Beneficios**: 
+    - ✅ Consistencia total: Jugadores, compañeros y enemigos siguen las mismas reglas matemáticas
+    - ✅ Visualización perfecta: El desglose visual siempre coincide con el cálculo matemático
+    - ✅ Robustez: Si la IA alucina, el sistema corrige usando las reglas reales
+    - ✅ Eliminación de la "doble verdad": Una sola fuente de verdad (las estadísticas del sistema)
+    - ✅ Data-driven: Prioriza datos estructurados sobre heurísticas hardcodeadas
 
 #### `CombatActionExecutor` (Nuevo - Unificado)
 -   **Archivo**: `src/lib/combat/action-executor.ts`
 -   **Rol**: Ejecuta cualquier acción de combate (ataque, hechizo, curación) independientemente de quién la ejecute.
 -   **Responsabilidades**:
+    - Recibe `DiceRollRequest[]` de `CombatActionResolver` o de la IA
     - Procesa tiradas de ataque y compara con AC
     - Procesa tiradas de daño/curación
+    - Preserva `attributeUsed` y `attackRange` en los `DiceRoll` finales
     - Aplica resultados usando `RulesEngine`
     - Retorna resultados estructurados (NO genera mensajes - eso es responsabilidad de `TurnProcessor`)
 -   **Beneficios**: Unifica la lógica que antes estaba duplicada en `action-processor.ts` y `dice-roll-processor.ts`.

@@ -179,6 +179,11 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
           {/* Show target information for attack rolls */}
           {isAttackRoll && (
             <>
+              {roll.attackRange && (
+                <p className="text-xs text-muted-foreground/70 leading-tight mt-0.5">
+                  {roll.attackRange === 'ranged' ? '🏹 A distancia' : '⚔️ Cuerpo a cuerpo'}
+                </p>
+              )}
               {roll.targetName ? (
                 <>
                   <p className="text-xs text-muted-foreground/80 leading-tight mt-0.5">
@@ -220,6 +225,12 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
               {roll.targetKilled && (
                 <p className="text-xs font-bold text-red-400 leading-tight mt-1">
                   💀 ¡{roll.roller} ha matado a {roll.targetName}!
+                </p>
+              )}
+              {/* Show unconscious message if target was knocked out */}
+              {roll.targetKnockedOut && (
+                <p className="text-xs font-bold text-orange-400 leading-tight mt-1">
+                  😴 ¡{roll.roller} ha dejado inconsciente a {roll.targetName}!
                 </p>
               )}
             </>

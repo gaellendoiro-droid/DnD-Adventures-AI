@@ -41,8 +41,10 @@ export interface DiceRoll {
   attackHit?: boolean; // Whether the attack hit (for attack rolls)
   damageDealt?: number; // Damage dealt (for damage rolls)
   targetKilled?: boolean; // Whether the target was killed by this damage roll
+  targetKnockedOut?: boolean; // Whether the target was knocked unconscious by this damage roll
   healingAmount?: number; // Healing amount (for healing rolls)
   attributeUsed?: 'FUE' | 'DES' | 'CON' | 'INT' | 'SAB' | 'CAR'; // The attribute used for the roll (e.g. "FUE" for Strength-based attacks)
+  attackRange?: 'melee' | 'ranged'; // Type of attack: melee or ranged
 }
 
 export interface InitiativeRoll {

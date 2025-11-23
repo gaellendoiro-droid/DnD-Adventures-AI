@@ -1,6 +1,6 @@
 # Referencia de API y Esquemas
 
-**Última actualización:** 2025-01-23  
+**Última actualización:** 2025-01-23 (v0.5.6)  
 **Estado:** ✅ Actualizado
 
 ---
@@ -241,6 +241,7 @@ type DiceRoll = {
   attackHit?: boolean,              // Si el ataque acertó (para tiradas de ataque)
   damageDealt?: number,             // Daño infligido (para tiradas de daño)
   targetKilled?: boolean,           // Si el objetivo fue derrotado por este daño
+  targetKnockedOut?: boolean,       // Si el objetivo quedó inconsciente por este daño (solo para party members)
   healingAmount?: number,           // Cantidad de curación (para tiradas de curación)
   
   // Para futura implementación completa de saving throws (Issue #22)
@@ -248,6 +249,14 @@ type DiceRoll = {
   savingThrowDC?: number,           // DC que el objetivo debe superar
   savingThrowSuccess?: boolean,     // Si el objetivo acertó la salvación
   savingThrowType?: 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha',  // Tipo de salvación
+  
+  // Campos explicativos (v0.5.6 - Arquitectura "Frontend Obediente")
+  attributeUsed?: 'FUE' | 'DES' | 'CON' | 'INT' | 'SAB' | 'CAR',  // Atributo usado para la tirada
+  attackRange?: 'melee' | 'ranged',  // Tipo de ataque (cuerpo a cuerpo o a distancia)
+  modifiers?: Array<{                // Modificadores desglosados (v0.5.6)
+    value: number,                   // Valor del modificador
+    label: string                    // Etiqueta del modificador (ej: "DES", "BC")
+  }>
 }
 ```
 
@@ -261,6 +270,10 @@ type DiceRoll = {
   - `'neutral'`: Tiradas sin contexto de éxito/fallo
   - `'initiative'`: Tiradas de iniciativa
 - Los campos de `savingThrow*` están preparados para futura implementación (ver Issue #22)
+- **Campos explicativos (v0.5.6)**:
+  - `attributeUsed`: Establecido por `CombatActionResolver` según tipo de arma (ranged → DES, melee → FUE, finesse → mayor)
+  - `attackRange`: Establecido por `CombatActionResolver` según tipo de arma
+  - `modifiers`: Array de modificadores desglosados con etiquetas, usado por `updateRollNotationWithModifiers` para mostrar notación con atributos (ej: "1d20+DES+BC")
 
 ## Server Actions
 
@@ -665,7 +678,8 @@ Si la validación falla:
 ### v0.5.x - Sistema de Combate Mejorado
 
 **Añadido:**
-- **Campos de combate en `DiceRoll`**: `targetName`, `targetAC`, `attackHit`, `damageDealt`, `targetKilled`, `healingAmount`
+- **Campos de combate en `DiceRoll`**: `targetName`, `targetAC`, `attackHit`, `damageDealt`, `targetKilled`, `targetKnockedOut`, `healingAmount`
+- **Campos explicativos en `DiceRoll` (v0.5.6)**: `attributeUsed`, `attackRange`, `modifiers` - Establecidos por `CombatActionResolver` para arquitectura "Frontend Obediente"
 - **Interface `EnemyInCombat`**: Estructura formal para enemigos en combate con HP y estadísticas
 - **Campo `attackType` en tacticians**: Metadata explícita para distinguir tipos de ataques/hechizos
   - `'attack_roll'`: Para ataques normales con 1d20

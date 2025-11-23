@@ -11,7 +11,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { log } from '@/lib/logger';
-import { retryWithExponentialBackoff } from '@/ai/flows/retry-utils';
+import { executePromptWithRetry } from '@/ai/flows/retry-utils';
 
 const ParseAdventureFromJsonInputSchema = z.object({
   adventureJson: z
@@ -82,11 +82,10 @@ const parseAdventureFromJsonFlow = ai.defineFlow(
       hasAdventureData: !!adventureData,
     });
 
-    const result = await retryWithExponentialBackoff(
-      () => prompt(input),
-      3, // maxRetries (4 total attempts)
-      1000, // initialDelayMs
-      'parseAdventureFromJsonFlow'
+    const result = await executePromptWithRetry(
+      prompt,
+      input,
+      { flowName: 'parseAdventureFromJsonFlow' }
     );
 
     const output = result.output;

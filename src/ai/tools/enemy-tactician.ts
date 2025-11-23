@@ -6,7 +6,7 @@ import { ai } from '@/ai/genkit';
 import { dndApiLookupTool } from './dnd-api-lookup';
 import { adventureLookupTool } from './adventure-lookup';
 import { log } from '@/lib/logger';
-import { retryWithExponentialBackoff } from '../flows/retry-utils';
+import { executePromptWithRetry } from '../flows/retry-utils';
 import {
   EnemyTacticianInputSchema,
   EnemyTacticianOutputSchema,
@@ -84,11 +84,10 @@ export const enemyTacticianTool = ai.defineTool(
       let output;
       let response: any = null;
       try {
-        response = await retryWithExponentialBackoff(
-          () => enemyTacticianPrompt(input),
-          3,
-          1000,
-          'enemyTactician'
+        response = await executePromptWithRetry(
+          enemyTacticianPrompt,
+          input,
+          { flowName: 'enemyTactician' }
         );
         output = response.output;
       } catch (promptError: any) {

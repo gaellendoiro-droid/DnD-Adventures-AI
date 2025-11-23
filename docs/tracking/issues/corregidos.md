@@ -6,12 +6,127 @@
 
 Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 47 issues  
-**Última actualización:** 2025-01-22 (Issue #76 movido a corregidos - Input deshabilitado cuando DM está pensando)
+**Total:** 54 issues  
+**Última actualización:** 2025-01-23 (Issue #125 resuelto y movido a corregidos)
 
 ---
 
 ## 🔴 Prioridad Muy Alta (PMA) - Críticos
+
+### Issue #29: Stats de enemigos incorrectos en combate ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-14
+- **Fecha de corrección:** 2025-01-23
+- **Ubicación:** `src/lib/combat/monster-stats-parser.ts`, función `getMonsterStatsFromDndApi`
+- **Severidad:** 🟡 **MEDIA** (afecta balance del juego)
+- **Descripción:** Los stats de los enemigos (especialmente HP) no se estaban obteniendo correctamente desde las fichas oficiales de D&D. Los enemigos tenían menos HP del que deberían tener según su ficha oficial.
+- **Causa Raíz identificada:**
+  - La función `getMonsterStatsFromDndApi` hacía un único intento de fetch a la API de D&D
+  - Los fallos en la primera llamada eran comunes (posiblemente por latencia de red o cold start de la API)
+  - Al fallar, el sistema usaba stats por defecto (HP=10, AC=10) en lugar de reintentar
+  - Esto causaba que los enemigos tuvieran stats incorrectos cuando la API fallaba temporalmente
+- **Problema resuelto:**
+  - ✅ El sistema ahora reintenta automáticamente cuando falla la primera llamada a la API
+  - ✅ Los stats se obtienen correctamente de la API de D&D en la mayoría de los casos
+  - ✅ Solo se usan stats por defecto si todos los reintentos fallan (4 intentos totales)
+  - ✅ El sistema de caché evita llamadas redundantes
+- **Solución implementada:** ✅
+  - Resuelto junto con el Issue #124 mediante la implementación de sistema de retries
+  - La función `getMonsterStatsFromDndApi` ahora usa `retryWithExponentialBackoff` para reintentos automáticos
+  - Maneja errores de red, timeouts y errores temporales de la API (5xx) con retries
+  - No retrya errores 404 (monster no encontrado) - cachea stats por defecto inmediatamente
+- **Archivos modificados:**
+  - `src/lib/combat/monster-stats-parser.ts` - Añadido sistema de retries (mismo cambio que Issue #124)
+- **Impacto:** Medio - Mejora significativamente la precisión de los stats de enemigos en combate, mejorando el balance del juego
+- **Relacionado con:**
+  - Issue #124 (Sistema de retries faltante) - Mismo problema raíz, resuelto junto con este issue
+  - Issue #125 (Primera llamada a APIs siempre falla) - ✅ RESUELTO - Unificación arquitectónica completa
+- **Referencia:** Resuelto junto con [Issue #124](./corregidos.md#issue-124-sistema-de-retries-faltante-en-consulta-de-stats-de-enemigos-en-api-de-dd-resuelto)
+
+---
+
+### Issue #125: Primera llamada a APIs siempre falla (Gemini y D&D) ✅ RESUELTO
+
+- **Fecha de creación:** 2025-01-23
+- **Fecha de corrección:** 2025-01-23
+- **Ubicación:** Múltiples módulos que hacen llamadas a APIs (`src/ai/flows/retry-utils.ts`, `src/ai/tools/dnd-api-lookup.ts`, `src/lib/combat/monster-stats-parser.ts`, llamadas a Gemini API)
+- **Severidad:** 🟡 **ALTA** (afecta la experiencia del usuario y causa delays innecesarios)
+- **Descripción:** La primera llamada a las APIs (tanto Gemini como D&D) frecuentemente fallaba, causando delays innecesarios. Además, existía un problema arquitectónico crítico con duplicación de código entre módulos que llamaban a la API de D&D.
+- **Problema resuelto:**
+  - ✅ Creado cliente unificado de D&D API (`src/lib/dnd-api-client.ts`) que centraliza toda la lógica de comunicación
+  - ✅ Caché global compartido entre `monster-stats-parser` y `dnd-api-lookup` (evita llamadas duplicadas)
+  - ✅ Normalización de nombres (Español → Inglés) centralizada
+  - ✅ Retries añadidos a `dnd-api-lookup` que antes no los tenía
+  - ✅ Helper `executePromptWithRetry()` creado para centralizar retries de Gemini API
+  - ✅ 8 módulos refactorizados para usar el helper centralizado
+  - ✅ Eliminadas ~200-300 líneas de código duplicado
+- **Solución implementada:** ✅
+  - **Fase 1:** Cliente unificado de D&D API creado con caché global, retries y normalización centralizada
+  - **Fase 2:** `monster-stats-parser.ts` refactorizado para usar cliente unificado (mantiene solo parseo)
+  - **Fase 3:** `dnd-api-lookup.ts` refactorizado para usar cliente unificado y añadidos retries (mantiene solo formateo)
+  - **Fase 4:** Helper `executePromptWithRetry()` creado y 8 módulos refactorizados
+  - **Fase 5:** Verificación completa - todas las llamadas a APIs tienen retries encapsulados
+- **Archivos modificados:**
+  - **Nuevo:**
+    - `src/lib/dnd-api-client.ts` - Cliente unificado de D&D API
+  - **Refactorizados:**
+    - `src/lib/combat/monster-stats-parser.ts` - Usa cliente unificado
+    - `src/ai/tools/dnd-api-lookup.ts` - Usa cliente unificado, retries añadidos
+    - `src/ai/flows/retry-utils.ts` - Helper `executePromptWithRetry()` añadido
+    - `src/ai/tools/enemy-tactician.ts` - Usa helper centralizado
+    - `src/ai/tools/companion-tactician.ts` - Usa helper centralizado
+    - `src/ai/flows/action-interpreter.ts` - Usa helper centralizado
+    - `src/ai/flows/experts/exploration-expert.ts` - Usa helper centralizado
+    - `src/ai/flows/experts/interaction-expert.ts` - Usa helper centralizado
+    - `src/ai/flows/narrative-manager.ts` - Usa helper centralizado
+    - `src/ai/flows/parse-adventure-from-json.ts` - Usa helper centralizado
+- **Impacto:** Alto - Mejora significativamente la experiencia del usuario, reduce delays, elimina duplicación de código, y mejora la mantenibilidad del sistema
+- **Beneficios logrados:**
+  - ✅ Caché global compartido: Si la IA busca "Goblin" y luego el combate inicializa "Goblin", usan la misma entrada de caché
+  - ✅ Retries unificados: Todas las llamadas a APIs tienen retries consistentes
+  - ✅ Código más limpio: ~200-300 líneas de código duplicado eliminadas
+  - ✅ Mantenibilidad: Un solo lugar para actualizar lógica de APIs
+  - ✅ Robustez: Retries añadidos a `dnd-api-lookup` que antes no los tenía
+- **Relacionado con:**
+  - Issue #124 (Sistema de retries faltante) - ✅ RESUELTO - Ahora unificado en el cliente centralizado
+  - Issue #29 (Stats de enemigos incorrectos) - ✅ RESUELTO - Ahora unificado en el cliente centralizado
+  - Issue #93 (Manejo de errores cuando se agotan los reintentos) - Problema relacionado de manejo de errores
+- **Plan de implementación:** [Issue #125 - Unificación Arquitectónica de APIs](../../planes-desarrollo/completados/issue-125-unificacion-apis.md)
+- **Referencia:** [Notas de Gael - #2](../notas/Notas%20de%20Gael.md)
+
+---
+
+### Issue #124: Sistema de retries faltante en consulta de stats de enemigos en API de D&D ✅ RESUELTO
+
+- **Fecha de creación:** 2025-01-23
+- **Fecha de corrección:** 2025-01-23
+- **Ubicación:** `src/lib/combat/monster-stats-parser.ts`, función `getMonsterStatsFromDndApi`
+- **Severidad:** 🔴 **MUY ALTA** (afecta la fiabilidad del sistema de combate y causa fallos frecuentes)
+- **Descripción:** Cuando el sistema intenta consultar stats de un enemigo en la API de D&D, casi siempre falla en el primer intento y no lo vuelve a intentar. El sistema de retries que ya existe en `retry-utils.ts` no está siendo utilizado en esta función.
+- **Problema resuelto:**
+  - ✅ La función `getMonsterStatsFromDndApi` ahora usa `retryWithExponentialBackoff` para reintentos automáticos
+  - ✅ Maneja errores de red, timeouts y errores temporales de la API (5xx) con retries
+  - ✅ No retrya errores 404 (monster no encontrado) - cachea stats por defecto inmediatamente
+  - ✅ Solo usa stats por defecto si todos los reintentos fallan (4 intentos totales con backoff exponencial)
+  - ✅ Mantiene el sistema de caché existente para evitar llamadas redundantes
+- **Solución implementada:** ✅
+  - Importado `retryWithExponentialBackoff` de `@/ai/flows/retry-utils`
+  - Envuelto el fetch de la API de D&D en `retryWithExponentialBackoff` con 3 reintentos (4 intentos totales)
+  - Configurado backoff exponencial (1s, 2s, 4s)
+  - Implementada lógica para distinguir errores retryables (5xx, timeouts, errores de red) de no retryables (404)
+  - Mejorado el logging para incluir información sobre reintentos
+  - El sistema de caché solo cachea fallos después de agotar todos los reintentos (excepto 404 que se cachea inmediatamente)
+- **Archivos modificados:**
+  - `src/lib/combat/monster-stats-parser.ts` - Añadido import de `retryWithExponentialBackoff` y envuelto el fetch en retry logic
+- **Impacto:** Muy Alto - Mejora significativamente la fiabilidad del sistema de combate, reduce el uso de stats por defecto incorrectos, y mejora la calidad de la experiencia de juego
+- **Relacionado con:**
+  - Issue #93 (Manejo de errores cuando se agotan los reintentos) - Similar problema de manejo de errores de API
+  - Issue #29 (Stats de enemigos incorrectos en combate) - Puede estar relacionado con este problema
+  - Issue #125 (Primera llamada a APIs siempre falla) - Problema relacionado de cold start
+  - `retry-utils.ts` - Sistema de retries existente que ahora es utilizado
+- **Referencia:** [Notas de Gael - #3](../notas/Notas%20de%20Gael.md)
+
+---
 
 ### Issue #117: Simplificación de Arquitectura de Combate ✅ RESUELTO
 
@@ -55,6 +170,106 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
   - Issue #94 (Refactorización de Prompts de Tacticians) - Resuelto problemas de consistencia
   - Issue #82 (Unificar sistema de procesamiento de tiradas) - Resuelto completamente
   - Issue #21 (Código duplicado) - Eliminada duplicación
+
+---
+
+### Issue #120: Inconsistencia en Cálculos de Tiradas y Visualización (Merryl) ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-23
+- **Fecha de corrección:** 2025-11-23
+- **Ubicación:** `src/lib/combat/roll-notation-utils.ts`, `src/lib/combat/action-resolver.ts`, `src/ai/tools/dice-roller.ts`
+- **Severidad:** 🔴 **CRÍTICA** (Cálculos de daño incorrectos y feedback visual engañoso)
+- **Descripción:** Se habían detectado dos bugs críticos que interactuaban entre sí causando que las tiradas de daño fueran incorrectas y que la UI mostrara información falsa.
+    1. **Visualización engañosa:** `updateRollNotationWithModifiers` seleccionaba automáticamente el modificador más alto (ej: DES +3) para "embellecer" el desglose visual, incluso si el ataque se calculó usando otro atributo (ej: FUE -1).
+    2. **Cálculo de daño erróneo:** `CombatActionResolver` generaba notaciones inválidas para modificadores negativos (ej: `1d8+-1`). La regex del `diceRollerTool` no soportaba el formato `+-`, por lo que ignoraba el modificador y lo trataba como 0.
+- **Problema resuelto:**
+  - ✅ Selección inteligente de habilidad implementada basándose en reglas D&D 5e (FUE/DES según tipo de arma)
+  - ✅ `CombatActionResolver` ahora inyecta `attributeUsed` en el objeto de tirada
+  - ✅ Frontend usa `attributeUsed` en lugar de "adivinar" el modificador
+  - ✅ Formateo correcto de números negativos (`1d8-1` en lugar de `1d8+-1`)
+  - ✅ Parser robustecido para soportar variaciones en notación
+- **Solución implementada:** ✅
+  - Arquitectura "Cerebro Centralizado, Frontend Obediente" implementada
+  - Helper `getWeaponAbility` creado para determinar atributo (FUE/DES)
+  - Helper `formatDiceNotation` implementado para formatear correctamente signos
+  - Inyección de contexto: `attributeUsed` añadido a objetos de tirada
+  - Frontend determinista: `updateRollNotationWithModifiers` usa `attributeUsed` proporcionado
+- **Impacto:** Crítico - Resuelto completamente. Afectaba la integridad matemática del juego y la confianza del usuario.
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada (2025-11-23)
+- **Prioridad:** Muy Alta
+- **Relacionado con:**
+  - Issue #121 (Regresión en Parsing de Armas) - Regresión introducida durante su implementación
+  - Issue #122 (Nombres de Enemigos sin Número Distintivo) - Regresión introducida durante su implementación
+
+---
+
+### Issue #121: Regresión en Parsing de Armas en Ataques de Jugador ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-23
+- **Fecha de corrección:** 2025-01-23
+- **Ubicación:** `src/lib/combat/turn-processor.ts`, `src/lib/combat/action-resolver.ts`, `src/lib/combat/roll-notation-utils.ts`
+- **Severidad:** 🔴 **CRÍTICA** (Bloquea completamente los ataques de jugadores)
+- **Descripción:** Tras implementar el Issue #120, se introdujo una regresión crítica que bloquea completamente los ataques de jugadores. El sistema pasaba **toda la acción del jugador** (ej: "Ataco al goblin 1") como `weaponQuery` a `CombatActionResolver.resolveAttack()`, en lugar de extraer solo el nombre del arma.
+- **Problema resuelto:**
+  - ✅ Función `extractWeaponName()` implementada para parsear nombres de armas desde acciones de jugador
+  - ✅ Parsing robusto con soporte para caracteres acentuados en español
+  - ✅ Fallback seguro a `'ataque'` cuando no se menciona arma específica
+  - ✅ Armas a distancia (arcos, ballestas) ahora usan DES correctamente
+  - ✅ Frontend "obediente" que no adivina atributos, recibe `attributeUsed` del backend
+  - ✅ Visualización mejorada: tipo de ataque (melee/ranged) visible en panel de tiradas
+  - ✅ Notación unificada: todos los combatantes muestran atributos de forma consistente, incluso con modificador 0
+  - ✅ Desglose completo: muestra el modificador 0 cuando corresponde (ej: "1+0")
+- **Solución implementada:** ✅
+  - Función helper `extractWeaponName()` creada con patrones regex para extraer nombres de armas
+  - Integrada en `TurnProcessor` para determinar `weaponQuery` antes de llamar a `CombatActionResolver`
+  - Añadido `attributeUsed` a `DiceRollRequest` y establecido correctamente según tipo de arma
+  - Añadido `attackRange` a `DiceRoll` y `DiceRollRequest` para indicar tipo de ataque
+  - Eliminada lógica legacy de adivinación en frontend, ahora lanza error si falta `attributeUsed`
+  - Modificada `updateRollNotationWithModifiers` para siempre mostrar atributo usado, incluso con modificador 0
+- **Archivos modificados:**
+  - ✅ `src/lib/combat/turn-processor.ts` - Función `extractWeaponName()` e integración
+  - ✅ `src/lib/combat/action-resolver.ts` - Añadido `attributeUsed` y `attackRange` a `DiceRollRequest`
+  - ✅ `src/lib/combat/roll-notation-utils.ts` - Eliminada lógica legacy, siempre mostrar atributo
+  - ✅ `src/lib/types.ts` - Añadido `attackRange` a `DiceRoll`
+  - ✅ `src/lib/combat/action-executor.ts` - Preservar `attackRange` al crear `DiceRoll`
+  - ✅ `src/components/game/dice-roll-result.tsx` - Mostrar indicador visual de tipo de ataque
+- **Tests implementados:**
+  - ✅ `tests/unit/combat/extract-weapon-name.test.ts` (24 tests unitarios)
+  - ✅ `tests/unit/combat/turn-processor.test.ts` (5 tests de integración adicionales)
+- **Impacto:** Crítico - Resuelto completamente. Restaura funcionalidad de combate para jugadores y mejora la arquitectura del sistema.
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada (2025-01-23)
+- **Prioridad:** Muy Alta
+- **Plan de implementación:** [Issue #121 - Fix Weapon Parsing Regression](../../planes-desarrollo/completados/issue-121-fix-weapon-parsing.md)
+- **Relacionado con:**
+  - Issue #120 (Inconsistencia en Cálculos de Tiradas) - Regresión introducida durante su implementación (✅ RESUELTO)
+  - Issue #115 (Validación de inventario) - Problema relacionado de validación de armas en inventario
+
+---
+
+### Issue #123: DM traduce nombres de enemigos en narraciones de combate (trasgo vs Goblin) ✅ RESUELTO
+
+- **Fecha de creación:** 2025-01-23
+- **Fecha de corrección:** 2025-01-23
+- **Ubicación:** `src/ai/tools/combat/combat-narration-expert.ts`
+- **Severidad:** 🔴 **CRÍTICA** (Afecta coherencia narrativa y confusión del jugador)
+- **Descripción:** El DM estaba traduciendo los nombres de enemigos en las narraciones de combate. Por ejemplo, cuando se refiere a "Goblin 2", el DM lo narraba como "trasgo 2" (traducción al español), en lugar de usar el nombre exacto "Goblin 2" que se utiliza en el sistema.
+- **Problema resuelto:**
+  - ✅ Instrucción explícita añadida en el prompt para usar nombres exactos
+  - ✅ Ejemplos actualizados para usar nombres específicos con números (ej: "Goblin 2" en lugar de "goblin")
+  - ✅ Consistencia entre UI y narración restaurada
+- **Solución implementada:** ✅
+  - Añadida instrucción CRITICAL en el prompt: "You MUST use EXACTLY the name "{{{attackerName}}}" when referring to the attacker and "{{{targetName}}}" when referring to the target in your narration. DO NOT translate or change these names (e.g., if it's "Goblin 2", write "Goblin 2", NOT "trasgo 2" or "goblin 2")."
+  - Actualizados los ejemplos del prompt para usar nombres específicos: "Goblin 2", "Goblin 1", "Orco 1" en lugar de genéricos "goblin", "orco"
+  - Añadida instrucción adicional en Requirements: "MUST use exact names"
+- **Archivos modificados:**
+  - ✅ `src/ai/tools/combat/combat-narration-expert.ts` (prompt de `combatNarrationPrompt`, líneas 38-73)
+- **Impacto:** Crítico - Resuelto completamente. La coherencia narrativa ahora es consistente entre UI y narraciones del DM.
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada (2025-01-23)
+- **Prioridad:** Muy Alta
+- **Relacionado con:**
+  - Issue #34 (AI de enemigos traduce/inventa nombres) - Problema similar ya corregido en `enemyTacticianTool` (✅ RESUELTO)
+  - Issue #118 (Narración de inicio de combate menciona enemigos incorrectos) - Problema relacionado de nombres incorrectos (✅ RESUELTO)
+- **Detección:** Observado durante gameplay manual - DM narró "trasgo 2" cuando el sistema usa "Goblin 2"
 
 ---
 
@@ -411,6 +626,28 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 ---
 
 ## 🟡 Prioridad Alta (PA) - Advertencias
+
+### Issue #122: Nombres de Enemigos sin Número Distintivo en Panel de Tiradas ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-23
+- **Fecha de corrección:** 2025-11-23
+- **Ubicación:** `src/lib/combat/action-resolver.ts`, `src/lib/combat/action-executor.ts`
+- **Severidad:** 🟡 **MEDIA** (Afectaba claridad visual pero no bloqueaba funcionalidad)
+- **Descripción:** Tras implementar el Issue #120, los nombres de los enemigos en el panel de tiradas ya no mostraban el número distintivo (ej: "Goblin 1", "Goblin 2"). En su lugar, solo mostraban el nombre base (ej: "Goblin").
+- **Problema resuelto:**
+  - ✅ Nombres de enemigos en panel de tiradas ahora incluyen número distintivo
+  - ✅ `CombatActionResolver` usa `getVisualName()` para obtener nombres con números distintivos
+  - ✅ `roller` name en `DiceRollRequest` usa el nombre visual correcto
+- **Solución implementada:** ✅
+  - Restaurada lógica que añade número distintivo al nombre del enemigo
+  - Verificado que tanto `roller` como `targetName` usen nombres visuales
+- **Impacto:** Medio - Claridad visual restaurada en combates con múltiples enemigos del mismo tipo
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada (2025-11-23)
+- **Prioridad:** 🟡 Alta
+- **Relacionado con:**
+  - Issue #120 (Inconsistencia en Cálculos de Tiradas) - Regresión introducida durante su implementación
+
+---
 
 ### Issue #94: Refactorización de Prompts de Tacticians - Separación de Narración y Decisión Táctica ✅ RESUELTO
 

@@ -215,6 +215,288 @@ describe('TurnProcessor', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe('INVALID_ACTION');
     });
+
+    describe('Weapon Parsing Integration (Issue #121)', () => {
+      const baseCombatant: Combatant = {
+        id: 'player-1',
+        characterName: 'Test Player',
+        total: 15,
+        type: 'player',
+        controlledBy: 'Player',
+      };
+
+      const baseParty: Character[] = [
+        {
+          id: 'player-1',
+          name: 'Test Player',
+          hp: { current: 20, max: 20 },
+          ac: 16,
+          abilityScores: { fuerza: 16, destreza: 14, constitución: 14, inteligencia: 10, sabiduría: 10, carisma: 12 },
+          abilityModifiers: { fuerza: 3, destreza: 2, constitución: 2, inteligencia: 0, sabiduría: 0, carisma: 1 },
+          skills: [],
+          inventory: [
+            { name: 'Espada', description: '1d8 daño' },
+            { name: 'Arco', description: '1d6 daño' },
+            { name: 'Daga', description: '1d4 daño' },
+          ],
+          spells: [],
+          proficiencyBonus: 2,
+          controlledBy: 'Player',
+        } as Character,
+      ];
+
+      const baseEnemies = [
+        {
+          uniqueId: 'goblin-1',
+          id: 'goblin-1',
+          name: 'Goblin 1',
+          hp: { current: 10, max: 10 },
+          ac: 15,
+        },
+      ];
+
+      const baseInitiativeOrder: Combatant[] = [baseCombatant];
+
+      beforeEach(() => {
+        vi.clearAllMocks();
+      });
+
+      it('should use default weapon (ataque) when no weapon is specified', async () => {
+        // Mock dice roller
+        mockDiceRoller
+          .mockResolvedValueOnce({
+            id: 'roll-1',
+            roller: 'Test Player',
+            rollNotation: '1d20+5',
+            individualRolls: [13],
+            modifier: 5,
+            totalResult: 18,
+            outcome: 'success',
+            timestamp: new Date(),
+            description: 'Tirada de ataque',
+          })
+          .mockResolvedValueOnce({
+            id: 'roll-2',
+            roller: 'Test Player',
+            rollNotation: '1d8+3',
+            individualRolls: [5],
+            modifier: 3,
+            totalResult: 8,
+            outcome: 'neutral',
+            timestamp: new Date(),
+            description: 'Tirada de daño',
+          });
+
+        mockNarrationExpert.mockResolvedValue({
+          narration: 'Test Player golpea a Goblin 1.',
+        });
+
+        const input: TurnProcessorInput = {
+          combatant: baseCombatant,
+          interpretedAction: {
+            actionType: 'attack',
+            targetId: 'goblin-1',
+          },
+          playerAction: 'Ataco al goblin 1', // No weapon specified
+          party: baseParty,
+          enemies: baseEnemies,
+          initiativeOrder: baseInitiativeOrder,
+          dependencies: {
+            narrationExpert: mockNarrationExpert,
+            diceRollerTool: mockDiceRoller,
+            updateRollNotationWithModifiers: mockUpdateRollNotation,
+          },
+        };
+
+        const result = await TurnProcessor.processTurn(input);
+
+        expect(result.success).toBe(true);
+        expect(result.diceRolls).toHaveLength(2);
+        // Should use default weapon (Espada from inventory)
+      });
+
+      it('should extract and use weapon name from "con mi [weapon]" pattern', async () => {
+        mockDiceRoller
+          .mockResolvedValueOnce({
+            id: 'roll-1',
+            roller: 'Test Player',
+            rollNotation: '1d20+5',
+            individualRolls: [13],
+            modifier: 5,
+            totalResult: 18,
+            outcome: 'success',
+            timestamp: new Date(),
+            description: 'Tirada de ataque',
+          })
+          .mockResolvedValueOnce({
+            id: 'roll-2',
+            roller: 'Test Player',
+            rollNotation: '1d8+3',
+            individualRolls: [5],
+            modifier: 3,
+            totalResult: 8,
+            outcome: 'neutral',
+            timestamp: new Date(),
+            description: 'Tirada de daño',
+          });
+
+        mockNarrationExpert.mockResolvedValue({
+          narration: 'Test Player golpea a Goblin 1 con su espada.',
+        });
+
+        const input: TurnProcessorInput = {
+          combatant: baseCombatant,
+          interpretedAction: {
+            actionType: 'attack',
+            targetId: 'goblin-1',
+          },
+          playerAction: 'Ataco con mi espada al goblin',
+          party: baseParty,
+          enemies: baseEnemies,
+          initiativeOrder: baseInitiativeOrder,
+          dependencies: {
+            narrationExpert: mockNarrationExpert,
+            diceRollerTool: mockDiceRoller,
+            updateRollNotationWithModifiers: mockUpdateRollNotation,
+          },
+        };
+
+        const result = await TurnProcessor.processTurn(input);
+
+        expect(result.success).toBe(true);
+        expect(result.diceRolls).toHaveLength(2);
+      });
+
+      it('should extract and use weapon name from "usando mi [weapon]" pattern', async () => {
+        mockDiceRoller
+          .mockResolvedValueOnce({
+            id: 'roll-1',
+            roller: 'Test Player',
+            rollNotation: '1d20+4',
+            individualRolls: [12],
+            modifier: 4,
+            totalResult: 16,
+            outcome: 'success',
+            timestamp: new Date(),
+            description: 'Tirada de ataque',
+          })
+          .mockResolvedValueOnce({
+            id: 'roll-2',
+            roller: 'Test Player',
+            rollNotation: '1d6+2',
+            individualRolls: [4],
+            modifier: 2,
+            totalResult: 6,
+            outcome: 'neutral',
+            timestamp: new Date(),
+            description: 'Tirada de daño',
+          });
+
+        mockNarrationExpert.mockResolvedValue({
+          narration: 'Test Player dispara a Goblin 1 con su arco.',
+        });
+
+        const input: TurnProcessorInput = {
+          combatant: baseCombatant,
+          interpretedAction: {
+            actionType: 'attack',
+            targetId: 'goblin-1',
+          },
+          playerAction: 'Usando mi arco disparo al goblin',
+          party: baseParty,
+          enemies: baseEnemies,
+          initiativeOrder: baseInitiativeOrder,
+          dependencies: {
+            narrationExpert: mockNarrationExpert,
+            diceRollerTool: mockDiceRoller,
+            updateRollNotationWithModifiers: mockUpdateRollNotation,
+          },
+        };
+
+        const result = await TurnProcessor.processTurn(input);
+
+        expect(result.success).toBe(true);
+        expect(result.diceRolls).toHaveLength(2);
+      });
+
+      it('should extract and use weapon name from "mi [weapon]" pattern', async () => {
+        mockDiceRoller
+          .mockResolvedValueOnce({
+            id: 'roll-1',
+            roller: 'Test Player',
+            rollNotation: '1d20+4',
+            individualRolls: [11],
+            modifier: 4,
+            totalResult: 15,
+            outcome: 'success',
+            timestamp: new Date(),
+            description: 'Tirada de ataque',
+          })
+          .mockResolvedValueOnce({
+            id: 'roll-2',
+            roller: 'Test Player',
+            rollNotation: '1d4+2',
+            individualRolls: [3],
+            modifier: 2,
+            totalResult: 5,
+            outcome: 'neutral',
+            timestamp: new Date(),
+            description: 'Tirada de daño',
+          });
+
+        mockNarrationExpert.mockResolvedValue({
+          narration: 'Test Player apuñala a Goblin 1 con su daga.',
+        });
+
+        const input: TurnProcessorInput = {
+          combatant: baseCombatant,
+          interpretedAction: {
+            actionType: 'attack',
+            targetId: 'goblin-1',
+          },
+          playerAction: 'Mi daga contra el goblin',
+          party: baseParty,
+          enemies: baseEnemies,
+          initiativeOrder: baseInitiativeOrder,
+          dependencies: {
+            narrationExpert: mockNarrationExpert,
+            diceRollerTool: mockDiceRoller,
+            updateRollNotationWithModifiers: mockUpdateRollNotation,
+          },
+        };
+
+        const result = await TurnProcessor.processTurn(input);
+
+        expect(result.success).toBe(true);
+        expect(result.diceRolls).toHaveLength(2);
+      });
+
+      it('should return error when weapon is not in inventory', async () => {
+        const input: TurnProcessorInput = {
+          combatant: baseCombatant,
+          interpretedAction: {
+            actionType: 'attack',
+            targetId: 'goblin-1',
+          },
+          playerAction: 'Ataco con mi lanza', // Lanza not in inventory
+          party: baseParty,
+          enemies: baseEnemies,
+          initiativeOrder: baseInitiativeOrder,
+          dependencies: {
+            narrationExpert: mockNarrationExpert,
+            diceRollerTool: mockDiceRoller,
+            updateRollNotationWithModifiers: mockUpdateRollNotation,
+          },
+        };
+
+        const result = await TurnProcessor.processTurn(input);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('RESOLUTION_FAILED');
+        expect(result.messages[0].content).toContain('No tienes el arma');
+        expect(result.messages[0].content).toContain('lanza');
+      });
+    });
   });
 
   describe('processTurn - AI Turn', () => {

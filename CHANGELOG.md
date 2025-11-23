@@ -13,7 +13,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ---
 
-## [Unreleased]
+## [0.5.6] - 2025-01-23
 
 ### Changed
 - **✅ Sistema de Tiradas Robusto y Unificado (2025-01-22):**
@@ -88,6 +88,48 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
   - **Impacto:** Medio - Mejora claridad visual en combates
   - **Referencia:** [Issue #122](../../docs/tracking/issues/pendientes.md#issue-122-nombres-de-enemigos-sin-número-distintivo-en-panel-de-tiradas-)
 
+- **✅ Issue #121 - Regresión en Parsing de Armas en Ataques de Jugador (2025-01-23):**
+  - **Problema:** Tras implementar el Issue #120, se introdujo una regresión crítica que bloqueaba completamente los ataques de jugadores. El sistema pasaba toda la acción del jugador (ej: "Ataco al goblin 1") como `weaponQuery` a `CombatActionResolver.resolveAttack()`, en lugar de extraer solo el nombre del arma.
+  - **Causa:** Durante la refactorización del Issue #120, se perdió la lógica que extraía el nombre del arma de la acción del jugador.
+  - **Solución implementada:**
+    - Función `extractWeaponName()` creada para parsear nombres de armas desde acciones de jugador usando patrones regex
+    - Soporte para caracteres acentuados en español (á, é, í, ó, ú, ñ, ü)
+    - Integrada en `TurnProcessor` para determinar `weaponQuery` antes de llamar a `CombatActionResolver`
+    - Fallback seguro a `'ataque'` cuando no se menciona arma específica
+  - **Mejoras adicionales implementadas:**
+    1. **Fix Atributo Usado para Armas a Distancia:**
+       - Añadido `attributeUsed` a `DiceRollRequest` y establecido correctamente según tipo de arma
+       - Armas a distancia (arcos, ballestas) ahora usan DES correctamente
+       - Armas melee usan FUE (o el mayor entre FUE/DES para finesse)
+       - Frontend "obediente" que lanza error si no recibe `attributeUsed` (mantiene arquitectura del Issue #120)
+    2. **Mostrar Tipo de Ataque (Melee/Ranged) en Panel de Tiradas:**
+       - Añadido `attackRange` a `DiceRoll` y `DiceRollRequest`
+       - Indicador visual en panel de tiradas: "🏹 A distancia" o "⚔️ Cuerpo a cuerpo"
+       - Mejora la claridad visual y comprensión rápida del tipo de ataque
+    3. **Unificar Notación de Tiradas de Daño:**
+       - Las tiradas de daño ahora siempre muestran el atributo usado (ej: "1d6+DES", "1d6+FUE")
+       - Comportamiento unificado para jugadores, compañeros y enemigos
+       - El desglose muestra correctamente el modificador 0 (ej: "1+0" en lugar de solo "1")
+  - **Beneficios:**
+    - ✅ Funcionalidad de combate para jugadores restaurada completamente
+    - ✅ Parsing robusto de nombres de armas con soporte para español
+    - ✅ Atributos correctos según reglas D&D 5e (DES para ranged, FUE para melee)
+    - ✅ Arquitectura mejorada: Frontend "obediente" que no adivina atributos
+    - ✅ Visualización mejorada: Tipo de ataque visible en panel de tiradas
+    - ✅ Notación unificada: Todos los combatantes muestran atributos de forma consistente
+  - **Archivos modificados:**
+    - `src/lib/combat/turn-processor.ts` - Función `extractWeaponName()` e integración
+    - `src/lib/combat/action-resolver.ts` - Añadido `attributeUsed` y `attackRange` a `DiceRollRequest`
+    - `src/lib/combat/roll-notation-utils.ts` - Eliminada lógica legacy, siempre mostrar atributo usado
+    - `src/lib/types.ts` - Añadido `attackRange` a `DiceRoll`
+    - `src/lib/combat/action-executor.ts` - Preservar `attackRange` al crear `DiceRoll`
+    - `src/components/game/dice-roll-result.tsx` - Mostrar indicador visual de tipo de ataque
+  - **Tests implementados:**
+    - `tests/unit/combat/extract-weapon-name.test.ts` (24 tests unitarios)
+    - `tests/unit/combat/turn-processor.test.ts` (5 tests de integración adicionales)
+  - **Impacto:** Crítico - Restaura funcionalidad de combate para jugadores y mejora significativamente la arquitectura del sistema
+  - **Referencia:** [Issue #121](../../docs/tracking/issues/corregidos.md#issue-121-regresión-en-parsing-de-armas-en-ataques-de-jugador--crítico) | [Plan Completado](../../docs/planes-desarrollo/completados/issue-121-fix-weapon-parsing.md)
+
 ### Fixed
 - **✅ Issue #118 - Narración de inicio de combate mejorada (2025-01-22):**
   - **Problema:** La narración de inicio de combate mencionaba nombres de enemigos incorrectos (ej: "gnomos" cuando debería decir "goblins") y usaba nombres técnicos como "Goblin 1, Goblin 2" en lugar de descripciones naturales
@@ -137,6 +179,90 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - `docs/planes-desarrollo/plan-maestro.md` - Actualizado estado
     - Múltiples archivos corregidos (ver lista arriba)
   - **Referencia:** [Roadmap - Estandarización de Niveles de Logging](../../docs/roadmap.md#0-estandarización-de-niveles-de-logging--completado)
+
+---
+
+## [Unreleased]
+
+### Fixed
+- **✅ Mensaje de Inconsciencia en Panel de Tiradas (2025-01-23):**
+  - **Problema:** Cuando un enemigo dejaba inconsciente a un compañero, no aparecía ningún mensaje en el panel de tiradas, aunque el sistema sí mostraba mensajes de muerte cuando un objetivo era eliminado.
+  - **Causa:** El campo `targetKnockedOut` se establecía en `combatResult` pero no se pasaba al objeto `DiceRoll`, y el componente de visualización no tenía lógica para mostrar mensajes de inconsciencia.
+  - **Solución implementada:**
+    1. Añadido campo `targetKnockedOut?: boolean` a la interfaz `DiceRoll` en `types.ts`
+    2. Establecido `roll.targetKnockedOut = damageResult.isUnconscious && !damageResult.isDead` en `action-executor.ts` cuando se procesa el daño
+    3. Añadido mensaje visual en `dice-roll-result.tsx` que muestra "¡{roller} ha dejado inconsciente a {targetName}!" en color naranja cuando `targetKnockedOut` es `true`
+  - **Lógica de Muerte Masiva:**
+    - En caso de muerte masiva (`isDead = true`), `targetKnockedOut` es `false` (porque `!isDead` es `false`)
+    - Solo se muestra el mensaje de muerte (rojo), no el de inconsciencia (naranja)
+    - En caso de inconsciencia normal (`isDead = false`), `targetKnockedOut` es `true`
+    - Solo se muestra el mensaje de inconsciencia (naranja), no el de muerte
+  - **Beneficios:**
+    - ✅ Feedback visual claro cuando un compañero queda inconsciente
+    - ✅ Distinción visual entre muerte (rojo) e inconsciencia (naranja)
+    - ✅ Comportamiento correcto en caso de muerte masiva (solo muestra muerte)
+  - **Archivos modificados:**
+    - `src/lib/types.ts` - Añadido campo `targetKnockedOut` a `DiceRoll`
+    - `src/lib/combat/action-executor.ts` - Establecido `roll.targetKnockedOut` al procesar daño
+    - `src/components/game/dice-roll-result.tsx` - Añadido mensaje visual de inconsciencia
+  - **Impacto:** Medio - Mejora la claridad visual y el feedback al jugador sobre el estado de los compañeros
+- **✅ Mejora del Matching de Armas y Localización de Nombres en Panel de Tiradas (2025-01-23):**
+  - **Problema:** El sistema no encontraba correctamente las acciones de enemigos cuando el nombre del arma estaba en español (ej: "cimitarra") y la acción de la API estaba en inglés ("Scimitar"). Además, el panel de tiradas mostraba nombres de armas en inglés en lugar de español.
+  - **Causa:** 
+    1. El matching entre `weaponQuery` (español) y `action.name` (inglés) no normalizaba correctamente ambos lados
+    2. Faltaba la traducción "cimitarra" → "scimitar" en el mapeo de traducciones
+    3. La descripción de las tiradas usaba `action.name` (inglés) en lugar del `weaponQuery` original (español)
+  - **Solución implementada:**
+    1. **Matching mejorado:** Implementado matching bidireccional por palabras que normaliza tanto el `weaponQuery` como el `action.name` antes de comparar, permitiendo coincidencias parciales (ej: "cimitarra" → "scimitar" → coincide con "Scimitar Attack")
+    2. **Mapeo de traducciones:** Añadido "cimitarra" → "scimitar" al `SPANISH_TO_ENGLISH_MAP` en `dnd-api-client.ts`
+    3. **Localización de descripciones:** Modificado `resolveEnemyAttack()` para usar el `weaponQuery` original (español) en las descripciones de tiradas en lugar de `action.name` (inglés)
+    4. **Extracción mejorada:** Mejorada la extracción del nombre del arma en `turn-processor.ts` para manejar casos como "Ataque con Cimitarra a X"
+  - **Beneficios:**
+    - ✅ Matching robusto: Encuentra acciones correctamente independientemente del idioma
+    - ✅ Localización consistente: El panel de tiradas muestra nombres de armas en español
+    - ✅ Mejor UX: Los jugadores ven "Cimitarra" en lugar de "Scimitar"
+    - ✅ Corrección de atributos: Los enemigos con armas finesse ahora usan el atributo correcto (DES en lugar de FUE)
+  - **Archivos modificados:**
+    - `src/lib/dnd-api-client.ts` - Añadido "cimitarra" → "scimitar" al mapeo de traducciones
+    - `src/lib/combat/action-resolver.ts` - Mejorado matching bidireccional por palabras, uso de `weaponQuery` original para descripciones
+    - `src/lib/combat/turn-processor.ts` - Mejorada extracción del nombre del arma de `actionDescription`
+  - **Impacto:** Medio - Corrige bugs de matching y mejora la experiencia de usuario con localización consistente
+- **✅ Sistema de Retries para Consulta de Stats de Enemigos (Issues #29 y #124) (2025-01-23):**
+  - **Problema:** La función `getMonsterStatsFromDndApi` hacía un único intento de fetch a la API de D&D. Los fallos en la primera llamada eran comunes (posiblemente por latencia de red o cold start de la API), causando que el sistema usara stats por defecto (HP=10, AC=10) cuando podría obtener los reales con un reintento.
+  - **Impacto:** Muy Alto - Afectaba la fiabilidad del sistema de combate, causaba que enemigos tuvieran stats incorrectos (Issue #29), y reducía la calidad de la experiencia de juego.
+  - **Solución implementada:**
+    - Envuelto el fetch de la API de D&D en `retryWithExponentialBackoff` con 3 reintentos (4 intentos totales)
+    - Configurado backoff exponencial (1s, 2s, 4s)
+    - Implementada lógica para distinguir errores retryables (5xx, timeouts, errores de red) de no retryables (404)
+    - El sistema de caché solo cachea fallos después de agotar todos los reintentos (excepto 404 que se cachea inmediatamente)
+  - **Archivos modificados:**
+    - `src/lib/combat/monster-stats-parser.ts` - Añadido import de `retryWithExponentialBackoff` y envuelto el fetch en retry logic
+  - **Beneficios:**
+    - ✅ Mejora significativamente la fiabilidad del sistema de combate
+    - ✅ Reduce el uso de stats por defecto incorrectos
+    - ✅ Mejora la precisión de los stats de enemigos (resuelve Issue #29)
+    - ✅ Mejora la calidad de la experiencia de juego
+- **✅ Sistema Data-Driven para Detección de Propiedades de Armas (2025-01-23):**
+  - **Problema:** El sistema usaba listas hardcodeadas de nombres de armas para detectar propiedades (finesse, ranged), causando inconsistencias. Por ejemplo, los Goblins con cimitarras usaban FUE(-1) en lugar de DES(+2) porque la cimitarra no estaba en la lista de finesse para enemigos.
+  - **Causa:** La lógica de detección estaba duplicada entre `resolvePlayerAttack` y `resolveEnemyAttack`, y solo usaba heurísticas de nombres como último recurso, sin priorizar datos estructurados.
+  - **Solución implementada:** Sistema data-driven con prioridad de fuentes:
+    1. **Datos estructurados (Prioridad 1):** Lee `attacks[].properties` explícitas (ej: `['Finesse', 'Light']`)
+    2. **Análisis de texto (Prioridad 2):** Parsea descripciones buscando palabras clave ("Sutil", "Finesse", "Alcance", "Ranged Weapon Attack")
+    3. **Heurística de nombres (Prioridad 3 - Fallback):** Solo si lo anterior falla, usa lista de nombres como red de seguridad
+  - **Funciones helper comunes:**
+    - `getWeaponProperties()`: Extrae propiedades de armas usando las 3 fuentes de datos
+    - `determineWeaponAttribute()`: Determina qué atributo usar (FUE/DES) basándose en propiedades detectadas
+    - Ambas funciones son comunes para jugadores, compañeros y enemigos
+  - **Beneficios:**
+    - ✅ Consistencia: Misma lógica para todos los combatientes
+    - ✅ Robustez: Prioriza datos reales sobre heurísticas
+    - ✅ Mantenibilidad: Un solo lugar para actualizar la lógica
+    - ✅ Corrección: Goblins con cimitarras ahora usan DES correctamente
+  - **Archivos modificados:**
+    - `src/lib/combat/action-resolver.ts` - Añadidas funciones helper comunes `getWeaponProperties()` y `determineWeaponAttribute()`
+    - `src/lib/combat/action-resolver.ts` - Actualizado `resolvePlayerAttack()` para usar sistema data-driven
+    - `src/lib/combat/action-resolver.ts` - Actualizado `resolveEnemyAttack()` para usar sistema data-driven
+  - **Impacto:** Medio - Corrige cálculos incorrectos de atributos para armas finesse en enemigos y mejora la arquitectura del sistema
 
 ---
 

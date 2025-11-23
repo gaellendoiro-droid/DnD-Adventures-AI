@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { ActionInterpreterInputSchema, ActionInterpreterOutputSchema, type ActionInterpreterInput, type ActionInterpreterOutput } from '@/ai/flows/schemas';
 import { getAdventureData } from '@/app/game-state-actions';
 import { log } from '@/lib/logger';
-import { retryWithExponentialBackoff } from './retry-utils';
+import { executePromptWithRetry } from './retry-utils';
 
 // This prompt no longer needs tools. All context is provided directly.
 const actionInterpreterPrompt = ai.definePrompt({
@@ -99,17 +99,16 @@ export const actionInterpreterFlow = ai.defineFlow(
             // STEP 2: Call the LLM with retry logic (Issue #13)
             let llmResponse;
             try {
-                llmResponse = await retryWithExponentialBackoff(
-                    () => actionInterpreterPrompt({
+                llmResponse = await executePromptWithRetry(
+                    actionInterpreterPrompt,
+                    {
                         playerAction: input.playerAction,
                         locationContext: input.locationContext,
                         party: input.party,
                         allLocationNames: allLocationNames,
                         updatedEnemies: input.updatedEnemies,
-                    }),
-                    3, // maxRetries (4 total attempts)
-                    1000, // initialDelayMs
-                    'actionInterpreter' // flowName
+                    },
+                    { flowName: 'actionInterpreter' }
                 );
             } catch (retryError: any) {
                 // All retries exhausted - implement intelligent fallback

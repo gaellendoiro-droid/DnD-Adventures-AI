@@ -100,8 +100,8 @@ Bienvenido a la documentación de arquitectura de D&D Adventures AI. Esta carpet
 ## 📝 Mantenimiento
 
 ### Actualización de Documentación
-- **Última actualización:** 2025-01-23
-- **Estado:** ✅ Actualizado con NarrativeManager y arquitectura actual
+- **Última actualización:** 2025-01-23 (v0.5.6 - Sistema Data-Driven)
+- **Estado:** ✅ Actualizado con CombatActionResolver, arquitectura "Frontend Obediente", sistema data-driven para propiedades de armas y mejoras de v0.5.6
 - **Próxima revisión:** Cuando cambien componentes arquitectónicos principales
 
 ### Proceso de Actualización
@@ -123,9 +123,9 @@ Bienvenido a la documentación de arquitectura de D&D Adventures AI. Esta carpet
 | Documento | Estado | Última Actualización |
 |-----------|--------|---------------------|
 | `vision-general.md` | ✅ Actualizado | 2025-01-23 |
-| `arquitectura-backend.md` | ✅ Actualizado | 2025-01-23 |
-| `arquitectura-frontend.md` | ✅ Actualizado | 2025-01-23 |
-| `flujo-datos.md` | ✅ Actualizado | 2025-01-23 |
+| `arquitectura-backend.md` | ✅ Actualizado | 2025-01-23 (v0.5.6 - Sistema Data-Driven) |
+| `arquitectura-frontend.md` | ✅ Actualizado | 2025-01-23 (v0.5.6) |
+| `flujo-datos.md` | ✅ Actualizado | 2025-01-23 (v0.5.6) |
 | `referencia-api.md` | ✅ Actualizado | 2025-01-23 |
 | `sistema-logging.md` | ✅ Actualizado | 2025-01-22 |
 | `guia-estilo-logging.md` | ✅ Actualizado | 2025-01-22 |

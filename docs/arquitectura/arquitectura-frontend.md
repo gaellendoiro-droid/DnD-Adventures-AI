@@ -1,6 +1,6 @@
 # Arquitectura del Frontend
 
-**Última actualización:** 2025-01-23  
+**Última actualización:** 2025-01-23 (v0.5.6)  
 **Estado:** ✅ Actualizado
 
 ---
@@ -107,6 +107,8 @@ Estos componentes gestionan la visualización y la interacción del juego:
 - **`DiceRollResult.tsx`:** 
   - Componente para mostrar una tirada individual
   - Diferencia visualmente entre diferentes tipos de resultados (éxito, fallo, crítico, daño)
+  - Muestra indicador de tipo de ataque (🏹 A distancia / ⚔️ Cuerpo a cuerpo) cuando `attackRange` está presente (v0.5.6)
+  - Utiliza `updateRollNotationWithModifiers` para mostrar modificadores desglosados con etiquetas de atributos
 
 #### Componentes de Layout
 
@@ -244,3 +246,71 @@ Esto asegura que:
 - Los datos cumplen con las restricciones del esquema
 
 Si la validación falla, se muestra un error en la consola del navegador antes de enviar los datos al servidor.
+
+## Arquitectura "Frontend Obediente" (v0.5.6)
+
+El frontend sigue el principio de **"Cerebro Centralizado, Frontend Obediente"**, donde el backend es la única fuente de verdad para cálculos y decisiones, y el frontend solo muestra lo que recibe.
+
+### Principio Fundamental
+
+**El frontend NO adivina ni calcula atributos o modificadores.** Recibe toda la información necesaria del backend a través de los objetos `DiceRoll`.
+
+### Campos Explicativos en `DiceRoll` (v0.5.6)
+
+Los objetos `DiceRoll` ahora incluyen campos explícitos que el frontend debe usar:
+
+- **`attributeUsed`**: Indica qué atributo se usó para la tirada (`'FUE' | 'DES' | 'CON' | 'INT' | 'SAB' | 'CAR'`)
+  - Establecido por `CombatActionResolver` según tipo de arma (ranged → DES, melee → FUE, finesse → mayor)
+  - El frontend muestra este atributo en la notación (ej: "1d20+DES+BC" en lugar de "1d20+3+2")
+  
+- **`attackRange`**: Indica si el ataque es cuerpo a cuerpo o a distancia (`'melee' | 'ranged'`)
+  - Establecido por `CombatActionResolver` según tipo de arma
+  - El frontend muestra un indicador visual (🏹 A distancia / ⚔️ Cuerpo a cuerpo)
+
+### Función `updateRollNotationWithModifiers`
+
+**Archivo**: `src/lib/combat/roll-notation-utils.ts`
+
+Esta función actualiza la notación de las tiradas para mostrar modificadores desglosados:
+
+- **Recibe**: `DiceRoll` con `attributeUsed` establecido
+- **Procesa**: 
+  - Extrae el modificador del atributo desde `abilityModifiers` del personaje
+  - Crea array de `modifiers` con etiquetas (ej: `{value: 0, label: 'DES'}`)
+  - Actualiza `rollNotation` para mostrar etiquetas (ej: "1d6+DES" en lugar de "1d6+0")
+- **Comportamiento**:
+  - ✅ **Siempre muestra el atributo usado**, incluso si el modificador es 0
+  - ✅ **Lanza error si falta `attributeUsed`** (no adivina)
+  - ✅ **Unifica notación** para jugadores, compañeros y enemigos
+
+### Beneficios
+
+- ✅ **Consistencia visual**: Todos los combatantes muestran atributos de forma uniforme
+- ✅ **Claridad**: El jugador ve exactamente qué atributo se usó (ej: "1d6+DES" vs "1d6+FUE")
+- ✅ **Robustez**: Si el backend no proporciona `attributeUsed`, el frontend lanza error en lugar de adivinar
+- ✅ **Mantenibilidad**: Cambios en lógica de atributos solo requieren actualizar el backend
+
+### Ejemplo de Flujo
+
+```typescript
+// Backend (CombatActionResolver)
+const diceRollRequest: DiceRollRequest = {
+  rollNotation: "1d6+0",
+  description: "Daño de Arco pequeño",
+  roller: "Galador",
+  attackType: "damage_roll",
+  attributeUsed: "DES",  // ← Backend establece explícitamente
+  attackRange: "ranged"  // ← Backend establece explícitamente
+};
+
+// Frontend (updateRollNotationWithModifiers)
+// Recibe DiceRoll con attributeUsed = "DES"
+// Extrae abilityModifiers.destreza = 0
+// Actualiza rollNotation a "1d6+DES"
+// Crea modifiers = [{value: 0, label: 'DES'}]
+
+// UI (DiceRollResult)
+// Muestra: "Daño de Arco pequeño (1d6+DES)"
+// Desglose: "1+0" (muestra el 0 porque está en modifiers)
+// Indicador: "🏹 A distancia" (porque attackRange = "ranged")
+```

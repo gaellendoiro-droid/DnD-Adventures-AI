@@ -25,7 +25,7 @@ import {
 import { explorationExpert } from './experts/exploration-expert';
 import { interactionExpert } from './experts/interaction-expert';
 import { log } from '@/lib/logger';
-import { retryWithExponentialBackoff } from './retry-utils';
+import { executePromptWithRetry } from './retry-utils';
 
 // --- Internal Schemas ---
 
@@ -136,9 +136,10 @@ export const narrativeManagerFlow = ai.defineFlow(
             // 1. Handle Combat Initiation (Special Mode)
             if (input.phase === 'combat_initiation') {
                 localLog("NarrativeManager: Mode = COMBAT INITIATION");
-                const response = await retryWithExponentialBackoff(
-                    () => combatInitiationPrompt(input),
-                    3, 1000, 'combatInitiation'
+                const response = await executePromptWithRetry(
+                    combatInitiationPrompt,
+                    input,
+                    { flowName: 'combatInitiation' }
                 );
                 return { ...response.output!, debugLogs };
             }

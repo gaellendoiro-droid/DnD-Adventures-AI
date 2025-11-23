@@ -8,121 +8,50 @@
 
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 26 issues  
-**Última actualización:** 2025-11-23 (Issue #122 completado - Nombres de enemigos con número distintivo restaurados)
+**Total:** 23 issues  
+**Última actualización:** 2025-01-23 (Issue #125 resuelto y movido a corregidos)
 
 ---
 
 ## 🔴 Prioridad Muy Alta (PMA) - Críticos
 
-### Issue #120: Inconsistencia en Cálculos de Tiradas y Visualización (Merryl) 🔴 CRÍTICO
+### Issue #126: Revisión completa del sistema de carga de aventuras JSON e inicio de partida 🔴 CRÍTICO
 
-- **Fecha de creación:** 2025-11-23
-- **Ubicación:** `src/lib/combat/roll-notation-utils.ts`, `src/lib/combat/action-resolver.ts`, `src/ai/tools/dice-roller.ts`
-- **Severidad:** 🔴 **CRÍTICA** (Cálculos de daño incorrectos y feedback visual engañoso)
-- **Descripción:** Se han detectado dos bugs críticos que interactúan entre sí causando que las tiradas de daño sean incorrectas y que la UI muestre información falsa.
-    1. **Visualización engañosa:** `updateRollNotationWithModifiers` selecciona automáticamente el modificador más alto (ej: DES +3) para "embellecer" el desglose visual, incluso si el ataque se calculó usando otro atributo (ej: FUE -1). Esto hace que el usuario vea "19+3+2" (Total 24) cuando el resultado real es 20.
-    2. **Cálculo de daño erróneo:** `CombatActionResolver` genera notaciones inválidas para modificadores negativos (ej: `1d8+-1`). La regex del `diceRollerTool` no soporta el formato `+-`, por lo que ignora el modificador y lo trata como 0. Esto hace que un daño que debería ser 6 (7-1) se calcule como 7.
+- **Fecha de creación:** 2025-01-23
+- **Ubicación:** `src/app/page.tsx`, `src/ai/flows/parse-adventure-from-json.ts`, `src/app/game-state-actions.ts`
+- **Severidad:** 🔴 **MUY ALTA** (afecta la experiencia inicial del juego y puede causar problemas de estabilidad)
+- **Descripción:** Revisar por completo el sistema de carga de aventuras JSON e inicio de la partida para mejorarlo y optimizarlo. El sistema actual puede tener problemas de rendimiento, manejo de errores, o flujo de inicialización.
 - **Problema:**
-    - El usuario recibe información contradictoria: el desglose visual dice una cosa, el total dice otra, y el cálculo interno es incorrecto.
-    - Los personajes con modificadores negativos de fuerza (como Merryl) hacen más daño del que deberían.
+  - El sistema de carga de aventuras puede tener problemas de rendimiento
+  - Posibles problemas en el flujo de inicialización de la partida
+  - Manejo de errores puede no ser completo
+  - Falta de optimización en el parseo y carga de datos
 - **Comportamiento esperado:**
-    - **Selección Inteligente de Habilidad:** El sistema debe identificar correctamente qué habilidad usar (FUE o DES) basándose en las reglas de D&D 5e:
-        - **Cuerpo a cuerpo:** Usa FUE por defecto.
-        - **A distancia:** Usa DES por defecto.
-        - **Sutil (Finesse):** Permite elegir la más alta entre FUE y DES.
-    - `updateRollNotationWithModifiers` debe recibir explícitamente qué atributo se usó para el cálculo, en lugar de adivinar o asumir el más alto.
-    - `CombatActionResolver` debe formatear correctamente los números negativos (ej: `1d8-1` en lugar de `1d8+-1`).
-    - `diceRollerTool` debe ser capaz de parsear correctamente notaciones con signos negativos o rechazar formatos inválidos como `+-`.
-- **Impacto:** Crítico - Afecta la integridad matemática del juego y la confianza del usuario en el sistema.
+  - Carga rápida y eficiente de aventuras JSON
+  - Inicialización fluida de la partida
+  - Manejo robusto de errores con mensajes claros
+  - Validación completa de datos antes de iniciar
+  - Optimización del parseo y almacenamiento de datos
+- **Impacto:** Muy Alto - Afecta la primera impresión del usuario, la estabilidad del sistema, y la experiencia general de inicio de partida
 - **Solución propuesta:**
-    - **Arquitectura "Cerebro Centralizado, Frontend Obediente":**
-        1.  **Helper `getWeaponAbility`:** Crear una función pura en `CombatActionResolver` que determine el atributo (FUE/DES) basándose en propiedades del arma (Sutil, Alcance) y stats del personaje.
-        2.  **Helper `formatDiceNotation`:** Implementar una función simple para formatear correctamente los signos (ej: `1d8-1` en vez de `1d8+-1`).
-        3.  **Inyección de Contexto:** `CombatActionResolver` inyectará el campo `attributeUsed: 'FUE' | 'DES'` en el objeto de la tirada.
-        4.  **Frontend Determinista:** `updateRollNotationWithModifiers` dejará de "adivinar" basándose en el stat más alto y usará estrictamente el `attributeUsed` proporcionado por el backend.
-    - **Robustecer Parser:** Mejorar la regex en `diceRollerTool` para soportar variaciones en la notación por seguridad.
-- **Estado:** ✅ **COMPLETADO** (2025-11-23)
-- **Prioridad:** Muy Alta
-
-### Issue #121: Regresión en Parsing de Armas en Ataques de Jugador 🔴 CRÍTICO
-
-- **Fecha de creación:** 2025-11-23
-- **Ubicación:** `src/lib/combat/turn-processor.ts` (línea 225)
-- **Severidad:** 🔴 **CRÍTICA** (Bloquea completamente los ataques de jugadores)
-- **Descripción:** Tras implementar el Issue #120, se introdujo una regresión en el procesamiento de ataques de jugadores. El sistema ahora pasa **toda la acción del jugador** (ej: "Ataco al goblin 1") como `weaponQuery` a `CombatActionResolver.resolveAttack()`, en lugar de extraer solo el nombre del arma.
-- **Problema:**
-    - Cuando el jugador escribe "Ataco al goblin 1", el sistema busca un arma llamada "Ataco al goblin 1" en el inventario.
-    - Como no encuentra esa arma, devuelve el error: `No tienes el arma "Ataco al goblin 1".`
-    - Esto bloquea completamente los ataques de jugadores en combate.
-- **Causa raíz:**
-    - En `turn-processor.ts` línea 225, se cambió de usar una heurística para extraer el nombre del arma a simplemente pasar `playerAction` completo:
-      ```typescript
-      const weaponQuery = playerAction || 'ataque'; // ❌ INCORRECTO
-      ```
-    - Antes del Issue #120, existía lógica para extraer el nombre del arma de la acción del jugador, pero se perdió durante la refactorización.
-- **Comportamiento esperado:**
-    - El sistema debe **parsear la acción del jugador** para extraer el nombre del arma mencionada (si existe).
-    - Si no se menciona un arma específica, debe usar `'ataque'` como valor por defecto para que `CombatActionResolver` seleccione el arma principal del personaje.
-    - Ejemplos:
-        - "Ataco con mi espada al goblin" → `weaponQuery = "espada"`
-        - "Ataco al goblin 1" → `weaponQuery = "ataque"`
-        - "Disparo mi arco" → `weaponQuery = "arco"`
-- **Solución propuesta:**
-    **Enfoque Unificado (Aprovechando Issue #120):**
-    1. Implementar una función helper ligera `extractWeaponName(playerAction: string): string | null` en `turn-processor.ts` que:
-        - Busque patrones comunes: `"con [arma]"`, `"usando [arma]"`, `"mi [arma]"`
-        - Devuelva el nombre del arma si se encuentra (ej: "espada", "arco")
-        - Devuelva `null` si no se menciona arma específica
-    2. Usar esta función para determinar `weaponQuery`:
-        ```typescript
-        const weaponQuery = extractWeaponName(playerAction) || 'ataque';
-        ```
-    3. Aprovechar la lógica existente de `CombatActionResolver.resolveAttack()`:
-        - Si `weaponQuery = 'ataque'`, selecciona automáticamente el arma principal del personaje
-        - Si `weaponQuery = nombre específico`, busca esa arma en el inventario
-    
-    **Ventajas:**
-    - ✅ Unificado con la arquitectura del Issue #120
-    - ✅ Simple y robusto (fallback seguro a `'ataque'`)
-    - ✅ Consistente entre jugadores e IA
-    - ✅ No requiere duplicar lógica de selección de armas
-- **Impacto:** Crítico - Bloquea completamente la funcionalidad de combate para jugadores.
+  - **Fase 1:** Auditar el flujo actual de carga e inicialización
+  - **Fase 2:** Identificar cuellos de botella y problemas de rendimiento
+  - **Fase 3:** Mejorar manejo de errores y validación de datos
+  - **Fase 4:** Optimizar parseo y carga de datos (posible caché, lazy loading)
+  - **Fase 5:** Mejorar feedback al usuario durante la carga
+  - **Fase 6:** Testing exhaustivo del flujo completo
+- **Archivos afectados:**
+  - `src/app/page.tsx` (función `handleLoadAdventure`)
+  - `src/ai/flows/parse-adventure-from-json.ts` (parseo de aventuras)
+  - `src/app/game-state-actions.ts` (gestión de estado de aventuras)
+  - `src/app/api/load-adventure/route.ts` (endpoint de API)
 - **Estado:** 📝 **PENDIENTE**
-- **Prioridad:** 🔴 Muy Alta
+- **Prioridad de corrección:** Muy Alta
 - **Relacionado con:**
-  - Issue #120 (Inconsistencia en Cálculos de Tiradas) - Regresión introducida durante su implementación
-  - Issue #115 (Validación de inventario) - Problema relacionado de validación de armas en inventario
-
-### Issue #122: Nombres de Enemigos sin Número Distintivo en Panel de Tiradas 🟡
-
-- **Fecha de creación:** 2025-11-23
-- **Ubicación:** `src/lib/combat/action-resolver.ts` o `src/lib/combat/action-executor.ts`
-- **Severidad:** 🟡 **MEDIA** (Afecta claridad visual pero no bloquea funcionalidad)
-- **Descripción:** Tras implementar el Issue #120, los nombres de los enemigos en el panel de tiradas ya no muestran el número distintivo (ej: "Goblin 1", "Goblin 2"). En su lugar, solo muestran el nombre base (ej: "Goblin").
-- **Problema:**
-    - En el panel de tiradas, cuando un enemigo ataca, se muestra solo "Goblin" en lugar de "Goblin 1".
-    - Esto dificulta identificar qué enemigo específico realizó la acción cuando hay múltiples enemigos del mismo tipo.
-    - Ejemplo observado:
-        - **Antes:** "Goblin 1 - Ataque básico a Merryl"
-        - **Ahora:** "Goblin - Ataque básico a Merryl"
-- **Causa raíz probable:**
-    - Durante la refactorización del Issue #120, es posible que se haya perdido la lógica que añade el número distintivo al nombre del enemigo en las descripciones de tiradas.
-    - El `targetName` usado en `CombatActionResolver.resolveAttack()` podría estar usando el nombre base en lugar del nombre visual (con número).
-    - Alternativamente, el problema podría estar en cómo se pasa el `roller` name al crear los `DiceRollRequest`.
-- **Comportamiento esperado:**
-    - Los nombres de enemigos en el panel de tiradas deben incluir siempre el número distintivo cuando hay múltiples enemigos del mismo tipo.
-    - Esto debe aplicar tanto para el `roller` (quien hace la tirada) como para el `targetName` (objetivo de la tirada).
-- **Solución propuesta:**
-    1. Investigar dónde se pierde el número distintivo en la cadena de resolución de acciones.
-    2. Asegurar que `CombatActionResolver` use `getVisualName()` para obtener nombres con números distintivos.
-    3. Verificar que el `roller` name en `DiceRollRequest` también use el nombre visual.
-- **Impacto:** Medio - Reduce claridad visual en combates con múltiples enemigos del mismo tipo.
-- **Estado:** ✅ **COMPLETADO** (2025-11-23)
-- **Prioridad:** 🟡 Alta
-- **Relacionado con:**
-  - Issue #120 (Inconsistencia en Cálculos de Tiradas) - Regresión introducida durante su implementación
-
+  - Issue #6 (Manejo de errores en `handleLoadAdventure`) - Problema relacionado
+  - Issue #8 (Fallos al cargar aventura desde JSON) - Problema relacionado
+  - Roadmap #14 (Actualización Automática de Fichas desde Archivos JSON) - Mejora relacionada
+- **Referencia:** [Notas de Gael - #5](../notas/Notas%20de%20Gael.md)
 
 ## 🟡 Prioridad Alta (PA) - Advertencias
 
@@ -559,28 +488,6 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
   - Componente del panel Grupo (frontend)
   - Estilos CSS relacionados
 - **Estado:** 📝 **PENDIENTE** - Bug visual pendiente de corrección
-
-### Issue #29: Stats de enemigos incorrectos en combate 🟡 ADVERTENCIA
-
-- **Fecha de creación:** 2025-11-14
-- **Ubicación:** `src/ai/tools/combat-initiation-expert.ts`, sistema de obtención de stats de enemigos
-- **Severidad:** 🟡 **MEDIA** (afecta balance del juego)
-- **Descripción:** Los stats de los enemigos (especialmente HP) no se están obteniendo correctamente desde las fichas oficiales de D&D. Los enemigos tienen menos HP del que deberían tener según su ficha oficial.
-- **Causa Raíz posible:**
-  1. Problema en la API de D&D: Los datos obtenidos pueden estar incompletos o incorrectos
-  2. Problema en el parseo: El sistema puede no estar parseando correctamente los HP desde la ficha del monstruo
-  3. Problema en la inicialización: Los HP pueden no estar inicializándose correctamente al crear el enemigo en combate
-  4. Datos cacheados incorrectos: Si hay caché de datos de monstruos, puede estar desactualizado o incorrecto
-- **Impacto:** Medio (afecta el balance del combate)
-- **Solución propuesta:**
-  1. Verificar obtención de datos desde la API de D&D
-  2. Verificar inicialización en `combat-initiation-expert.ts`
-  3. Añadir logging para debugging
-  4. Verificar caché si existe
-- **Archivos afectados:**
-  - `src/ai/tools/combat-initiation-expert.ts` (inicialización de enemigos)
-  - Sistema de obtención de datos de monstruos (API o caché)
-- **Estado:** 📝 **PENDIENTE** - Bug de datos pendiente de investigación y corrección
 
 ### Issue #30: Errores de conexión a APIs con logs verbosos 🟡 ADVERTENCIA
 

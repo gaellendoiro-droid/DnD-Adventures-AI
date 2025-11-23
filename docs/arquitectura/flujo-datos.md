@@ -1,6 +1,6 @@
 # Flujo de Datos Detallado
 
-**Última actualización:** 2025-01-23  
+**Última actualización:** 2025-01-23 (v0.5.6)  
 **Estado:** ✅ Actualizado
 
 ---
@@ -247,15 +247,23 @@ Usuario: "Ataco con mi espada"
 → actionInterpreter interpreta la acción
 → combatManagerTool procesa el turno usando CombatSession
 → CombatSession delega a TurnProcessor.processTurn()
-→ TurnProcessor procesa el turno del jugador:
-   1. Usa interpretedAction (ya planificado)
-   2. Genera narración de intención
-   3. Ejecuta acción usando CombatActionExecutor
-   4. Genera narración de resolución
+→ TurnProcessor procesa el turno del jugador (v0.5.6):
+   1. Extrae nombre del arma usando extractWeaponName("Ataco con mi espada") → "espada"
+   2. Llama a CombatActionResolver.resolveAttack() que:
+      - Busca "espada" en inventario del jugador
+      - Calcula tiradas usando stats reales (FUE + BC para ataque, FUE para daño)
+      - Establece attributeUsed = "FUE" y attackRange = "melee"
+      - Retorna DiceRollRequest[] con toda la información
+   3. Genera narración de intención
+   4. Ejecuta acción usando CombatActionExecutor que:
+      - Procesa tiradas preservando attributeUsed y attackRange
+      - Compara ataque con AC y aplica daño
+   5. Frontend: updateRollNotationWithModifiers actualiza notación (ej: "1d8+FUE")
+   6. Genera narración de resolución
 → Después de procesar, el bucle continúa con el siguiente combatiente
 ```
 
-**Nota**: Tanto el turno del jugador como el de la IA usan el mismo flujo unificado a través de `TurnProcessor`, garantizando consistencia.
+**Nota**: Tanto el turno del jugador como el de la IA usan el mismo flujo unificado a través de `TurnProcessor` y `CombatActionResolver`, garantizando consistencia matemática y visual.
 
 ## Flujo de Guardado y Carga
 
@@ -310,35 +318,32 @@ IA decide: "Elara ataca con su bastón"
 ```
 
 ```typescript
-// companionTacticianTool devuelve:
+// companionTacticianTool devuelve (v0.5.6 - simplificado):
 {
   actionDescription: "Lanzar Rayo de Escarcha",
   targetId: "enemy-1",
-  diceRolls: [
-    {
-      roller: "Elara",
-      rollNotation: "1d20+5",
-      description: "Attack Roll"
-    },
-    {
-      roller: "Elara",
-      rollNotation: "1d8+3",
-      description: "Damage Roll"
-    }
-  ]
+  diceRolls: []  // ← La IA ya no genera tiradas, solo intención
 }
 
-// TurnProcessor procesa (flujo unificado):
+// TurnProcessor procesa (flujo unificado v0.5.6):
 1. Planificación: Ya recibida del tactician
-2. Narración de Intención: Llama a combatNarrationExpertTool (tipo: 'intention')
-3. Ejecución: Llama a CombatActionExecutor.execute() que:
-   - Procesa cada tirada usando diceRollerTool
+2. Resolución de Acción: Llama a CombatActionResolver.resolveAttack() que:
+   - Calcula tiradas usando estadísticas reales del personaje
+   - Establece attributeUsed y attackRange explícitamente
+   - Retorna DiceRollRequest[] con toda la información necesaria
+3. Narración de Intención: Llama a combatNarrationExpertTool (tipo: 'intention')
+4. Ejecución: Llama a CombatActionExecutor.execute() que:
+   - Procesa cada DiceRollRequest usando diceRollerTool
+   - Preserva attributeUsed y attackRange en los DiceRoll finales
    - Compara ataque con AC
    - Aplica daño usando RulesEngine
    - Retorna resultados estructurados
-4. Narración de Resolución: Llama a combatNarrationExpertTool (tipo: 'resolution')
-5. Retorna: Mensajes (intención + resolución), diceRolls, estado actualizado
+5. Narración de Resolución: Llama a combatNarrationExpertTool (tipo: 'resolution')
+6. Frontend: updateRollNotationWithModifiers actualiza notación con etiquetas de atributos
+7. Retorna: Mensajes (intención + resolución), diceRolls, estado actualizado
 ```
+
+**Cambio clave (v0.5.6)**: La IA ya no genera `rollNotation` para ataques estándar. `CombatActionResolver` calcula las tiradas usando las estadísticas reales del sistema, garantizando consistencia matemática.
 
 ## Flujo de Validación de Datos
 

@@ -1,58 +1,27 @@
 /**
  * @fileOverview Monster Stats Parser
- * Handles parsing and fetching of monster statistics from D&D 5e API.
- * Provides caching functionality to optimize repeated requests.
+ * Handles parsing and transformation of monster statistics from D&D 5e API.
  * 
- * This module is part of the Fase 1.2 refactorization.
+ * This module uses the unified D&D API client (dnd-api-client.ts) for all API calls.
+ * It focuses solely on parsing/transforming raw API responses into MonsterStats format.
+ * 
+ * This module is part of the Fase 1.2 refactorization and Issue #125 unification.
  */
 
 import { log } from '@/lib/logger';
+import { fetchResource, normalizeQuery } from '@/lib/dnd-api-client';
 
 /**
  * Normalizes a Spanish monster name to English for D&D API lookup.
- * Removes accents, converts to lowercase, and maps common Spanish names to English.
+ * 
+ * @deprecated This function is kept for backward compatibility.
+ * Use normalizeQuery from @/lib/dnd-api-client instead.
  * 
  * @param name Monster name in Spanish
  * @returns Normalized English name for API lookup
  */
 export function normalizeMonsterName(name: string): string {
-    // Remove accents and convert to lowercase
-    let normalized = name
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-        .trim();
-
-    // Common Spanish to English mappings for monsters
-    const spanishToEnglishMap: Record<string, string> = {
-        'mantícora': 'manticore',
-        'manticora': 'manticore',
-        'orco': 'orc',
-        'goblin': 'goblin',
-        'dragón': 'dragon',
-        'dragon': 'dragon',
-        'troll': 'troll',
-        'ogro': 'ogre',
-        'zombi': 'zombie',
-        'zombie': 'zombie',
-        'esqueleto': 'skeleton',
-        'vampiro': 'vampire',
-    };
-
-    // Check if we have a direct mapping
-    if (spanishToEnglishMap[normalized]) {
-        return spanishToEnglishMap[normalized];
-    }
-
-    // Try to find a partial match
-    for (const [spanish, english] of Object.entries(spanishToEnglishMap)) {
-        if (normalized.includes(spanish) || spanish.includes(normalized)) {
-            return english;
-        }
-    }
-
-    // If no mapping found, return the normalized query (without accents)
-    return normalized;
+    return normalizeQuery(name);
 }
 
 /**
@@ -194,154 +163,112 @@ export interface MonsterStats {
     actions: any[];
 }
 
-// Cache for monster stats to avoid repeated API calls
-const monsterStatsCache: Map<string, MonsterStats> = new Map();
+/**
+ * Parses raw D&D API monster data into MonsterStats format.
+ * 
+ * @param data Raw monster data from D&D API
+ * @returns Parsed MonsterStats object
+ */
+function parseMonsterDataToStats(data: any): MonsterStats {
+    // Parse HP
+    const hp = parseHitPoints(data.hit_points);
 
-// Cache for pending promises to avoid duplicate simultaneous calls
-const pendingRequests: Map<string, Promise<MonsterStats | null>> = new Map();
+    // Parse AC
+    const ac = parseArmorClass(data.armor_class);
+
+    // Parse Ability Scores
+    const abilityScores = parseAbilityScores(data);
+    const abilityModifiers = {
+        fuerza: getAbilityModifier(abilityScores.fuerza),
+        destreza: getAbilityModifier(abilityScores.destreza),
+        constitución: getAbilityModifier(abilityScores.constitución),
+        inteligencia: getAbilityModifier(abilityScores.inteligencia),
+        sabiduría: getAbilityModifier(abilityScores.sabiduría),
+        carisma: getAbilityModifier(abilityScores.carisma),
+    };
+
+    // Parse Proficiency Bonus
+    const proficiencyBonus = parseProficiencyBonus(data);
+
+    // Parse Actions
+    const actions = parseActions(data);
+
+    return {
+        hp,
+        ac,
+        abilityScores,
+        abilityModifiers,
+        proficiencyBonus,
+        actions
+    };
+}
+
+/**
+ * Default stats to return when a monster is not found or there's an error.
+ */
+const DEFAULT_STATS: MonsterStats = {
+    hp: 10,
+    ac: 10,
+    abilityScores: { fuerza: 10, destreza: 10, constitución: 10, inteligencia: 10, sabiduría: 10, carisma: 10 },
+    abilityModifiers: { fuerza: 0, destreza: 0, constitución: 0, inteligencia: 0, sabiduría: 0, carisma: 0 },
+    proficiencyBonus: 2,
+    actions: []
+};
 
 /**
  * Fetches monster stats (HP, AC, Abilities, Actions) from the D&D 5e API.
- * Uses a cache to avoid repeated calls for the same monster.
- * Also uses a pending requests cache to avoid duplicate simultaneous calls.
- * Returns null if the monster is not found or if there's an error.
+ * 
+ * Uses the unified D&D API client which provides:
+ * - Global shared cache (avoids duplicate calls)
+ * - Automatic retries with exponential backoff
+ * - Centralized error handling
+ * 
+ * This function focuses solely on parsing/transforming the API response.
+ * All API communication is delegated to the unified client.
  * 
  * @param monsterName Name of the monster to fetch stats for
  * @returns Object with monster stats, or null if not found
  */
 export async function getMonsterStatsFromDndApi(monsterName: string): Promise<MonsterStats | null> {
-    // Check cache first
-    const cacheKey = normalizeMonsterName(monsterName).toLowerCase();
-    if (monsterStatsCache.has(cacheKey)) {
-        const cached = monsterStatsCache.get(cacheKey)!;
-        log.debug('Monster stats retrieved from cache', {
-            module: 'MonsterStatsParser',
-            monsterName,
-            hp: cached.hp,
-            ac: cached.ac,
-        });
-        return cached;
-    }
-
-    // Check if there's already a pending request for this monster
-    if (pendingRequests.has(cacheKey)) {
-        log.debug('Waiting for pending request for monster stats', {
+    try {
+        log.debug('Fetching monster stats...', {
             module: 'MonsterStatsParser',
             monsterName,
         });
-        return await pendingRequests.get(cacheKey)!;
-    }
 
-    // Create a new request and cache the promise
-    const requestPromise = (async () => {
-        const baseUrl = 'https://www.dnd5eapi.co/api';
-        const normalizedName = normalizeMonsterName(monsterName);
-        const formattedName = normalizedName.toLowerCase().replace(/\s+/g, '-');
+        // Use unified client to fetch resource (includes cache, retries, error handling)
+        const data = await fetchResource('monsters', monsterName);
 
-        // Default stats in case of failure
-        const defaultStats: MonsterStats = {
-            hp: 10,
-            ac: 10,
-            abilityScores: { fuerza: 10, destreza: 10, constitución: 10, inteligencia: 10, sabiduría: 10, carisma: 10 },
-            abilityModifiers: { fuerza: 0, destreza: 0, constitución: 0, inteligencia: 0, sabiduría: 0, carisma: 0 },
-            proficiencyBonus: 2,
-            actions: []
-        };
-
-        try {
-            log.debug('Fetching monster stats from D&D API', {
-                module: 'MonsterStatsParser',
-                originalName: monsterName,
-                normalizedName,
-                formattedName,
-            });
-
-            const response = await fetch(`${baseUrl}/monsters/${formattedName}`, {
-                headers: { 'Accept': 'application/json' },
-            });
-
-            if (!response.ok) {
-                log.warn('Monster not found in D&D API', {
-                    module: 'MonsterStatsParser',
-                    monsterName,
-                    statusCode: response.status,
-                });
-
-                // Cache the failure to avoid repeated requests
-                monsterStatsCache.set(cacheKey, defaultStats);
-                pendingRequests.delete(cacheKey);
-                return defaultStats;
-            }
-
-            const data = await response.json();
-
-            // Parse HP
-            const hp = parseHitPoints(data.hit_points);
-
-            // Parse AC
-            const ac = parseArmorClass(data.armor_class);
-
-            // Parse Ability Scores
-            const abilityScores = parseAbilityScores(data);
-            const abilityModifiers = {
-                fuerza: getAbilityModifier(abilityScores.fuerza),
-                destreza: getAbilityModifier(abilityScores.destreza),
-                constitución: getAbilityModifier(abilityScores.constitución),
-                inteligencia: getAbilityModifier(abilityScores.inteligencia),
-                sabiduría: getAbilityModifier(abilityScores.sabiduría),
-                carisma: getAbilityModifier(abilityScores.carisma),
-            };
-
-            // Parse Proficiency Bonus
-            const proficiencyBonus = parseProficiencyBonus(data);
-
-            // Parse Actions
-            const actions = parseActions(data);
-
-            const stats: MonsterStats = {
-                hp,
-                ac,
-                abilityScores,
-                abilityModifiers,
-                proficiencyBonus,
-                actions
-            };
-
-            // Cache the result
-            monsterStatsCache.set(cacheKey, stats);
-
-            log.debug('Monster stats fetched successfully', {
+        // If resource not found, return null
+        if (!data) {
+            log.warn('Monster not found in D&D API', {
                 module: 'MonsterStatsParser',
                 monsterName,
-                hp,
-                ac,
-                actionsCount: actions.length
             });
-
-            // Clean up pending requests
-            pendingRequests.delete(cacheKey);
-
-            return stats;
-        } catch (error) {
-            log.error('Error fetching monster stats from D&D API', {
-                module: 'MonsterStatsParser',
-                monsterName,
-                error: error instanceof Error ? error.message : String(error),
-            });
-
-            // Cache default values to avoid repeated failed requests
-            monsterStatsCache.set(cacheKey, defaultStats);
-
-            // Clean up pending requests
-            pendingRequests.delete(cacheKey);
-
-            return defaultStats;
+            return null;
         }
-    })();
 
-    // Store the promise in pending requests
-    pendingRequests.set(cacheKey, requestPromise);
+        // Parse the raw API data into MonsterStats format
+        const stats = parseMonsterDataToStats(data);
 
-    return await requestPromise;
+        log.debug('Monster stats fetched and parsed successfully', {
+            module: 'MonsterStatsParser',
+            monsterName,
+            hp: stats.hp,
+            ac: stats.ac,
+            actionsCount: stats.actions.length
+        });
+
+        return stats;
+    } catch (error) {
+        log.error('Error fetching monster stats from D&D API', {
+            module: 'MonsterStatsParser',
+            monsterName,
+            error: error instanceof Error ? error.message : String(error),
+        });
+
+        // Return null on error (client already handles retries and caching)
+        return null;
+    }
 }
 

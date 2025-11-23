@@ -63,12 +63,11 @@ export function updateRollNotationWithModifiers(
             roll.rollNotation = `${baseDice}+${roll.attributeUsed}+BC`;
         } else {
             // Damage roll: only ability modifier (no proficiency)
-            if (abilityMod !== 0) {
-                modifiers.push({ value: abilityMod, label: roll.attributeUsed });
-                // Use label instead of value in notation
-                const sign = abilityMod >= 0 ? '+' : '';
-                roll.rollNotation = `${baseDice}${sign}${roll.attributeUsed}`;
-            }
+            // Always show the attribute used, even if modifier is 0 (for consistency across all combatants)
+            modifiers.push({ value: abilityMod, label: roll.attributeUsed });
+            // Use label instead of value in notation
+            const sign = abilityMod >= 0 ? '+' : '';
+            roll.rollNotation = `${baseDice}${sign}${roll.attributeUsed}`;
         }
 
         // Apply changes
@@ -77,35 +76,16 @@ export function updateRollNotationWithModifiers(
         return;
     }
 
-    // LEGACY LOGIC: Fallback to guessing based on highest modifier (FUE vs DES)
-    // This is kept for backward compatibility or for entities that don't provide attributeUsed (e.g. some enemies)
-
-    const strMod = character.abilityModifiers.fuerza || 0;
-    const dexMod = character.abilityModifiers.destreza || 0;
-    const abilityMod = Math.max(strMod, dexMod);
-    const abilityLabel = abilityMod === strMod ? 'FUE' : 'DES';
-
-    if (isAttackRoll) {
-        // Attack roll: ability modifier + proficiency bonus
-        modifiers.push(
-            { value: abilityMod, label: abilityLabel },
-            { value: proficiencyBonus, label: 'BC' }
-        );
-
-        // Use labels instead of values in notation (Issue #120 enhancement)
-        roll.rollNotation = `${baseDice}+${abilityLabel}+BC`;
-    } else {
-        // Damage roll: only ability modifier (no proficiency)
-        if (abilityMod !== 0) {
-            modifiers.push({ value: abilityMod, label: abilityLabel });
-            // Use label instead of value in notation
-            const sign = abilityMod >= 0 ? '+' : '';
-            roll.rollNotation = `${baseDice}${sign}${abilityLabel}`;
-        }
-    }
-
-    // IMPORTANT: Clear the original modifier to avoid duplication in frontend display
-    // The frontend will use roll.modifiers array instead of roll.modifier
-    roll.modifier = undefined;
-    roll.modifiers = modifiers;
+    // ERROR: Frontend should never guess - backend must provide attributeUsed
+    // This maintains the "Obedient Frontend" architecture from Issue #120
+    log.error('Missing attributeUsed in dice roll', {
+        module: 'roll-notation-utils',
+        rollId: roll.id,
+        rollDescription: roll.description,
+        characterName: character.name,
+    });
+    throw new Error(
+        `Missing required 'attributeUsed' field in dice roll. ` +
+        `Backend must provide this information. Roll: ${roll.description || roll.id || 'unknown'}`
+    );
 }

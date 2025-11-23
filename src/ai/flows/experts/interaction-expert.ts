@@ -12,7 +12,7 @@ import { dndApiLookupTool } from '../../tools/dnd-api-lookup';
 import { characterLookupTool } from '../../tools/character-lookup';
 import { InteractionExpertInputSchema, InteractionExpertOutputSchema, type InteractionExpertInput, type InteractionExpertOutput } from '../schemas';
 import { log } from '@/lib/logger';
-import { retryWithExponentialBackoff } from '../retry-utils';
+import { executePromptWithRetry } from '../retry-utils';
 
 const interactionExpertPrompt = ai.definePrompt({
     name: 'interactionExpertPrompt',
@@ -76,11 +76,10 @@ export const interactionExpertFlow = ai.defineFlow(
         try {
             localLog("InteractionExpert: Generating response...");
 
-            const llmResponse = await retryWithExponentialBackoff(
-                () => interactionExpertPrompt(input),
-                3,
-                1000,
-                'interactionExpert'
+            const llmResponse = await executePromptWithRetry(
+                interactionExpertPrompt,
+                input,
+                { flowName: 'interactionExpert' }
             );
 
             let output = llmResponse.output;
