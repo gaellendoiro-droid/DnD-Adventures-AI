@@ -5,7 +5,7 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 **Nota:** Para ver las mejoras ya implementadas, consulta el [CHANGELOG.md](../CHANGELOG.md).
 
 **Última actualización:** 2025-01-23  
-**Estado:** Actualizado - Verificado estado de todas las entradas. Issue #117 (Simplificación de Arquitectura de Combate) marcado como ✅ COMPLETADO. Narración Unificada marcada como ✅ PARCIALMENTE IMPLEMENTADA. Añadida entrada #12: Sistema de Comprobación de Competencia en Tiradas.
+**Estado:** Actualizado - Verificado estado de todas las entradas. Issue #117 (Simplificación de Arquitectura de Combate) marcado como ✅ COMPLETADO. Narración Unificada marcada como ✅ PARCIALMENTE IMPLEMENTADA. Añadida entrada #12: Sistema de Comprobación de Competencia en Tiradas. Añadida entrada #7: Integración de Google File Search (RAG Automatizado) con Prioridad Alta.
 
 ---
 
@@ -23,19 +23,20 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 - [4. Mejora de Estructura de Fichas de Personajes en la UI](#4-mejora-de-estructura-de-fichas-de-personajes-en-la-ui)
 - [5. Sistema de Modos de Juego Diferenciados](#5-sistema-de-modos-de-juego-diferenciados)
 - [6. Revisiones de Sistema de Combate](#6-revisiones-de-sistema-de-combate)
+- [7. Integración de Google File Search (RAG Automatizado)](#7-integración-de-google-file-search-rag-automatizado)
 
 ### 🟡 Prioridad Media
-- [7. Sistema de Mundo Persistente](#7-sistema-de-mundo-persistente)
-- [8. Compendio de D&D Local - Base de Datos Local](#8-compendio-de-dd-local---base-de-datos-local)
-- [9. IA Conversacional Avanzada](#9-ia-conversacional-avanzada)
-- [10. Calidad y Profundidad de la IA](#10-calidad-y-profundidad-de-la-ia)
-- [11. Separación de IDs de Fichas de Personajes](#11-separación-de-ids-de-fichas-de-personajes)
-- [12. Sistema de Comprobación de Competencia en Tiradas](#12-sistema-de-comprobación-de-competencia-en-tiradas)
-- [13. Mejoras de Mecánicas de D&D 5e](#13-mejoras-de-mecánicas-de-dd-5e)
-  - [13.1. Información de Dados de Daño de Armas en Fichas](#131-información-de-dados-de-daño-de-armas-en-fichas)
-- [14. Actualización Automática de Fichas desde Archivos JSON](#14-actualización-automática-de-fichas-desde-archivos-json)
-- [15. Convertidor de PDF a JSON - Aplicación Auxiliar](#15-convertidor-de-pdf-a-json---aplicación-auxiliar)
-- [16. Música y Sonido Dinámicos](#16-música-y-sonido-dinámicos)
+- [8. Sistema de Mundo Persistente](#8-sistema-de-mundo-persistente)
+- [9. Compendio de D&D Local - Base de Datos Local](#9-compendio-de-dd-local---base-de-datos-local)
+- [10. IA Conversacional Avanzada](#10-ia-conversacional-avanzada)
+- [11. Calidad y Profundidad de la IA](#11-calidad-y-profundidad-de-la-ia)
+- [12. Separación de IDs de Fichas de Personajes](#12-separación-de-ids-de-fichas-de-personajes)
+- [13. Sistema de Comprobación de Competencia en Tiradas](#13-sistema-de-comprobación-de-competencia-en-tiradas)
+- [14. Mejoras de Mecánicas de D&D 5e](#14-mejoras-de-mecánicas-de-dd-5e)
+  - [14.1. Información de Dados de Daño de Armas en Fichas](#141-información-de-dados-de-daño-de-armas-en-fichas)
+- [15. Actualización Automática de Fichas desde Archivos JSON](#15-actualización-automática-de-fichas-desde-archivos-json)
+- [16. Convertidor de PDF a JSON - Aplicación Auxiliar](#16-convertidor-de-pdf-a-json---aplicación-auxiliar)
+- [17. Música y Sonido Dinámicos](#17-música-y-sonido-dinámicos)
 
 ### 🟢 Prioridad Baja
 - [17. Mejoras de Interfaz de Usuario](#17-mejoras-de-interfaz-de-usuario)
@@ -208,13 +209,125 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
 *   **Plan Detallado:** ❌ No creado
 *   **Referencia:** [Notas de Gael - #102, #104, #109, #122, #123](../notas/Notas%20de%20Gael.md)
 
+### 7. Integración de Google File Search (RAG Automatizado) {#7-integración-de-google-file-search-rag-automatizado}
+*   **Problema Actual:** El sistema actual depende de búsquedas directas por ID en archivos JSON y llamadas a APIs externas para obtener información. No hay capacidad de búsqueda semántica que permita encontrar información basándose en significado o contexto, lo que limita la capacidad de la IA para acceder a conocimiento relevante de forma inteligente.
+*   **Qué es Google File Search:**
+    *   **Sistema RAG Automatizado:** Google File Search es un sistema de Retrieval-Augmented Generation (RAG) completamente gestionado e integrado en la API de Gemini. Automatiza todo el proceso RAG sin necesidad de configurar infraestructura propia (bases de datos vectoriales, pipelines de embeddings, etc.).
+    *   **Funcionamiento Básico:**
+        1. **Carga de Archivos:** Se suben archivos (PDF, DOCX, TXT, JSON, código fuente) a File Search
+        2. **Procesamiento Automático:** El sistema automáticamente:
+           - Almacena los archivos
+           - Los divide en fragmentos óptimos
+           - Genera embeddings usando el modelo Gemini
+           - Crea un índice vectorial para búsqueda rápida
+        3. **Búsqueda Semántica:** Durante una consulta, File Search:
+           - Realiza búsqueda vectorial sobre los archivos indexados
+           - Encuentra el contexto más relevante basándose en significado (no solo palabras clave)
+           - Inyecta dinámicamente el contexto encontrado en la petición a Gemini
+        4. **Generación con Contexto:** Gemini genera respuestas usando el contexto recuperado automáticamente
+        5. **Citas Automáticas:** Cada respuesta incluye metadatos que indican qué partes de qué archivos se utilizaron
+    *   **Integración Directa:** File Search está integrado directamente en la función `generateContent` de Gemini, por lo que se usa dentro del flujo normal de la API sin necesidad de código adicional complejo.
+    *   **Modelo de Costos:** 
+        - **Indexación inicial:** $0.15 por millón de tokens (solo se paga una vez al indexar)
+        - **Almacenamiento:** Gratis
+        - **Consultas:** Gratis (solo se paga por la generación de respuestas de Gemini, como siempre)
+*   **Cómo se Integraría en la Aplicación:**
+    *   **Integración con Genkit:** Dado que el proyecto ya usa Gemini a través de Genkit (`googleai/gemini-2.5-flash`), la integración sería relativamente directa. File Search se activa añadiendo archivos indexados a las peticiones de `generateContent`.
+    *   **Flujo de Integración:**
+        1. **Fase de Indexación (Una vez):**
+           - Subir archivos de aventuras JSON a File Search
+           - Subir manuales de D&D (si están disponibles en formato compatible)
+           - El sistema genera embeddings automáticamente
+        2. **Fase de Uso (En cada consulta):**
+           - Al hacer una petición a Gemini, se especifica qué archivos indexados usar
+           - File Search busca automáticamente contexto relevante
+           - Gemini genera respuesta con el contexto inyectado
+    *   **Código de Ejemplo (Conceptual):**
+        ```typescript
+        // En lugar de buscar por ID directamente
+        const location = adventureData.locations.find(l => l.id === locationId);
+        
+        // File Search buscaría semánticamente
+        const result = await ai.generate({
+          model: 'googleai/gemini-2.5-flash',
+          prompt: '¿Qué información hay sobre la ubicación donde estamos?',
+          files: [adventureFileSearchId], // Archivo indexado en File Search
+        });
+        // File Search automáticamente encuentra contexto relevante
+        ```
+*   **Áreas de la Aplicación que se Beneficiarían:**
+    *   **1. Búsqueda Semántica en Aventuras JSON:**
+        *   **Problema Actual:** El sistema busca ubicaciones, entidades y NPCs por ID exacto. No puede encontrar información basándose en descripciones o contexto.
+        *   **Beneficio:** La IA podría hacer preguntas como "¿Qué ubicaciones hay cerca de Phandalin?" o "¿Qué NPCs conocen información sobre el dragón?" y File Search encontraría la información relevante automáticamente.
+        *   **Mejora de Herramientas:** `adventure-lookup.ts`, `location-lookup.ts` y `entity-lookup.ts` podrían usar File Search para búsquedas más inteligentes.
+    *   **2. Compendio de Reglas de D&D 5e:**
+        *   **Problema Actual:** El sistema depende de la API externa de D&D para información de monstruos, hechizos y reglas. Las búsquedas son limitadas y requieren nombres exactos.
+        *   **Beneficio:** Indexar manuales oficiales de D&D 5e (Player's Handbook, Monster Manual, Dungeon Master's Guide) permitiría:
+           - Búsquedas semánticas de reglas: "¿Cómo funcionan los ataques de oportunidad?"
+           - Información detallada de monstruos: "¿Qué habilidades especiales tiene un dragón blanco adulto?"
+           - Consultas de hechizos: "¿Qué hechizos de nivel 3 pueden causar daño de fuego?"
+        *   **Mejora de Herramientas:** `dnd-api-lookup.ts` podría complementarse o reemplazarse con File Search para búsquedas más flexibles y contextuales.
+    *   **3. Búsqueda en Historial de Partida:**
+        *   **Problema Actual:** El historial de conversación se mantiene en memoria pero no hay forma de buscar eventos pasados de forma inteligente.
+        *   **Beneficio:** Indexar el historial de la partida permitiría:
+           - Preguntas como "¿Qué pasó cuando visitamos la posada?"
+           - Referencias a eventos pasados para mantener coherencia narrativa
+           - Búsqueda de decisiones importantes del jugador
+        *   **Mejora de Coherencia:** El DM podría acceder a contexto histórico relevante automáticamente.
+    *   **4. Información de Monstruos y Enemigos:**
+        *   **Problema Actual:** La información de monstruos viene de la API de D&D, que puede ser limitada o requerir múltiples llamadas.
+        *   **Beneficio:** Con manuales indexados, la IA podría:
+           - Obtener información completa de monstruos sin llamadas a API
+           - Buscar monstruos por características ("monstruos voladores de CR 5-10")
+           - Acceder a lore y descripciones detalladas de criaturas
+    *   **5. Consulta de Hechizos y Magia:**
+        *   **Problema Actual:** Información de hechizos limitada a lo que proporciona la API.
+        *   **Beneficio:** Indexar información de hechizos permitiría:
+           - Búsquedas semánticas: "hechizos que pueden curar" o "hechizos de ilusión de nivel 2"
+           - Información completa de componentes, duración, alcance
+           - Descripciones detalladas de efectos
+    *   **6. Mejora de Narración Contextual:**
+        *   **Problema Actual:** El DM tiene acceso limitado al contexto de la aventura y debe buscar información manualmente.
+        *   **Beneficio:** File Search permitiría al DM acceder automáticamente a:
+           - Información relevante sobre ubicaciones actuales
+           - Historia y lore relacionado con la situación actual
+           - Detalles de NPCs y sus relaciones
+           - Eventos pasados relevantes
+*   **Ventajas de la Integración:**
+    *   ✅ **Sin Infraestructura Propia:** No requiere configurar bases de datos vectoriales, pipelines de embeddings, o servidores de búsqueda
+    *   ✅ **Integración Simple:** Se integra directamente con Gemini API que ya se usa en el proyecto
+    *   ✅ **Búsqueda Semántica Potente:** Encuentra información basándose en significado, no solo palabras clave
+    *   ✅ **Citas Automáticas:** Cada respuesta indica qué partes de qué archivos se usaron, facilitando verificación
+    *   ✅ **Costos Bajos:** Solo se paga por indexación inicial ($0.15/millón tokens), almacenamiento y consultas son gratuitas
+    *   ✅ **Escalabilidad:** Gestionado por Google, se beneficia de su infraestructura
+    *   ✅ **Soporte JSON:** Compatible con archivos JSON de aventuras
+*   **Consideraciones:**
+    *   ⚠️ **Dependencia de Google:** Añade otra dependencia de servicios de Google
+    *   ⚠️ **Latencia Potencial:** La búsqueda + generación puede añadir latencia (aunque File Search está optimizado)
+    *   ⚠️ **Límites de Tamaño:** Puede haber límites en el tamaño de archivos que se pueden indexar
+    *   ⚠️ **Costos de Indexación:** Aunque bajo, indexar muchos archivos grandes puede tener costos iniciales
+*   **Relacionado con:**
+    *   Roadmap #8 (Compendio de D&D Local) - File Search podría ser una alternativa o complemento
+    *   Roadmap #10 (Calidad y Profundidad de la IA) - Mejora significativa del sistema RAG mencionado
+    *   Issue #126 (Revisión Sistema de Carga de Aventuras) - Podría mejorar búsqueda en aventuras cargadas
+*   **Impacto Estratégico:** 
+    *   **Transformacional para la IA:** Convierte al DM de un "lector de fichas" a un verdadero conocedor del universo del juego, capaz de acceder a información relevante de forma inteligente y contextual.
+    *   **Mejora de Precisión:** Respuestas más precisas y basadas en información real de los manuales y aventuras.
+    *   **Reducción de Dependencias:** Potencialmente reduce dependencia de APIs externas para información de D&D.
+    *   **Base para Mejoras Futuras:** Sienta las bases para sistemas más avanzados de memoria y contexto a largo plazo.
+*   **Plan Detallado:** ❌ No creado
+*   **Referencia:** 
+    - [Google File Search Documentation](https://ai.google.dev/gemini-api/docs/file-search)
+    - [Google Blog - File Search Announcement](https://blog.google/technology/developers/file-search-gemini-api/)
+    - Relacionado con Roadmap #10 (Calidad y Profundidad de la IA - RAG)
+
 ---
 
 ## 🟡 Prioridad Media
 
 Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, pero no son críticas para la funcionalidad básica.
 
-### 7. Sistema de Mundo Persistente {#7-sistema-de-mundo-persistente}
+### 8. Sistema de Mundo Persistente {#8-sistema-de-mundo-persistente}
 *   **Problema Actual:** El mundo del juego no persiste cambios entre sesiones. Cuando los jugadores derrotan enemigos, interactúan con objetos, o modifican el estado del mundo, estos cambios se pierden al recargar la partida o al volver a una ubicación. El sistema actual mantiene los enemigos derrotados en el estado del juego, pero no actualiza el `locationContext` original, lo que puede causar inconsistencias narrativas.
 *   **Mejora Propuesta:**
     *   **Sistema de Estado del Mundo:** Implementar un sistema que rastree y persista cambios en el mundo del juego (enemigos derrotados, objetos recogidos, puertas abiertas/cerradas, NPCs con actitudes modificadas, etc.)
@@ -254,7 +367,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   ✅ **Contexto explícito de cadáveres:** Se pasa una lista explícita de enemigos derrotados (`deadEntities`) al `ExplorationExpert` para que el DM sepa que debe describirlos como cadáveres, incluso si la descripción original del JSON los menciona como vivos
     *   ⚠️ **Limitación:** Esta solución funciona durante la sesión actual, pero no persiste entre recargas de página. Para persistencia completa, se requiere el sistema completo de "Mundo Persistente"
 
-### 8. Compendio de D&D Local - Base de Datos Local {#8-compendio-de-dd-local---base-de-datos-local}
+### 9. Compendio de D&D Local - Base de Datos Local {#9-compendio-de-dd-local---base-de-datos-local}
 *   **Problema Actual:** El sistema depende completamente de la API externa de D&D 5e para obtener información sobre monstruos, hechizos, reglas, etc. Esto causa latencia, dependencia de conectividad, y múltiples llamadas redundantes a la API.
 *   **Mejora Propuesta:**
     *   **Base de Datos Local:** Crear un sistema de base de datos local (SQLite recomendado) que almacene un compendio completo de conocimiento de D&D (fichas de monstruos, reglas, razas, clases, hechizos, equipamiento, etc.).
@@ -272,7 +385,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   **Base para RAG:** Esta infraestructura sentará las bases para futuras implementaciones de RAG y búsqueda semántica
 *   **Plan Detallado:** ✅ [Compendio de D&D Local](../planes-desarrollo/sin-comenzar/compendio-dnd-local.md)
 
-### 9. IA Conversacional Avanzada {#9-ia-conversacional-avanzada}
+### 10. IA Conversacional Avanzada {#10-ia-conversacional-avanzada}
 *   **Problema Actual:** Los compañeros de IA reaccionan de forma aislada a la acción del jugador, sin ser conscientes de lo que los otros compañeros han dicho en el mismo turno. El flujo es secuencial y el servidor devuelve todos los mensajes a la vez.
 *   **Mejora Propuesta:**
     *   **Arquitectura de Streaming:** Reemplazar el modelo actual de "una petición, una respuesta" por una comunicación persistente entre el cliente y el servidor (usando, por ejemplo, WebSockets o Server-Sent Events).
@@ -280,7 +393,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Impacto:** Lograría una dinámica de grupo mucho más orgánica y creíble, mejorando significativamente la inmersión.
 *   **Plan Detallado:** ❌ No creado
 
-### 10. Calidad y Profundidad de la IA {#10-calidad-y-profundidad-de-la-ia}
+### 11. Calidad y Profundidad de la IA {#11-calidad-y-profundidad-de-la-ia}
 *   **Mejora Propuesta: Implementación de RAG (Retrieval-Augmented Generation)**
     *   **Estado Actual:** La IA recupera información del mundo (lore, personajes) mediante búsquedas directas en archivos JSON por ID. No "comprende" el contexto, solo busca datos.
     *   **Salto Evolutivo:** Migrar a un sistema RAG donde el lore se almacena en una base de datos vectorial. Esto permitiría a herramientas como `narrativeExpert` hacer preguntas en lenguaje natural (ej: "¿Cuál es la historia de la Vieja Atalaya?", "¿Qué sabe Elara sobre el dragón Cryovain?").
@@ -324,7 +437,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
         - Issue #94 (Refactorización de Prompts de Tacticians) - Mejora adicional pendiente
 *   **Plan Detallado:** ❌ No creado (parcialmente implementado por Issue #117)
 
-### 11. Separación de IDs de Fichas de Personajes {#11-separación-de-ids-de-fichas-de-personajes}
+### 12. Separación de IDs de Fichas de Personajes {#12-separación-de-ids-de-fichas-de-personajes}
 *   **Problema Actual:** Las fichas de personajes (`new-game-data.ts`) incluyen IDs hardcodeados (ej: `id: "1"`, `id: "6"`, `id: "3"`). Esto mezcla datos de ficha (stats, habilidades, inventario) con metadatos del sistema (IDs para identificación interna). Las fichas deberían ser datos puros y portables, mientras que los IDs son una necesidad interna del procesamiento del juego.
 *   **Mejora Propuesta:**
     *   **Separación de Responsabilidades:** Crear una distinción clara entre `CharacterSheet` (ficha pura sin IDs) y `Character` (personaje en juego con ID generado).
@@ -345,7 +458,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Estado:** 📝 Documentado como mejora futura - No implementado
 *   **Plan Detallado:** ❌ No creado
 
-### 12. Sistema de Comprobación de Competencia en Tiradas {#12-sistema-de-comprobación-de-competencia-en-tiradas}
+### 13. Sistema de Comprobación de Competencia en Tiradas {#13-sistema-de-comprobación-de-competencia-en-tiradas}
 *   **Problema Actual:** El sistema aplica siempre el bonus de competencia (proficiency bonus) en las tiradas de ataque y otras tiradas, independientemente de si el personaje es competente o no en el arma, habilidad o herramienta que está usando. Por ejemplo, Galador usando un arco recibe el bonus de competencia aunque no tenga competencia con arcos.
 *   **Mejora Propuesta:**
     *   **Añadir Información de Competencias a Fichas:** Las fichas de personajes deben incluir información sobre las competencias del personaje (armas simples, armas marciales, armas específicas, herramientas, habilidades, etc.). Esta información debe estar estructurada y accesible para el sistema de combate.
@@ -362,7 +475,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     - Relacionado con Issue #121 (Fix Weapon Parsing) - El sistema ya identifica qué arma se usa
     - Relacionado con Roadmap #12 (Mejoras de Mecánicas de D&D 5e) - Parte del sistema completo de mecánicas
 
-### 13. Mejoras de Mecánicas de D&D 5e {#13-mejoras-de-mecánicas-de-dd-5e}
+### 14. Mejoras de Mecánicas de D&D 5e {#14-mejoras-de-mecánicas-de-dd-5e}
 *   **Estado Actual:** El sistema implementa las mecánicas básicas de D&D 5e, pero algunas reglas avanzadas están simplificadas o pendientes.
 *   **Mejoras Propuestas:**
     *   **Sistema Completo de Saving Throws:** Actualmente los hechizos con saving throws aplican daño automáticamente. Implementar cálculo de Spell Save DC, tirada de salvación del objetivo, y regla de mitad de daño si acierta.
@@ -396,7 +509,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   [Issues Tracker - Issue #22](../tracking/issues/pendientes.md#issue-22-sistema-completo-de-saving-throws-tiradas-de-salvación-del-objetivo-feature-incompleta)
     *   [Notas de Gael - #04, #10, #12, #13, #23, #24, #25, #26, #27, #36, #37, #38, #40, #45, #53, #68, #70, #71, #72, #121, #4](../notas/Notas%20de%20Gael.md)
 
-### 14. Actualización Automática de Fichas desde Archivos JSON {#14-actualización-automática-de-fichas-desde-archivos-json}
+### 15. Actualización Automática de Fichas desde Archivos JSON {#15-actualización-automática-de-fichas-desde-archivos-json}
 *   **Problema Actual:** Cuando se modifican los archivos JSON de las fichas de personajes, el panel de fichas del juego no se actualiza automáticamente, requiriendo recargar la partida.
 *   **Mejora Propuesta:**
     *   Implementar un sistema de detección de cambios en los archivos JSON de fichas de personajes.
@@ -407,7 +520,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Plan Detallado:** ❌ No creado
 *   **Referencia:** [Notas de Gael - #99](../notas/Notas%20de%20Gael.md)
 
-#### 13.1. Información de Dados de Daño de Armas en Fichas {#131-información-de-dados-de-daño-de-armas-en-fichas}
+#### 14.1. Información de Dados de Daño de Armas en Fichas {#141-información-de-dados-de-daño-de-armas-en-fichas}
 *   **Problema Actual:** La información de los dados de daño de cada arma no está incluida en las fichas de personajes, requiriendo que el DM consulte la API de D&D cada vez que se necesita esta información.
 *   **Mejora Propuesta:**
     *   Incluir la información de los dados de daño de cada arma en la ficha de cada personaje.
@@ -417,7 +530,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Plan Detallado:** ❌ No creado
 *   **Referencia:** [Notas de Gael - #117](../notas/Notas%20de%20Gael.md)
 
-### 15. Convertidor de PDF a JSON - Aplicación Auxiliar {#15-convertidor-de-pdf-a-json---aplicación-auxiliar}
+### 16. Convertidor de PDF a JSON - Aplicación Auxiliar {#16-convertidor-de-pdf-a-json---aplicación-auxiliar}
 *   **Problema Actual:** Añadir nuevas aventuras al juego requiere crear manualmente archivos JSON con una estructura específica, lo cual es tedioso y propenso a errores. Los usuarios que tienen aventuras en formato PDF no pueden usarlas directamente.
 *   **Mejora Propuesta:**
     *   **Aplicación Auxiliar Independiente:** Crear una aplicación CLI (y futuramente web) que analice PDFs de aventuras de D&D y los convierta automáticamente en JSON compatible con el juego.
@@ -431,7 +544,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   **Accesibilidad:** Permite a usuarios usar aventuras oficiales o homebrew en formato PDF
 *   **Plan Detallado:** ✅ [Convertidor de PDF a JSON](../planes-desarrollo/sin-comenzar/pdf-to-json-converter.md)
 
-### 16. Música y Sonido Dinámicos {#16-música-y-sonido-dinámicos}
+### 17. Música y Sonido Dinámicos {#17-música-y-sonido-dinámicos}
 *   **Problema Actual:** La experiencia de juego es silenciosa, careciendo de un fondo sonoro que ayude a la inmersión.
 *   **Mejora Propuesta:**
     *   Integrar un reproductor de audio que pueda cambiar la pista musical dinámicamente según el estado del juego (exploración, combate, localización específica).
@@ -445,7 +558,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 
 Mejoras de calidad de vida y características adicionales que mejoran la experiencia pero no son esenciales.
 
-### 17. Mejoras de Interfaz de Usuario {#17-mejoras-de-interfaz-de-usuario}
+### 18. Mejoras de Interfaz de Usuario {#18-mejoras-de-interfaz-de-usuario}
 *   **Mejoras Propuestas:**
     *   **Mejorar Input del Jugador Durante su Turno:** Cuando es el turno del jugador, el input debería mostrar "Es tu turno ¿Qué haces?" y posiblemente sugerir acciones disponibles (atacar, moverse, usar objeto, lanzar hechizo).
     *   **Mostrar Nombre de la Aventura:** La ventana del juego debería mostrar el nombre de la aventura que se está jugando en la barra superior/header.
@@ -470,7 +583,7 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
 *   **Plan Detallado:** ❌ No creado
 *   **Referencia:** [Notas de Gael - #08, #09, #14, #16, #57, #58, #59, #60, #61, #66, #100, #101, #103, #105, #106, #107, #108, #96, #95, #110](../notas/Notas%20de%20Gael.md)
 
-### 18. Mejoras de Sistema de Personajes y Compañeros {#18-mejoras-de-sistema-de-personajes-y-compañeros}
+### 19. Mejoras de Sistema de Personajes y Compañeros {#19-mejoras-de-sistema-de-personajes-y-compañeros}
 *   **Mejoras Propuestas:**
     *   **Editor de Party Inicial en Archivo JSON:** Mientras no hay editor y gestión de personajes, poder modificar la party inicial fácilmente en un archivo JSON. Facilitaría la configuración inicial de la partida sin necesidad de herramientas adicionales.
     *   **Sistema de Voces para Compañeros:** Mejorar el sistema de lectura para que los compañeros también pudiesen hablar y definir a cada uno una voz característica basada en su personalidad, sexo, raza, etc.
@@ -488,7 +601,7 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
 *   **Plan Detallado:** ❌ No creado
 *   **Referencia:** [Notas de Gael - #39, #42, #54, #56, #67, #73, #85, #87, #93, #98, #118, #120](../notas/Notas%20de%20Gael.md)
 
-### 19. Mejoras de Sistema de Aventuras y Datos {#19-mejoras-de-sistema-de-aventuras-y-datos}
+### 20. Mejoras de Sistema de Aventuras y Datos {#20-mejoras-de-sistema-de-aventuras-y-datos}
 *   **Mejoras Propuestas:**
     *   **Mejorar Generación de Introducciones:** Revisar la creación de introducciones para aventuras cargadas desde JSON que no traen una intro definida. La IA debería generar una introducción contextual y atractiva.
     *   **Cache de Parseo de Aventuras JSON:** El parseo de aventuras de JSON_adventures debería guardarse en caché para cargas más rápidas. Implementar sistema de verificación de si el parseo está actualizado (comparar fecha de modificación del JSON).
@@ -502,7 +615,7 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
 *   **Plan Detallado:** ❌ No creado
 *   **Referencia:** [Notas de Gael - #07, #15, #43, #55, #74, #94, #86, #97](../notas/Notas%20de%20Gael.md)
 
-### 20. Mejoras de Calidad y Pulido {#20-mejoras-de-calidad-y-pulido}
+### 21. Mejoras de Calidad y Pulido {#21-mejoras-de-calidad-y-pulido}
 *   **Mejoras Propuestas:**
     *   **Corrección Ortográfica de IA y Jugador:** Implementar corrección ortográfica para texto generado por las IAs y texto ingresado por el jugador (opcional, ayuda). Podría usar API de corrección o modelo de lenguaje.
     *   **Cambiar Nivel de Log para Fallos de API de D&D:** En los logs habría que cambiar que cuando falla el fetching de la API de D&D en vez de error sea un warning. Los fallos de API son esperables y no deberían tratarse como errores críticos si hay sistema de fallback.
@@ -515,12 +628,12 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
 *   **Plan Detallado:** ❌ No creado
 *   **Referencia:** [Notas de Gael - #11, #19, #41, #62, #111, #114, #124](../notas/Notas%20de%20Gael.md)
 
-### 21. Comandos de Voz {#21-comandos-de-voz}
+### 22. Comandos de Voz {#22-comandos-de-voz}
 *   **Mejora Propuesta:** Integrar la API de Reconocimiento de Voz del navegador (`SpeechRecognition`) para añadir un botón de "dictar" en la interfaz.
 *   **Impacto:** Aumentaría la accesibilidad y ofrecería una forma más rápida e inmersiva de interactuar, acercándose a la experiencia de una partida de rol de mesa.
 *   **Plan Detallado:** ❌ No creado
 
-### 22. Automatización del Versionado y Changelog {#22-automatización-del-versionado-y-changelog}
+### 23. Automatización del Versionado y Changelog {#23-automatización-del-versionado-y-changelog}
 *   **Estado Actual:** Se ha implementado un sistema manual para mantener un archivo `CHANGELOG.md`.
 *   **Objetivo Futuro:** Automatizar la actualización del `CHANGELOG.md` al cambiar la versión en `package.json`.
 *   **Impacto:** Es una mejora de calidad de vida para el desarrollador, sin impacto directo en la experiencia del jugador.

@@ -114,7 +114,7 @@ export type InteractionExpertInput = z.infer<typeof InteractionExpertInputSchema
 
 export const InteractionExpertOutputSchema = z.object({
   npcResponse: z.string().describe("The dialogue and actions of the NPC(s) in response to the player."),
-  attitudeChange: z.string().optional().describe("If the NPC's attitude changed, describe the new attitude and why."),
+  attitudeChange: z.string().nullable().optional().describe("If the NPC's attitude changed, describe the new attitude and why."),
   debugLogs: z.array(z.string()).optional(),
 });
 export type InteractionExpertOutput = z.infer<typeof InteractionExpertOutputSchema>;

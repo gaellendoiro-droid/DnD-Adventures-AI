@@ -10,7 +10,7 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 📋 Índice de Planes
 
-- [🚧 Planes en Curso](#-planes-en-curso) (1 plan activo)
+- [🚧 Planes en Curso](#-planes-en-curso) (2 planes activos)
 - [✅ Planes Completados](#-planes-completados) (15 planes)
 - [💡 Planes Sin Comenzar](#-planes-sin-comenzar-priorizados) (12 planes)
 - [🎯 Prioridades Estratégicas](#-prioridades-estratégicas)
@@ -20,7 +20,27 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** 1 plan activo | **Última implementación:** Issue #122 - Nombres de Enemigos (2025-11-23) - COMPLETADO
+**Estado:** 2 planes activos | **Última implementación:** Issue #122 - Nombres de Enemigos (2025-11-23) - COMPLETADO
+
+### [Issue #126 - Revisión Completa del Sistema de Carga de Aventuras JSON](en-curso/issue-126-revision-sistema-carga-aventuras.md) 🚧 **EN CURSO**
+- **Estado:** Plan creado, pendiente de inicio
+- **Objetivo:** Revisar, optimizar y mejorar completamente el sistema de carga de aventuras JSON y el flujo de inicio de partida
+- **Prioridad:** 🔴 Muy Alta (Crítico - Afecta experiencia inicial del juego)
+- **Problema:**
+  - Parseo con IA innecesario (2-5 segundos) solo para extraer título/resumen
+  - Manejo de errores genérico sin diferenciación de tipos
+  - Validación tardía e incompleta de estructura de datos
+  - Feedback limitado sin indicadores de progreso
+  - Código con múltiples responsabilidades
+- **Solución:**
+  - Validación temprana y completa antes del parseo con IA
+  - Parseo rápido sin IA (extracción directa de título/resumen)
+  - Sistema de clasificación de errores con mensajes específicos
+  - Feedback progresivo al usuario durante la carga
+  - Refactorización y separación de responsabilidades
+  - Sistema de caché mejorado
+- **Estimación:** 39-57 horas (6 fases)
+- **Referencia:** [Plan Detallado](en-curso/issue-126-revision-sistema-carga-aventuras.md) | [Issue #126](../tracking/issues/pendientes.md#issue-126-revisión-completa-del-sistema-de-carga-de-aventuras-json-e-inicio-de-partida-crítico) | [Informe Detallado](../tracking/issues/issue-126-informe-detallado.md)
 
 ### [Issue #121 - Fix Weapon Parsing Regression](en-curso/issue-121-fix-weapon-parsing.md) 🚧 **EN CURSO**
 - **Estado:** En desarrollo
@@ -457,11 +477,11 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 
 **Progreso Total:**
 - ✅ **15 planes completados** (incluyendo 1 parcialmente completado)
-- 🚧 **1 plan en curso** actualmente
+- 🚧 **2 planes en curso** actualmente
 - 📝 **12 planes sin comenzar** identificados y planificados
 
 **Distribución por Prioridad:**
-- **Prioridad Muy Alta:** 1 plan en curso (Issue #120)
+- **Prioridad Muy Alta:** 2 planes en curso (Issue #126, Issue #121)
 - **Prioridad Alta:** 6 planes pendientes
 - **Prioridad Media:** 8 planes pendientes (incluyendo 1 relacionado con testing)
 - **Prioridad Baja:** 2 planes pendientes
