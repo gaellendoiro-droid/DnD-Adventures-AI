@@ -13,7 +13,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ---
 
-## [Unreleased]
+## [0.5.8] - 2025-11-24
 
 ### Added
 - **🎙️ Integración Completa de Eleven Labs TTS (2025-11-24):**
@@ -203,6 +203,10 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
   - **Archivos modificados:**
     - `src/lib/adventure-loader/game-initializer.ts` - Corregido formato de mensaje
   - **Impacto:** Crítico - Sin este fix, la funcionalidad de introducción pre-generada no era visible para el usuario
+
+---
+
+## [Unreleased]
 
 ---
 
