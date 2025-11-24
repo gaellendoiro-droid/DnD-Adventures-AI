@@ -13,9 +13,27 @@
  */
 
 import { log } from '@/lib/logger';
-import { retryWithExponentialBackoff } from '@/ai/flows/retry-utils';
+import { retryWithExponentialBackoff, prewarmConnection } from '@/ai/flows/retry-utils';
 
 const BASE_URL = 'https://www.dnd5eapi.co/api';
+
+/**
+ * Cache para rastrear si ya se hizo pre-warm a esta API
+ */
+const prewarmedApis = new Set<string>();
+
+/**
+ * Pre-warm the D&D API connection if not already done
+ */
+async function ensureDndApiPrewarmed(): Promise<void> {
+    if (prewarmedApis.has(BASE_URL)) {
+        return; // Ya se hizo pre-warm
+    }
+    
+    // BASE_URL ya incluye '/api', así que usamos '/' como path
+    await prewarmConnection(BASE_URL, '/');
+    prewarmedApis.add(BASE_URL);
+}
 
 /**
  * Unified Spanish to English mapping for D&D API lookups.
@@ -228,6 +246,9 @@ export async function fetchResource(
         return cached;
     }
     
+    // Pre-warm la conexión antes de la primera llamada real (solo si no está en caché)
+    await ensureDndApiPrewarmed();
+    
     // Check if there's already a pending request for this resource
     if (pendingRequests.has(cacheKey)) {
         log.debug('Waiting for pending request for D&D API resource', {
@@ -383,6 +404,9 @@ export async function searchResource(
         });
         return cached;
     }
+    
+    // Pre-warm la conexión antes de la primera llamada real (solo si no está en caché)
+    await ensureDndApiPrewarmed();
     
     // Check if there's already a pending request for this search
     if (pendingRequests.has(cacheKey)) {

@@ -1,0 +1,96 @@
+{
+    "adventureId": "template-adventure-id",
+    "title": "Nombre de la Aventura (Plantilla)",
+    "summary": "Un breve resumen de la aventura para mostrar en el menú de selección.",
+    "introductoryNarration": "Texto narrativo que se mostrará al iniciar la partida. Útil para establecer el tono y la escena inicial sin esperar a la generación de IA.",
+    "system": "D&D 5e",
+    "levelRange": {
+        "start": 1,
+        "end": 3
+    },
+    "credits": {
+        "author": "Nombre del Autor",
+        "source": "PDF Original o Fuente"
+    },
+    "settings": {
+        "startingLocationId": "loc-start",
+        "initialPartySize": 4
+    },
+    "locations": [
+        {
+            "id": "loc-start",
+            "title": "Punto de Inicio",
+            "name": "Entrada de la Cueva",
+            "type": "point_of_interest",
+            "description": "Descripción detallada de la ubicación que verá el jugador. Debe incluir detalles sensoriales.",
+            "dmNotes": "Notas secretas para el DM. Trampas, CDs de pruebas, tesoros ocultos.",
+            "exits": [
+                {
+                    "toLocationId": "loc-room-1",
+                    "direction": "north",
+                    "description": "Un túnel oscuro que se adentra en la montaña."
+                }
+            ],
+            "interactables": [
+                {
+                    "name": "Cartel Viejo",
+                    "description": "Un cartel de madera podrida.",
+                    "interactionResults": [
+                        {
+                            "action": "Leer",
+                            "result": "Apenas se lee: 'Peligro - Goblins'"
+                        }
+                    ]
+                }
+            ],
+            "entitiesPresent": [],
+            "items": []
+        },
+        {
+            "id": "loc-room-1",
+            "title": "Sala de Guardia",
+            "description": "Una sala pequeña con olor a humedad.",
+            "type": "room",
+            "exits": [
+                {
+                    "toLocationId": "loc-start",
+                    "direction": "south",
+                    "description": "La salida hacia el exterior."
+                }
+            ],
+            "entitiesPresent": [
+                "goblin-guard"
+            ]
+        }
+    ],
+    "entities": [
+        {
+            "id": "goblin-guard",
+            "name": "Goblin Guardia",
+            "baseType": "goblin",
+            "isUnique": false,
+            "description": "Un goblin pequeño y maloliente con una lanza oxidada.",
+            "behavior": "hostile",
+            "stats": {
+                "hp": 7,
+                "ac": 15
+            }
+        }
+    ],
+    "narrativeScenes": [
+        {
+            "id": "scene-ambush",
+            "text": "¡De repente, sombras se mueven en el techo! Varios goblins saltan con cuchillos en los dientes.",
+            "triggerCondition": "enter_location:loc-room-1"
+        }
+    ],
+    "events": [
+        {
+            "id": "event-ambush-trigger",
+            "trigger": "enter_location",
+            "locationId": "loc-room-1",
+            "action": "play_scene",
+            "target": "scene-ambush"
+        }
+    ]
+}

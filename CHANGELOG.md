@@ -13,6 +13,199 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ---
 
+## [Unreleased]
+
+### Added
+- **🎙️ Integración Completa de Eleven Labs TTS (2025-11-24):**
+  - **Mejora:** Sistema de texto a voz completamente funcional usando Eleven Labs API, reemplazando Google Gemini TTS.
+  - **Características:**
+    - ✅ Integración con API de Eleven Labs vía API route interna
+    - ✅ Soporte para configuración de voz personalizada (Voice ID)
+    - ✅ Parámetros de calidad configurables (stability, similarityBoost, style, useSpeakerBoost)
+    - ✅ Formato de audio MP3 (más eficiente que WAV)
+    - ✅ Manejo robusto de errores (401, 404, 429, quota exceeded)
+    - ✅ Sistema de reintentos con exponential backoff integrado
+    - ✅ Pre-warm de conexión para evitar timeouts en primer intento
+    - ✅ Truncamiento automático de textos largos (5000 caracteres) para evitar exceder quota
+  - **Optimizaciones:**
+    - Timeout aumentado a 60 segundos para dar más tiempo a la conexión inicial
+    - Delay de reintentos reducido a 500ms para respuestas más rápidas
+    - Pre-warm de conexión antes de cada petición para evitar timeouts de 10s
+  - **Archivos creados/modificados:**
+    - `src/lib/tts/eleven-labs-client.ts` - Cliente principal de Eleven Labs
+    - `src/app/api/generate-audio/route.ts` - API route para generación de audio
+    - `src/ai/flows/generate-dm-narration-audio.ts` - Flujo actualizado para usar Eleven Labs
+    - `docs/configuracion/eleven-labs-setup.md` - Documentación de configuración
+    - `scripts/get-elevenlabs-voices.ts` - Script para listar voces disponibles
+    - `scripts/diagnose-elevenlabs.ts` - Script de diagnóstico
+  - **Impacto:** Alto - Mejora significativa en velocidad y calidad del audio del DM
+  - **Relacionado con:** [Plan de Integración de Eleven Labs TTS](../docs/planes-desarrollo/en-curso/integracion-eleven-labs-tts.md)
+
+- **⚡ Sistema de Pre-warm de Conexiones para APIs (2025-11-24):**
+  - **Mejora:** Implementación de pre-warm de conexiones TCP/TLS para evitar timeouts en el primer intento de todas las APIs externas.
+  - **APIs optimizadas:**
+    - ✅ Eleven Labs API - Pre-warm antes de cada generación de audio
+    - ✅ D&D 5e API - Pre-warm en primera llamada con caché para evitar múltiples pre-warms
+    - ✅ Google Gemini API - Pre-warm automático en primer uso de `executePromptWithRetry`
+  - **Beneficios:**
+    - Elimina fallos en el primer intento (timeout de 10s de undici)
+    - Reduce necesidad de reintentos automáticos
+    - Mejora velocidad de respuesta general del sistema
+    - Ahorro de tiempo: de ~17s (con reintento) a ~4-6s (sin reintento necesario)
+  - **Implementación:**
+    - Función genérica `prewarmConnection()` en `retry-utils.ts`
+    - Reutilizable para todas las APIs del proyecto
+    - Manejo silencioso de errores (no crítico si falla)
+  - **Archivos modificados:**
+    - `src/ai/flows/retry-utils.ts` - Función genérica de pre-warm
+    - `src/app/api/generate-audio/route.ts` - Pre-warm para Eleven Labs
+    - `src/lib/dnd-api-client.ts` - Pre-warm para D&D API con caché
+    - `src/ai/flows/retry-utils.ts` - Pre-warm automático para Gemini en `executePromptWithRetry`
+  - **Impacto:** Alto - Elimina un problema recurrente que afectaba a todas las APIs
+
+- **🔄 Refactorización de Llamadas a Prompts de Gemini (2025-11-24):**
+  - **Mejora:** Todas las llamadas directas a prompts de Genkit ahora usan `executePromptWithRetry` para consistencia y beneficios automáticos.
+  - **Cambios:**
+    - `narrativeRouterPrompt` y `narrativeSynthesizerPrompt` en `narrative-manager.ts`
+    - `reactionGenerationPrompt` en `companion-expert.ts`
+    - `oocAssistantPrompt` en `ooc-assistant.ts`
+  - **Beneficios:**
+    - Pre-warm automático de Gemini API
+    - Retries automáticos con exponential backoff
+    - Logging consistente con `flowName`
+    - Código más mantenible y unificado
+  - **Archivos modificados:**
+    - `src/ai/flows/narrative-manager.ts`
+    - `src/ai/tools/companion-expert.ts`
+    - `src/ai/flows/ooc-assistant.ts`
+  - **Impacto:** Medio - Mejora la robustez y consistencia del sistema
+
+- **📋 Plan de Sistema de Caché para TTS (2025-11-24):**
+  - **Planificación:** Creado plan detallado para implementar sistema de caché de audio generado con Eleven Labs.
+  - **Objetivos:**
+    - Evitar regenerar audio para textos ya convertidos
+    - Ahorro de costos (30-50% menos llamadas a API)
+    - Respuesta instantánea para textos cacheados (< 100ms vs 3-6s)
+    - Especialmente útil para narraciones de introducción que son siempre las mismas
+  - **Diseño:**
+    - Caché híbrido (memoria + disco)
+    - Sistema LRU para gestión de espacio
+    - Clave de caché basada en hash del texto + configuración
+  - **Estado:** 📋 PLANIFICADO - Listo para implementación
+  - **Relacionado con:** [Plan de Sistema de Caché TTS](../docs/planes-desarrollo/en-curso/sistema-cache-tts.md)
+- **⚡ Soporte para Narraciones Pre-generadas en Aventuras JSON (2025-11-24):**
+  - **Mejora:** El sistema ahora soporta narraciones introductorias pre-generadas en los archivos JSON de aventuras mediante el campo `introductoryNarration` (o alias `openingScene`).
+  - **Beneficios:**
+    - ✅ **Carga Instantánea:** Elimina la llamada a la IA para generar la introducción (ahorro de 3-5 segundos)
+    - ✅ **Calidad Consistente:** Permite curar y perfeccionar la introducción de cada aventura
+    - ✅ **Fallback Inteligente:** Si el JSON no incluye introducción, el sistema genera una con IA automáticamente
+  - **Implementación:**
+    1. Actualizado `GameInitializer` para verificar primero si existe `introductoryNarration` o `openingScene` en el JSON
+    2. Si existe, usa el texto directamente sin llamar a `processPlayerAction`
+    3. Si no existe, mantiene el comportamiento anterior (generación con IA)
+    4. Añadida introducción narrativa a "El Dragón del Pico Agujahelada" como ejemplo
+  - **Esquema JSON:** Añadidos campos `introductoryNarration`, `openingScene`, `narrativeScenes` al `AdventureDataSchema`
+  - **Archivos modificados:**
+    - `src/lib/adventure-loader/game-initializer.ts` - Lógica de selección intro pre-generada vs IA
+    - `src/lib/schemas.ts` - Actualizado `AdventureDataSchema` con nuevos campos
+    - `JSON_adventures/adventure.schema.json` - Esquema JSON formal
+    - `JSON_adventures/el-dragon-del-pico-agujahelada.json` - Añadida introducción
+  - **Impacto:** Alto - Mejora drástica del tiempo de carga y calidad narrativa
+  - **Relacionado con:** Plan "Definición de Estructura Base para Aventuras JSON"
+
+- **✨ Sistema de Modificadores de Skills Pre-calculados (2025-11-24):**
+  - **Mejora:** Los modificadores de habilidades ahora se calculan y almacenan directamente en las fichas de personajes.
+  - **Implementación:**
+    1. Añadido campo `modifier: number` al schema de skills en `CharacterSchema`
+    2. Calculados modificadores para todos los personajes: `modificador_atributo + (proficient ? proficiencyBonus : 0)`
+    3. Actualizada UI para mostrar modificadores junto a cada skill
+  - **Beneficios:**
+    - ✅ **Fuente única de verdad:** Valores en los datos del personaje, no en lógica de UI
+    - ✅ **Consistencia:** Todos los componentes ven los mismos valores
+    - ✅ **Rendimiento:** Cálculo una vez al crear/cargar personaje
+    - ✅ **Disponible para IA:** Modificadores accesibles cuando la IA los necesite
+  - **Archivos modificados:**
+    - `src/lib/schemas.ts` - Añadido campo `modifier` a skills
+    - `src/lib/new-game-data.ts` - Calculados modificadores para Galador, Merryl y Elara
+    - `src/components/game/character-sheet.tsx` - Mostrar modificadores en UI
+  - **Impacto:** Medio - Mejora la arquitectura y facilita futuras funcionalidades
+
+### Changed
+- **⚡ Optimización de Sistema de Reintentos y Conexiones (2025-11-24):**
+  - **Mejora:** Optimización del sistema de reintentos y manejo de conexiones para todas las APIs externas.
+  - **Cambios:**
+    - Timeout aumentado de 30s a 60s en API route de Eleven Labs
+    - Delay inicial de reintentos reducido de 1000ms a 500ms
+    - Integración de función de retry estándar del proyecto (`retryWithExponentialBackoff`) en Eleven Labs TTS
+    - Pre-warm de conexiones implementado para Eleven Labs, D&D API y Gemini API
+  - **Beneficios:**
+    - Reducción de tiempo de respuesta cuando hay errores de conexión
+    - Menos reintentos necesarios gracias al pre-warm
+    - Código más consistente usando funciones estándar del proyecto
+  - **Archivos modificados:**
+    - `src/lib/tts/eleven-labs-client.ts` - Usa `retryWithExponentialBackoff` estándar
+    - `src/app/api/generate-audio/route.ts` - Timeout aumentado, pre-warm agregado
+    - `src/lib/dnd-api-client.ts` - Pre-warm con caché
+    - `src/ai/flows/retry-utils.ts` - Función genérica de pre-warm
+  - **Impacto:** Medio - Mejora la velocidad y robustez del sistema
+
+- **🎨 Mejoras de Compactación de UI - Panel Derecho (2025-11-24):**
+  - **Objetivo:** Hacer la interfaz más compacta y eficiente en el uso del espacio vertical.
+  - **Cambios implementados:**
+    1. **Panel Derecho Colapsable:**
+       - Reemplazado `ResizablePanelGroup` con layout flex colapsable
+       - Añadido estado `isPartyPanelCollapsed` para controlar visibilidad de `PartyPanel`
+       - Botones de colapso/expansión con iconos `ChevronUp`/`ChevronDown`
+       - Cuando colapsado, `CharacterSheet` ocupa toda la altura
+    2. **PartyPanel Compacto:**
+       - Reducido padding de header, tamaño de iconos y títulos
+       - Cards de personajes más compactos (padding, spacing, elementos reducidos)
+       - HP bar y texto más pequeños
+    3. **CharacterSheet Compacto:**
+       - Reducido padding y spacing general
+       - Headers, ability scores y list items más compactos
+       - **Skills en Grid 2 Columnas:** Competencias ahora en layout de 2 columnas
+       - **Badges Pequeños:** Texto `[9px]`, altura `h-4`, "Comp." abreviado
+       - **Skills Competentes en Negrita:** Nombres de skills competentes resaltados
+       - **Orden Mejorado:** Badge "Comp." antes del modificador
+       - **Inventario/Conjuros:** Spacing reducido, descripciones limitadas a 2 líneas
+  - **Beneficios:**
+    - ✅ Mejor uso del espacio vertical
+    - ✅ Menos scroll necesario
+    - ✅ Información más densa pero legible
+    - ✅ Skills competentes fácilmente identificables
+  - **Archivos modificados:**
+    - `src/components/game/game-view.tsx` - Layout colapsable del panel derecho
+    - `src/components/game/party-panel.tsx` - Diseño compacto
+    - `src/components/game/character-sheet.tsx` - Diseño compacto y grid de skills
+
+### Removed
+- **🗑️ Eliminado Botón de Dados del Chat (2025-11-24):**
+  - **Razón:** El botón de dados no se estaba utilizando y ocupaba espacio innecesario.
+  - **Cambios:**
+    - Eliminado componente `DiceRoller` del `PlayerInput`
+    - Eliminado prop `onDiceRoll` de `ChatPanel` y `PlayerInput`
+    - Eliminado estado `isDicePopoverOpen`
+    - Eliminados imports relacionados
+  - **Beneficios:**
+    - ✅ Interfaz más limpia y enfocada
+    - ✅ Menos complejidad en el código
+    - ✅ Input de texto más amplio
+  - **Archivos modificados:**
+    - `src/components/game/player-input.tsx` - Eliminado DiceRoller
+    - `src/components/game/chat-panel.tsx` - Eliminado prop onDiceRoll
+
+### Fixed
+- **✅ Formato de Mensaje de Introducción Pre-generada (2025-11-24):**
+  - **Problema:** Al usar introducción pre-generada del JSON, el mensaje del DM aparecía vacío en la interfaz.
+  - **Causa:** El mensaje se creaba con campos `text` y `timestamp: number`, pero la interfaz `GameMessage` espera `content` y `timestamp: string (ISO)`.
+  - **Solución:** Corregido el formato del mensaje en `GameInitializer` para usar `content` en lugar de `text` y `new Date().toISOString()` para el timestamp.
+  - **Archivos modificados:**
+    - `src/lib/adventure-loader/game-initializer.ts` - Corregido formato de mensaje
+  - **Impacto:** Crítico - Sin este fix, la funcionalidad de introducción pre-generada no era visible para el usuario
+
+---
+
 ## [0.5.7] - 2025-01-23
 
 ### Fixed
@@ -294,6 +487,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - `docs/arquitectura/guia-estilo-logging.md` - Nueva guía de estilo
     - `docs/arquitectura/sistema-logging.md` - Actualizado con referencia a guía de estilo
     - `docs/roadmap.md` - Marcado como completado
+```
     - `docs/planes-desarrollo/plan-maestro.md` - Actualizado estado
     - Múltiples archivos corregidos (ver lista arriba)
   - **Referencia:** [Roadmap - Estandarización de Niveles de Logging](../../docs/roadmap.md#0-estandarización-de-niveles-de-logging--completado)
@@ -301,6 +495,27 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ---
 
 ## [Unreleased]
+
+### Changed
+- **✅ Sistema de Carga de Aventuras Revisado (Issue #126) (2025-11-23):**
+  - **Problema:** El sistema anterior dependía excesivamente de la IA para parsear JSONs, era lento (10-15s), propenso a errores de alucinación, y carecía de validación robusta y feedback visual.
+  - **Solución implementada:** Rediseño completo con arquitectura modular (`adventure-parser`, `validator`, `adventure-cache`, `game-initializer`).
+  - **Características Clave:**
+    1.  **Fast Parser:** Intenta leer el JSON directamente primero. Carga instantánea (<1s) para archivos bien formados. Fallback a IA solo si es necesario.
+    2.  **Validación Robusta:** Esquema Zod estricto + validación de integridad referencial (detecta enlaces rotos en `exits` y IDs duplicados).
+    3.  **Caché Persistente:** Almacena aventuras procesadas en disco (`node_modules/.cache/dnd-adventures`), sobreviviendo a reinicios del servidor.
+    4.  **Feedback Visual:** Nuevo componente `AdventureLoadProgress` que muestra cada paso (Parseando, Validando, Conectando, Inicializando, Narrando).
+    5.  **Inicio Limpio:** Forzado silencio de compañeros en el turno 0 para que solo el DM narre la introducción.
+  - **Beneficios:**
+    - 🚀 Carga inmediata para la mayoría de aventuras.
+    - 🛡️ Imposible cargar aventuras rotas que crashearían el juego después.
+    - 💾 Persistencia entre sesiones de desarrollo.
+    - 👁️ UX muy superior con feedback claro.
+  - **Archivos modificados:**
+    - `src/app/page.tsx` - Orquestación completa y UI de progreso.
+    - `src/lib/adventure-loader/*` - Nuevos módulos del sistema.
+    - `src/ai/flows/parse-adventure-from-json.ts` - Integración con caché y fast parser.
+  - **Referencia:** [Plan Completado](../../docs/planes-desarrollo/completados/issue-126-revision-sistema-carga-aventuras.md) | [Arquitectura](../../docs/arquitectura/sistema-carga-aventuras.md)
 
 ---
 
@@ -1271,6 +1486,8 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
   - Modificado `logger-client.ts` para enviar automáticamente logs al servidor
   - Los logs del cliente ahora aparecen en la terminal del servidor con formato estructurado
   - Documentación completa del sistema en `docs/arquitectura/sistema-logging.md`
+- Implementado nuevo sistema de carga de aventuras modular (Parser, Validator, Cache).
+- Añadida sanitización inteligente: las referencias rotas se convierten automáticamente en elementos interactuables ("Camino Bloqueado") para preservar la descripción narrativa sin romper el juego.
 - **Plan de Saneamiento General:** Completada revisión sistemática de la aplicación identificando y corrigiendo 12 issues (10 corregidos, 3 mejoras opcionales documentadas).
   - Documentación completa de todos los issues encontrados en `docs/planes-desarrollo/issues-encontrados.md`
   - Plan de saneamiento documentado en `docs/planes-desarrollo/completados/saneamiento-general.md`

@@ -4,23 +4,20 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Dices } from "lucide-react";
+import { Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { DiceRoller } from "./dice-roller";
 
 interface PlayerInputProps {
   onSendMessage: (content: string) => void;
-  onDiceRoll: (roll: { result: number; sides: number }) => void;
   disabled?: boolean;
   isPlayerTurn?: boolean;
   waitingForTurnAdvance?: boolean;
   isDMThinking?: boolean;
 }
 
-export function PlayerInput({ onSendMessage, onDiceRoll, disabled = false, isPlayerTurn = false, waitingForTurnAdvance = false, isDMThinking = false }: PlayerInputProps) {
+export function PlayerInput({ onSendMessage, disabled = false, isPlayerTurn = false, waitingForTurnAdvance = false, isDMThinking = false }: PlayerInputProps) {
   const [inputValue, setInputValue] = useState("");
   const { toast } = useToast();
-  const [isDicePopoverOpen, setIsDicePopoverOpen] = useState(false);
 
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -51,7 +48,6 @@ export function PlayerInput({ onSendMessage, onDiceRoll, disabled = false, isPla
   return (
     <div className="space-y-2">
       <form onSubmit={handleSubmit} className="flex items-start gap-2">
-        <DiceRoller onRoll={onDiceRoll} onPopoverOpenChange={setIsDicePopoverOpen} />
         <Textarea
           id="player-action-input"
           name="player-action"
@@ -73,9 +69,9 @@ export function PlayerInput({ onSendMessage, onDiceRoll, disabled = false, isPla
           }
           className="flex-1 resize-none"
           rows={1}
-          disabled={disabled || isDicePopoverOpen}
+          disabled={disabled}
         />
-        <Button type="submit" size="icon" aria-label="Enviar acción" disabled={disabled || isDicePopoverOpen}>
+        <Button type="submit" size="icon" aria-label="Enviar acción" disabled={disabled}>
           <Send className="h-5 w-5" />
         </Button>
       </form>

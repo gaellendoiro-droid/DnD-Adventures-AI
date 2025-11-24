@@ -2,6 +2,7 @@
   "adventureId": "el-dragon-del-pico-agujahelada",
   "title": "El Dragón del Pico Agujahelada",
   "summary": "Un joven dragón blanco llamado Cryovain ha reclamado el Pico Agujahelada como su dominio, desplazando a orcos y otras criaturas que ahora amenazan la región alrededor del pueblo de Phandalin. Los aventureros deben emprender misiones para proteger a los habitantes y, finalmente, enfrentarse al dragón en su guarida.",
+  "introductoryNarration": "El sol de la tarde baña las calles polvorientas de Phandalin mientras vuestro grupo se aproxima al modesto pueblo fronterizo. Las montañas que se alzan al este proyectan largas sombras sobre las construcciones de madera, y entre ellas destaca el imponente Pico Agujahelada, cuya cima nevada brilla con un resplandor gélido.\n\nLos rumores que os trajeron aquí hablan de un joven dragón blanco que ha reclamado la montaña como su territorio, sembrando el terror entre los habitantes de la región. Orcos desplazados de sus guaridas, criaturas salvajes huyendo hacia el valle, y el constante temor a que el dragón Cryovain descienda sobre Phandalin han convertido este lugar en un polvorín de tensión y miedo.\n\nOs encontráis ahora en la plaza del pueblo, donde algunos aldeanos os observan con una mezcla de esperanza y escepticismo. El viento trae consigo un aire frío que no es natural para esta época del año, como si la presencia del dragón hubiera enfriado el corazón mismo de estas tierras.",
   "table_of_contents": {
     "locations": [
       {

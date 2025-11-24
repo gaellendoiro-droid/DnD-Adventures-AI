@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { characterLookupTool } from './character-lookup';
 import { PartySchema, CharacterSchema } from '@/lib/schemas';
 import { log } from '@/lib/logger';
+import { executePromptWithRetry } from '../flows/retry-utils';
 
 const CompanionExpertInputSchema = z.object({
   party: PartySchema.describe("The array of character objects for the entire party."),
@@ -117,12 +118,17 @@ export const companionExpertTool = ai.defineTool(
             });
 
             // STEP 2: Call the LLM with all context provided. No tools needed.
-            const { output } = await reactionGenerationPrompt({
-                character: characterData,
-                context: context,
-                isBeforeDm: input.reactionTiming === 'before_dm',
-                isAfterDm: input.reactionTiming === 'after_dm' || !input.reactionTiming,
-            });
+            const response = await executePromptWithRetry(
+                reactionGenerationPrompt,
+                {
+                    character: characterData,
+                    context: context,
+                    isBeforeDm: input.reactionTiming === 'before_dm',
+                    isAfterDm: input.reactionTiming === 'after_dm' || !input.reactionTiming,
+                },
+                { flowName: 'companionExpert' }
+            );
+            const { output } = response;
             
             if (!output) {
                 log.warn('No output from companion reaction prompt', { 

@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
 import { characterLookupTool } from '../tools/character-lookup';
+import { executePromptWithRetry } from './retry-utils';
 import {
     NarrativeExpertInputSchema,
     NarrativeExpertOutputSchema,
@@ -25,7 +26,6 @@ import {
 import { explorationExpert } from './experts/exploration-expert';
 import { interactionExpert } from './experts/interaction-expert';
 import { log } from '@/lib/logger';
-import { executePromptWithRetry } from './retry-utils';
 
 // --- Internal Schemas ---
 
@@ -146,10 +146,14 @@ export const narrativeManagerFlow = ai.defineFlow(
 
             // 2. Routing (Normal Mode)
             localLog("NarrativeManager: Routing action...");
-            const routerResponse = await narrativeRouterPrompt({
-                playerAction: input.playerAction,
-                interpretedAction: input.interpretedAction
-            });
+            const routerResponse = await executePromptWithRetry(
+                narrativeRouterPrompt,
+                {
+                    playerAction: input.playerAction,
+                    interpretedAction: input.interpretedAction
+                },
+                { flowName: 'narrativeRouter' }
+            );
             const classification = routerResponse.output?.classification || 'EXPLORATION'; // Default to exploration
             localLog(`NarrativeManager: Classification = ${classification}`);
 
@@ -202,11 +206,15 @@ export const narrativeManagerFlow = ai.defineFlow(
 
                 // Synthesize
                 localLog("NarrativeManager: Synthesizing results...");
-                const synthesis = await narrativeSynthesizerPrompt({
-                    explorationText: expResult.explorationNarration,
-                    interactionText: intResult.npcResponse,
-                    originalAction: input.playerAction
-                });
+                const synthesis = await executePromptWithRetry(
+                    narrativeSynthesizerPrompt,
+                    {
+                        explorationText: expResult.explorationNarration,
+                        interactionText: intResult.npcResponse,
+                        originalAction: input.playerAction
+                    },
+                    { flowName: 'narrativeSynthesizer' }
+                );
                 finalNarration = synthesis.output?.finalNarration || `${expResult.explorationNarration}\n\n${intResult.npcResponse}`;
             }
 

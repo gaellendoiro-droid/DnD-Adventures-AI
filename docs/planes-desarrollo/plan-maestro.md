@@ -10,8 +10,8 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 📋 Índice de Planes
 
-- [🚧 Planes en Curso](#-planes-en-curso) (2 planes activos)
-- [✅ Planes Completados](#-planes-completados) (15 planes)
+- [🚧 Planes en Curso](#-planes-en-curso) (0 planes activos)
+- [✅ Planes Completados](#-planes-completados) (19 planes)
 - [💡 Planes Sin Comenzar](#-planes-sin-comenzar-priorizados) (12 planes)
 - [🎯 Prioridades Estratégicas](#-prioridades-estratégicas)
 - [📊 Resumen Ejecutivo](#-resumen-ejecutivo)
@@ -20,50 +20,45 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** 2 planes activos | **Última implementación:** Issue #122 - Nombres de Enemigos (2025-11-23) - COMPLETADO
+**Estado:** 0 planes activos | **Última implementación:** Definición de Estructura Base para Aventuras JSON (2025-11-24) - COMPLETADO
 
-### [Issue #126 - Revisión Completa del Sistema de Carga de Aventuras JSON](en-curso/issue-126-revision-sistema-carga-aventuras.md) 🚧 **EN CURSO**
-- **Estado:** Plan creado, pendiente de inicio
-- **Objetivo:** Revisar, optimizar y mejorar completamente el sistema de carga de aventuras JSON y el flujo de inicio de partida
-- **Prioridad:** 🔴 Muy Alta (Crítico - Afecta experiencia inicial del juego)
-- **Problema:**
-  - Parseo con IA innecesario (2-5 segundos) solo para extraer título/resumen
-  - Manejo de errores genérico sin diferenciación de tipos
-  - Validación tardía e incompleta de estructura de datos
-  - Feedback limitado sin indicadores de progreso
-  - Código con múltiples responsabilidades
-- **Solución:**
-  - Validación temprana y completa antes del parseo con IA
-  - Parseo rápido sin IA (extracción directa de título/resumen)
-  - Sistema de clasificación de errores con mensajes específicos
-  - Feedback progresivo al usuario durante la carga
-  - Refactorización y separación de responsabilidades
-  - Sistema de caché mejorado
-- **Estimación:** 39-57 horas (6 fases)
-- **Referencia:** [Plan Detallado](en-curso/issue-126-revision-sistema-carga-aventuras.md) | [Issue #126](../tracking/issues/pendientes.md#issue-126-revisión-completa-del-sistema-de-carga-de-aventuras-json-e-inicio-de-partida-crítico) | [Informe Detallado](../tracking/issues/issue-126-informe-detallado.md)
-
-### [Issue #121 - Fix Weapon Parsing Regression](en-curso/issue-121-fix-weapon-parsing.md) 🚧 **EN CURSO**
-- **Estado:** En desarrollo
-- **Objetivo:** Restaurar la funcionalidad de ataques de jugadores implementando parsing robusto de nombres de armas
-- **Prioridad:** 🔴 Muy Alta (Crítico - Bloquea ataques de jugadores)
-- **Problema:**
-  - Tras Issue #120, el sistema pasa toda la acción del jugador como `weaponQuery`
-  - Busca armas con nombres como "Ataco al goblin 1" en lugar de extraer el nombre del arma
-  - Bloquea completamente los ataques de jugadores en combate
-- **Solución:**
-  - Implementar función `extractWeaponName()` para parsear acciones de jugador
-  - Extraer nombres de armas de patrones comunes ("con [arma]", "mi [arma]", etc.)
-  - Fallback seguro a `'ataque'` si no se menciona arma específica
-- **Estimación:** 1-2 horas
-- **Referencia:** [Plan Detallado](en-curso/issue-121-fix-weapon-parsing.md) | [Issue #121](../tracking/issues/pendientes.md#issue-121-regresión-en-parsing-de-armas-en-ataques-de-jugador--crítico)
+> Actualmente no hay planes en curso.
 
 ---
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 16 planes
+**Estado:** Finalizados | **Cantidad:** 19 planes
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Definición de Estructura Base para Aventuras JSON](completados/definicion-estructura-json-aventuras.md) ✅ **COMPLETADO**
+- **Estado:** Todas las 4 fases completadas y documentadas
+- **Objetivo:** Definir un esquema JSON estándar y robusto para aventuras, incluyendo soporte para narraciones pre-generadas (intro y cutscenes)
+- **Prioridad:** Alta
+- **Resultados:**
+  - ✅ **JSON Schema:** Creado `JSON_adventures/adventure.schema.json` para validación formal
+  - ✅ **Tipos TypeScript:** Actualizado `AdventureDataSchema` en `src/lib/schemas.ts`
+  - ✅ **Plantilla:** Creada `JSON_adventures/_template.json` con ejemplos completos
+  - ✅ **Documentación:** Creada guía de formato en `docs/arquitectura/formato-aventura-json.md`
+- **Fecha de finalización:** 2025-11-24
+- **Referencia:** [Plan Detallado](completados/definicion-estructura-json-aventuras.md)
+
+### [Issue #126 - Revisión Completa del Sistema de Carga de Aventuras JSON](completados/issue-126-revision-sistema-carga-aventuras.md) ✅ **COMPLETADO**
+- **Estado:** Todas las 6 fases completadas y documentadas
+- **Objetivo:** Revisar, optimizar y mejorar completamente el sistema de carga de aventuras JSON y el flujo de inicio de partida
+- **Prioridad:** 🔴 Muy Alta (Crítico)
+- **Resultados:**
+  - ✅ **Fast Parser:** Carga instantánea (<1s) para archivos bien formados (sin IA)
+  - ✅ **Validación Robusta:** Esquema Zod estricto + validación de integridad referencial
+  - ✅ **Caché Persistente:** Almacenamiento en disco (`node_modules/.cache`) para evitar re-procesamiento
+  - ✅ **Sanitización Inteligente:** Auto-corrección de referencias rotas convirtiéndolas en elementos interactuables para preservar la narrativa.
+  - ✅ **Feedback Visual:** Componente `AdventureLoadProgress` con pasos detallados
+  - ✅ **Inicio Limpio:** Silencio forzado de compañeros en turno 0 para narración pura del DM
+  - ✅ **Testing Exhaustivo:** Script de pruebas automatizado verificando parser, validador y caché
+- **Fecha de finalización:** 2025-11-23
+- **Tiempo invertido:** ~40 horas
+- **Referencia:** [Plan Detallado](completados/issue-126-revision-sistema-carga-aventuras.md) | [Arquitectura](../arquitectura/sistema-carga-aventuras.md)
 
 ### [Issue #120 - Fix Dice Rolls Inconsistencias](completados/issue-120-fix-dice-rolls.md) ✅ **COMPLETADO**
 - **Estado:** Todas las 4 fases completadas y documentadas
@@ -147,6 +142,17 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 - **Fecha de finalización:** 2025-11-21
 - **Tiempo invertido:** ~15 horas
 - **Referencia:** [Plan Detallado](completados/issue-94-refactorizacion-prompts-tacticians.md) | [Issue #94](../../tracking/issues/corregidos.md#issue-94-refactorización-de-prompts-de-tacticians---separación-de-narración-y-decisión-táctica--resuelto)
+
+### [Issue #121 - Fix Weapon Parsing Regression](completados/issue-121-fix-weapon-parsing.md) ✅ **COMPLETADO**
+- **Estado:** Todas las 3 fases completadas y documentadas
+- **Objetivo:** Restaurar los ataques de jugadores tras la regresión introducida por el Issue #120, parseando correctamente los nombres de armas desde las acciones ingresadas por el usuario
+- **Prioridad:** 🔴 Muy Alta (Crítico)
+- **Resultados:**
+  - ✅ Helper `extractWeaponName()` implementado con patrones contextuales ("con", "usando", "mi", etc.)
+  - ✅ Integración directa con `TurnProcessor` y `CombatActionResolver` para asegurar `weaponQuery` válido y `attributeUsed` consistente
+  - ✅ 29 tests (unitarios e integración) que cubren casos con y sin arma específica
+- **Fecha de finalización:** 2025-01-23
+- **Referencia:** [Plan Detallado](completados/issue-121-fix-weapon-parsing.md) | [Issue #121](../tracking/issues/corregidos.md#issue-121-regresión-en-parsing-de-armas-en-ataques-de-jugador--crítico)
 
 ### [Refactorización CombatSession - State Object Pattern](completados/refactorizacion-combat-session-state.md) ✅ **COMPLETADO**
 - **Estado:** Todas las 7 fases completadas y documentadas
@@ -476,12 +482,12 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 ### Estado General del Proyecto
 
 **Progreso Total:**
-- ✅ **15 planes completados** (incluyendo 1 parcialmente completado)
-- 🚧 **2 planes en curso** actualmente
+- ✅ **18 planes completados** (incluyendo 1 parcialmente completado)
+- 🚧 **0 planes en curso** actualmente
 - 📝 **12 planes sin comenzar** identificados y planificados
 
 **Distribución por Prioridad:**
-- **Prioridad Muy Alta:** 2 planes en curso (Issue #126, Issue #121)
+- **Prioridad Muy Alta:** 0 planes en curso (último completado: Issue #126)
 - **Prioridad Alta:** 6 planes pendientes
 - **Prioridad Media:** 8 planes pendientes (incluyendo 1 relacionado con testing)
 - **Prioridad Baja:** 2 planes pendientes

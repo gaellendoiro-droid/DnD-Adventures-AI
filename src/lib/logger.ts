@@ -26,7 +26,9 @@ class Logger {
   constructor() {
     // En desarrollo, mostrar todos los logs. En producción, solo INFO y superiores
     this.minLevel = process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG;
-    this.colors = process.stdout.isTTY && !process.env.NO_COLOR;
+    // Check if running in a Node.js environment with TTY support
+    const isNode = typeof process !== 'undefined' && process.versions && !!process.versions.node;
+    this.colors = !!(isNode && process.stdout && process.stdout.isTTY && !process.env.NO_COLOR);
     // Validación habilitada en desarrollo para detectar inconsistencias
     this.validationEnabled = process.env.NODE_ENV !== 'production';
   }
@@ -86,11 +88,11 @@ class Logger {
 
   private formatContext(context?: LogContext): string {
     if (!context || Object.keys(context).length === 0) return '';
-    
+
     const parts: string[] = [];
     if (context.module) parts.push(`[${context.module}]`);
     if (context.action) parts.push(`<${context.action}>`);
-    
+
     // Añadir otros campos del contexto
     const otherFields = Object.entries(context)
       .filter(([key]) => key !== 'module' && key !== 'action')
@@ -100,17 +102,17 @@ class Logger {
         }
         return `${key}=${value}`;
       });
-    
+
     if (otherFields.length > 0) {
       parts.push(otherFields.join(' '));
     }
-    
+
     return parts.length > 0 ? ` ${parts.join(' ')}` : '';
   }
 
   private colorize(level: LogLevel, message: string): string {
     if (!this.colors) return message;
-    
+
     const colors = {
       [LogLevel.DEBUG]: '\x1b[36m', // Cyan
       [LogLevel.INFO]: '\x1b[32m',  // Green
@@ -118,14 +120,14 @@ class Logger {
       [LogLevel.ERROR]: '\x1b[31m', // Red
     };
     const reset = '\x1b[0m';
-    
+
     const levelNames = {
       [LogLevel.DEBUG]: 'DEBUG',
       [LogLevel.INFO]: 'INFO ',
       [LogLevel.WARN]: 'WARN ',
       [LogLevel.ERROR]: 'ERROR',
     };
-    
+
     return `${colors[level]}${levelNames[level]}${reset} ${message}`;
   }
 
@@ -144,9 +146,9 @@ class Logger {
       console.error(fullMessage);
       console.error(errorDetails);
     } else {
-      const logMethod = level === LogLevel.ERROR ? console.error : 
-                       level === LogLevel.WARN ? console.warn : 
-                       console.log;
+      const logMethod = level === LogLevel.ERROR ? console.error :
+        level === LogLevel.WARN ? console.warn :
+          console.log;
       logMethod(fullMessage);
     }
   }
@@ -170,7 +172,7 @@ class Logger {
   /**
    * Log específico para el flujo de coordinación del juego
    */
-  gameCoordinator(message: string, data?: { action?: string; inCombat?: boolean; turnIndex?: number; [key: string]: any }): void {
+  gameCoordinator(message: string, data?: { action?: string; inCombat?: boolean; turnIndex?: number;[key: string]: any }): void {
     this.info(message, {
       module: 'GameCoordinator',
       ...data,
@@ -180,7 +182,7 @@ class Logger {
   /**
    * Log específico para acciones del servidor
    */
-  serverAction(message: string, data?: { action?: string; [key: string]: any }): void {
+  serverAction(message: string, data?: { action?: string;[key: string]: any }): void {
     this.info(message, {
       module: 'ServerAction',
       ...data,
@@ -219,13 +221,13 @@ export const log = {
   info: (message: string, context?: LogContext) => logger.info(message, context),
   warn: (message: string, context?: LogContext) => logger.warn(message, context),
   error: (message: string, context?: LogContext, error?: Error) => logger.error(message, context, error),
-  gameCoordinator: (message: string, data?: { action?: string; inCombat?: boolean; turnIndex?: number; [key: string]: any }) => 
+  gameCoordinator: (message: string, data?: { action?: string; inCombat?: boolean; turnIndex?: number;[key: string]: any }) =>
     logger.gameCoordinator(message, data),
-  serverAction: (message: string, data?: { action?: string; [key: string]: any }) => 
+  serverAction: (message: string, data?: { action?: string;[key: string]: any }) =>
     logger.serverAction(message, data),
-  aiTool: (toolName: string, message: string, data?: { [key: string]: any }) => 
+  aiTool: (toolName: string, message: string, data?: { [key: string]: any }) =>
     logger.aiTool(toolName, message, data),
-  aiFlow: (flowName: string, message: string, data?: { [key: string]: any }) => 
+  aiFlow: (flowName: string, message: string, data?: { [key: string]: any }) =>
     logger.aiFlow(flowName, message, data),
 };
 

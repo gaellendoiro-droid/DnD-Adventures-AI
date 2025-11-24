@@ -8,12 +8,10 @@ import { AppHeader } from "@/components/layout/app-header";
 import { MainMenu } from "@/components/game/main-menu";
 import { GameView } from "@/components/game/game-view";
 import { useToast } from "@/hooks/use-toast";
-// Lazy-loaded to avoid initializing Genkit on page load:
-// import { parseAdventureFromJson } from "@/ai/flows/parse-adventure-from-json";
-// import { processPlayerAction, setAdventureDataCache } from "./actions";
 import { logClient } from "@/lib/logger-client";
 import { CharacterSchema } from "@/lib/schemas";
 import { z } from "zod";
+import { AdventureLoadProgress, LoadStep } from "@/components/game/adventure-load-progress";
 
 interface InitialGameData {
   party: Character[];
@@ -31,8 +29,11 @@ export default function Home() {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameInProgress, setGameInProgress] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
+  const [loadStep, setLoadStep] = useState<LoadStep>('parsing');
+  const [loadError, setLoadError] = useState<{ title: string; message: string } | null>(null);
   const [initialGameData, setInitialGameData] = useState<InitialGameData | null>(null);
   const [adventureData, setAdventureData] = useState<any | null>(null);
+  const [adventureName, setAdventureName] = useState<string | undefined>(undefined);
 
 
   const { toast } = useToast();
@@ -73,6 +74,7 @@ export default function Home() {
       AdventureDataSchema.parse(defaultAdventure);
 
       setAdventureData(defaultAdventure);
+      setAdventureName(defaultAdventure.title || "Aventura Predeterminada");
 
       // Update server-side cache with the default adventure
       const { setAdventureDataCache } = await import('./actions');
@@ -128,121 +130,116 @@ export default function Home() {
     reader.onload = async (e) => {
       try {
         setLoading('loadAdventure');
+        setLoadStep('parsing');
+        setLoadError(null);
+
         const jsonContent = e.target?.result as string;
-        toast({ title: "Procesando aventura...", description: "La IA está analizando el archivo JSON." });
 
-        logClient.info('Starting adventure JSON load', {
-          component: 'Page',
-          fileName: file.name,
-          fileSize: file.size,
-          jsonLength: jsonContent.length,
-        });
+        logClient.info('Starting adventure load process', { fileName: file.name, size: file.size });
 
-        // Add a small delay to ensure server is ready after hot reload
-        // This helps avoid connection timeouts that can occur immediately after code changes
-        logClient.debug('Waiting 100ms for server to stabilize after hot reload', {
-          component: 'Page',
-        });
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        const startTime = Date.now();
+        // 1. Parse Adventure (Fast Parser -> Cache -> AI Fallback)
         const { parseAdventureFromJson } = await import('@/ai/flows/parse-adventure-from-json');
         const parsedAdventure = await parseAdventureFromJson({ adventureJson: jsonContent });
-        const duration = Date.now() - startTime;
 
-        logClient.info('Adventure JSON parsed successfully', {
-          component: 'Page',
-          durationMs: duration,
-          title: parsedAdventure.adventureTitle,
-          adventureId: parsedAdventure.adventureData?.adventureId,
-        });
-
-        // Validate adventure data structure
         if (!parsedAdventure.adventureData) {
-          throw new Error("El archivo JSON no contiene datos de aventura válidos.");
+          throw new Error("No se pudieron extraer los datos de la aventura.");
         }
 
-        AdventureDataSchema.parse(parsedAdventure.adventureData);
+        setLoadStep('validating');
 
-        // Update local state
+        // 2. Validate Structure (Robust Validation)
+        const { validateAdventureStructure, formatValidationErrors } = await import('@/lib/adventure-loader/validator');
+        const validationResult = validateAdventureStructure(parsedAdventure.adventureData);
+
+        if (!validationResult.valid) {
+          // Log detallado de errores para debugging
+          logClient.error('Validation failed', {
+            errors: validationResult.errors,
+            adventureDataKeys: Object.keys(parsedAdventure.adventureData),
+            hasLocations: !!parsedAdventure.adventureData.locations,
+            locationCount: parsedAdventure.adventureData.locations?.length
+          });
+
+          const { AdventureLoadError, AdventureLoadErrorType } = await import('@/lib/adventure-loader/error-handler');
+          throw new AdventureLoadError(
+            AdventureLoadErrorType.VALIDATION_ERROR,
+            'Error de validación en la aventura',
+            'El archivo de aventura tiene errores estructurales.',
+            { errors: formatValidationErrors(validationResult.errors) }
+          );
+        }
+
+        if (validationResult.warnings.length > 0) {
+          logClient.warn('Adventure loaded with warnings', { warnings: validationResult.warnings });
+        }
+
+        setLoadStep('connecting');
+
+        // 3. Ensure Server is Ready
+        const { retryWithExponentialBackoff } = await import('@/ai/flows/retry-utils');
+        await retryWithExponentialBackoff(
+          async () => {
+            const res = await fetch('/api/health');
+            if (!res.ok) throw new Error('Server not ready');
+          },
+          3, 100, 'checkServerHealth'
+        );
+
+        setLoadStep('initializing');
+
+        // 4. Initialize Game (Cache + First Action)
+        const { initializeGame } = await import('@/lib/adventure-loader/game-initializer');
+
+        setLoadStep('narrating');
+
+        const initResult = await initializeGame(
+          parsedAdventure.adventureData,
+          initialParty,
+          parsedAdventure.adventureTitle
+        );
+
+        if (!initResult.success) {
+          throw initResult.error;
+        }
+
+        setLoadStep('complete');
+
+        // 5. Update UI State
         setAdventureData(parsedAdventure.adventureData);
-
-        // Update server-side cache with the loaded adventure (MUST complete before processPlayerAction)
-        logClient.info('Updating server-side adventure cache', {
-          component: 'Page',
-          adventureId: parsedAdventure.adventureData.adventureId,
-          locationsCount: parsedAdventure.adventureData.locations?.length || 0,
-        });
-        const { setAdventureDataCache, processPlayerAction } = await import('./actions');
-        await setAdventureDataCache(parsedAdventure.adventureData);
-        logClient.info('Server-side adventure cache updated', {
-          component: 'Page',
-          adventureId: parsedAdventure.adventureData.adventureId,
-        });
-
-        toast({ title: "Generando introducción...", description: "El Dungeon Master está preparando la escena." });
-
-        const firstLocation = parsedAdventure.adventureData.locations[0];
-
-        if (!firstLocation || !firstLocation.id) {
-          throw new Error("La aventura no tiene una ubicación inicial válida.");
-        }
-
-        // conversationHistory should be an empty array, not an empty string
-        const result = await processPlayerAction({
-          playerAction: "Comenzar la aventura.",
-          party: initialParty,
-          locationId: firstLocation.id,
-          inCombat: false,
-          conversationHistory: [],
-          turnIndex: 0,
-        });
-
-        let messages: GameMessage[] = result.messages || [];
-
-        // If no messages were generated, create an initial message from the location description
-        if (messages.length === 0 && firstLocation.description) {
-          messages = [{
-            id: `initial-${firstLocation.id}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-            sender: 'DM',
-            content: `<p>${firstLocation.description}</p>`,
-            originalContent: firstLocation.description,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          }];
-        }
-
-        // Ensure all messages have unique IDs
-        messages = messages.map((msg, index) => ({
-          ...msg,
-          id: msg.id || `msg-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 11)}`,
-        }));
-
-        setInitialGameData({
-          party: initialParty,
-          messages: messages,
-          diceRolls: [],
-          locationId: firstLocation.id,
-          inCombat: false,
-          initiativeOrder: [],
-          turnIndex: 0,
-          enemies: [], // Deprecated: kept for backward compatibility
-          enemiesByLocation: {}, // New: enemies by location (empty initially)
-        });
-
+        setAdventureName(parsedAdventure.adventureTitle);
+        setInitialGameData(initResult.initialGameData);
         setGameInProgress(true);
         setGameStarted(true);
 
-        toast({ title: "¡Aventura cargada y lista!", description: "La nueva aventura está lista para jugar." });
+        toast({
+          title: "¡Aventura lista!",
+          description: `Has comenzado "${parsedAdventure.adventureTitle}".`
+        });
 
       } catch (error: any) {
-        logClient.uiError('Page', 'Error parsing or starting adventure', error);
+        // Enhanced Error Handling
+        const { classifyError, getUserFriendlyMessage } = await import('@/lib/adventure-loader/error-handler');
+        const classifiedError = classifyError(error);
+        const userMessage = getUserFriendlyMessage(classifiedError);
+
+        logClient.uiError('Page', 'Error loading adventure', classifiedError);
+
+        setLoadError({
+          title: userMessage.title,
+          message: userMessage.message
+        });
+
+        setLoadStep('error');
+
         toast({
           variant: 'destructive',
-          title: "Error al cargar la aventura",
-          description: "No se pudo procesar el archivo. Asegúrate de que sea un JSON válido.",
+          title: userMessage.title || "Error",
+          description: userMessage.message,
         });
       } finally {
-        setLoading(null);
+        if (loadStep !== 'error') {
+          setLoading(null);
+        }
       }
     };
     reader.readAsText(file);
@@ -298,10 +295,29 @@ export default function Home() {
 
   return (
     <div className="flex flex-col h-svh bg-background text-foreground dark:bg-background dark:text-foreground">
-      <AppHeader onGoToMenu={handleGoToMenu} showMenuButton={gameStarted} />
-      {gameStarted && initialGameData ? (
+      {!gameStarted && <AppHeader onGoToMenu={handleGoToMenu} showMenuButton={gameStarted} />}
+
+      {loading === 'loadAdventure' ? (
+        <div className="flex items-center justify-center h-full">
+          <AdventureLoadProgress
+            currentStep={loadStep}
+            error={loadError}
+            onCancel={() => {
+              setLoading(null);
+              setLoadError(null);
+            }}
+            onRetry={() => {
+              setLoading(null);
+              setLoadError(null);
+              toast({ description: "Por favor, selecciona el archivo de nuevo." });
+            }}
+          />
+        </div>
+      ) : gameStarted && initialGameData ? (
         <GameView
           initialData={initialGameData}
+          onGoToMenu={handleGoToMenu}
+          adventureName={adventureName}
           onSaveGame={(saveData) => {
             // We don't save the gameState anymore as it's static
             const { gameState, ...rest } = saveData;

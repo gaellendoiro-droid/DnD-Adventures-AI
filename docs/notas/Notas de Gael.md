@@ -155,7 +155,12 @@ Esta sección es para apuntar ideas rápidas, fallos detectados y notas informal
 
 Al clasificar un item de esta sección, debe moverse a su sección correspondiente y eliminarse de aquí, manteniendo esta sección como un área de trabajo temporal.
 
-*(No hay nuevas ideas pendientes de clasificar en este momento)*
+1. FUTURA MEJORA: Cuando estamos en el modo exploración, entrando en la excavación de los enanos echo de menos que la narrativa sea más pausada, dejando que los personajes vayan descubriendo la ubicación poco a poco y narrando el proceso. En el estado actual la narración de descripción del lugar ya habla de los enanos directamente. El DM no tiene conocimiento de en que punto del mapa se encuentran los personajes o de distacias entre puntos de interés. (PM)
+
+2. ISSUE: El DM no es capaz de navegar por las localizaciones de la aventura. En la escavación no somos capaces de adentrarnos en la escavación. Revisar si dispone de la información necesaria en el JSON. (PA)
+
+3. REVISION: a veces los mensajes de los compañeros dan la sensación de que no tienen contexto de lo que acabamos de hablar. (PMA)
+
 
 
 

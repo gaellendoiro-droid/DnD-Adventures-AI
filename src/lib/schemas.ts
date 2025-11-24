@@ -46,14 +46,18 @@ export const CharacterSchema = z.object({
         carisma: z.number(),
     }).optional(),
     proficiencyBonus: z.number().optional().default(2), // Bono de competencia (default +2 para nivel 1)
-    skills: z.array(z.object({ name: z.string(), proficient: z.boolean() })),
+    skills: z.array(z.object({
+        name: z.string(),
+        proficient: z.boolean(),
+        modifier: z.number() // Modificador total de la habilidad (atributo + BC si es competente)
+    })),
     hp: z.object({ current: z.number(), max: z.number() }),
     ac: z.number(),
     controlledBy: z.enum(["Player", "AI"]),
     inventory: z.array(z.object({ id: z.string(), name: z.string(), quantity: z.number(), description: z.string().optional().nullable() })),
     spells: z.array(z.object({ id: z.string(), name: z.string(), level: z.number(), description: z.string().nullable() })),
     isDead: z.boolean().optional().default(false), // Sistema de muerte masiva D&D 5e
-    
+
     // Campos adicionales para ficha completa de D&D 5e
     alignment: z.string().optional(), // Alineamiento (ej: "Legal Bueno", "Caótico Neutral")
     speed: z.number().optional(), // Velocidad en pies por turno
@@ -113,3 +117,90 @@ export const CharacterSchema = z.object({
  * This is used for validation in flows and tools that operate on the entire party.
  */
 export const PartySchema = z.array(CharacterSchema);
+
+/**
+ * Schema for a Location in an adventure.
+ */
+export const LocationSchema = z.object({
+    id: z.string(),
+    name: z.string().optional(),
+    title: z.string().optional(), // Alias for name found in JSON
+    description: z.string(),
+    connections: z.array(z.union([
+        z.string(),
+        z.object({ toLocationId: z.string(), description: z.string().optional() })
+    ])).optional(),
+    exits: z.array(z.union([
+        z.string(),
+        z.object({ toLocationId: z.string(), description: z.string().optional() })
+    ])).optional(), // Alias for connections found in JSON
+    // Additional fields can be added here as needed based on the JSON structure
+    encounters: z.array(z.any()).optional(), // Placeholder for encounters
+    items: z.array(z.any()).optional(), // Placeholder for items found in location
+    entitiesPresent: z.array(z.any()).optional(),
+    interactables: z.array(z.any()).optional(),
+    dmNotes: z.string().optional(),
+}).refine(data => data.name || data.title, {
+    message: "Location must have either a name or a title",
+    path: ["name"]
+});
+
+/**
+ * Schema for an Entity (NPC, Enemy, etc.) in an adventure.
+ */
+export const EntitySchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string().optional(),
+    type: z.string().optional(), // e.g., "enemy", "npc"
+    stats: z.any().optional(), // Flexible for now, can be tightened later
+});
+
+/**
+ * Schema for a Narrative Scene (Cutscene).
+ */
+export const NarrativeSceneSchema = z.object({
+    id: z.string(),
+    text: z.string(),
+    triggerCondition: z.string().optional(),
+});
+
+/**
+ * Schema for an Event/Trigger.
+ */
+export const EventSchema = z.object({
+    id: z.string(),
+    trigger: z.string(),
+    locationId: z.string().optional(),
+    action: z.string(),
+    target: z.union([z.string(), z.array(z.string())]).optional(),
+});
+
+/**
+ * Schema for the full Adventure Data structure.
+ */
+export const AdventureDataSchema = z.object({
+    adventureId: z.string(),
+    title: z.string().optional(),
+    summary: z.string().optional(),
+    introductoryNarration: z.string().optional(), // Pre-generated intro
+    openingScene: z.string().optional(), // Alias for introductoryNarration
+    locations: z.array(LocationSchema).min(1, "La aventura debe tener al menos una ubicación"),
+    entities: z.array(EntitySchema).optional(),
+    startingLocationId: z.string().optional(), // Optional explicit starting location
+    narrativeScenes: z.array(NarrativeSceneSchema).optional(),
+    events: z.array(EventSchema).optional(),
+    settings: z.object({
+        startingLocationId: z.string().optional(),
+        initialPartySize: z.number().optional(),
+    }).optional(),
+    credits: z.object({
+        author: z.string().optional(),
+        source: z.string().optional(),
+    }).optional(),
+    levelRange: z.object({
+        start: z.number().optional(),
+        end: z.number().optional(),
+    }).optional(),
+    system: z.string().optional(),
+});

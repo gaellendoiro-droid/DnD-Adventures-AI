@@ -45,24 +45,24 @@ export const initialParty: Character[] = [
     isDead: false,
     skills: [
       // Todas las habilidades de D&D 5e
-      { name: "Atletismo", proficient: true }, // FUE - Competente (clase + trasfondo)
-      { name: "Acrobacias", proficient: false }, // DES
-      { name: "Juego de Manos", proficient: false }, // DES
-      { name: "Sigilo", proficient: false }, // DES
-      { name: "Arcano", proficient: false }, // INT
-      { name: "Historia", proficient: true }, // INT - Competente (trasfondo Noble)
-      { name: "Investigación", proficient: false }, // INT
-      { name: "Naturaleza", proficient: false }, // INT
-      { name: "Religión", proficient: false }, // INT
-      { name: "Trato con Animales", proficient: false }, // SAB
-      { name: "Percepción", proficient: false }, // SAB
-      { name: "Perspicacia", proficient: true }, // SAB - Competente (clase)
-      { name: "Medicina", proficient: false }, // SAB
-      { name: "Supervivencia", proficient: false }, // SAB
-      { name: "Engañar", proficient: false }, // CAR
-      { name: "Intimidar", proficient: false }, // CAR
-      { name: "Interpretación", proficient: false }, // CAR
-      { name: "Persuasión", proficient: true }, // CAR - Competente (clase + trasfondo)
+      { name: "Atletismo", proficient: true, modifier: 4 }, // FUE (2) + BC (2)
+      { name: "Acrobacias", proficient: false, modifier: 0 }, // DES (0)
+      { name: "Juego de Manos", proficient: false, modifier: 0 }, // DES (0)
+      { name: "Sigilo", proficient: false, modifier: 0 }, // DES (0)
+      { name: "Arcano", proficient: false, modifier: -1 }, // INT (-1)
+      { name: "Historia", proficient: true, modifier: 1 }, // INT (-1) + BC (2)
+      { name: "Investigación", proficient: false, modifier: -1 }, // INT (-1)
+      { name: "Naturaleza", proficient: false, modifier: -1 }, // INT (-1)
+      { name: "Religión", proficient: false, modifier: -1 }, // INT (-1)
+      { name: "Trato con Animales", proficient: false, modifier: 1 }, // SAB (1)
+      { name: "Percepción", proficient: false, modifier: 1 }, // SAB (1)
+      { name: "Perspicacia", proficient: true, modifier: 3 }, // SAB (1) + BC (2)
+      { name: "Medicina", proficient: false, modifier: 1 }, // SAB (1)
+      { name: "Supervivencia", proficient: false, modifier: 1 }, // SAB (1)
+      { name: "Engañar", proficient: false, modifier: 2 }, // CAR (2)
+      { name: "Intimidar", proficient: false, modifier: 2 }, // CAR (2)
+      { name: "Interpretación", proficient: false, modifier: 2 }, // CAR (2)
+      { name: "Persuasión", proficient: true, modifier: 4 }, // CAR (2) + BC (2)
     ],
     controlledBy: "Player",
     inventory: [
@@ -172,24 +172,24 @@ export const initialParty: Character[] = [
     isDead: false,
     skills: [
       // Todas las habilidades de D&D 5e
-      { name: "Atletismo", proficient: false }, // FUE
-      { name: "Acrobacias", proficient: false }, // DES
-      { name: "Juego de Manos", proficient: true }, // DES - Competente (trasfondo Erudito)
-      { name: "Sigilo", proficient: false }, // DES
-      { name: "Arcano", proficient: true }, // INT - Competente (clase)
-      { name: "Historia", proficient: true }, // INT - Competente (trasfondo Erudito)
-      { name: "Investigación", proficient: true }, // INT - Competente (clase + trasfondo)
-      { name: "Naturaleza", proficient: false }, // INT
-      { name: "Religión", proficient: false }, // INT
-      { name: "Trato con Animales", proficient: false }, // SAB
-      { name: "Percepción", proficient: false }, // SAB
-      { name: "Perspicacia", proficient: false }, // SAB
-      { name: "Medicina", proficient: false }, // SAB
-      { name: "Supervivencia", proficient: false }, // SAB
-      { name: "Engañar", proficient: false }, // CAR
-      { name: "Intimidar", proficient: false }, // CAR
-      { name: "Interpretación", proficient: false }, // CAR
-      { name: "Persuasión", proficient: false }, // CAR
+      { name: "Atletismo", proficient: false, modifier: -1 }, // FUE (-1)
+      { name: "Acrobacias", proficient: false, modifier: 3 }, // DES (3)
+      { name: "Juego de Manos", proficient: true, modifier: 5 }, // DES (3) + BC (2)
+      { name: "Sigilo", proficient: false, modifier: 3 }, // DES (3)
+      { name: "Arcano", proficient: true, modifier: 5 }, // INT (3) + BC (2)
+      { name: "Historia", proficient: true, modifier: 5 }, // INT (3) + BC (2)
+      { name: "Investigación", proficient: true, modifier: 5 }, // INT (3) + BC (2)
+      { name: "Naturaleza", proficient: false, modifier: 3 }, // INT (3)
+      { name: "Religión", proficient: false, modifier: 3 }, // INT (3)
+      { name: "Trato con Animales", proficient: false, modifier: 0 }, // SAB (0)
+      { name: "Percepción", proficient: false, modifier: 0 }, // SAB (0)
+      { name: "Perspicacia", proficient: false, modifier: 0 }, // SAB (0)
+      { name: "Medicina", proficient: false, modifier: 0 }, // SAB (0)
+      { name: "Supervivencia", proficient: false, modifier: 0 }, // SAB (0)
+      { name: "Engañar", proficient: false, modifier: 0 }, // CAR (0)
+      { name: "Intimidar", proficient: false, modifier: 0 }, // CAR (0)
+      { name: "Interpretación", proficient: false, modifier: 0 }, // CAR (0)
+      { name: "Persuasión", proficient: false, modifier: 0 }, // CAR (0)
     ],
     controlledBy: "AI",
     inventory: [
@@ -323,24 +323,24 @@ export const initialParty: Character[] = [
     isDead: false,
     skills: [
       // Todas las habilidades de D&D 5e
-      { name: "Atletismo", proficient: false }, // FUE
-      { name: "Acrobacias", proficient: false }, // DES
-      { name: "Juego de Manos", proficient: false }, // DES
-      { name: "Sigilo", proficient: false }, // DES
-      { name: "Arcano", proficient: false }, // INT
-      { name: "Historia", proficient: false }, // INT
-      { name: "Investigación", proficient: false }, // INT
-      { name: "Naturaleza", proficient: false }, // INT
-      { name: "Religión", proficient: true }, // INT - Competente (clase + trasfondo)
-      { name: "Trato con Animales", proficient: false }, // SAB
-      { name: "Percepción", proficient: false }, // SAB
-      { name: "Perspicacia", proficient: true }, // SAB - Competente (clase)
-      { name: "Medicina", proficient: true }, // SAB - Competente (clase + trasfondo)
-      { name: "Supervivencia", proficient: false }, // SAB
-      { name: "Engañar", proficient: false }, // CAR
-      { name: "Intimidar", proficient: false }, // CAR
-      { name: "Interpretación", proficient: false }, // CAR
-      { name: "Persuasión", proficient: false }, // CAR
+      { name: "Atletismo", proficient: false, modifier: 2 }, // FUE (2)
+      { name: "Acrobacias", proficient: false, modifier: -1 }, // DES (-1)
+      { name: "Juego de Manos", proficient: false, modifier: -1 }, // DES (-1)
+      { name: "Sigilo", proficient: false, modifier: -1 }, // DES (-1)
+      { name: "Arcano", proficient: false, modifier: 0 }, // INT (0)
+      { name: "Historia", proficient: false, modifier: 0 }, // INT (0)
+      { name: "Investigación", proficient: false, modifier: 0 }, // INT (0)
+      { name: "Naturaleza", proficient: false, modifier: 0 }, // INT (0)
+      { name: "Religión", proficient: true, modifier: 2 }, // INT (0) + BC (2)
+      { name: "Trato con Animales", proficient: false, modifier: 3 }, // SAB (3)
+      { name: "Percepción", proficient: false, modifier: 3 }, // SAB (3)
+      { name: "Perspicacia", proficient: true, modifier: 5 }, // SAB (3) + BC (2)
+      { name: "Medicina", proficient: true, modifier: 5 }, // SAB (3) + BC (2)
+      { name: "Supervivencia", proficient: false, modifier: 3 }, // SAB (3)
+      { name: "Engañar", proficient: false, modifier: 1 }, // CAR (1)
+      { name: "Intimidar", proficient: false, modifier: 1 }, // CAR (1)
+      { name: "Interpretación", proficient: false, modifier: 1 }, // CAR (1)
+      { name: "Persuasión", proficient: false, modifier: 1 }, // CAR (1)
     ],
     controlledBy: "AI",
     inventory: [

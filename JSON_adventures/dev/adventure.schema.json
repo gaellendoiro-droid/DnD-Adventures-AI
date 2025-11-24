@@ -1,0 +1,351 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "D&D Adventure",
+    "description": "Schema for D&D Adventures AI JSON format",
+    "type": "object",
+    "required": [
+        "adventureId",
+        "title",
+        "locations"
+    ],
+    "properties": {
+        "adventureId": {
+            "type": "string",
+            "description": "Unique identifier for the adventure"
+        },
+        "title": {
+            "type": "string",
+            "description": "The title of the adventure"
+        },
+        "summary": {
+            "type": "string",
+            "description": "A brief summary of the adventure"
+        },
+        "introductoryNarration": {
+            "type": "string",
+            "description": "Pre-generated introductory text for instant start (openingScene)"
+        },
+        "openingScene": {
+            "type": "string",
+            "description": "Alias for introductoryNarration"
+        },
+        "levelRange": {
+            "type": "object",
+            "properties": {
+                "start": {
+                    "type": "integer"
+                },
+                "end": {
+                    "type": "integer"
+                }
+            }
+        },
+        "system": {
+            "type": "string",
+            "default": "D&D 5e"
+        },
+        "credits": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
+        "settings": {
+            "type": "object",
+            "properties": {
+                "startingLocationId": {
+                    "type": "string"
+                },
+                "initialPartySize": {
+                    "type": "integer"
+                }
+            }
+        },
+        "locations": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/location"
+            },
+            "minItems": 1
+        },
+        "entities": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/entity"
+            }
+        },
+        "items": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/item"
+            }
+        },
+        "narrativeScenes": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/narrativeScene"
+            }
+        },
+        "events": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/event"
+            }
+        },
+        "table_of_contents": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "definitions": {
+        "location": {
+            "type": "object",
+            "required": [
+                "id",
+                "description"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "dmNotes": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "room",
+                        "region",
+                        "point_of_interest",
+                        "other"
+                    ]
+                },
+                "exits": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/connection"
+                    }
+                },
+                "connections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/connection"
+                    }
+                },
+                "interactables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/interactable"
+                    }
+                },
+                "entitiesPresent": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "encounters": {
+                    "type": "array",
+                    "items": {
+                        "type": "object"
+                    }
+                }
+            }
+        },
+        "connection": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "object",
+                    "required": [
+                        "toLocationId"
+                    ],
+                    "properties": {
+                        "toLocationId": {
+                            "type": "string"
+                        },
+                        "direction": {
+                            "type": "string"
+                        },
+                        "description": {
+                            "type": "string"
+                        },
+                        "requirements": {
+                            "type": "object"
+                        }
+                    }
+                }
+            ]
+        },
+        "interactable": {
+            "type": "object",
+            "required": [
+                "name",
+                "description"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "interactionResults": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "action": {
+                                "type": "string"
+                            },
+                            "result": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "entity": {
+            "type": "object",
+            "required": [
+                "id",
+                "name"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "baseType": {
+                    "type": "string"
+                },
+                "isUnique": {
+                    "type": "boolean"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "behavior": {
+                    "type": "string"
+                },
+                "dialogue": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "stats": {
+                    "type": "object"
+                }
+            }
+        },
+        "item": {
+            "type": "object",
+            "required": [
+                "id",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "rarity": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "properties": {
+                    "type": "object"
+                }
+            }
+        },
+        "narrativeScene": {
+            "type": "object",
+            "required": [
+                "id",
+                "text"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "triggerCondition": {
+                    "type": "string"
+                }
+            }
+        },
+        "event": {
+            "type": "object",
+            "required": [
+                "id",
+                "trigger",
+                "action"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "trigger": {
+                    "type": "string"
+                },
+                "locationId": {
+                    "type": "string"
+                },
+                "action": {
+                    "type": "string"
+                },
+                "target": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}

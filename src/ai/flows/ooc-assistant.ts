@@ -7,6 +7,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
+import { executePromptWithRetry } from './retry-utils';
 
 const OocAssistantInputSchema = z.object({
   playerQuery: z.string().describe('The out-of-character question from the player to the Dungeon Master.'),
@@ -52,7 +53,12 @@ const oocAssistantFlow = ai.defineFlow(
   async (input) => {
     const debugLogs: string[] = [];
     debugLogs.push("OOCAssistant: Processing out-of-character query...");
-    const { output } = await oocAssistantPrompt(input);
+    const response = await executePromptWithRetry(
+      oocAssistantPrompt,
+      input,
+      { flowName: 'oocAssistant' }
+    );
+    const { output } = response;
     if (!output) {
       return { dmReply: "No se pudo procesar la pregunta.", debugLogs };
     }

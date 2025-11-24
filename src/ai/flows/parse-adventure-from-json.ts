@@ -12,6 +12,8 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { log } from '@/lib/logger';
 import { executePromptWithRetry } from '@/ai/flows/retry-utils';
+import { parseAdventureFast } from '@/lib/adventure-loader/adventure-parser';
+import { adventureCache } from '@/lib/adventure-loader/adventure-cache';
 
 const ParseAdventureFromJsonInputSchema = z.object({
   adventureJson: z
@@ -35,7 +37,67 @@ export type ParseAdventureFromJsonOutput = z.infer<
 export async function parseAdventureFromJson(
   input: ParseAdventureFromJsonInput
 ): Promise<ParseAdventureFromJsonOutput> {
-  return parseAdventureFromJsonFlow(input);
+  const jsonContent = input.adventureJson;
+  const hash = adventureCache.generateHash(jsonContent);
+
+  // 1. Check Cache
+  const cached = adventureCache.get(hash);
+  if (cached) {
+    log.info('Adventure found in cache', { module: 'ParseAdventure', hash });
+    return cached;
+  }
+
+  // 2. Check Pending Requests
+  const pending = adventureCache.getPending(hash);
+  if (pending) {
+    log.info('Waiting for pending adventure parse', { module: 'ParseAdventure', hash });
+    return pending;
+  }
+
+  // 3. Process (Fast Parse -> AI Fallback)
+  const parsePromise = (async () => {
+    // Try Fast Parse first
+    try {
+      const fastParsed = parseAdventureFast(jsonContent);
+      // If we successfully extracted title and summary, we are good
+      if (fastParsed.adventureTitle && fastParsed.adventureTitle !== 'Aventura sin título' &&
+        fastParsed.adventureSummary && fastParsed.adventureSummary !== 'Sin descripción disponible') {
+
+        log.info('Adventure parsed successfully using Fast Parser', {
+          module: 'ParseAdventure',
+          title: fastParsed.adventureTitle
+        });
+
+        adventureCache.set(hash, fastParsed);
+        return fastParsed;
+      }
+
+      log.info('Fast parser result incomplete, falling back to AI', {
+        module: 'ParseAdventure',
+        extractedTitle: fastParsed.adventureTitle
+      });
+    } catch (e) {
+      log.warn('Fast parser failed, falling back to AI', {
+        module: 'ParseAdventure',
+        error: e instanceof Error ? e.message : String(e)
+      });
+    }
+
+    // Fallback to AI Flow
+    return parseAdventureFromJsonFlow(input).then(result => {
+      // Ensure the result matches ParsedAdventure interface
+      const parsedResult = {
+        adventureTitle: result.adventureTitle,
+        adventureSummary: result.adventureSummary,
+        adventureData: result.adventureData
+      };
+      adventureCache.set(hash, parsedResult);
+      return parsedResult;
+    });
+  })();
+
+  adventureCache.setPending(hash, parsePromise);
+  return parsePromise;
 }
 
 const prompt = ai.definePrompt({
@@ -75,7 +137,7 @@ const parseAdventureFromJsonFlow = ai.defineFlow(
 
     // Try to extract title and summary using the AI prompt with retry logic
     // This helps with intermittent connection timeouts and quota exhaustion
-    log.info('Starting adventure JSON parsing', {
+    log.info('Starting adventure JSON parsing with AI', {
       module: 'ParseAdventure',
       flow: 'parseAdventureFromJsonFlow',
       jsonLength: input.adventureJson.length,
@@ -98,7 +160,7 @@ const parseAdventureFromJsonFlow = ai.defineFlow(
       throw new Error('Could not extract adventure title and summary from JSON.');
     }
 
-    log.info('Successfully parsed adventure JSON', {
+    log.info('Successfully parsed adventure JSON with AI', {
       module: 'ParseAdventure',
       flow: 'parseAdventureFromJsonFlow',
       title: output.adventureTitle,

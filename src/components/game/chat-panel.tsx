@@ -6,7 +6,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { ChatMessage } from "./chat-message";
 import { PlayerInput } from "./player-input";
-import { DiceRoller } from "./dice-roller";
 import { Skeleton } from "../ui/skeleton";
 import { Button } from "../ui/button";
 import { Bot, Play, FastForward } from "lucide-react";
@@ -14,7 +13,6 @@ import { Bot, Play, FastForward } from "lucide-react";
 interface ChatPanelProps {
   messages: GameMessage[];
   onSendMessage: (content: string) => void;
-  onDiceRoll: (roll: { result: number; sides: number }) => void;
   isThinking: boolean;
   inCombat?: boolean;
   hasMoreAITurns?: boolean;
@@ -29,7 +27,6 @@ interface ChatPanelProps {
 export function ChatPanel({
   messages,
   onSendMessage,
-  onDiceRoll,
   isThinking,
   inCombat = false,
   hasMoreAITurns = false,
@@ -106,7 +103,6 @@ export function ChatPanel({
         <PlayerInput
           onSendMessage={onSendMessage}
           disabled={isThinking || (inCombat && playerActionCompleted) || (inCombat && !isPlayerTurn)}
-          onDiceRoll={onDiceRoll}
           isPlayerTurn={isPlayerTurn}
           waitingForTurnAdvance={inCombat && !isThinking && !isPlayerTurn && (hasMoreAITurns || justProcessedAITurn || autoAdvancing || playerActionCompleted) && !!onPassTurn && !!onAdvanceAll}
           isDMThinking={isThinking}

@@ -135,16 +135,26 @@ Mejoras críticas de interfaz de usuario que mejoran significativamente la exper
         *   Ajustar el tamaño del panel de Orden de Combate según el número de participantes
         *   Acoplar los paneles de Tiradas y Orden de Combate por defecto para una mejor organización visual
         *   Mejorar la distribución del espacio vertical disponible
-    *   **Reorganizar Panel Derecho:**
-        *   Revisar la organización del panel de Fichas de Personajes y Panel de Grupo
-        *   Optimizar el uso del espacio disponible
-        *   Mejorar la separación visual entre diferentes secciones
+    *   **Reorganizar Panel Derecho:** ✅ **COMPLETADO PARCIALMENTE**
+        *   ✅ **Panel Derecho Colapsable:** Implementado layout flex colapsable con botones de colapso/expansión
+        *   ✅ **PartyPanel Compacto:** Reducido padding, tamaño de iconos, títulos y elementos
+        *   ✅ **CharacterSheet Compacto:** 
+            - Reducido padding y spacing general
+            - Skills en grid de 2 columnas
+            - Badges pequeños (9px, h-4)
+            - Skills competentes en negrita
+            - Badge "Comp." antes del modificador
+            - Inventario/Conjuros con spacing reducido y descripciones limitadas a 2 líneas
+        *   ✅ **Modificadores de Skills:** Sistema de modificadores pre-calculados implementado
+        *   ✅ **Botón de Dados Eliminado:** Removido del chat para simplificar interfaz
     *   **Limpieza de Código:** Eliminar todo el código relacionado con DebugLog (componentes, props, estados) para mantener el código limpio y sin elementos obsoletos.
 *   **Impacto:** Mejora significativa de la usabilidad, liberación de espacio en la interfaz, mejor organización visual, y código más limpio sin elementos deprecados.
-*   **Plan Detallado:** ❌ No creado
+*   **Plan Detallado:** 📝 [Reorganización de UI](../planes-desarrollo/en-curso/reorganizacion-ui.md)
+*   **Estado:** 🔄 **EN CURSO** - Panel derecho completado (2025-11-24), pendiente panel izquierdo y botón de guardar
 *   **Referencia:** 
     - [Notas de Gael - #268](../notas/Notas%20de%20Gael.md) - Rediseño del Panel Izquierdo
     - Relacionado con la eliminación del sistema de DebugLog UI (completado en v0.5.5)
+    - Ver CHANGELOG.md para detalles de implementación
 
 ---
 
@@ -575,7 +585,7 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
     *   **Cambiar Texto de Botones de Avanzar Turnos:** Los botones de avanzar turnos deberían poner "Avanzar 1 turno" y "Avance automático" para mejorar la claridad de las acciones disponibles.
     *   **Botón de Pausa en Avance Automático:** En combate, después de pulsar el botón de avanzar todos, mientras el botón esté en "Avanzando...", el otro botón debería convertirse en un botón de pausa para detener el avance automático de turnos.
     *   **Rediseño del Panel Izquierdo:** Rediseñar el panel izquierdo: quitar los recuadros para el DebugLog (retirar todos los logs para limpiar código), mover el botón de guardar partida a la barra superior, acoplar los recuadros de Tiradas y Orden de Combate por defecto, y ajustar el tamaño del panel de orden de combate según el número de participantes.
-    *   **Investigación de Sistemas de Texto2Voz:** Investigar sistemas de texto2voz más rápidos y configurables para mejorar la experiencia de audio del DM.
+    *   **Investigación de Sistemas de Texto2Voz:** ✅ **COMPLETADO** - Integración completa de Eleven Labs TTS con optimizaciones de conexión y sistema de reintentos. Sistema de caché planificado para futura implementación. [Plan de Integración](../planes-desarrollo/en-curso/integracion-eleven-labs-tts.md) | [Plan de Caché](../planes-desarrollo/en-curso/sistema-cache-tts.md)
     *   **Adaptación de la UI a Dispositivos Móviles:** Trabajar en la adaptación de la UI a dispositivos móviles, asegurando que la aplicación sea funcional y usable en pantallas pequeñas.
     *   **Botones de Órdenes Rápidas:** Cerca del input de texto implementar botones para dar órdenes rápidas como "Atacamos", "Huímos", etc., facilitando acciones comunes sin necesidad de escribir texto completo.
     *   **Efectos de Sonido en Combate:** En combate, aparte de la música dinámica, implementar efectos de sonido para cada turno (gritos de ataque, quejidos si se les hace daño, choque de espadas, golpes de escudo, etc.) para ambientar más la acción.
@@ -603,8 +613,8 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
 
 ### 20. Mejoras de Sistema de Aventuras y Datos {#20-mejoras-de-sistema-de-aventuras-y-datos}
 *   **Mejoras Propuestas:**
-    *   **Mejorar Generación de Introducciones:** Revisar la creación de introducciones para aventuras cargadas desde JSON que no traen una intro definida. La IA debería generar una introducción contextual y atractiva.
-    *   **Cache de Parseo de Aventuras JSON:** El parseo de aventuras de JSON_adventures debería guardarse en caché para cargas más rápidas. Implementar sistema de verificación de si el parseo está actualizado (comparar fecha de modificación del JSON).
+    *   **Mejorar Generación de Introducciones:** ✅ COMPLETADO - Sistema implementado que permite incluir introducciones pre-generadas en el JSON (`introductoryNarration`/`openingScene`) para carga instantánea, con fallback automático a generación con IA si no existe. Revisar la creación de introducciones para aventuras cargadas desde JSON que no traen una intro definida. La IA debería generar una introducción contextual y atractiva.
+    *   **Cache de Parseo de Aventuras JSON:** ✅ COMPLETADO - El parseo de aventuras de JSON_adventures debería guardarse en caché para cargas más rápidas. Implementar sistema de verificación de si el parseo está actualizado (comparar fecha de modificación del JSON).
     *   **Sistema de Comercio Completo:** Revisar en profundidad el sistema de comercio (inventario, dinero, compras, ventas, regateos, etc).
     *   **Sistema de Exploración y Mapas:** Revisar el sistema de exploración. Relacionado con el sistema de mapas y distancias. Evaluar si necesita mejoras o expansión de funcionalidades.
     *   **Aventuras con Personajes Predefinidos:** Estudiar la posibilidad de aceptar aventuras que incluyan fichas de personajes predefinidos (por ejemplo aventuras que necesiten personajes de cierto nivel). Esto permitiría aventuras más específicas y balanceadas.
