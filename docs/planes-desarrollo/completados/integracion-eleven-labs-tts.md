@@ -687,29 +687,6 @@ async function textToSpeechWithRetry(
 Si hay problemas críticos:
 1. Revertir commit de integración
 2. Restaurar código anterior
-3. Verificar que sistema anterior funciona
-4. Investigar problema antes de reintentar
-
----
-
-## 📝 Checklist de Implementación
-
-### Pre-implementación
-- [ ] Cuenta de Eleven Labs creada
-- [ ] API Key obtenida
-- [ ] Plan de Eleven Labs seleccionado
-- [ ] Voces identificadas para testing
-- [ ] Variables de entorno documentadas
-
-### Implementación
-- [ ] Cliente de Eleven Labs creado
-- [ ] Flujo de generación de audio actualizado
-- [ ] Componente ChatMessage verificado
-- [ ] Manejo de errores implementado
-- [ ] Logging añadido
-
-### Testing
-- [ ] Tests manuales completados
 - [ ] Tests de errores completados
 - [ ] Tests de rendimiento completados
 - [ ] Tests de compatibilidad completados

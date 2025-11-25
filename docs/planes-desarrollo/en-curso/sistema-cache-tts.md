@@ -104,10 +104,11 @@ Esto es especialmente útil para:
 ### Arquitectura Propuesta
 
 ```
-┌─────────────────────────────────────────────────────────────┐
 │          Usuario hace clic en botón de audio                │
 │                    ↓                                         │
-│          generateDmNarrationAudio (petición del usuario)    │
+│          Server Action / API Route                          │
+│                    ↓                                         │
+│          generateAudioDirect (eleven-labs-direct.ts)        │
 │                    ↓                                         │
 │  1. Generar clave de caché (hash del texto + config)        │
 │  2. Verificar si existe en caché                           │
@@ -184,34 +185,34 @@ Solo se cachea después de que el usuario solicita audio explícitamente.
 
 ---
 
-### Fase 2: Integrar Caché en el Flujo de TTS
+### Fase 2: Integrar Caché en el Módulo Central
 
-**Archivo a modificar:** `src/ai/flows/generate-dm-narration-audio.ts`
+**Archivo a modificar:** `src/lib/tts/eleven-labs-direct.ts`
 
 **Cambios necesarios:**
 
 1. Importar el módulo de caché: `import { ttsCache } from '@/lib/tts/tts-cache';`
 
-2. **Antes de generar audio (solo cuando el usuario solicita audio):**
-   - Crear objeto de configuración con texto, voiceId, modelId y parámetros de calidad
-   - Verificar si existe en caché usando `ttsCache.get(config)`
-   - Si existe, retornar `audioDataUri` del caché inmediatamente
-   - **Nota:** Solo se verifica caché cuando hay una petición activa del usuario
+2. **Modificar `generateAudioDirect`:**
+   - Esta función es el punto central de generación de audio (usada por Flows y API Route).
+   - **Paso 1 (Lectura):** Antes de llamar a `fetch`, generar la clave de caché y verificar si existe.
+     - Si existe (`hit`), retornar inmediatamente el resultado cacheado.
+     - Registrar log: `LogContext: { module: 'TTS Cache', hit: true }`
+   - **Paso 2 (Generación):** Si no existe (`miss`), proceder con la llamada a la API de Eleven Labs como siempre.
+   - **Paso 3 (Escritura):** Una vez obtenido el `audioBuffer` exitosamente:
+     - Guardar en caché asíncronamente: `ttsCache.set(config, audioDataUri).catch(log.error)`
+     - No bloquear el retorno de la función esperando a que se guarde.
+     - Registrar log: `LogContext: { module: 'TTS Cache', hit: false }`
 
-3. **Después de generar audio (solo cuando el usuario solicita audio):**
-   - Guardar en caché usando `ttsCache.set(config, audioDataUri)`
-   - El guardado debe ser asíncrono y no bloquear la respuesta
-   - **Nota:** Solo se guarda en caché después de generar audio por petición del usuario
-
-4. Logging:
-   - Registrar cuando se recupera del caché (cache hit)
-   - Registrar cuando se genera nuevo audio (cache miss)
+**Beneficios de esta integración centralizada:**
+- ✅ **Cobertura Total:** Tanto las narraciones del DM (Server Actions) como las peticiones del cliente (API Route) se benefician del caché automáticamente.
+- ✅ **Transparencia:** Los consumidores de la función no necesitan saber que existe un caché.
+- ✅ **DRY:** No se duplica la lógica de caché en múltiples lugares.
 
 **Criterios de éxito:**
-- ✅ Caché integrado en el flujo
-- ✅ Verificación de caché antes de generar
-- ✅ Guardado automático después de generar
-- ✅ Sin breaking changes en la interfaz pública
+- ✅ `generateAudioDirect` maneja el caché internamente.
+- ✅ Las llamadas repetidas no contactan a la API de Eleven Labs.
+- ✅ El comportamiento es transparente para `generateDmNarrationAudio` y `route.ts`.
 
 **Estimación:** 1 hora
 

@@ -60,6 +60,8 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName }:
   const [autoAdvancing, setAutoAdvancing] = useState(false);
   const [playerActionCompleted, setPlayerActionCompleted] = useState(false); // Track if player has already acted this turn
   const [isPartyPanelCollapsed, setIsPartyPanelCollapsed] = useState(false); // Track if party panel is collapsed
+  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
   const autoAdvancingRef = useRef(false); // Use ref for synchronous access
   const turnIndexRef = useRef(initialData.turnIndex || 0); // Use ref for synchronous access
   const initiativeOrderRef = useRef<Combatant[]>(initialData.initiativeOrder || []); // Use ref for synchronous access
@@ -716,6 +718,10 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName }:
         }
       />
       <GameLayout
+        isLeftPanelCollapsed={isLeftPanelCollapsed}
+        isRightPanelCollapsed={isRightPanelCollapsed}
+        onToggleLeftPanel={() => setIsLeftPanelCollapsed(prev => !prev)}
+        onToggleRightPanel={() => setIsRightPanelCollapsed(prev => !prev)}
         leftPanel={
           <LeftPanel
             diceRolls={diceRolls}

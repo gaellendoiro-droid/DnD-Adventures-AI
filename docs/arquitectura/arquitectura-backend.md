@@ -323,8 +323,11 @@ El subsistema de combate ha sido simplificado significativamente (Issue #117) pa
 #### `generateDmNarrationAudio`
 -   **Archivo**: `src/ai/flows/generate-dm-narration-audio.ts`
 -   **Rol**: Convierte la narración del DM a audio usando Text-to-Speech.
--   **Tecnología**: Utiliza Google Gemini 2.5 Flash Preview TTS
--   **Salida**: Audio en formato WAV como data URI
+-   **Tecnología**: Utiliza **Eleven Labs TTS** (anteriormente Google Gemini).
+-   **Arquitectura**:
+-     - Utiliza `eleven-labs-direct.ts` para llamadas directas a la API de Eleven Labs desde el servidor (sin "double hop").
+-     - Soporta reintentos automáticos y configuración de voz personalizada.
+-   **Salida**: Audio en formato MP3 como data URI
 -   **Uso**: Opcional, puede ser usado para añadir narración por voz al juego.
 
 #### `markdownToHtml`

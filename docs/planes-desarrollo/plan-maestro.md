@@ -32,6 +32,19 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
 
+### [Integración de Eleven Labs TTS](completados/integracion-eleven-labs-tts.md) ✅ **COMPLETADO**
+- **Estado:** Implementado y optimizado
+- **Objetivo:** Reemplazar el sistema de TTS anterior con Eleven Labs para mejorar la calidad y naturalidad de la narración, optimizando la arquitectura para evitar latencia.
+- **Prioridad:** Alta
+- **Resultados:**
+  - ✅ **Cliente Isomórfico:** `eleven-labs-client.ts` funciona en cliente y servidor sin exponer API Key.
+  - ✅ **Llamadas Directas:** `eleven-labs-direct.ts` elimina el "double hop" en Server Actions.
+  - ✅ **Configuración:** Variables de entorno documentadas en `.env.example`.
+  - ✅ **Calidad:** Voces de alta calidad integradas en el flujo de narración del DM.
+- **Fecha de finalización:** 2025-11-25
+- **Referencia:** [Plan Detallado](completados/integracion-eleven-labs-tts.md)
+
+
 ### [Definición de Estructura Base para Aventuras JSON](completados/definicion-estructura-json-aventuras.md) ✅ **COMPLETADO**
 - **Estado:** Todas las 4 fases completadas y documentadas
 - **Objetivo:** Definir un esquema JSON estándar y robusto para aventuras, incluyendo soporte para narraciones pre-generadas (intro y cutscenes)

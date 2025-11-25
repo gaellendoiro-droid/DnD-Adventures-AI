@@ -208,7 +208,26 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
----
+### Added
+- **🎙️ Refactorización y Optimización de Eleven Labs TTS (2025-11-25):**
+  - **Mejora:** Arquitectura optimizada para la integración de Eleven Labs, eliminando latencia y mejorando la seguridad.
+  - **Cambios:**
+    - ✅ **Cliente Isomórfico:** Nuevo `eleven-labs-client.ts` que funciona tanto en cliente como en servidor, delegando la autenticación a la API Route.
+    - ✅ **Eliminación de "Double Hop":** Nuevo módulo `eleven-labs-direct.ts` para llamadas directas desde el servidor (Server Actions/Flows), evitando la petición HTTP redundante a `localhost`.
+    - ✅ **Configuración Robusta:** Puerto fallback corregido a `3000` y variables de entorno documentadas en `.env.example`.
+    - ✅ **Logging Estructurado:** Corrección de todas las llamadas al logger para cumplir estrictamente con la firma `(message, context)`.
+  - **Beneficios:**
+    - Menor latencia en la generación de audio desde Server Actions.
+    - Mayor seguridad al no exponer API Keys en el cliente.
+    - Código más limpio y mantenible con separación clara de responsabilidades.
+  - **Archivos modificados:**
+    - `src/lib/tts/eleven-labs-direct.ts` (Nuevo)
+    - `src/lib/tts/eleven-labs-client.ts` (Refactorizado)
+    - `src/app/api/generate-audio/route.ts` (Optimizado)
+    - `src/ai/flows/generate-dm-narration-audio.ts` (Actualizado)
+    - `.env.example` (Nuevo)
+  - **Referencia:** [Plan Completado](../docs/planes-desarrollo/completados/integracion-eleven-labs-tts.md)
+
 
 ## [0.5.7] - 2025-01-23
 

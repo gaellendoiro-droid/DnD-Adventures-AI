@@ -125,36 +125,21 @@ Mejoras críticas que mejoran significativamente la arquitectura, mantenibilidad
 
 Mejoras críticas de interfaz de usuario que mejoran significativamente la experiencia y usabilidad del juego.
 
-### 1. Revisión y Reorganización de la Interfaz de Usuario {#1-revisión-y-reorganización-de-la-interfaz-de-usuario}
-*   **Problema Actual:** La interfaz actual tiene varios elementos mal organizados que afectan la usabilidad y la experiencia del jugador. El panel izquierdo está sobrecargado, el botón de guardar partida está en una ubicación poco accesible, y el panel de DebugLog ocupa espacio innecesario.
-*   **Mejoras Propuestas:**
-    *   **Mover Botón de Guardar Partida:** Trasladar el botón de guardar partida desde el panel izquierdo a la barra superior (header), junto al botón de menú, para mejorar su accesibilidad y visibilidad.
-    *   **Eliminar Recuadro de DebugLog:** Eliminar completamente el panel de DebugLog del panel izquierdo. Este panel ya no es necesario ya que el sistema de logging se ha migrado a la consola del navegador y terminal del servidor. Esto liberará espacio valioso en el panel izquierdo.
-    *   **Reorganizar Panel Izquierdo:**
-        *   Implementar paneles colapsables para los diferentes componentes (Tiradas de Dados y Orden de Combate)
-        *   Ajustar el tamaño del panel de Orden de Combate según el número de participantes
-        *   Acoplar los paneles de Tiradas y Orden de Combate por defecto para una mejor organización visual
-        *   Mejorar la distribución del espacio vertical disponible
-    *   **Reorganizar Panel Derecho:** ✅ **COMPLETADO PARCIALMENTE**
-        *   ✅ **Panel Derecho Colapsable:** Implementado layout flex colapsable con botones de colapso/expansión
-        *   ✅ **PartyPanel Compacto:** Reducido padding, tamaño de iconos, títulos y elementos
-        *   ✅ **CharacterSheet Compacto:** 
-            - Reducido padding y spacing general
-            - Skills en grid de 2 columnas
-            - Badges pequeños (9px, h-4)
-            - Skills competentes en negrita
-            - Badge "Comp." antes del modificador
-            - Inventario/Conjuros con spacing reducido y descripciones limitadas a 2 líneas
-        *   ✅ **Modificadores de Skills:** Sistema de modificadores pre-calculados implementado
-        *   ✅ **Botón de Dados Eliminado:** Removido del chat para simplificar interfaz
-    *   **Limpieza de Código:** Eliminar todo el código relacionado con DebugLog (componentes, props, estados) para mantener el código limpio y sin elementos obsoletos.
-*   **Impacto:** Mejora significativa de la usabilidad, liberación de espacio en la interfaz, mejor organización visual, y código más limpio sin elementos deprecados.
-*   **Plan Detallado:** 📝 [Reorganización de UI](../planes-desarrollo/en-curso/reorganizacion-ui.md)
-*   **Estado:** 🔄 **EN CURSO** - Panel derecho completado (2025-11-24), pendiente panel izquierdo y botón de guardar
-*   **Referencia:** 
+### 1. Revisión y Reorganización de la Interfaz de Usuario ✅ COMPLETADO {#1-revisión-y-reorganización-de-la-interfaz-de-usuario}
+*   **Problema Original:** La UI distribuía controles críticos en lugares poco accesibles (botón de guardar en el panel izquierdo, panel DebugLog ocupando espacio productivo y paneles sin jerarquía visual), lo que entorpecía la usabilidad.
+*   **Mejoras Implementadas (v0.5.5–v0.5.8):**
+    *   ✅ **Header funcional y contextual:** `AppHeader` ahora se renderiza en `GameView`, muestra el nombre de la aventura y aloja el botón de "Guardar Partida" junto al botón de menú para acceso inmediato. (`src/components/layout/app-header.tsx`, `src/components/game/game-view.tsx`)
+    *   ✅ **Panel izquierdo redimensionable y sin ruido:** `LeftPanel` pasó a un layout vertical de `InitiativeTracker` + `DiceLogPanel` con `ResizablePanelGroup`, y se eliminaron las dependencias de DebugLog, reduciendo el ruido visual.
+    *   ✅ **Deprecación completa de DebugLog UI:** Se eliminó el panel, el estado asociado y el componente `debug-panel.tsx`, alineado con la eliminación de `debugLogs` en el flujo de combate (`CHANGELOG.md` 0.5.5).
+    *   ✅ **Panel derecho optimizado:** Layout colapsable, `PartyPanel` compacto y `CharacterSheet` densificado (skills en grid 2x, badges mini, inventario con truncado). Referencia `CHANGELOG.md` 0.5.8.
+    *   ✅ **Feedback de acciones simplificado:** Eliminado el botón de dados del chat para enfocar el input del jugador en texto.
+    *   ✅ **Datos listos para la UI:** Sistema de modificadores de skills pre-calculados expuesto directamente en la ficha, evitando cálculos duplicados en el frontend.
+*   **Impacto:** La UI es más limpia y jerárquica, libera espacio en el panel izquierdo, reduce scroll en el panel derecho y mejora el acceso a acciones críticas (guardar partida, navegación). Además, el código quedó libre de componentes obsoletos y propiedades muertas.
+*   **Plan Detallado:** ✅ [Reorganización de UI](../planes-desarrollo/completados/reorganizacion-ui.md)
+*   **Estado:** ✅ **COMPLETADO** (2025-11-25) – Revisión total desplegada en producción interna.
+*   **Referencias:** 
     - [Notas de Gael - #268](../notas/Notas%20de%20Gael.md) - Rediseño del Panel Izquierdo
-    - Relacionado con la eliminación del sistema de DebugLog UI (completado en v0.5.5)
-    - Ver CHANGELOG.md para detalles de implementación
+    - `CHANGELOG.md` [0.5.5] (eliminación DebugLog) y [0.5.8] (compactación panel derecho, skills pre-calculados)
 
 ---
 
