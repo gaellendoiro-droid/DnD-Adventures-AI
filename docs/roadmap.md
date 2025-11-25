@@ -433,7 +433,8 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Plan Detallado:** ❌ No creado (parcialmente implementado por Issue #117)
 
 ### 12. Separación de IDs de Fichas de Personajes {#12-separación-de-ids-de-fichas-de-personajes}
-*   **Problema Actual:** Las fichas de personajes (`new-game-data.ts`) incluyen IDs hardcodeados (ej: `id: "1"`, `id: "6"`, `id: "3"`). Esto mezcla datos de ficha (stats, habilidades, inventario) con metadatos del sistema (IDs para identificación interna). Las fichas deberían ser datos puros y portables, mientras que los IDs son una necesidad interna del procesamiento del juego.
+*   **Problema Actual:** Las fichas de personajes (`initial-party.ts`) incluyen IDs hardcodeados (ej: `id: "1"`, `id: "6"`, `id: "3"`). Esto mezcla datos de ficha (stats, habilidades, inventario) con metadatos del sistema (IDs para identificación interna). Las fichas deberían ser datos puros y portables, mientras que los IDs son una necesidad interna del procesamiento del juego.
+*   **Nota:** La party inicial ya ha sido separada en `src/lib/initial-party.ts` (2025-01-23), preparando el terreno para esta mejora.
 *   **Mejora Propuesta:**
     *   **Separación de Responsabilidades:** Crear una distinción clara entre `CharacterSheet` (ficha pura sin IDs) y `Character` (personaje en juego con ID generado).
     *   **Sistema de Generación Automática de IDs:** Implementar un sistema que genere IDs automáticamente al cargar/crear personajes desde fichas. Los IDs podrían ser:

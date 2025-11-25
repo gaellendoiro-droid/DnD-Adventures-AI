@@ -51,7 +51,8 @@
 
 **Issue #63: Manejo de IDs No Consecutivos** ✅ CORREGIDO
 - **Severidad original:** 🟢 MEDIA
-- **Ubicación:** `src/lib/new-game-data.ts`, `src/ai/tools/combat-manager.ts`, `src/lib/combat/target-resolver.ts`
+- **Ubicación:** `src/lib/initial-party.ts`, `src/ai/tools/combat-manager.ts`, `src/lib/combat/target-resolver.ts`
+- **Nota:** La party inicial fue movida de `src/lib/new-game-data.ts` a `src/lib/initial-party.ts` en 2025-01-23.
 - **Problema original:** Cuando los personajes del grupo tenían IDs no consecutivos (ej. 1, 6, 8) algunos flujos asumían ID secuenciales y podían fallar al buscar combatientes o resolver objetivos.
 - **Corrección:** Se verificó que toda la cadena usa coincidencias exactas por ID (sin asumir secuencias). El Test 4.5 confirma que turnIndex, orden de iniciativa y resolución de objetivos funcionan correctamente con IDs dispersos en partidas reales.
 

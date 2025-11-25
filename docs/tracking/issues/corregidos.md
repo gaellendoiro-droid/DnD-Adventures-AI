@@ -1461,12 +1461,13 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 ### Cambios Adicionales: Desactivación Temporal de Magia para Tests
 
 - **Fecha:** 2025-11-18
-- **Ubicación:** `src/lib/new-game-data.ts` (líneas 260 y 412)
+- **Ubicación:** `src/lib/initial-party.ts` (líneas 260 y 412)
 - **Descripción:** Se desactivaron temporalmente todos los hechizos de Merryl y Elara para forzar el uso de armas durante las pruebas. Los arrays de `spells` fueron comentados y reemplazados por arrays vacíos.
 - **Propósito:** Facilitar el testing del sistema de armas sin que la IA priorice el uso de hechizos.
 - **Estado:** ⚠️ **TEMPORAL** - Los hechizos están comentados y pueden restaurarse fácilmente cuando se complete el testing.
 - **Archivos modificados:**
-  - ✅ `src/lib/new-game-data.ts` (líneas 260 y 412: arrays de `spells` comentados)
+  - ✅ `src/lib/initial-party.ts` (líneas 260 y 412: arrays de `spells` comentados)
+- **Nota:** La party inicial fue movida de `src/lib/new-game-data.ts` a `src/lib/initial-party.ts` en 2025-01-23.
 
 ---
 

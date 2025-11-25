@@ -13,6 +13,7 @@
 import { log } from '@/lib/logger';
 import type { Character, DiceRoll } from '@/lib/types';
 import type { Combatant } from '@/lib/types';
+import { initialParty } from '@/lib/initial-party';
 import { getVisualName } from '@/lib/combat/monster-name-manager';
 import {
     applyDamage,

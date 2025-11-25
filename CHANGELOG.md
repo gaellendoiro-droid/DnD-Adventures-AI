@@ -13,6 +13,83 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ---
 
+## [Unreleased]
+
+### Changed
+- **🏗️ Refactorización: Separación de Party Inicial (2025-01-23):**
+  - **Mejora:** Separación de la definición de la party inicial en un módulo independiente para facilitar futuras mejoras y el sistema de creación de personajes.
+  - **Cambios:**
+    - ✅ **Nuevo archivo:** `src/lib/initial-party.ts` - Contiene la definición completa de `initialParty` (Galador, Merryl, Elara).
+    - ✅ **Archivo refactorizado:** `src/lib/new-game-data.ts` - Ahora solo contiene `initialMessage` (mensaje inicial del DM).
+    - ✅ **Imports actualizados:** Todos los archivos que usaban `initialParty` ahora importan desde `@/lib/initial-party`.
+  - **Beneficios:**
+    - **Modularidad:** La party inicial está separada de otros datos de inicialización.
+    - **Preparación para Creador de Personajes:** Facilita la futura implementación de un sistema de creación de personajes completo.
+    - **Mantenibilidad:** Estructura más clara y fácil de extender.
+  - **Archivos modificados:**
+    - `src/lib/initial-party.ts` (Nuevo)
+    - `src/lib/new-game-data.ts` (Refactorizado)
+    - `src/app/page.tsx` (Imports actualizados)
+    - `src/lib/combat/action-executor.ts` (Imports actualizados)
+    - `src/lib/combat/turn-processor.ts` (Imports actualizados)
+
+### Added
+- **💾 Sistema de Caché Reactivo para TTS (2025-11-25):**
+  - **Mejora:** Implementación de un sistema de caché híbrido (Memoria + Disco) para las narraciones de audio.
+  - **Características:**
+    - ✅ **Caché Reactivo:** Solo almacena audios solicitados explícitamente por el usuario.
+    - ✅ **Almacenamiento Híbrido:** LRU en memoria para acceso inmediato y persistencia en disco (`.cache/tts/`).
+    - ✅ **Integración Transparente:** Integrado en el núcleo de `eleven-labs-direct.ts`, beneficiando tanto a Server Actions como a API Routes.
+  - **Beneficios:**
+    - **Ahorro de Costos:** Evita llamadas repetidas a Eleven Labs para el mismo texto (ej. introducciones).
+    - **Latencia Cero:** Respuesta instantánea para audios ya generados.
+  - **Archivos modificados:**
+    - `src/lib/tts/tts-cache.ts` (Nuevo)
+    - `src/lib/tts/eleven-labs-direct.ts` (Actualizado)
+  - **Referencia:** [Plan Completado](../docs/planes-desarrollo/completados/sistema-cache-tts.md)
+
+- **🎙️ Refactorización y Optimización de Eleven Labs TTS (2025-11-25):**
+  - **Mejora:** Arquitectura optimizada para la integración de Eleven Labs, eliminando latencia y mejorando la seguridad.
+  - **Cambios:**
+    - ✅ **Cliente Isomórfico:** Nuevo `eleven-labs-client.ts` que funciona tanto en cliente como en servidor, delegando la autenticación a la API Route.
+    - ✅ **Eliminación de "Double Hop":** Nuevo módulo `eleven-labs-direct.ts` para llamadas directas desde el servidor (Server Actions/Flows), evitando la petición HTTP redundante a `localhost`.
+    - ✅ **Configuración Robusta:** Puerto fallback corregido a `3000` y variables de entorno documentadas en `.env.example`.
+    - ✅ **Logging Estructurado:** Corrección de todas las llamadas al logger para cumplir estrictamente con la firma `(message, context)`.
+  - **Beneficios:**
+    - Menor latencia en la generación de audio desde Server Actions.
+    - Mayor seguridad al no exponer API Keys en el cliente.
+    - Código más limpio y mantenible con separación clara de responsabilidades.
+  - **Archivos modificados:**
+    - `src/lib/tts/eleven-labs-direct.ts` (Nuevo)
+    - `src/lib/tts/eleven-labs-client.ts` (Refactorizado)
+    - `src/app/api/generate-audio/route.ts` (Optimizado)
+    - `src/ai/flows/generate-dm-narration-audio.ts` (Actualizado)
+    - `.env.example` (Nuevo)
+  - **Referencia:** [Plan Completado](../docs/planes-desarrollo/completados/integracion-eleven-labs-tts.md)
+
+### Changed
+- **✅ Sistema de Carga de Aventuras Revisado (Issue #126) (2025-11-23):**
+  - **Problema:** El sistema anterior dependía excesivamente de la IA para parsear JSONs, era lento (10-15s), propenso a errores de alucinación, y carecía de validación robusta y feedback visual.
+  - **Solución implementada:** Rediseño completo con arquitectura modular (`adventure-parser`, `validator`, `adventure-cache`, `game-initializer`).
+  - **Características Clave:**
+    1.  **Fast Parser:** Intenta leer el JSON directamente primero. Carga instantánea (<1s) para archivos bien formados. Fallback a IA solo si es necesario.
+    2.  **Validación Robusta:** Esquema Zod estricto + validación de integridad referencial (detecta enlaces rotos en `exits` y IDs duplicados).
+    3.  **Caché Persistente:** Almacena aventuras procesadas en disco (`node_modules/.cache/dnd-adventures`), sobreviviendo a reinicios del servidor.
+    4.  **Feedback Visual:** Nuevo componente `AdventureLoadProgress` que muestra cada paso (Parseando, Validando, Conectando, Inicializando, Narrando).
+    5.  **Inicio Limpio:** Forzado silencio de compañeros en el turno 0 para que solo el DM narre la introducción.
+  - **Beneficios:**
+    - 🚀 Carga inmediata para la mayoría de aventuras.
+    - 🛡️ Imposible cargar aventuras rotas que crashearían el juego después.
+    - 💾 Persistencia entre sesiones de desarrollo.
+    - 👁️ UX muy superior con feedback claro.
+  - **Archivos modificados:**
+    - `src/app/page.tsx` - Orquestación completa y UI de progreso.
+    - `src/lib/adventure-loader/*` - Nuevos módulos del sistema.
+    - `src/ai/flows/parse-adventure-from-json.ts` - Integración con caché y fast parser.
+  - **Referencia:** [Plan Completado](../../docs/planes-desarrollo/completados/issue-126-revision-sistema-carga-aventuras.md) | [Arquitectura](../../docs/arquitectura/sistema-carga-aventuras.md)
+
+---
+
 ## [0.5.8] - 2025-11-24
 
 ### Added
@@ -205,29 +282,6 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
   - **Impacto:** Crítico - Sin este fix, la funcionalidad de introducción pre-generada no era visible para el usuario
 
 ---
-
-## [Unreleased]
-
-### Added
-- **🎙️ Refactorización y Optimización de Eleven Labs TTS (2025-11-25):**
-  - **Mejora:** Arquitectura optimizada para la integración de Eleven Labs, eliminando latencia y mejorando la seguridad.
-  - **Cambios:**
-    - ✅ **Cliente Isomórfico:** Nuevo `eleven-labs-client.ts` que funciona tanto en cliente como en servidor, delegando la autenticación a la API Route.
-    - ✅ **Eliminación de "Double Hop":** Nuevo módulo `eleven-labs-direct.ts` para llamadas directas desde el servidor (Server Actions/Flows), evitando la petición HTTP redundante a `localhost`.
-    - ✅ **Configuración Robusta:** Puerto fallback corregido a `3000` y variables de entorno documentadas en `.env.example`.
-    - ✅ **Logging Estructurado:** Corrección de todas las llamadas al logger para cumplir estrictamente con la firma `(message, context)`.
-  - **Beneficios:**
-    - Menor latencia en la generación de audio desde Server Actions.
-    - Mayor seguridad al no exponer API Keys en el cliente.
-    - Código más limpio y mantenible con separación clara de responsabilidades.
-  - **Archivos modificados:**
-    - `src/lib/tts/eleven-labs-direct.ts` (Nuevo)
-    - `src/lib/tts/eleven-labs-client.ts` (Refactorizado)
-    - `src/app/api/generate-audio/route.ts` (Optimizado)
-    - `src/ai/flows/generate-dm-narration-audio.ts` (Actualizado)
-    - `.env.example` (Nuevo)
-  - **Referencia:** [Plan Completado](../docs/planes-desarrollo/completados/integracion-eleven-labs-tts.md)
-
 
 ## [0.5.7] - 2025-01-23
 
@@ -514,31 +568,6 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - `docs/planes-desarrollo/plan-maestro.md` - Actualizado estado
     - Múltiples archivos corregidos (ver lista arriba)
   - **Referencia:** [Roadmap - Estandarización de Niveles de Logging](../../docs/roadmap.md#0-estandarización-de-niveles-de-logging--completado)
-
----
-
-## [Unreleased]
-
-### Changed
-- **✅ Sistema de Carga de Aventuras Revisado (Issue #126) (2025-11-23):**
-  - **Problema:** El sistema anterior dependía excesivamente de la IA para parsear JSONs, era lento (10-15s), propenso a errores de alucinación, y carecía de validación robusta y feedback visual.
-  - **Solución implementada:** Rediseño completo con arquitectura modular (`adventure-parser`, `validator`, `adventure-cache`, `game-initializer`).
-  - **Características Clave:**
-    1.  **Fast Parser:** Intenta leer el JSON directamente primero. Carga instantánea (<1s) para archivos bien formados. Fallback a IA solo si es necesario.
-    2.  **Validación Robusta:** Esquema Zod estricto + validación de integridad referencial (detecta enlaces rotos en `exits` y IDs duplicados).
-    3.  **Caché Persistente:** Almacena aventuras procesadas en disco (`node_modules/.cache/dnd-adventures`), sobreviviendo a reinicios del servidor.
-    4.  **Feedback Visual:** Nuevo componente `AdventureLoadProgress` que muestra cada paso (Parseando, Validando, Conectando, Inicializando, Narrando).
-    5.  **Inicio Limpio:** Forzado silencio de compañeros en el turno 0 para que solo el DM narre la introducción.
-  - **Beneficios:**
-    - 🚀 Carga inmediata para la mayoría de aventuras.
-    - 🛡️ Imposible cargar aventuras rotas que crashearían el juego después.
-    - 💾 Persistencia entre sesiones de desarrollo.
-    - 👁️ UX muy superior con feedback claro.
-  - **Archivos modificados:**
-    - `src/app/page.tsx` - Orquestación completa y UI de progreso.
-    - `src/lib/adventure-loader/*` - Nuevos módulos del sistema.
-    - `src/ai/flows/parse-adventure-from-json.ts` - Integración con caché y fast parser.
-  - **Referencia:** [Plan Completado](../../docs/planes-desarrollo/completados/issue-126-revision-sistema-carga-aventuras.md) | [Arquitectura](../../docs/arquitectura/sistema-carga-aventuras.md)
 
 ---
 

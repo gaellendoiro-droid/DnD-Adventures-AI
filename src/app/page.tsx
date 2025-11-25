@@ -3,7 +3,8 @@
 
 import { useState } from "react";
 import type { Character, GameMessage, DiceRoll, Combatant } from "@/lib/types";
-import { initialParty, initialMessage } from "@/lib/new-game-data";
+import { initialMessage } from "@/lib/new-game-data";
+import { initialParty } from "@/lib/initial-party";
 import { AppHeader } from "@/components/layout/app-header";
 import { MainMenu } from "@/components/game/main-menu";
 import { GameView } from "@/components/game/game-view";

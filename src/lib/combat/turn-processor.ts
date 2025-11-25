@@ -16,6 +16,7 @@ import type { Combatant } from '@/lib/types';
 import { getVisualName } from '@/lib/combat/monster-name-manager';
 import { resolveEnemyId } from '@/lib/combat/target-resolver';
 import { getHpStatus } from '@/lib/combat/rules-engine';
+import { initialParty } from '@/lib/initial-party';
 import {
     CombatActionExecutor,
     type CombatActionInput,
