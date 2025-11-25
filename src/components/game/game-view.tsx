@@ -732,16 +732,14 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName }:
         characterSheet={
           <div className="flex flex-col h-full">
             {isPartyPanelCollapsed && (
-              <div className="flex items-center justify-center py-0.5 border-b bg-muted/30 hover:bg-muted/50 transition-colors">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsPartyPanelCollapsed(false)}
-                  className="w-full h-4 px-2"
-                >
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </div>
+              <button
+                type="button"
+                aria-label="Mostrar panel del grupo"
+                onClick={() => setIsPartyPanelCollapsed(false)}
+                className="flex w-full items-center justify-center bg-card border-y border-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:bg-muted/20 py-[2px]"
+              >
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              </button>
             )}
             {!isPartyPanelCollapsed && (
               <>
@@ -755,16 +753,14 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName }:
                     }}
                   />
                 </div>
-                <div className="flex items-center justify-center py-0.5 border-t border-b bg-muted/30 hover:bg-muted/50 transition-colors">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsPartyPanelCollapsed(true)}
-                    className="w-full h-4 px-2"
-                  >
-                    <ChevronUp className="h-3 w-3" />
-                  </Button>
-                </div>
+                <button
+                  type="button"
+                  aria-label="Ocultar panel del grupo"
+                  onClick={() => setIsPartyPanelCollapsed(true)}
+                  className="flex w-full items-center justify-center bg-card border-y border-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:bg-muted/20 py-[2px]"
+                >
+                  <ChevronUp className="h-3 w-3 text-muted-foreground" />
+                </button>
               </>
             )}
             <div className="flex-1 overflow-hidden">
