@@ -1,5 +1,6 @@
 import { log } from '@/lib/logger';
 import { prewarmConnection, retryWithExponentialBackoff } from '@/ai/flows/retry-utils';
+import { ttsCache } from '@/lib/tts/tts-cache';
 
 export interface ElevenLabsDirectConfig {
     voiceId: string;
@@ -28,6 +29,24 @@ export async function generateAudioDirect(
     if (!apiKey) {
         log.error('ELEVENLABS_API_KEY no configurada', { module: 'ElevenLabs Direct' });
         throw new Error('ELEVENLABS_API_KEY no está configurada en variables de entorno');
+    }
+
+    // Verificar caché primero
+    const cachedAudio = await ttsCache.get({
+        text,
+        voiceId: config.voiceId,
+        modelId: config.modelId,
+        stability: config.stability,
+        similarityBoost: config.similarityBoost,
+        style: config.style,
+        useSpeakerBoost: config.useSpeakerBoost
+    });
+
+    if (cachedAudio) {
+        return {
+            audioDataUri: cachedAudio,
+            format: 'mp3'
+        };
     }
 
     // Limitar la longitud del texto
@@ -117,6 +136,19 @@ export async function generateAudioDirect(
         const audioBuffer = await response.arrayBuffer();
         const base64Audio = Buffer.from(audioBuffer).toString('base64');
         const audioDataUri = `data:audio/mpeg;base64,${base64Audio}`;
+
+        // Guardar en caché asíncronamente
+        ttsCache.set({
+            text,
+            voiceId: config.voiceId,
+            modelId: config.modelId,
+            stability: config.stability,
+            similarityBoost: config.similarityBoost,
+            style: config.style,
+            useSpeakerBoost: config.useSpeakerBoost
+        }, audioDataUri).catch(err => {
+            log.error('Error guardando en caché TTS', { module: 'TTS Cache', error: err });
+        });
 
         log.info('Audio generado exitosamente', {
             module: 'ElevenLabs Direct',

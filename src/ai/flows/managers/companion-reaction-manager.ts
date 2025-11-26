@@ -19,6 +19,10 @@ import { canEntityReact } from '@/lib/game/entity-status-utils';
  */
 export type ReactionTiming = 'before_dm' | 'after_dm';
 
+// Probabilities for reactions (moved from prompt to code to save API calls)
+const PROBABILITY_BEFORE_DM = 0.15;
+const PROBABILITY_AFTER_DM = 0.25;
+
 /**
  * Input para procesar reacciones de compañeros
  */
@@ -33,6 +37,7 @@ export interface CompanionReactionInput {
     timing: ReactionTiming;
     isAdventureStart?: boolean;
     dmNarration?: string; // Solo para 'after_dm'
+    chatHistory?: string; // Historial de chat formateado
 }
 
 /**
@@ -59,7 +64,7 @@ export interface CompanionReactionOutput {
 export async function processCompanionReactions(
     input: CompanionReactionInput
 ): Promise<CompanionReactionOutput> {
-    const { party, playerAction, interpretation, inCombat, timing, isAdventureStart = false, dmNarration } = input;
+    const { party, playerAction, interpretation, inCombat, timing, isAdventureStart = false, dmNarration, chatHistory } = input;
 
     const messages: Omit<GameMessage, 'id' | 'timestamp'>[] = [];
     const debugLogs: string[] = [];
@@ -82,6 +87,12 @@ export async function processCompanionReactions(
             for (const character of party) {
                 // Issue #26/#27: Skip dead/unconscious companions - they cannot react
                 if (canEntityReact(character)) {
+                    // Optimization: Probability check in code to avoid unnecessary API calls
+                    if (Math.random() > PROBABILITY_BEFORE_DM) {
+                        localLog(`Skipping reaction for ${character.name} (probability check failed)`);
+                        continue;
+                    }
+
                     const isTargeted = interpretation.actionType === 'interact' && interpretation.targetId === character.name;
                     const companionContext = `The player just proposed/said: "${playerAction}"${isTargeted ? `\n\n(You are being directly addressed.)` : ''}`;
 
@@ -91,6 +102,7 @@ export async function processCompanionReactions(
                         context: companionContext,
                         inCombat: inCombat,
                         reactionTiming: 'before_dm',
+                        chatHistory: chatHistory,
                     });
 
                     if (companionResult.action && companionResult.action.trim() !== '') {
@@ -118,6 +130,12 @@ export async function processCompanionReactions(
             for (const character of party) {
                 // Issue #26/#27: Skip dead/unconscious companions - they cannot react
                 if (canEntityReact(character)) {
+                    // Optimization: Probability check in code to avoid unnecessary API calls
+                    if (Math.random() > PROBABILITY_AFTER_DM) {
+                        localLog(`Skipping reaction for ${character.name} (probability check failed)`);
+                        continue;
+                    }
+
                     const isTargeted = interpretation.actionType === 'interact' && interpretation.targetId === character.name;
                     // Include DM narration in context so companions react to the CURRENT SITUATION, not just the player's original action
                     const dmNarrationContext = dmNarration
@@ -131,6 +149,7 @@ export async function processCompanionReactions(
                         context: companionContext,
                         inCombat: inCombat,
                         reactionTiming: 'after_dm',
+                        chatHistory: chatHistory,
                     });
 
                     if (companionResult.action && companionResult.action.trim() !== '') {

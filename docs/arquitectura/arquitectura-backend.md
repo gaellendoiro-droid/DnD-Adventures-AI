@@ -274,7 +274,8 @@ El subsistema de combate ha sido simplificado significativamente (Issue #117) pa
     - Se invoca **dos veces** durante un turno narrativo:
       1. **Antes de la narración del DM** (`timing: 'before_dm'`): Reacciones a la intención del jugador
       2. **Después de la narración del DM** (`timing: 'after_dm'`): Reacciones al resultado de lo sucedido
-    - Utiliza `companionExpertTool` internamente para generar los diálogos
+    - **Optimización**: Implementa un filtro de probabilidad en código (`Math.random()`) antes de llamar a la IA para ahorrar costes y latencia (~15% antes del DM, ~25% después del DM).
+    - Utiliza `companionExpertTool` internamente para generar los diálogos, pasándole el historial de chat reciente.
 -   **Uso**: Invocado por `NarrativeTurnManager` para gestionar el flujo completo de reacciones de compañeros.
 
 #### `companionExpertTool` (Herramienta interna)
@@ -325,7 +326,8 @@ El subsistema de combate ha sido simplificado significativamente (Issue #117) pa
 -   **Rol**: Convierte la narración del DM a audio usando Text-to-Speech.
 -   **Tecnología**: Utiliza **Eleven Labs TTS** (anteriormente Google Gemini).
 -   **Arquitectura**:
--     - Utiliza `eleven-labs-direct.ts` para llamadas directas a la API de Eleven Labs desde el servidor (sin "double hop").
+-     - Utiliza `eleven-labs-direct.ts` para llamadas directas a la API de Eleven Labs desde el servidor.
+-     - **Caché Integrado**: Sistema de caché híbrido (memoria/disco) que evita regenerar audios ya solicitados.
 -     - Soporta reintentos automáticos y configuración de voz personalizada.
 -   **Salida**: Audio en formato MP3 como data URI
 -   **Uso**: Opcional, puede ser usado para añadir narración por voz al juego.
@@ -365,6 +367,7 @@ Este ejemplo ilustra el principio de **flujo de datos explícito**:
         characterName: "Elara",
         context: "The player's action is: \"Vamos a la posada\"",
         inCombat: false,
+        chatHistory: "...", // <--- Historial reciente para contexto
     });
     ```
 

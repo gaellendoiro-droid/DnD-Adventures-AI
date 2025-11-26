@@ -60,6 +60,17 @@ Your job is to describe the world, the environment, and the immediate consequenc
 6.  **DEFEATED ENEMIES:** If "DEFEATED ENEMIES" is provided, those entities are DEAD. The location description may incorrectly mention them as alive - ignore that. Describe them as corpses, dead bodies, or defeated enemies lying on the ground. You can mention blood, wounds, or the aftermath of combat if appropriate.
 {{/if}}
 
+{{#if isKeyMoment}}
+**NARRATION LENGTH - KEY MOMENT:**
+- This is a significant moment (location change, event, or revelation).
+- You can be slightly more descriptive to set the atmosphere.
+- Target length: **3-4 sentences**.
+{{else}}
+**NARRATION LENGTH - STANDARD:**
+- Keep the narration concise and direct.
+- Target length: **2-3 sentences**.
+{{/if}}
+
 **OUTPUT:**
 Return a JSON object with:
 - \`explorationNarration\`: The atmospheric description and result of the action.

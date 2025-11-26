@@ -9,11 +9,13 @@
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
 **Total:** 23 issues  
-**Última actualización:** 2025-01-23 (Issue #125 resuelto y movido a corregidos)
+**Última actualización:** 2025-11-26 (Issue #127 registrado - regresión UI botones de turno)
 
 ---
 
 ## 🔴 Prioridad Muy Alta (PMA) - Críticos
+
+
 
 ### Issue #126: Revisión completa del sistema de carga de aventuras JSON e inicio de partida 🔴 CRÍTICO
 
@@ -85,52 +87,6 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
 
 ---
 
-### Issue #93: Manejo de errores cuando se agotan los reintentos (especialmente errores 503 de sobrecarga) 🟡 ADVERTENCIA
-
-- **Fecha de creación:** 2025-11-18
-- **Ubicación:** `src/ai/flows/retry-utils.ts`, `src/ai/tools/enemy-tactician.ts`, `src/ai/tools/companion-tactician.ts`
-- **Severidad:** 🟡 **ALTA** (afecta experiencia del usuario cuando el servicio está sobrecargado)
-- **Descripción:** Cuando la API de Gemini devuelve errores 503 (Service Unavailable / "The model is overloaded") y se agotan los 4 intentos de reintento, el sistema no diferencia estos errores de otros errores críticos, mostrando el mismo mensaje genérico de fallo.
-- **Problema:**
-  - Los errores 503 después de agotar reintentos se tratan igual que cualquier otro error crítico
-  - El usuario no recibe información clara sobre si el problema es temporal (sobrecarga del servicio) o permanente
-  - Los logs no distinguen entre errores de sobrecarga y otros tipos de errores
-  - El mensaje de fallo es genérico ("ruge con frustración, pero no hace nada") sin contexto del error real
-- **Comportamiento actual:**
-  1. `retryWithExponentialBackoff` intenta 4 veces (1 inicial + 3 reintentos)
-  2. Si todos fallan con 503, lanza el error
-  3. `enemyTacticianTool` / `companionTacticianTool` capturan el error en el catch externo
-  4. Devuelven acción por defecto genérica sin diferenciar el tipo de error
-- **Comportamiento esperado:**
-  - Detectar específicamente errores 503 después de agotar reintentos
-  - Registrar estos errores con información detallada (tipo de error, número de intentos, etc.)
-  - Mostrar un mensaje más claro al usuario indicando que el servicio está sobrecargado
-  - Considerar si se debe mostrar un mensaje diferente en la UI para errores de sobrecarga
-- **Mejoras implementadas:**
-  - ✅ Añadida detección de errores 503 en `retry-utils.ts` para reintentar automáticamente
-  - ✅ Añadido logging detallado en `enemy-tactician.ts` para errores de validación
-  - ✅ **Corregido (2025-11-21):** Stack traces completos de errores de API call ahora se suprimen. Los errores de red/timeout ahora muestran solo mensajes limpios sin stack traces largos en los logs.
-- **Solución propuesta:**
-  - **Fase 1 (PENDIENTE):** Mejorar detección y logging de errores 503 después de agotar reintentos
-    - Detectar específicamente errores 503 en el catch de `enemyTacticianTool` / `companionTacticianTool`
-    - Registrar información detallada: tipo de error, número de intentos, mensaje del servicio
-  - **Fase 2 (PENDIENTE):** Mejorar mensajes al usuario
-    - Mensaje diferente para errores de sobrecarga vs otros errores
-    - Considerar mostrar mensaje en la UI cuando el servicio está sobrecargado
-  - **Fase 3 (OPCIONAL):** Estrategias avanzadas
-    - Considerar aumentar el número de reintentos para errores 503 específicamente
-    - Implementar circuit breaker para evitar spam de requests cuando el servicio está sobrecargado
-- **Archivos afectados:**
-  - `src/ai/flows/retry-utils.ts` (detección de errores reintentables)
-  - `src/ai/tools/enemy-tactician.ts` (manejo de errores después de reintentos)
-  - `src/ai/tools/companion-tactician.ts` (manejo de errores después de reintentos)
-- **Impacto:** Alto - Mejora la experiencia del usuario y facilita el diagnóstico cuando el servicio está sobrecargado
-- **Estado:** 📝 **PENDIENTE**
-- **Prioridad de corrección:** Alta
-- **Detección:** Observado durante testing cuando Gemini API devolvió error 503
-- **Relacionado con:** Issue #14 (output inválido/null), Issue #30 (logs verbosos de errores de API)
-
----
 
 ## 🟢 Prioridad Media (PM) - Mejoras
 

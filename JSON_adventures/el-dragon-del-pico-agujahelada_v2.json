@@ -2,7 +2,7 @@
   "adventureId": "el-dragon-del-pico-agujahelada",
   "title": "El Dragón del Pico Agujahelada",
   "summary": "Un joven dragón blanco llamado Cryovain ha reclamado el Pico Agujahelada como su dominio, desplazando a orcos y otras criaturas que ahora amenazan la región alrededor del pueblo de Phandalin. Los aventureros deben emprender misiones para proteger a los habitantes y, finalmente, enfrentarse al dragón en su guarida.",
-"introductoryNarration": "<p><strong>¡Bienvenidos a Phandalin!</strong>.</p><p>Tras un arduo viaje por la <em>Costa de la Espada</em>, azotada por vientos gélidos, llegáis por fin a este asentamiento minero erigido sobre las ruinas de un antiguo pueblo.</p>\n\n<p>Las casas de madera contrastan con los viejos cimientos de piedra visibles por doquier y la tensión se palpa en cada mirada. Los lugareños no se separan de sus armas; todos saben que <strong>Cryovain</strong>, el joven dragón blanco que sobrevuela el <strong>Pico Agujahelada</strong>, podría regresar en cualquier momento.</p>\n\n<p>El pueblo carece de murallas y confía su defensa a la vigilancia constante de granjeros, canteros y buscadores de oro que trabajan con prisa mientras observan las montañas nevadas. No hay grandes lujos, pero sí la promesa de aventura para quienes se atrevan a desafiar el frío y las bestias que han bajado de las cumbres.</p>\n\n<p>Vuestro camino termina justo en el centro del pueblo. Frente a vosotros destaca la <strong>Posada Rocacolina</strong> y, unas puertas más abajo, la sólida <strong>Casa Consistorial</strong> con su campanario. Plantado junto a la entrada del edificio oficial, un tablón de anuncios espera a que alguien con valentía acepte sus misiones. <strong>Estáis frente al tablón. ¿Qué hacéis?</strong></p>",
+  "introductoryNarration": "<h3>¡Bienvenidos a El Dragón del Pico Agujahelada!</h3><p>Acabáis de llegar al pueblo de <strong>Phandalin</strong> tras varios días de viaje por caminos escarpados. El aire gélido de las Montañas de la Espada os recibe en este asentamiento minero que lucha por resurgir de sus cenizas. Casas de madera nueva se mezclan con ruinas de piedra, testigos de una grandeza pasada. Sin embargo, una sombra se cierne sobre el pueblo: un joven dragón blanco llamado <strong>Cryovain</strong> ha reclamado el cercano Pico Agujahelada, y su presencia empuja a orcos y otras bestias a las tierras bajas.</p><p>Os encontráis en la plaza del pueblo. A vuestro alrededor, la vida continúa con una tensión palpable. Podéis ver la modesta <strong>Posada Rocacolina</strong>, la tienda de <strong>Suministros Barthen</strong>, el <strong>Bazar Escudo de León</strong>, un pequeño <strong>Santuario de la Suerte</strong>, la <strong>Casa de Cambio</strong> y la residencia del alcalde <strong>Harbin Wester</strong>. Justo enfrente, junto a la casa consistorial, un <strong>tablón de anuncios</strong> de madera atrae vuestra atención con varios carteles escritos con caligrafía nerviosa.</p><p>El futuro de Phandalin es incierto. Sus gentes necesitan héroes. ¿Qué hacéis?</p>",
   "system": "D&D 5e",
   "levelRange": {
     "start": 1,
@@ -362,6 +362,39 @@
       }
     ]
   },
+  "tables": [
+    {
+      "id": "historias-phandalin",
+      "title": "Historias de Phandalin",
+      "dice": "1d6",
+      "rows": [
+        {
+          "range": "1",
+          "content": "¡Los orcos han vuelto a descender de las montañas para aterrorizar las tierras bajas! Si Nuncainvierno no envía pronto refuerzos, los orcos invadirán Phandalin y echarán a perder todo el esfuerzo en reconstruir este pueblo."
+        },
+        {
+          "range": "2",
+          "content": "En su recorrido hacia el este, el Camino a Trijabal atraviesa las ruinas de Conyberry, un pueblo saqueado por bárbaros hace muchos años. Hay un templo en ruinas al sur de Conyberry, donde se dice que los lugareños escondieron su oro."
+        },
+        {
+          "range": "3",
+          "content": "Una magia extraña impregna el bosque de Nuncainvierno, que desorienta a los viajeros y oculta las antiguas ruinas de reinos de otrora perdidos en sus profundidades."
+        },
+        {
+          "range": "4",
+          "content": "El pabellón de caza de Halcón es el único lugar seguro del bosque de Nuncainvierno. Se encuentra en las profundidades del bosque, en la ribera de un río, y ciertos nobles acaudalados se aventuran hasta allí para cazar bajo la protección de Halcón. Halcón es un veterano retirado con muchas guerras a su espalda y se dice que ofrece alojamiento y comida gratis a quien le lleve una botella de vino."
+        },
+        {
+          "range": "5",
+          "content": "Al oeste de Phandalin, en la costa, hay un viejo faro de piedra. Los barcos se sienten atraídos por esta reluciente torre como las polillas a la luz y están condenados a chocarse contra sus rocas. ¡Sus restos deben de estar llenos de tesoros!"
+        },
+        {
+          "range": "6",
+          "content": "Hay quienes afirman haber visto un dragón volando entre las nubes más altas. A esa distancia, es difícil calcular el tamaño de la criatura, pero algunos dicen que es tan grande como un elefante y tiene brillantes escamas blancas."
+        }
+      ]
+    }
+  ],
   "locations": [
     {
       "id": "phandalin-plaza-del-pueblo",
@@ -476,7 +509,7 @@
             },
             {
               "action": "Hablar sobre rumores",
-              "result": "Toblen comparte una historia que ha oído de sus clientes."
+              "result": "Toblen comparte una historia: [[ROLL_TABLE:historias-phandalin]]"
             }
           ]
         }
@@ -507,7 +540,7 @@
             },
             {
               "action": "Hablar sobre rumores",
-              "result": "Elmar o sus empleados, Ander y Cardo, pueden compartir una historia local."
+              "result": "Elmar comparte un rumor: [[ROLL_TABLE:historias-phandalin]]"
             }
           ]
         }
@@ -538,7 +571,7 @@
             },
             {
               "action": "Hablar sobre rumores",
-              "result": "Linene puede compartir una historia que ha oído."
+              "result": "Linene comparte un rumor: [[ROLL_TABLE:historias-phandalin]]"
             }
           ]
         }
@@ -569,7 +602,7 @@
             },
             {
               "action": "Hablar sobre rumores",
-              "result": "Si los personajes la complacen, Halia les contará una historia."
+              "result": "Halia comparte un rumor: [[ROLL_TABLE:historias-phandalin]]"
             }
           ]
         }

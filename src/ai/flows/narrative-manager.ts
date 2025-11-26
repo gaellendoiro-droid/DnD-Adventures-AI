@@ -49,7 +49,13 @@ const SynthesizerOutputSchema = z.object({
 // 1. Router Prompt: Decides which expert(s) to call
 const narrativeRouterPrompt = ai.definePrompt({
     name: 'narrativeRouterPrompt',
-    input: { schema: z.object({ playerAction: z.string(), interpretedAction: z.string() }) },
+    input: {
+        schema: z.object({
+            playerAction: z.string(),
+            interpretedAction: z.string(),
+            conversationHistory: z.string().optional()
+        })
+    },
     output: { schema: RouterOutputSchema },
     prompt: `Analyze the player's action and classify it into one of three categories:
 
@@ -57,9 +63,18 @@ const narrativeRouterPrompt = ai.definePrompt({
 2. **INTERACTION**: The player is speaking to or interacting socially with an NPC or intelligent being. (e.g., "I say hello", "I ask the guard for directions").
 3. **HYBRID**: The player is doing BOTH simultaneously. (e.g., "I walk towards the door AND ask the guard why he's nervous", "I draw my sword and shout at the goblin").
 
+**CRITICAL - CONTEXT AWARENESS:**
+- Use the **Conversation History** to determine the context.
+- If the last message in the history was an NPC asking a question or speaking to the player, and the player's action is a response (even without "I say"), classify as **INTERACTION**.
+- Example: NPC: "Who are you?" -> Player: "I am Galador" -> **INTERACTION** (not Exploration).
+
 **Input:**
 - Action: "{{playerAction}}"
 - Interpreted: {{interpretedAction}}
+- History:
+\`\`\`
+{{conversationHistory}}
+\`\`\`
 
 **Output:**
 Return the classification and reasoning.
@@ -150,7 +165,8 @@ export const narrativeManagerFlow = ai.defineFlow(
                 narrativeRouterPrompt,
                 {
                     playerAction: input.playerAction,
-                    interpretedAction: input.interpretedAction
+                    interpretedAction: input.interpretedAction,
+                    conversationHistory: input.conversationHistory
                 },
                 { flowName: 'narrativeRouter' }
             );
@@ -167,19 +183,23 @@ export const narrativeManagerFlow = ai.defineFlow(
                     locationId: input.locationId,
                     locationContext: input.locationContext,
                     interpretedAction: input.interpretedAction,
-                    deadEntities: input.deadEntities, // Pass dead entities info
+                    deadEntities: input.deadEntities,
+                    isKeyMoment: (input as any).isKeyMoment,
                 });
                 finalNarration = expResult.explorationNarration;
+                // updatedStats = expResult.updatedStats || null; // Feature not yet implemented in experts
                 if (expResult.debugLogs) debugLogs.push(...expResult.debugLogs);
 
             } else if (classification === 'INTERACTION') {
                 const intResult = await interactionExpert({
                     playerAction: input.playerAction,
-                    npcContext: input.locationContext, // Passing locationContext as npcContext for now (assuming NPCs are in location data)
-                    conversationHistory: input.conversationHistory,
-                    interpretedAction: input.interpretedAction
-                });
+                    npcContext: input.locationContext, // In interaction mode, location context serves as NPC context
+                    conversationHistory: input.conversationHistory || "",
+                    interpretedAction: input.interpretedAction,
+                    isKeyMoment: (input as any).isKeyMoment,
+                } as any); // Cast to any to bypass strict type check for now
                 finalNarration = intResult.npcResponse;
+                // updatedStats = intResult.updatedStats || null; // Feature not yet implemented in experts
                 if (intResult.attitudeChange) localLog(`Attitude Change: ${intResult.attitudeChange}`);
                 if (intResult.debugLogs) debugLogs.push(...intResult.debugLogs);
 
@@ -191,14 +211,16 @@ export const narrativeManagerFlow = ai.defineFlow(
                         locationId: input.locationId,
                         locationContext: input.locationContext,
                         interpretedAction: input.interpretedAction,
-                        deadEntities: input.deadEntities, // Pass dead entities info
+                        deadEntities: input.deadEntities,
+                        isKeyMoment: (input as any).isKeyMoment,
                     }),
                     interactionExpert({
                         playerAction: input.playerAction,
                         npcContext: input.locationContext,
-                        conversationHistory: input.conversationHistory,
-                        interpretedAction: input.interpretedAction
-                    })
+                        conversationHistory: input.conversationHistory || "",
+                        interpretedAction: input.interpretedAction,
+                        isKeyMoment: (input as any).isKeyMoment,
+                    } as any) // Cast to any to bypass strict type check for now
                 ]);
 
                 if (expResult.debugLogs) debugLogs.push(...expResult.debugLogs);

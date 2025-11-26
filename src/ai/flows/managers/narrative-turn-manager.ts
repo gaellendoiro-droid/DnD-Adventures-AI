@@ -101,6 +101,9 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         currentLocationEnemies = enemiesByLocation?.[locationId] || enemies || [];
     }
 
+    // Prepare chat history for companions (last 10 messages)
+    const recentHistory = conversationHistory.slice(-10).map(formatMessageForTranscript).join('\n');
+
     // 3. Generate companion reactions BEFORE DM narration
     const beforeDmReactions = await processCompanionReactions({
         party,
@@ -109,6 +112,7 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         inCombat: false,
         timing: 'before_dm',
         isAdventureStart,
+        chatHistory: recentHistory,
     });
     beforeDmReactions.debugLogs.forEach(localLog);
     messages.push(...beforeDmReactions.messages);
@@ -153,7 +157,19 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         });
     }
 
+    // Detect Key Moments for Dynamic Narration Length
+    const isLocationChange = newLocationId !== null && newLocationId !== currentLocationId;
+    const hasDeadEntities = deadEntities.length > 0;
+    const isRestAction = interpretation.actionType === 'rest';
+
+    const isKeyMoment = isLocationChange || hasDeadEntities || isRestAction;
+
+    if (isKeyMoment) {
+        localLog(`Key Moment Detected: LocationChange=${isLocationChange}, DeadEntities=${hasDeadEntities}, Rest=${isRestAction}`);
+    }
+
     const narrativeInput = {
+        phase: (isAdventureStart ? 'combat_initiation' : 'normal') as 'combat_initiation' | 'normal', // Legacy support
         playerAction,
         locationId,
         locationContext: JSON.stringify(filteredLocationData),
@@ -161,6 +177,7 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         interpretedAction: JSON.stringify(interpretation),
         // Pass explicit list of dead entities so the AI knows to describe them as corpses
         deadEntities: deadEntities.length > 0 ? deadEntities.join(', ') : undefined,
+        isKeyMoment: isKeyMoment,
     };
 
     const narrativeResult = await narrativeExpert(narrativeInput);
@@ -184,6 +201,7 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         timing: 'after_dm',
         isAdventureStart,
         dmNarration: narrativeResult.dmNarration,
+        chatHistory: recentHistory,
     });
     afterDmReactions.debugLogs.forEach(localLog);
     messages.push(...afterDmReactions.messages);

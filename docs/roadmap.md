@@ -26,17 +26,20 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 - [7. Integración de Google File Search (RAG Automatizado)](#7-integración-de-google-file-search-rag-automatizado)
 
 ### 🟡 Prioridad Media
-- [8. Sistema de Mundo Persistente](#8-sistema-de-mundo-persistente)
-- [9. Compendio de D&D Local - Base de Datos Local](#9-compendio-de-dd-local---base-de-datos-local)
-- [10. IA Conversacional Avanzada](#10-ia-conversacional-avanzada)
-- [11. Calidad y Profundidad de la IA](#11-calidad-y-profundidad-de-la-ia)
-- [12. Separación de IDs de Fichas de Personajes](#12-separación-de-ids-de-fichas-de-personajes)
-- [13. Sistema de Comprobación de Competencia en Tiradas](#13-sistema-de-comprobación-de-competencia-en-tiradas)
-- [14. Mejoras de Mecánicas de D&D 5e](#14-mejoras-de-mecánicas-de-dd-5e)
-  - [14.1. Información de Dados de Daño de Armas en Fichas](#141-información-de-dados-de-daño-de-armas-en-fichas)
-- [15. Actualización Automática de Fichas desde Archivos JSON](#15-actualización-automática-de-fichas-desde-archivos-json)
-- [16. Convertidor de PDF a JSON - Aplicación Auxiliar](#16-convertidor-de-pdf-a-json---aplicación-auxiliar)
-- [17. Música y Sonido Dinámicos](#17-música-y-sonido-dinámicos)
+- [8. Ajuste Dinámico de Longitud de Narración](#8-ajuste-dinámico-de-longitud-de-narración-completado) ✅ COMPLETADO
+- [9. Sistema de Tablas Aleatorias en JSON](#9-sistema-de-tablas-aleatorias-en-json-completado) ✅ COMPLETADO
+- [10. Sistema de Mundo Persistente](#10-sistema-de-mundo-persistente)
+- [11. Atención Multijugador/NPC en Diálogos](#11-atención-multijugadornpc-en-diálogos)
+- [12. Compendio de D&D Local - Base de Datos Local](#12-compendio-de-dd-local---base-de-datos-local)
+- [13. IA Conversacional Avanzada](#13-ia-conversacional-avanzada)
+- [14. Calidad y Profundidad de la IA](#14-calidad-y-profundidad-de-la-ia)
+- [15. Separación de IDs de Fichas de Personajes](#15-separación-de-ids-de-fichas-de-personajes)
+- [16. Sistema de Comprobación de Competencia en Tiradas](#16-sistema-de-comprobación-de-competencia-en-tiradas)
+- [17. Mejoras de Mecánicas de D&D 5e](#17-mejoras-de-mecánicas-de-dd-5e)
+  - [17.1. Información de Dados de Daño de Armas en Fichas](#171-información-de-dados-de-daño-de-armas-en-fichas)
+- [18. Actualización Automática de Fichas desde Archivos JSON](#18-actualización-automática-de-fichas-desde-archivos-json)
+- [19. Convertidor de PDF a JSON - Aplicación Auxiliar](#19-convertidor-de-pdf-a-json---aplicación-auxiliar)
+- [20. Música y Sonido Dinámicos](#20-música-y-sonido-dinámicos)
 
 ### 🟢 Prioridad Baja
 - [17. Mejoras de Interfaz de Usuario](#17-mejoras-de-interfaz-de-usuario)
@@ -322,7 +325,36 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
 
 Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, pero no son críticas para la funcionalidad básica.
 
-### 8. Sistema de Mundo Persistente {#8-sistema-de-mundo-persistente}
+### 8. Ajuste Dinámico de Longitud de Narración ✅ COMPLETADO {#8-ajuste-dinámico-de-longitud-de-narración-completado}
+*   **Problema Actual:** Las narraciones del DM tenían una longitud fija y a veces resultaban repetitivas o demasiado largas para acciones simples, o demasiado cortas para momentos importantes.
+*   **Mejora Implementada:** ✅
+    *   ✅ **Detección de Momentos Clave:** El sistema identifica automáticamente cambios de ubicación, muertes de entidades y descansos.
+    *   ✅ **Narración Adaptativa:**
+        *   **Estándar:** 2-3 frases para acciones rutinarias.
+        *   **Clave:** 3-4 frases para momentos importantes, con mayor carga descriptiva.
+    *   ✅ **Integración Profunda:** La lógica se propaga desde el `NarrativeTurnManager` hasta los expertos de `Exploration` e `Interaction`.
+*   **Impacto:**    - Mejora el ritmo del juego (menos texto en rutina, más en momentos importantes).
+    - Aumenta la inmersión en transiciones y eventos dramáticos.
+    - Reduce la fatiga de lectura del jugador.
+*   **Estado:** ✅ **COMPLETADO** - Implementado y verificado (2025-11-26)
+
+---
+
+### 9. Sistema de Tablas Aleatorias en JSON ✅ COMPLETADO {#9-sistema-de-tablas-aleatorias-en-json-completado}
+*   **Problema Actual:** Los PNJs a menudo necesitan compartir rumores o información que en la aventura original proviene de tablas aleatorias. Al no tener acceso a estas tablas en el JSON, la IA tiende a alucinar o inventar información falsa.
+*   **Mejora Implementada:** ✅
+    *   **Soporte de Tablas en JSON:** Se ha extendido el esquema de aventura para soportar una nueva sección `tables` que contiene tablas de tiradas (ej: "Historias de Phandalin").
+    *   **Etiquetas Dinámicas:** Se ha implementado un sistema de etiquetas `[[ROLL_TABLE:id-tabla]]` que pueden insertarse en cualquier texto del JSON (diálogos, descripciones, notas).
+    *   **Resolución Automática:** La herramienta `adventureLookupTool` detecta estas etiquetas y las reemplaza automáticamente por un resultado aleatorio de la tabla correspondiente antes de enviar la información a la IA.
+*   **Beneficios:**
+    *   ✅ **Fidelidad:** Los PNJs ahora dan rumores y datos canónicos de la aventura.
+    *   ✅ **Variedad:** Cada partida puede tener resultados diferentes sin intervención manual.
+    *   ✅ **Transparencia para la IA:** La IA recibe el texto final ya procesado, por lo que lo narra con total naturalidad.
+*   **Estado:** ✅ **COMPLETADO** - Implementado en `adventureLookupTool` y añadido al JSON de la aventura (2025-11-26)
+
+---
+
+### 10. Sistema de Mundo Persistente {#10-sistema-de-mundo-persistente}
 *   **Problema Actual:** El mundo del juego no persiste cambios entre sesiones. Cuando los jugadores derrotan enemigos, interactúan con objetos, o modifican el estado del mundo, estos cambios se pierden al recargar la partida o al volver a una ubicación. El sistema actual mantiene los enemigos derrotados en el estado del juego, pero no actualiza el `locationContext` original, lo que puede causar inconsistencias narrativas.
 *   **Mejora Propuesta:**
     *   **Sistema de Estado del Mundo:** Implementar un sistema que rastree y persista cambios en el mundo del juego (enemigos derrotados, objetos recogidos, puertas abiertas/cerradas, NPCs con actitudes modificadas, etc.)
@@ -356,13 +388,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   Sistema de Progresión (Roadmap #2) - Base para un sistema de campaña duradera
 *   **Impacto:** Alto - Fundamental para crear un mundo coherente y persistente que reaccione a las acciones del jugador. Mejora significativamente la inmersión y la sensación de que las acciones tienen consecuencias.
 *   **Plan Detallado:** ❌ No creado
-*   **Estado:** 📝 Documentado como mejora futura - **Solución temporal implementada:**
-    *   ✅ **Mantenimiento de estado de enemigos:** Los enemigos derrotados se mantienen en el estado del cliente (`enemies` array) incluso después de que termine el combate
-    *   ✅ **Filtrado de entidades muertas:** El `GameCoordinator` filtra automáticamente los IDs de enemigos muertos de `entitiesPresent` antes de pasar el contexto al `NarrativeManager`
-    *   ✅ **Contexto explícito de cadáveres:** Se pasa una lista explícita de enemigos derrotados (`deadEntities`) al `ExplorationExpert` para que el DM sepa que debe describirlos como cadáveres, incluso si la descripción original del JSON los menciona como vivos
-    *   ⚠️ **Limitación:** Esta solución funciona durante la sesión actual, pero no persiste entre recargas de página. Para persistencia completa, se requiere el sistema completo de "Mundo Persistente"
-
-### 9. Compendio de D&D Local - Base de Datos Local {#9-compendio-de-dd-local---base-de-datos-local}
+### 12. Compendio de D&D Local - Base de Datos Local {#12-compendio-de-dd-local---base-de-datos-local}
 *   **Problema Actual:** El sistema depende completamente de la API externa de D&D 5e para obtener información sobre monstruos, hechizos, reglas, etc. Esto causa latencia, dependencia de conectividad, y múltiples llamadas redundantes a la API.
 *   **Mejora Propuesta:**
     *   **Base de Datos Local:** Crear un sistema de base de datos local (SQLite recomendado) que almacene un compendio completo de conocimiento de D&D (fichas de monstruos, reglas, razas, clases, hechizos, equipamiento, etc.).
@@ -380,7 +406,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   **Base para RAG:** Esta infraestructura sentará las bases para futuras implementaciones de RAG y búsqueda semántica
 *   **Plan Detallado:** ✅ [Compendio de D&D Local](../planes-desarrollo/sin-comenzar/compendio-dnd-local.md)
 
-### 10. IA Conversacional Avanzada {#10-ia-conversacional-avanzada}
+### 13. IA Conversacional Avanzada {#13-ia-conversacional-avanzada}
 *   **Problema Actual:** Los compañeros de IA reaccionan de forma aislada a la acción del jugador, sin ser conscientes de lo que los otros compañeros han dicho en el mismo turno. El flujo es secuencial y el servidor devuelve todos los mensajes a la vez.
 *   **Mejora Propuesta:**
     *   **Arquitectura de Streaming:** Reemplazar el modelo actual de "una petición, una respuesta" por una comunicación persistente entre el cliente y el servidor (usando, por ejemplo, WebSockets o Server-Sent Events).
@@ -388,7 +414,7 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Impacto:** Lograría una dinámica de grupo mucho más orgánica y creíble, mejorando significativamente la inmersión.
 *   **Plan Detallado:** ❌ No creado
 
-### 11. Calidad y Profundidad de la IA {#11-calidad-y-profundidad-de-la-ia}
+### 14. Calidad y Profundidad de la IA {#14-calidad-y-profundidad-de-la-ia}
 *   **Mejora Propuesta: Implementación de RAG (Retrieval-Augmented Generation)**
     *   **Estado Actual:** La IA recupera información del mundo (lore, personajes) mediante búsquedas directas en archivos JSON por ID. No "comprende" el contexto, solo busca datos.
     *   **Salto Evolutivo:** Migrar a un sistema RAG donde el lore se almacena en una base de datos vectorial. Esto permitiría a herramientas como `narrativeExpert` hacer preguntas en lenguaje natural (ej: "¿Cuál es la historia de la Vieja Atalaya?", "¿Qué sabe Elara sobre el dragón Cryovain?").
@@ -505,48 +531,37 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   [Issues Tracker - Issue #22](../tracking/issues/pendientes.md#issue-22-sistema-completo-de-saving-throws-tiradas-de-salvación-del-objetivo-feature-incompleta)
     *   [Notas de Gael - #04, #10, #12, #13, #23, #24, #25, #26, #27, #36, #37, #38, #40, #45, #53, #68, #70, #71, #72, #121, #4](../notas/Notas%20de%20Gael.md)
 
-### 15. Actualización Automática de Fichas desde Archivos JSON {#15-actualización-automática-de-fichas-desde-archivos-json}
-*   **Problema Actual:** Cuando se modifican los archivos JSON de las fichas de personajes, el panel de fichas del juego no se actualiza automáticamente, requiriendo recargar la partida.
-*   **Mejora Propuesta:**
-    *   Implementar un sistema de detección de cambios en los archivos JSON de fichas de personajes.
-    *   Actualizar automáticamente el panel de fichas del juego cuando se detecten cambios.
-    *   Utilizar los logs existentes en la consola del navegador que indican cuando los datos iniciales de la party se han modificado y guardado.
-    *   Forzar una actualización de las fichas de los personajes en la UI y en el server cuando se detecten cambios.
-*   **Impacto:** Muy útil para testeos manuales y desarrollo, permitiendo ver cambios en tiempo real sin recargar.
-*   **Plan Detallado:** ❌ No creado
-*   **Referencia:** [Notas de Gael - #99](../notas/Notas%20de%20Gael.md)
+### 15. Separación de IDs de Fichas de Personajes {#15-separación-de-ids-de-fichas-de-personajes}
+*   **Problema Actual:** Los IDs de las fichas de personajes están acoplados a sus nombres, lo que dificulta el manejo de múltiples instancias del mismo tipo de enemigo o personaje.
+*   **Mejora Propuesta:** Implementar un sistema de IDs únicos (UUIDs) para cada instancia de personaje, separando la identidad única de la definición del arquetipo.
+*   **Impacto:** Necesario para manejar combates complejos y persistencia de estado correctamente.
 
-#### 14.1. Información de Dados de Daño de Armas en Fichas {#141-información-de-dados-de-daño-de-armas-en-fichas}
-*   **Problema Actual:** La información de los dados de daño de cada arma no está incluida en las fichas de personajes, requiriendo que el DM consulte la API de D&D cada vez que se necesita esta información.
-*   **Mejora Propuesta:**
-    *   Incluir la información de los dados de daño de cada arma en la ficha de cada personaje.
-    *   El DM debería usar la API de D&D solo para recuperar esa información si no está incluida en las fichas (sistema de fallback).
-    *   El panel de la UI de las fichas debería mostrar la información de los dados de cada arma si está disponible en los datos de las fichas de los personajes.
-*   **Impacto:** Reduce la dependencia de la API externa, mejora el rendimiento y facilita el acceso a información de armas.
-*   **Plan Detallado:** ❌ No creado
-*   **Referencia:** [Notas de Gael - #117](../notas/Notas%20de%20Gael.md)
+### 16. Sistema de Comprobación de Competencia en Tiradas {#16-sistema-de-comprobación-de-competencia-en-tiradas}
+*   **Problema Actual:** El sistema asume competencia en tiradas de salvación y habilidades basándose en reglas simples o hardcodeadas.
+*   **Mejora Propuesta:** Implementar un sistema robusto que verifique las competencias (proficiencies) reales de la ficha del personaje antes de calcular los modificadores de tirada.
+*   **Impacto:** Mayor fidelidad a las reglas de D&D 5e.
 
-### 16. Convertidor de PDF a JSON - Aplicación Auxiliar {#16-convertidor-de-pdf-a-json---aplicación-auxiliar}
-*   **Problema Actual:** Añadir nuevas aventuras al juego requiere crear manualmente archivos JSON con una estructura específica, lo cual es tedioso y propenso a errores. Los usuarios que tienen aventuras en formato PDF no pueden usarlas directamente.
-*   **Mejora Propuesta:**
-    *   **Aplicación Auxiliar Independiente:** Crear una aplicación CLI (y futuramente web) que analice PDFs de aventuras de D&D y los convierta automáticamente en JSON compatible con el juego.
-    *   **Extracción Inteligente con IA:** Utilizar IA (Gemini) para extraer información estructurada del PDF, identificando ubicaciones, entidades, descripciones y relaciones.
-    *   **Validación Automática:** Validar el JSON generado contra el esquema del juego antes de guardarlo.
-    *   **Soporte para Diferentes Formatos:** Manejar PDFs con texto, PDFs escaneados (con OCR), y diferentes estilos de aventuras.
-*   **Impacto Estratégico:**
-    *   **Facilita Expansión:** Reduce significativamente la barrera de entrada para añadir nuevas aventuras
-    *   **Ahorro de Tiempo:** Convierte horas de trabajo manual en minutos de procesamiento automático
-    *   **Precisión:** Reduce errores humanos en la creación de JSON
-    *   **Accesibilidad:** Permite a usuarios usar aventuras oficiales o homebrew en formato PDF
-*   **Plan Detallado:** ✅ [Convertidor de PDF a JSON](../planes-desarrollo/sin-comenzar/pdf-to-json-converter.md)
+### 17. Mejoras de Mecánicas de D&D 5e {#17-mejoras-de-mecánicas-de-dd-5e}
 
-### 17. Música y Sonido Dinámicos {#17-música-y-sonido-dinámicos}
-*   **Problema Actual:** La experiencia de juego es silenciosa, careciendo de un fondo sonoro que ayude a la inmersión.
-*   **Mejora Propuesta:**
-    *   Integrar un reproductor de audio que pueda cambiar la pista musical dinámicamente según el estado del juego (exploración, combate, localización específica).
-    *   El `gameCoordinator` sería el responsable de emitir eventos de cambio de estado (ej: `combateIniciado`, `ubicacionCambiada`) que el sistema de audio interpretaría para seleccionar la pista adecuada.
-*   **Impacto Estratégico:** Muy alto en relación al esfuerzo. Aunque es una mejora de "calidad de vida", el audio es una herramienta narrativa potentísima que aumenta la atmósfera y la carga emocional de cada situación de forma exponencial.
-*   **Plan Detallado:** ❌ No creado
+#### 17.1. Información de Dados de Daño de Armas en Fichas {#171-información-de-dados-de-daño-de-armas-en-fichas}
+*   **Problema Actual:** La información sobre el daño de las armas (ej: "1d8 slashing") no siempre está estructurada o disponible en la ficha del personaje de forma que el sistema de combate pueda usarla automáticamente.
+*   **Mejora Propuesta:** Estandarizar la estructura de datos de armas en las fichas de personajes para incluir explícitamente el dado de daño, tipo de daño y propiedades.
+*   **Impacto:** Automatización real del cálculo de daño en combate.
+
+### 18. Actualización Automática de Fichas desde Archivos JSON {#18-actualización-automática-de-fichas-desde-archivos-json}
+*   **Problema Actual:** Si se actualiza el archivo JSON de una aventura (ej: corrigiendo stats de un monstruo), los cambios no se reflejan automáticamente en las partidas guardadas o en el estado en memoria.
+*   **Mejora Propuesta:** Implementar un sistema de "hot-reload" o sincronización que actualice las definiciones de entidades en memoria cuando detecte cambios en los archivos fuente.
+*   **Impacto:** Facilita enormemente el desarrollo y corrección de aventuras sin reiniciar el servidor.
+
+### 19. Convertidor de PDF a JSON - Aplicación Auxiliar {#19-convertidor-de-pdf-a-json---aplicación-auxiliar}
+*   **Problema Actual:** Crear nuevas aventuras requiere escribir manualmente archivos JSON enormes, lo cual es propenso a errores y lento.
+*   **Mejora Propuesta:** Crear una herramienta (CLI o Web) que ayude a convertir texto de aventuras en PDF al formato JSON estructurado que usa el sistema, posiblemente usando IA para el parseo inicial.
+*   **Impacto:** Acelera drásticamente la creación de nuevo contenido.
+
+### 20. Música y Sonido Dinámicos {#20-música-y-sonido-dinámicos}
+*   **Problema Actual:** La experiencia es puramente textual/visual.
+*   **Mejora Propuesta:** Integrar un sistema de audio que reproduzca música de fondo y efectos de sonido (ambientales, combate, éxito/fallo) según el contexto narrativo y la ubicación.
+*   **Impacto:** Inmersión total.
 
 ---
 
@@ -570,27 +585,6 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
     *   **Mensaje de Victoria/Derrota al Finalizar Combate:** Al finalizar un combate, el panel de Tiradas podría mostrar un mensaje de victoria o derrota y que el combate ha finalizado, mejorando el feedback visual al concluir un encuentro.
     *   **Cambiar Texto de Botones de Avanzar Turnos:** Los botones de avanzar turnos deberían poner "Avanzar 1 turno" y "Avance automático" para mejorar la claridad de las acciones disponibles.
     *   **Botón de Pausa en Avance Automático:** En combate, después de pulsar el botón de avanzar todos, mientras el botón esté en "Avanzando...", el otro botón debería convertirse en un botón de pausa para detener el avance automático de turnos.
-    *   **Rediseño del Panel Izquierdo:** Rediseñar el panel izquierdo: quitar los recuadros para el DebugLog (retirar todos los logs para limpiar código), mover el botón de guardar partida a la barra superior, acoplar los recuadros de Tiradas y Orden de Combate por defecto, y ajustar el tamaño del panel de orden de combate según el número de participantes.
-    *   **Investigación de Sistemas de Texto2Voz:** ✅ **COMPLETADO** - Integración completa de Eleven Labs TTS con optimizaciones de conexión y sistema de reintentos. Sistema de caché planificado para futura implementación. [Plan de Integración](../planes-desarrollo/en-curso/integracion-eleven-labs-tts.md) | [Plan de Caché](../planes-desarrollo/en-curso/sistema-cache-tts.md)
-    *   **Adaptación de la UI a Dispositivos Móviles:** Trabajar en la adaptación de la UI a dispositivos móviles, asegurando que la aplicación sea funcional y usable en pantallas pequeñas.
-    *   **Botones de Órdenes Rápidas:** Cerca del input de texto implementar botones para dar órdenes rápidas como "Atacamos", "Huímos", etc., facilitando acciones comunes sin necesidad de escribir texto completo.
-    *   **Efectos de Sonido en Combate:** En combate, aparte de la música dinámica, implementar efectos de sonido para cada turno (gritos de ataque, quejidos si se les hace daño, choque de espadas, golpes de escudo, etc.) para ambientar más la acción.
-*   **Impacto:** Mejoras de calidad de vida que mejoran la experiencia del usuario y la usabilidad de la interfaz.
-*   **Plan Detallado:** ❌ No creado
-*   **Referencia:** [Notas de Gael - #08, #09, #14, #16, #57, #58, #59, #60, #61, #66, #100, #101, #103, #105, #106, #107, #108, #96, #95, #110](../notas/Notas%20de%20Gael.md)
-
-### 19. Mejoras de Sistema de Personajes y Compañeros {#19-mejoras-de-sistema-de-personajes-y-compañeros}
-*   **Mejoras Propuestas:**
-    *   **Editor de Party Inicial en Archivo JSON:** Mientras no hay editor y gestión de personajes, poder modificar la party inicial fácilmente en un archivo JSON. Facilitaría la configuración inicial de la partida sin necesidad de herramientas adicionales.
-    *   **Sistema de Voces para Compañeros:** Mejorar el sistema de lectura para que los compañeros también pudiesen hablar y definir a cada uno una voz característica basada en su personalidad, sexo, raza, etc.
-    *   **Sistema de Abandono de Compañeros:** Implementar lógica para que compañeros puedan tomar decisiones independientes y abandonar el grupo bajo ciertas circunstancias. ¿Qué pasa si un compañero decide abandonarnos o continuar por otro camino?
-    *   **Ajustar Probabilidad de Comentarios Narrativos:** Comprobar los porcentajes de probabilidad para que un compañero haga un comentario narrativo. Ahora parece que siempre que pueden dicen algo, lo cual puede ser excesivo y reducir el impacto de sus comentarios.
-    *   **Sistema de Reacciones de Compañeros para Conversaciones:** Revisar el sistema de reacciones de compañeros para comprobar si es posible entablar conversaciones fluidas con ellos.
-    *   **Comportamiento de Compañeros al Leer Objetos Visibles:** Estudiar si hay que cambiar el comportamiento para que los compañeros puedan leer directamente objetos o textos visibles cuando se les pide. Actualmente parece que no lo hacen, es el DM el que lo tiene que hacer.
-    *   **Rasgos de Clase:** Implementar los rasgos de clase (como Furia del Bárbaro, Ataque Furtivo del Pícaro o Inspiración Bárdica). Cada clase debe tener sus rasgos específicos implementados según las reglas de D&D 5e, activándose automáticamente cuando corresponda o permitiendo su uso manual.
-    *   **Sistema de Inspiración:** La IA debe reconocer cuándo la interpretación del jugador es fiel a los rasgos de personalidad, ideales o defectos (establecidos en la creación del personaje), otorgando el beneficio de Inspiración cuando corresponda (que permite obtener Ventaja en tiradas). El sistema debe rastrear cuándo se usa la inspiración y cuándo se puede otorgar de nuevo.
-    *   **Sistema de Detección de Fichas Sospechosas o Corruptas:** Implementar un sistema por el que el DM avise de fichas sospechosas o corruptas, validando la integridad de los datos de las fichas de personajes.
-    *   **Ventana Especial para Equipar/Desequipar Objetos:** En el inventario, implementar una ventana especial para equipar o desequipar objetos, mejorando la gestión del equipamiento de los personajes.
     *   **Sistema de Equipamiento con Límites y Validación:** Las fichas de los personajes deberían incluir en la parte de equipamiento qué elementos están equipados o no. Los elementos equipados deberían seguir un esquema del que no se pueden salir, por ejemplo: 2 anillos máximo, 1 botas máximo, 2 armas máximo, etc. Tener en cuenta armas a 2 manos y versátiles, etc.
     *   **Sistema de Peso de Inventario y Capacidad de Carga:** Implementar peso de inventario, peso de cada item y el concepto de estar cargado y sus consecuencias. El sistema debe calcular el peso total del inventario y aplicar las reglas de D&D 5e sobre capacidad de carga. Las consecuencias de estar sobrecargado deben afectar el movimiento y las acciones del personaje.
 *   **Impacto:** Mejora la interacción con compañeros y la gestión de personajes.
@@ -612,25 +606,33 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
 *   **Referencia:** [Notas de Gael - #07, #15, #43, #55, #74, #94, #86, #97](../notas/Notas%20de%20Gael.md)
 
 ### 21. Mejoras de Calidad y Pulido {#21-mejoras-de-calidad-y-pulido}
+*   **Mejoras Implementadas:**
+    *   **Atribución Narrativa en Diálogos:** ✅ **COMPLETADO** (2025-11-26) - Los PNJs ahora siempre incluyen una breve descripción narrativa (quién habla y cómo) antes o durante sus diálogos, mejorando la inmersión y claridad.
 *   **Mejoras Propuestas:**
-    *   **Corrección Ortográfica de IA y Jugador:** Implementar corrección ortográfica para texto generado por las IAs y texto ingresado por el jugador (opcional, ayuda). Podría usar API de corrección o modelo de lenguaje.
-    *   **Cambiar Nivel de Log para Fallos de API de D&D:** En los logs habría que cambiar que cuando falla el fetching de la API de D&D en vez de error sea un warning. Los fallos de API son esperables y no deberían tratarse como errores críticos si hay sistema de fallback.
-    *   **Revisar Asignación de IDs en Combate:** Los compañeros y el jugador actualmente tienen IDs simples (números). Los enemigos tienen IDs más completos (ej: "goblin-0"). Evaluar si se necesita estandarizar o mejorar este sistema.
-    *   **Expandir Funciones de Resolución de IDs:** Actualmente hay una función resolveEnemyId. ¿Deberíamos implementar más funciones similares para identificar mejor localizaciones o PNJs?
-    *   **Optimización de Velocidad de Respuestas del DM:** Revisar la velocidad a la que el DM genera sus respuestas. Hay que optimizar esto al máximo para que la partida sea más fluida. Relacionado con la optimización de prompts.
-    *   **Optimización General de Prompts:** Optimización de prompts en general urgente. En común con otros issues ya documentados. Mejorar la eficiencia y velocidad de respuesta del sistema.
-    *   **Revisar Sistema de Documentación y Changelog:** Revisar el sistema de documentación y de changelog. Pasar a un sistema más profesional. Evaluar herramientas y procesos para mejorar la gestión de documentación y registro de cambios. Considerar automatización y mejores prácticas para mantener la documentación actualizada.
-*   **Impacto:** Mejoras de calidad y pulido que mejoran la experiencia general del juego, especialmente la fluidez y velocidad de respuesta.
-*   **Plan Detallado:** ❌ No creado
-*   **Referencia:** [Notas de Gael - #11, #19, #41, #62, #111, #114, #124](../notas/Notas%20de%20Gael.md)
+*   **Referencia:** [Notas de Gael - #05, #11, #15, #17, #18, #19, #20, #21, #41, #42, #43, #44, #46, #47, #48, #49, #50, #52, #54, #55, #56, #62, #63, #64, #65, #67, #69, #73, #74, #76, #77, #78, #80, #82, #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #97, #98, #111, #112, #113, #114, #115](../notas/Notas%20de%20Gael.md)
 
-### 22. Comandos de Voz {#22-comandos-de-voz}
-*   **Mejora Propuesta:** Integrar la API de Reconocimiento de Voz del navegador (`SpeechRecognition`) para añadir un botón de "dictar" en la interfaz.
-*   **Impacto:** Aumentaría la accesibilidad y ofrecería una forma más rápida e inmersiva de interactuar, acercándose a la experiencia de una partida de rol de mesa.
+### 23. Mejoras de Sistema de Aventuras y Datos {#23-mejoras-de-sistema-de-aventuras-y-datos}
+*   **Mejoras Propuestas:**
+    *   **Sistema de Generación de Aventuras Aleatorias:** Implementar un sistema que genere aventuras aleatorias basadas en parámetros (nivel, temática, duración), creando mapas, enemigos y tramas sobre la marcha.
+    *   **Integración con D&D Beyond:** Investigar la posibilidad de importar personajes y campañas desde D&D Beyond.
+    *   **Soporte para Homebrew:** Permitir a los usuarios cargar sus propias reglas, clases, razas y objetos personalizados.
+*   **Impacto:** Aumenta infinitamente la rejugabilidad y personalización.
 *   **Plan Detallado:** ❌ No creado
 
-### 23. Automatización del Versionado y Changelog {#23-automatización-del-versionado-y-changelog}
-*   **Estado Actual:** Se ha implementado un sistema manual para mantener un archivo `CHANGELOG.md`.
-*   **Objetivo Futuro:** Automatizar la actualización del `CHANGELOG.md` al cambiar la versión en `package.json`.
-*   **Impacto:** Es una mejora de calidad de vida para el desarrollador, sin impacto directo en la experiencia del jugador.
+### 24. Mejoras de Calidad y Pulido {#24-mejoras-de-calidad-y-pulido}
+*   **Mejoras Propuestas:**
+    *   **Optimización de Rendimiento:** Mejorar el rendimiento general de la aplicación, reduciendo tiempos de carga y consumo de recursos.
+    *   **Pruebas Automatizadas (E2E):** Implementar pruebas end-to-end para asegurar la estabilidad de las funcionalidades críticas.
+    *   **Accesibilidad (a11y):** Asegurar que la aplicación cumpla con los estándares de accesibilidad web (WCAG).
+*   **Impacto:** Asegura una base sólida y profesional para el proyecto.
+*   **Plan Detallado:** ❌ No creado
+
+### 25. Comandos de Voz {#25-comandos-de-voz}
+*   **Mejora Propuesta:** Permitir al jugador dictar sus acciones por voz (Speech-to-Text) y recibir la narración por voz (Text-to-Speech, ya parcialmente implementado).
+*   **Impacto:** Accesibilidad y comodidad.
+*   **Plan Detallado:** ❌ No creado
+
+### 26. Automatización del Versionado y Changelog {#26-automatización-del-versionado-y-changelog}
+*   **Mejora Propuesta:** Implementar `semantic-release` o similar para automatizar la generación de números de versión y changelogs basados en los commits.
+*   **Impacto:** Profesionalización del flujo de desarrollo.
 *   **Plan Detallado:** ❌ No creado

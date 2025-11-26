@@ -94,6 +94,7 @@ export const ExplorationExpertInputSchema = z.object({
   locationContext: z.string().describe('A JSON string with the full data of the current location, including its description, exits, and interactable objects.'),
   interpretedAction: z.string().describe("A JSON string of the structured interpretation of the player's action."),
   deadEntities: z.string().optional().describe("Comma-separated list of entity names that have been defeated/killed in this location. The location description may mention them as alive, but they should be described as dead bodies."),
+  isKeyMoment: z.boolean().optional().describe("Whether this is a key narrative moment (location change, death, rest)."),
 });
 export type ExplorationExpertInput = z.infer<typeof ExplorationExpertInputSchema>;
 

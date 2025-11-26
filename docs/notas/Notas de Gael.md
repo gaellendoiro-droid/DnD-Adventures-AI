@@ -161,6 +161,10 @@ Al clasificar un item de esta sección, debe moverse a su sección correspondien
 
 3. REVISION: a veces los mensajes de los compañeros dan la sensación de que no tienen contexto de lo que acabamos de hablar. (PMA)
 
+4. REVISION: parece que los compañeros intervienen demasiado. Revisar esto y ajustar. (PA)
+
+5. REVISION: revisar el proceso de carga de una aventura JSON. Parece que con una muy sencilla tarda demasiado. (PMA)
+
 
 
 

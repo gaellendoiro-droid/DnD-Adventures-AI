@@ -13,11 +13,12 @@ import { log } from '@/lib/logger';
 import { executePromptWithRetry } from '../flows/retry-utils';
 
 const CompanionExpertInputSchema = z.object({
-  party: PartySchema.describe("The array of character objects for the entire party."),
-  characterName: z.string().describe("The name of the AI-controlled character whose action is being decided."),
-  context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
-  inCombat: z.boolean().describe("Whether the party is currently in combat."),
-  reactionTiming: z.enum(['before_dm', 'after_dm']).optional().describe("When this reaction is being generated: 'before_dm' (reacting to player's proposal) or 'after_dm' (reacting to what just happened)."),
+    party: PartySchema.describe("The array of character objects for the entire party."),
+    characterName: z.string().describe("The name of the AI-controlled character whose action is being decided."),
+    context: z.string().describe("The Dungeon Master's most recent narration or the player's most recent action, providing context for the scene."),
+    inCombat: z.boolean().describe("Whether the party is currently in combat."),
+    reactionTiming: z.enum(['before_dm', 'after_dm']).optional().describe("When this reaction is being generated: 'before_dm' (reacting to player's proposal) or 'after_dm' (reacting to what just happened)."),
+    chatHistory: z.string().optional().describe("The recent chat history (last 8-10 messages) to provide context."),
 });
 
 const CompanionExpertOutputSchema = z.object({
@@ -27,13 +28,16 @@ const CompanionExpertOutputSchema = z.object({
 // New prompt that receives the character's data directly. No tools needed.
 const reactionGenerationPrompt = ai.definePrompt({
     name: 'reactionGenerationPrompt',
-    input: {schema: z.object({
-        character: CharacterSchema,
-        context: z.string(),
-        isBeforeDm: z.boolean().optional(),
-        isAfterDm: z.boolean().optional(),
-    })},
-    output: {schema: CompanionExpertOutputSchema},
+    input: {
+        schema: z.object({
+            character: CharacterSchema,
+            context: z.string(),
+            chatHistory: z.string().optional(),
+            isBeforeDm: z.boolean().optional(),
+            isAfterDm: z.boolean().optional(),
+        })
+    },
+    output: { schema: CompanionExpertOutputSchema },
     prompt: `You are orchestrating an AI-controlled character in a D&D party. Your goal is to make their interactions feel natural and true to their unique personality. You MUST ALWAYS reply in Spanish from Spain.
 
     **Guiding Principle: Realism over Reactivity. The character should only act if it makes sense for them.**
@@ -46,13 +50,18 @@ const reactionGenerationPrompt = ai.definePrompt({
     **Current Situation:**
     "{{{context}}}"
 
+    {{#if chatHistory}}
+    **Recent Conversation History:**
+    {{{chatHistory}}}
+    {{/if}}
+
     {{#if isBeforeDm}}
     **Reaction Timing: before_dm**
     - You are reacting to the PLAYER'S PROPOSAL or action BEFORE the DM narrates what happens.
     - This is your chance to express doubt, agreement, caution, or enthusiasm about the plan.
     - Example: Player says "vamos a la cueva oscura" → You might say "¿Estás seguro? Parece peligroso..." or "¡Buena idea, necesitamos explorar!"
     - **Be selective:** Only react if your character has a strong opinion. Silence is often more realistic.
-    - **Probability guideline:** React about 30-40% of the time.
+    - **Instruction:** You have been selected to react. Provide a comment or action that fits the situation.
     {{/if}}
     {{#if isAfterDm}}
     **Reaction Timing: after_dm**
@@ -60,7 +69,7 @@ const reactionGenerationPrompt = ai.definePrompt({
     - React to the current situation, what you see, hear, or experience.
     - Example: DM narrates "veis un dragón" → You might say "¡Cuidado! ¡Es enorme!" or remain focused and silent.
     - **Be natural:** React as a real player would, based on your personality.
-    - **Probability guideline:** React about 50-60% of the time.
+    - **Instruction:** You have been selected to react. Provide a comment or action that fits the situation.
     {{/if}}
     {{#unless isBeforeDm}}{{#unless isAfterDm}}
     **You are in narrative/exploration mode.**
@@ -92,7 +101,7 @@ export const companionExpertTool = ai.defineTool(
             const characterData = await characterLookupTool({ party, characterName });
 
             if (!characterData) {
-                log.warn('Character not found in party', { 
+                log.warn('Character not found in party', {
                     module: 'AITool',
                     tool: 'companionExpertTool',
                     characterName,
@@ -102,7 +111,7 @@ export const companionExpertTool = ai.defineTool(
 
             // Issue #26: Defensive check - dead companions cannot react
             if (characterData.hp && characterData.hp.current <= 0) {
-                log.debug('Skipping reaction for dead companion', { 
+                log.debug('Skipping reaction for dead companion', {
                     module: 'AITool',
                     tool: 'companionExpertTool',
                     characterName,
@@ -111,7 +120,7 @@ export const companionExpertTool = ai.defineTool(
                 return { action: "" };
             }
 
-            log.aiTool('companionExpertTool', 'Generating companion reaction', { 
+            log.aiTool('companionExpertTool', 'Generating companion reaction', {
                 characterName,
                 inCombat: input.inCombat,
                 reactionTiming: input.reactionTiming || 'after_dm',
@@ -123,32 +132,33 @@ export const companionExpertTool = ai.defineTool(
                 {
                     character: characterData,
                     context: context,
+                    chatHistory: input.chatHistory,
                     isBeforeDm: input.reactionTiming === 'before_dm',
                     isAfterDm: input.reactionTiming === 'after_dm' || !input.reactionTiming,
                 },
                 { flowName: 'companionExpert' }
             );
             const { output } = response;
-            
+
             if (!output) {
-                log.warn('No output from companion reaction prompt', { 
+                log.warn('No output from companion reaction prompt', {
                     module: 'AITool',
                     tool: 'companionExpertTool',
                     characterName,
                 });
                 return { action: "" };
             }
-            
+
             const result = CompanionExpertOutputSchema.parse(output);
-            log.aiTool('companionExpertTool', 'Companion reaction generated', { 
+            log.aiTool('companionExpertTool', 'Companion reaction generated', {
                 characterName,
                 hasAction: !!result.action,
             });
-            
+
             return result;
 
         } catch (error: any) {
-            log.error('CompanionExpertTool error', { 
+            log.error('CompanionExpertTool error', {
                 module: 'AITool',
                 tool: 'companionExpertTool',
                 characterName: input.characterName,

@@ -3,27 +3,27 @@
 Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras identificados durante el desarrollo del proyecto.
 
 **Fecha de inicio:** Durante el saneamiento general de la aplicación (2025-11-10)  
-**Última actualización:** 2025-01-23 (Issue #125 resuelto y movido a corregidos)
+**Última actualización:** 2025-11-26 (Issue #127 registrado - regresión UI botones de turno)
 
 ---
 
 ## 📊 Resumen Estadístico
 
-- **Total de issues:** 77
-- **Issues corregidos:** 54 (70%)
-- **Issues pendientes:** 23 (30%)
+- **Total de issues:** 82
+- **Issues corregidos:** 59 (72%)
+- **Issues pendientes:** 23 (28%)
 
 ### Por Prioridad
 
 **Issues Corregidos:**
-- 🔴 PMA (Prioridad Muy Alta): 7 issues (Issues #81, #116, #117, #120, #121, #123, #124)
-- 🟡 PA (Prioridad Alta): 10 issues (Issues #34, #51, #53, #68, #75, #79, #94, #118, #122, #125)
+- 🔴 PMA (Prioridad Muy Alta): 11 issues (Issues #81, #116, #117, #120, #121, #123, #124, #127, #128, #129)
+- 🟡 PA (Prioridad Alta): 11 issues (Issues #34, #51, #53, #68, #75, #79, #93, #94, #118, #122, #125)
 - 🟢 PM (Prioridad Media): 31 issues (incluye Issue #29)
 - ⚪ PB (Prioridad Baja): 6 issues
 
 **Issues Pendientes:**
-- 🔴 PMA (Prioridad Muy Alta): 1 issue (Issue #126)
-- 🟡 PA (Prioridad Alta): 2 issues (Issues #93, #115)
+- 🔴 PMA (Prioridad Muy Alta): 2 issues (Issues #126, #127)
+- 🟡 PA (Prioridad Alta): 1 issue (Issue #115)
 - 🟢 PM (Prioridad Media): 15 issues (incluye Issues #6, #7, #8, #15, #16, #21, #22, #28, #30, #38, #65, #77, #80, #82, #92, #119)
 - ⚪ PB (Prioridad Baja): 3 issues (Issues #25, #31, #32)
 - ⚫ PMB (Prioridad Muy Baja): 1 issue (Issue #33)
@@ -52,10 +52,10 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 ### Issues Pendientes por Prioridad
 
 **🔴 Prioridad Muy Alta (PMA) - CRÍTICOS:**
+- [Issue #127: Regresión UI - Botones de avance de turno no aparecen tras refactor](./pendientes.md#issue-127-regresión-ui---botones-de-avance-de-turno-no-aparecen-tras-refactor-crítico) *[EN INVESTIGACIÓN - Bloquea flujo de combate]*
 - [Issue #126: Revisión completa del sistema de carga de aventuras JSON e inicio de partida](./pendientes.md#issue-126-revisión-completa-del-sistema-de-carga-de-aventuras-json-e-inicio-de-partida-crítico) *[PENDIENTE - Crítico para experiencia inicial]*
 
 **🟡 Prioridad Alta (PA):**
-- [Issue #93: Manejo de errores cuando se agotan los reintentos (especialmente errores 503 de sobrecarga)](./pendientes.md#issue-93-manejo-de-errores-cuando-se-agotan-los-reintentos-especialmente-errores-503-de-sobrecarga-advertencia) *[PENDIENTE - Mejora de experiencia de usuario]*
 - [Issue #115: Validación de inventario al usar armas u objetos](./pendientes.md#issue-115-validación-de-inventario-al-usar-armas-u-objetos-advertencia) *[POSPUESTO - Plan creado pero pospuesto]*
 
 **🟢 Prioridad Media (PM):**

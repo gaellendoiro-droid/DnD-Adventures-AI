@@ -15,6 +15,15 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+### Fixed
+- **✅ Regresión UI - Botones de avance de turno (Issue #130) (2025-11-26):**
+  - **Problema:** Los botones "Avanzar 1 turno" y "Avance automático" desaparecieron tras un refactor de UI, bloqueando el combate.
+  - **Causa:** El componente `ChatPanel` no recibía el prop `onAdvanceAll` necesario para renderizar los controles.
+  - **Solución:** Implementados handlers `handlePassTurn` y `handleAdvanceAll` en `GameView` y conectados correctamente a `ChatPanel`.
+  - **Archivos modificados:** `src/components/game/game-view.tsx`.
+  - **Referencia:** [Issue #130](../../docs/tracking/issues/corregidos.md#issue-130-regresión-ui---botones-de-avance-de-turno-no-aparecen-tras-refactor--resuelto)
+
+
 ### Changed
 - **🏗️ Refactorización: Separación de Party Inicial (2025-01-23):**
   - **Mejora:** Separación de la definición de la party inicial en un módulo independiente para facilitar futuras mejoras y el sistema de creación de personajes.
@@ -32,8 +41,80 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - `src/app/page.tsx` (Imports actualizados)
     - `src/lib/combat/action-executor.ts` (Imports actualizados)
     - `src/lib/combat/turn-processor.ts` (Imports actualizados)
+    - `src/lib/combat/turn-processor.ts` (Imports actualizados)
 
 ### Added
+- **🗣️ Ajuste Dinámico de Longitud de Narración (2025-11-26):**
+  - **Mejora:** El sistema ahora ajusta dinámicamente la longitud de las narraciones del DM basándose en la importancia del momento.
+  - **Características:**
+    - ✅ **Momentos Clave:** Detecta automáticamente cambios de ubicación, muertes de entidades y descansos.
+    - ✅ **Narración Adaptativa:**
+      - **Estándar:** 2-3 frases, conciso y directo para acciones rutinarias.
+      - **Clave:** 3-4 frases, más descriptivo y atmosférico para momentos importantes.
+    - ✅ **Integración Profunda:** La bandera `isKeyMoment` se propaga desde el `NarrativeTurnManager` hasta los expertos de `Exploration` e `Interaction`.
+  - **Beneficios:**
+    - Mejora el ritmo del juego (menos texto en rutina, más en momentos importantes).
+    - Aumenta la inmersión en transiciones y eventos dramáticos.
+    - Reduce la fatiga de lectura del jugador.
+  - **Archivos modificados:**
+    - `src/ai/flows/managers/narrative-turn-manager.ts` (Lógica de detección)
+    - `src/ai/flows/narrative-manager.ts` (Propagación)
+    - `src/ai/flows/experts/exploration-expert.ts` (Prompt condicional)
+    - `src/ai/flows/experts/interaction-expert.ts` (Prompt condicional)
+    - `src/ai/flows/schemas.ts` (Actualización de tipos)
+  - **Referencia:** [Plan Completado](../docs/planes-desarrollo/completados/ajuste-longitud-narracion.md)
+
+- **🎭 Atribución Narrativa en Diálogos (2025-11-26):**
+  - **Mejora:** Los PNJs ahora siempre incluyen una breve descripción narrativa (quién habla y cómo) antes o durante sus diálogos.
+  - **Características:**
+    - ✅ **Contexto Emocional:** Describe tono, gestos y expresiones faciales.
+    - ✅ **Claridad de Interlocutor:** Identifica explícitamente quién está hablando en cada intervención.
+    - ✅ **Inmersión:** Elimina las respuestas "secas" o puramente textuales, acercándose más a la narración de un DM humano.
+  - **Implementación:**
+    - Nueva directiva **"NARRATIVE ATTRIBUTION"** en el prompt de `InteractionExpert`.
+    - Ejemplos explícitos para guiar al modelo en la generación de acotaciones narrativas.
+  - **Archivos modificados:**
+    - `src/ai/flows/experts/interaction-expert.ts` (Prompt actualizado)
+
+### Fixed
+- **✅ Pérdida de Contexto en Diálogos Ambiguos (2025-11-26):**
+  - **Problema:** Cuando el jugador respondía a un PNJ con frases ambiguas (ej: "Sí, claro"), el sistema a veces lo clasificaba erróneamente como `EXPLORATION` en lugar de `INTERACTION`, rompiendo el flujo del diálogo y describiendo la habitación de nuevo.
+  - **Causa:** El `narrativeRouterPrompt` no tenía acceso al historial de conversación, por lo que no podía saber que la frase era una respuesta a una pregunta anterior.
+  - **Solución:**
+    - Se inyecta `conversationHistory` en el prompt del Router.
+    - Se añaden instrucciones explícitas para detectar respuestas a preguntas previas como interacciones sociales.
+  - **Archivos modificados:**
+    - `src/ai/flows/narrative-manager.ts` (Prompt y flujo actualizados)
+
+- **✅ Alucinación de Localizaciones por PNJs (2025-11-26):**
+  - **Problema:** Los PNJs inventaban nombres de localizaciones o traducían incorrectamente nombres propios (ej: "Boca del Crag" en lugar de "Cragmaw Hideout") al dar información al jugador.
+  - **Causa:** El `InteractionExpert` no tenía acceso a la herramienta `adventureLookupTool` para verificar la existencia y nombres correctos de las localizaciones, dependiendo solo de su conocimiento base (propenso a alucinaciones).
+  - **Solución:**
+    - Se ha añadido `adventureLookupTool` a las herramientas disponibles para `InteractionExpert`.
+    - Se han añadido directrices estrictas de **FACTUALITY & LOCATIONS** en el prompt para prohibir la invención de lugares y forzar el uso de la herramienta de búsqueda.
+  - **Archivos modificados:**
+    - `src/ai/flows/experts/interaction-expert.ts` (Prompt y tools actualizados)
+
+- **✅ Alucinación de Localizaciones por PNJs (2025-11-26):**
+  - **Problema:** Los PNJs inventaban nombres de localizaciones o traducían incorrectamente nombres propios (ej: "Boca del Crag" en lugar de "Cragmaw Hideout") al dar información al jugador.
+  - **Causa:** El `InteractionExpert` no tenía acceso a la herramienta `adventureLookupTool` para verificar la existencia y nombres correctos de las localizaciones, dependiendo solo de su conocimiento base (propenso a alucinaciones).
+  - **Solución:**
+    - Se ha añadido `adventureLookupTool` a las herramientas disponibles para `InteractionExpert`.
+    - Se han añadido directrices estrictas de **FACTUALITY & LOCATIONS** en el prompt para prohibir la invención de lugares y forzar el uso de la herramienta de búsqueda.
+  - **Archivos modificados:**
+    - `src/ai/flows/experts/interaction-expert.ts` (Prompt y tools actualizados)
+### Added
+- **🎲 Sistema de Tablas Aleatorias en JSON (2025-11-26):**
+  - **Mejora:** Soporte para tablas de tiradas aleatorias (ej: rumores, encuentros) directamente en el archivo JSON de la aventura.
+  - **Características:**
+    - ✅ **Sección `tables`:** Nueva estructura en el JSON para definir tablas con rangos de dados y contenido.
+    - ✅ **Etiquetas Dinámicas:** Uso de `[[ROLL_TABLE:id]]` en cualquier texto del JSON.
+    - ✅ **Resolución Automática:** La herramienta `adventureLookupTool` procesa estas etiquetas y devuelve contenido real de la aventura, eliminando alucinaciones.
+  - **Beneficios:** Mayor fidelidad a la aventura original, variedad en las partidas y prevención de información falsa por parte de los PNJs.
+  - **Archivos modificados:**
+    - `src/ai/tools/adventure-lookup.ts` (Lógica de procesamiento de etiquetas)
+    - `JSON_adventures/el-dragon-del-pico-agujahelada_v2.json` (Añadida tabla de rumores y referencias en PNJs)
+
 - **💾 Sistema de Caché Reactivo para TTS (2025-11-25):**
   - **Mejora:** Implementación de un sistema de caché híbrido (Memoria + Disco) para las narraciones de audio.
   - **Características:**

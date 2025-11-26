@@ -686,6 +686,76 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName }:
     }]);
   }, [addDiceRolls]);
 
+  const handlePassTurn = useCallback(() => {
+    const currentCombatant = initiativeOrderRef.current[turnIndex]?.characterName || 'Unknown';
+    const nextCombatant = turnIndexRef.current !== undefined
+      ? initiativeOrderRef.current[turnIndexRef.current]?.characterName || 'Unknown'
+      : 'Unknown';
+
+    logClient.uiEvent('GameView', 'Pasar 1 Turno clicked', {
+      currentTurnIndex: turnIndex,
+      currentCombatant,
+      nextTurnIndex: turnIndexRef.current,
+      nextCombatant,
+      hasMoreAITurns,
+      justProcessedAITurn,
+      inCombat: inCombatRef.current,
+      initiativeOrderLength: initiativeOrderRef.current.length,
+      initiativeOrder: initiativeOrderRef.current.map((c, i) => ({
+        index: i,
+        name: c.characterName,
+        controlledBy: c.controlledBy,
+        isCurrent: i === turnIndex,
+        isNext: i === turnIndexRef.current,
+      })),
+    });
+
+    // 1. Visually advance the turn indicator to the character whose turn is *next*.
+    if (turnIndexRef.current !== undefined) {
+      logClient.uiEvent('GameView', 'Updating visual turnIndex', {
+        from: turnIndex,
+        to: turnIndexRef.current,
+        combatant: nextCombatant,
+      });
+      setTurnIndex(turnIndexRef.current);
+    }
+
+    // 2. Hide the "Pasar 1 Turno" button.
+    setJustProcessedAITurn(false);
+
+    // 3. Reset player action flag when advancing turn
+    setPlayerActionCompleted(false);
+
+    // 4. If there are still more AI turns to process OR if player has completed their action,
+    //    send a request to the backend to advance the turn.
+    if (hasMoreAITurns || playerActionCompleted) {
+      logClient.uiEvent('GameView', 'Sending continuar turno request', {
+        reason: hasMoreAITurns ? 'hasMoreAITurns is true' : 'playerActionCompleted is true',
+        nextTurnIndex: turnIndexRef.current,
+        nextCombatant,
+      });
+      handleSendMessage('continuar turno', { isContinuation: true });
+    } else {
+      logClient.uiEvent('GameView', 'NOT sending continuar turno request', {
+        reason: 'hasMoreAITurns and playerActionCompleted are both false',
+      });
+    }
+  }, [turnIndex, hasMoreAITurns, justProcessedAITurn, playerActionCompleted, handleSendMessage]);
+
+  const handleAdvanceAll = useCallback(() => {
+    logClient.uiEvent('GameView', 'Avance automático clicked', {
+      turnIndex,
+      hasMoreAITurns,
+    });
+
+    // Enable auto-advance mode
+    setAutoAdvancing(true);
+    autoAdvancingRef.current = true;
+
+    // Execute pass turn logic to start the chain
+    handlePassTurn();
+  }, [turnIndex, hasMoreAITurns, handlePassTurn]);
+
   const handleInternalSaveGame = useCallback(() => {
     const saveData = { savedAt: new Date().toISOString(), party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex };
 
@@ -772,7 +842,6 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName }:
         <ChatPanel
           messages={messages}
           onSendMessage={handleSendMessage}
-          onDiceRoll={handleDiceRoll}
           isThinking={isDMThinking}
           inCombat={inCombat}
           hasMoreAITurns={hasMoreAITurns}
@@ -780,63 +849,8 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName }:
           autoAdvancing={autoAdvancing}
           playerActionCompleted={playerActionCompleted}
           isPlayerTurn={isPlayerTurn}
-          onPassTurn={() => {
-            // Log detailed state information for debugging
-            const currentCombatant = initiativeOrderRef.current[turnIndex]?.characterName || 'Unknown';
-            const nextCombatant = turnIndexRef.current !== undefined
-              ? initiativeOrderRef.current[turnIndexRef.current]?.characterName || 'Unknown'
-              : 'Unknown';
-
-            logClient.uiEvent('GameView', 'Pasar 1 Turno clicked', {
-              currentTurnIndex: turnIndex,
-              currentCombatant,
-              nextTurnIndex: turnIndexRef.current,
-              nextCombatant,
-              hasMoreAITurns,
-              justProcessedAITurn,
-              inCombat: inCombatRef.current,
-              initiativeOrderLength: initiativeOrderRef.current.length,
-              initiativeOrder: initiativeOrderRef.current.map((c, i) => ({
-                index: i,
-                name: c.characterName,
-                controlledBy: c.controlledBy,
-                isCurrent: i === turnIndex,
-                isNext: i === turnIndexRef.current,
-              })),
-            });
-
-            // When the user clicks "Pasar 1 Turno", several things happen:
-            // 1. Visually advance the turn indicator to the character whose turn is *next*.
-            //    This value is already stored in our ref from the last backend response.
-            if (turnIndexRef.current !== undefined) {
-              logClient.uiEvent('GameView', 'Updating visual turnIndex', {
-                from: turnIndex,
-                to: turnIndexRef.current,
-                combatant: nextCombatant,
-              });
-              setTurnIndex(turnIndexRef.current);
-            }
-            // 2. Hide the "Pasar 1 Turno" button.
-            setJustProcessedAITurn(false);
-
-            // 3. Reset player action flag when advancing turn
-            setPlayerActionCompleted(false);
-
-            // 4. If there are still more AI turns to process OR if player has completed their action,
-            //    send a request to the backend to advance the turn.
-            if (hasMoreAITurns || playerActionCompleted) {
-              logClient.uiEvent('GameView', 'Sending continuar turno request', {
-                reason: hasMoreAITurns ? 'hasMoreAITurns is true' : 'playerActionCompleted is true',
-                nextTurnIndex: turnIndexRef.current,
-                nextCombatant,
-              });
-              handleSendMessage('continuar turno', { isContinuation: true });
-            } else {
-              logClient.uiEvent('GameView', 'NOT sending continuar turno request', {
-                reason: 'hasMoreAITurns and playerActionCompleted are both false',
-              });
-            }
-          }}
+          onPassTurn={handlePassTurn}
+          onAdvanceAll={handleAdvanceAll}
         />
       </GameLayout>
     </div>

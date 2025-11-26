@@ -6,12 +6,111 @@
 
 Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 54 issues  
-**Última actualización:** 2025-01-23 (Issue #125 resuelto y movido a corregidos)
+**Total:** 55 issues  
+**Última actualización:** 2025-01-23 (Issue #93 resuelto y movido a corregidos)
 
 ---
 
 ## 🔴 Prioridad Muy Alta (PMA) - Críticos
+
+### Issue #130: Regresión UI - Botones de avance de turno no aparecen tras refactor ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-26
+- **Fecha de corrección:** 2025-11-26
+- **Ubicación:** `src/components/game/game-view.tsx`, `src/components/game/chat-panel.tsx`
+- **Severidad:** 🔴 **MUY ALTA** (bloqueaba el flujo de combate paso a paso)
+- **Descripción:** Después de cambios recientes en el diseño de la UI, los botones “Avanzar 1 turno” y “Avance automático” dejaron de mostrarse aun cuando el backend indicaba que había turnos de IA pendientes o que se acababa de procesar un turno de IA.
+- **Causa Raíz identificada:**
+  - El componente `ChatPanel` requiere que se le pasen las funciones `onPassTurn` y `onAdvanceAll` para mostrar los botones.
+  - En `game-view.tsx`, la función `handleAdvanceAll` no existía y no se estaba pasando a `ChatPanel`.
+  - La lógica de `onPassTurn` estaba inline y no se gestionaba correctamente.
+- **Solución implementada:** ✅
+  - **Implementación de Handlers:** Se crearon `handlePassTurn` y `handleAdvanceAll` en `GameView`.
+  - **Paso de Props:** Se pasaron estos handlers correctamente al componente `ChatPanel`.
+  - **Limpieza:** Se eliminó el prop obsoleto `onDiceRoll` que causaba errores de tipo.
+- **Archivos modificados:**
+  - `src/components/game/game-view.tsx` - Implementación de handlers y paso de props
+- **Impacto:** Crítico - Restaura la funcionalidad de avance de turnos en combate, permitiendo jugar IA vs IA y IA vs Jugador.
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada (2025-11-26)
+- **Plan asociado:** [`docs/planes-desarrollo/completados/regresion-botones-turnos-ui.md`](../../planes-desarrollo/completados/regresion-botones-turnos-ui.md)
+- **Nota:** Renombrado de #127 a #130 para evitar conflicto de IDs.
+
+
+
+### Issue #127: Pérdida de Contexto en Diálogos Ambiguos ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-26
+- **Fecha de corrección:** 2025-11-26
+- **Ubicación:** `src/ai/flows/narrative-manager.ts`
+- **Severidad:** 🔴 **CRÍTICA** (Rompe el flujo de conversación y la inmersión)
+- **Descripción:** Cuando el jugador respondía a un PNJ con frases ambiguas (ej: "Sí, claro", "Estoy de acuerdo") sin especificar explícitamente "le digo a X", el sistema clasificaba la acción como `EXPLORATION` en lugar de `INTERACTION`. Esto causaba que el DM describiera la habitación nuevamente en lugar de continuar el diálogo, rompiendo la inmersión.
+- **Causa Raíz identificada:**
+  - El `narrativeRouterPrompt` (encargado de clasificar la acción) no recibía el `conversationHistory`.
+  - Sin el historial, el modelo no podía saber que la frase del jugador era una respuesta directa a una pregunta anterior del PNJ.
+- **Solución implementada:** ✅
+  - **Inyección de Contexto:** Se actualizó el `narrativeRouterPrompt` para recibir y procesar `conversationHistory`.
+  - **Instrucciones Explícitas:** Se añadieron directivas "CRITICAL - CONTEXT AWARENESS" para instruir al modelo a revisar el historial y clasificar respuestas a preguntas como `INTERACTION`.
+  - **Actualización de Flujo:** Se modificó `narrativeManagerFlow` para pasar el historial al router.
+- **Archivos modificados:**
+  - `src/ai/flows/narrative-manager.ts` - Prompt y llamada actualizados
+- **Impacto:** Crítico - Restaura la fluidez de las conversaciones naturales, permitiendo al jugador responder como lo haría en una mesa real sin tener que ser explícito con comandos de "decir".
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada (2025-11-26)
+
+### Issue #128: Alucinación de Localizaciones por PNJs ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-26
+- **Fecha de corrección:** 2025-11-26
+- **Ubicación:** `src/ai/flows/experts/interaction-expert.ts`
+- **Severidad:** 🔴 **CRÍTICA** (Información falsa al jugador, rompe la aventura)
+- **Descripción:** Los PNJs inventaban nombres de localizaciones o traducían incorrectamente nombres propios (ej: "Boca del Crag" en lugar de "Cragmaw Hideout") al dar información al jugador sobre misiones o lugares.
+- **Causa Raíz identificada:**
+  - El `InteractionExpert` no tenía acceso a la herramienta `adventureLookupTool`, por lo que no podía consultar la "verdad" sobre el mundo de la aventura.
+  - Dependía de su conocimiento pre-entrenado, lo que llevaba a alucinaciones o traducciones literales incorrectas ("Cragmaw" -> "Boca del Crag").
+- **Solución implementada:** ✅
+  - **Acceso a Herramientas:** Se añadió `adventureLookupTool` a la lista de herramientas permitidas para `InteractionExpert`.
+  - **Directrices de Factuality:** Se añadieron instrucciones estrictas en el prompt para prohibir la invención de lugares y obligar al uso de la herramienta para verificar nombres.
+- **Archivos modificados:**
+  - `src/ai/flows/experts/interaction-expert.ts` - Prompt y tools actualizados
+- **Impacto:** Crítico - Asegura que la información que dan los PNJs sea veraz y coherente con la aventura cargada.
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada (2025-11-26)
+
+### Issue #128: Alucinación de Localizaciones por PNJs ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-26
+- **Fecha de corrección:** 2025-11-26
+- **Ubicación:** `src/ai/flows/experts/interaction-expert.ts`
+- **Severidad:** 🔴 **CRÍTICA** (Información falsa al jugador, rompe la aventura)
+- **Descripción:** Los PNJs inventaban nombres de localizaciones o traducían incorrectamente nombres propios (ej: "Boca del Crag" en lugar de "Cragmaw Hideout") al dar información al jugador sobre misiones o lugares.
+- **Causa Raíz identificada:**
+  - El `InteractionExpert` no tenía acceso a la herramienta `adventureLookupTool`, por lo que no podía consultar la "verdad" sobre el mundo de la aventura.
+  - Dependía de su conocimiento pre-entrenado, lo que llevaba a alucinaciones o traducciones literales incorrectas ("Cragmaw" -> "Boca del Crag").
+- **Solución implementada:** ✅
+  - **Acceso a Herramientas:** Se añadió `adventureLookupTool` a la lista de herramientas permitidas para `InteractionExpert`.
+  - **Directrices de Factuality:** Se añadieron instrucciones estrictas en el prompt para prohibir la invención de lugares y obligar al uso de la herramienta para verificar nombres.
+- **Archivos modificados:**
+  - `src/ai/flows/experts/interaction-expert.ts` - Prompt y tools actualizados
+- **Impacto:** Crítico - Asegura que la información que dan los PNJs sea veraz y coherente con la aventura cargada.
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada (2025-11-26)
+
+### Issue #129: Alucinación de Rumores por falta de Tablas ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-26
+- **Fecha de corrección:** 2025-11-26
+- **Ubicación:** `src/ai/tools/adventure-lookup.ts` y JSON de aventura
+- **Severidad:** 🔴 **CRÍTICA** (Información falsa persistente a pesar de arreglos previos)
+- **Descripción:** A pesar de tener acceso a la herramienta de búsqueda, los PNJs seguían inventando rumores (ej: "Cueva de los Colmillos") porque la aventura original usa tablas aleatorias para esto, y esas tablas no existían en el JSON, obligando a la IA a improvisar.
+- **Causa Raíz identificada:**
+  - Falta de estructura de datos para tablas aleatorias en el esquema de aventura.
+  - Ausencia de mecanismo para "tirar dados" en tablas de texto dentro del flujo de la IA.
+- **Solución implementada:** ✅
+  - **Sistema de Tablas:** Añadida sección `tables` al JSON de aventura.
+  - **Etiquetas Inteligentes:** Implementado soporte para etiquetas `[[ROLL_TABLE:id]]` en el texto del JSON.
+  - **Resolución Automática:** La `adventureLookupTool` ahora detecta y procesa estas etiquetas, devolviendo un resultado real de la tabla.
+- **Archivos modificados:**
+  - `src/ai/tools/adventure-lookup.ts`
+  - `JSON_adventures/el-dragon-del-pico-agujahelada_v2.json`
+- **Impacto:** Crítico - Elimina la última fuente de alucinaciones en interacciones sociales y añade variabilidad canónica a la aventura.
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada (2025-11-26)
 
 ### Issue #29: Stats de enemigos incorrectos en combate ✅ RESUELTO
 
@@ -90,9 +189,48 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 - **Relacionado con:**
   - Issue #124 (Sistema de retries faltante) - ✅ RESUELTO - Ahora unificado en el cliente centralizado
   - Issue #29 (Stats de enemigos incorrectos) - ✅ RESUELTO - Ahora unificado en el cliente centralizado
-  - Issue #93 (Manejo de errores cuando se agotan los reintentos) - Problema relacionado de manejo de errores
+  - Issue #93 (Manejo de errores cuando se agotan los reintentos) - ✅ RESUELTO - Resuelto por mejoras previas
 - **Plan de implementación:** [Issue #125 - Unificación Arquitectónica de APIs](../../planes-desarrollo/completados/issue-125-unificacion-apis.md)
 - **Referencia:** [Notas de Gael - #2](../notas/Notas%20de%20Gael.md)
+
+---
+
+## 🟡 Prioridad Alta (PA) - Advertencias
+
+### Issue #93: Manejo de errores cuando se agotan los reintentos (especialmente errores 503 de sobrecarga) ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-18
+- **Fecha de corrección:** 2025-01-23
+- **Ubicación:** `src/ai/flows/retry-utils.ts`, `src/ai/tools/enemy-tactician.ts`, `src/ai/tools/companion-tactician.ts`
+- **Severidad:** 🟡 **ALTA** (afecta experiencia del usuario cuando el servicio está sobrecargado)
+- **Descripción:** Cuando la API de Gemini devuelve errores 503 (Service Unavailable / "The model is overloaded") y se agotan los 4 intentos de reintento, el sistema no diferencia estos errores de otros errores críticos, mostrando el mismo mensaje genérico de fallo.
+- **Problema resuelto:**
+  - ✅ **Detección de errores 503:** `retry-utils.ts` detecta múltiples variantes de errores 503 (status code, mensajes, etc.)
+  - ✅ **Logging detallado:** Cuando se agotan los reintentos, se registra el error con contexto completo (tipo de error, número de intentos, mensaje del servicio)
+  - ✅ **Errores limpios:** Stack traces largos suprimidos, solo mensajes esenciales en logs
+  - ✅ **Pre-warm de conexión:** Implementado pre-warm automático de Gemini API para evitar timeouts iniciales que causaban errores 503
+  - ✅ **Función centralizada:** `executePromptWithRetry()` encapsula retries y pre-warm, usada en todos los módulos
+- **Solución implementada:** ✅
+  - Resuelto principalmente por las mejoras implementadas en Issue #125 (Unificación Arquitectónica de APIs)
+  - El pre-warm de conexión reduce drásticamente la probabilidad de errores 503 en la primera llamada
+  - Los 4 reintentos con exponential backoff hacen que sea extremadamente raro que todos los intentos fallen
+  - El logging detallado en `retry-utils.ts` proporciona suficiente información para diagnóstico
+  - Los errores limpios sin stack traces mejoran la legibilidad de los logs
+- **Razón de cierre:**
+  - Con el pre-warm y los retries mejorados, los errores 503 son extremadamente raros
+  - El logging ya es bastante detallado y proporciona información suficiente
+  - El impacto en el usuario es mínimo (solo afecta cuando todos los reintentos fallan, caso muy poco frecuente)
+  - Las mejoras adicionales propuestas (detección específica en catch finales, mensajes diferentes al usuario) no aportan suficiente valor para justificar el esfuerzo
+- **Archivos modificados:**
+  - `src/ai/flows/retry-utils.ts` - Detección de errores 503, logging detallado, pre-warm, función `executePromptWithRetry()`
+  - `src/ai/tools/enemy-tactician.ts` - Usa `executePromptWithRetry()` con retries y pre-warm automáticos
+  - `src/ai/tools/companion-tactician.ts` - Usa `executePromptWithRetry()` con retries y pre-warm automáticos
+- **Impacto:** Alto - Mejora significativa de la robustez del sistema y reducción drástica de errores 503
+- **Estado:** ✅ **RESUELTO** - Resuelto por mejoras previas (Issue #125 y mejoras de retry-utils)
+- **Relacionado con:**
+  - Issue #125 (Primera llamada a APIs siempre falla) - ✅ RESUELTO - Pre-warm y retries centralizados resuelven el problema
+  - Issue #30 (Logs verbosos de errores de API) - ✅ RESUELTO - Stack traces suprimidos, solo mensajes esenciales
+  - Issue #14 (output inválido/null) - Problema relacionado de manejo de errores de validación
 
 ---
 

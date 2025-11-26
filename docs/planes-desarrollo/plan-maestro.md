@@ -11,7 +11,7 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 ## 📋 Índice de Planes
 
 - [🚧 Planes en Curso](#-planes-en-curso) (0 planes activos)
-- [✅ Planes Completados](#-planes-completados) (19 planes)
+- [✅ Planes Completados](#-planes-completados) (20 planes)
 - [💡 Planes Sin Comenzar](#-planes-sin-comenzar-priorizados) (12 planes)
 - [🎯 Prioridades Estratégicas](#-prioridades-estratégicas)
 - [📊 Resumen Ejecutivo](#-resumen-ejecutivo)
@@ -20,7 +20,7 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** 0 planes activos | **Última implementación:** Definición de Estructura Base para Aventuras JSON (2025-11-24) - COMPLETADO
+**Estado:** 0 planes activos | **Última implementación:** Ajuste Dinámico de Longitud de Narración (2025-11-26) - COMPLETADO
 
 > Actualmente no hay planes en curso.
 
@@ -28,9 +28,33 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 19 planes
+**Estado:** Finalizados | **Cantidad:** 20 planes
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Ajuste Dinámico de Longitud de Narración](completados/ajuste-longitud-narracion.md) ✅ **COMPLETADO**
+- **Estado:** Implementado
+- **Objetivo:** Ajustar la extensión de las narraciones del DM dinámicamente, diferenciando entre momentos estándar (concisos) y momentos clave (más descriptivos).
+- **Prioridad:** Media
+- **Resultados:**
+  - ✅ **Detección Lógica:** Identificación automática de momentos clave (cambio de ubicación, muerte, descanso).
+  - ✅ **Prompts Condicionales:** Instrucciones dinámicas para expertos de Exploración e Interacción.
+  - ✅ **Flujo de Datos:** Propagación de bandera `isKeyMoment` a través de todo el pipeline narrativo.
+  - ✅ **Experiencia de Usuario:** Narraciones de 3-4 frases para momentos importantes, 2-3 para rutina.
+- **Fecha de finalización:** 2025-11-26
+- **Referencia:** [Plan Detallado](completados/ajuste-longitud-narracion.md)
+
+### [Sistema de Caché para TTS](completados/sistema-cache-tts.md) ✅ **COMPLETADO**
+- **Estado:** Implementado
+- **Objetivo:** Implementar un sistema de caché reactivo para evitar regenerar audios ya solicitados, ahorrando costos y latencia.
+- **Prioridad:** Media
+- **Resultados:**
+  - ✅ **Caché Híbrido:** Memoria (LRU) + Disco (Persistente).
+  - ✅ **Integración Centralizada:** Transparente en `eleven-labs-direct.ts`.
+  - ✅ **Reactivo:** Solo cachea lo que el usuario solicita explícitamente.
+- **Fecha de finalización:** 2025-11-25
+- **Referencia:** [Plan Detallado](completados/sistema-cache-tts.md)
+
 
 ### [Integración de Eleven Labs TTS](completados/integracion-eleven-labs-tts.md) ✅ **COMPLETADO**
 - **Estado:** Implementado y optimizado
@@ -495,7 +519,7 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 ### Estado General del Proyecto
 
 **Progreso Total:**
-- ✅ **18 planes completados** (incluyendo 1 parcialmente completado)
+- ✅ **20 planes completados** (incluyendo 1 parcialmente completado)
 - 🚧 **0 planes en curso** actualmente
 - 📝 **12 planes sin comenzar** identificados y planificados
 
