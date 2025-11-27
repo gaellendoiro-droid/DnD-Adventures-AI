@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect } from "react";
-import type { GameMessage } from "@/lib/types";
+import type { GameMessage, VolumeSettings } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { ChatMessage } from "./chat-message";
@@ -22,6 +22,10 @@ interface ChatPanelProps {
   isPlayerTurn?: boolean;
   onPassTurn?: () => void;
   onAdvanceAll?: () => void;
+  volumeSettings?: VolumeSettings;
+  isMuted?: boolean;
+  onVolumeChange?: (channel: keyof VolumeSettings, value: number) => void;
+  onToggleMute?: () => void;
 }
 
 export function ChatPanel({
@@ -36,6 +40,10 @@ export function ChatPanel({
   isPlayerTurn = false,
   onPassTurn,
   onAdvanceAll,
+  volumeSettings = { master: 0.5, music: 0.5, ambience: 0.5, sfx: 0.5, narrator: 1.0 },
+  isMuted = false,
+  onVolumeChange,
+  onToggleMute,
 }: ChatPanelProps) {
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
@@ -48,12 +56,14 @@ export function ChatPanel({
     }
   }, [messages, isThinking]);
 
+  const effectiveNarratorVolume = isMuted ? 0 : volumeSettings.master * volumeSettings.narrator;
+
   return (
     <div className="flex flex-col h-full bg-card rounded-lg shadow-sm border">
       <ScrollArea className="flex-1 p-4" viewportRef={scrollViewportRef}>
         <div className="space-y-4">
           {messages.map((msg) => (
-            <ChatMessage key={msg.id} message={msg} />
+            <ChatMessage key={msg.id} message={msg} volume={effectiveNarratorVolume} />
           ))}
           {isThinking && (
             <div className="flex gap-3 my-4 justify-start">
@@ -106,6 +116,10 @@ export function ChatPanel({
           isPlayerTurn={isPlayerTurn}
           waitingForTurnAdvance={inCombat && !isThinking && !isPlayerTurn && (hasMoreAITurns || justProcessedAITurn || autoAdvancing || playerActionCompleted) && !!onPassTurn && !!onAdvanceAll}
           isDMThinking={isThinking}
+          volumeSettings={volumeSettings}
+          isMuted={isMuted}
+          onVolumeChange={onVolumeChange}
+          onToggleMute={onToggleMute}
         />
       </div>
     </div>

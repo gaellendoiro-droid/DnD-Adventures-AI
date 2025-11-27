@@ -62,6 +62,7 @@ export interface Combatant {
   total: number;
   type: 'player' | 'npc';
   controlledBy: "Player" | "AI";
+  status?: 'active' | 'unconscious' | 'dead';
 }
 
 // We can also infer nested types if we need them separately
@@ -69,3 +70,11 @@ export type AbilityScores = Character['abilityScores'];
 export type Skill = Character['skills'][number];
 export type InventoryItem = Character['inventory'][number];
 export type Spell = Character['spells'][number];
+
+export interface VolumeSettings {
+  master: number;
+  music: number;
+  ambience: number;
+  sfx: number;
+  narrator: number;
+}

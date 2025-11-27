@@ -8,8 +8,8 @@
 
 Issues que aún no han sido resueltos y requieren atención. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 11 issues  
-**Última actualización:** 2025-01-27 (Issue #15 resuelto y movido a corregidos)
+**Total:** 10 issues  
+**Última actualización:** 2025-01-27 (Issue #33 eliminado - ya no relevante)
 
 ---
 
@@ -94,64 +94,11 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
 
 ---
 
-### Issue #38: Auto-redirección de ataque a enemigo diferente cuando target está muerto 🟢 MEJORA / DECISIÓN DE DISEÑO
 
-- **Fecha de creación:** 2025-11-14
-- **Ubicación:** `src/ai/flows/action-interpreter.ts` o `src/lib/combat/target-resolver.ts`
-- **Severidad:** 🟢 MEDIA (afecta jugabilidad, pero no rompe el juego)
-- **Descripción:** Cuando el jugador intenta atacar a un enemigo que ya está muerto (e.g., "ataco a goblin1"), el sistema automáticamente **redirige el ataque** a otro enemigo vivo (e.g., "goblin-2") sin informar al jugador.
-- **Comportamiento actual:**
-  - Jugador: "Ataco a goblin1" (goblin1 está muerto)
-  - Sistema: [Redirige silenciosamente a goblin-2]
-  - DM: "Atacas a Goblin 2 y aciertas..."
-- **Problema:** El jugador podría querer:
-  - Examinar el cadáver del goblin1
-  - Saquear el cadáver
-  - Hacer algo específico con el goblin1 muerto
-  - Saber que su target está muerto antes de desperdiciar un ataque
-- **Opciones de diseño:**
-  1. **Opción A (actual):** Auto-redirección silenciosa a enemigo vivo
-     - ✅ Ventaja: No desperdicia turnos
-     - ❌ Desventaja: Confuso, quita control al jugador
-  2. **Opción B:** Informar al jugador y pedir confirmación
-     - DM: "Goblin 1 ya está muerto. ¿Quieres atacar a otro enemigo? (Goblin 2, Orco 1)"
-     - ✅ Ventaja: Claridad, más control para el jugador
-     - ❌ Desventaja: Requiere interacción adicional
-  3. **Opción C:** Rechazar la acción y pedir nueva acción
-     - DM: "Goblin 1 ya está muerto. ¿Qué quieres hacer?"
-     - ✅ Ventaja: Máximo control para el jugador
-     - ❌ Desventaja: Puede ser frustrante
-- **Impacto:** Medio (afecta control del jugador, pero no rompe el juego)
-- **Solución propuesta:** **Opción B** - Informar y pedir confirmación (similar a Issue #23 con múltiples enemigos)
-- **Archivos afectados:**
-  - `src/ai/flows/action-interpreter.ts` (lógica de fallback)
-  - `src/lib/combat/target-resolver.ts` (resolución de target)
-  - `src/ai/flows/game-coordinator.ts` (manejo de clarificaciones)
-- **Estado:** 📝 **PENDIENTE** (decisión de diseño pendiente)
-- **Relacionado con:** Issue #23 (clarificación de acciones ambiguas)
-- **Detección:** Testing de refactorización `combat-manager.ts`
 
 ---
 
-### Issue #16: Gestión de nombres de múltiples monstruos debería estar en un módulo separado
 
-- **Fecha de creación:** 2025-11-12
-- **Ubicación:** `src/ai/tools/combat-manager.ts`
-- **Severidad:** Media (mejora de arquitectura)
-- **Descripción:** La gestión y unificación de nombres de múltiples monstruos del mismo tipo está actualmente mezclada con la lógica de combate en `combat-manager.ts`. Esta funcionalidad debería estar centralizada en un módulo dedicado que pueda ser reutilizado en narraciones del DM, combat manager, y narraciones de compañeros.
-- **Problema:**
-  - Separación de responsabilidades: `combat-manager.ts` debería enfocarse en la lógica de combate
-  - Reutilización: La funcionalidad se necesita en múltiples lugares
-  - Mantenibilidad: Un módulo separado sería más fácil de testear y depurar
-- **Impacto:** Medio (mejora la arquitectura, mantenibilidad y consistencia del código)
-- **Solución propuesta:**
-  - Crear nuevo módulo `src/lib/monster-name-manager.ts`
-  - Extraer funciones: `generateDifferentiatedNames()`, `normalizeNameForMatching()`, `escapeRegex()`, `replaceOrdinalReferences()`
-  - Exportar funciones principales para uso en múltiples lugares
-- **Archivos afectados:**
-  - `src/ai/tools/combat-manager.ts` (extraer funciones)
-  - Nuevo: `src/lib/monster-name-manager.ts`
-- **Estado:** 📝 Pendiente (mejora de arquitectura, prioridad media)
 
 ### Issue #22: Sistema completo de Saving Throws (tiradas de salvación del objetivo) 🟡 FEATURE INCOMPLETA
 
@@ -175,26 +122,6 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
 - **Prioridad:** Media
 - **Estimación:** 9-12 horas
 - **Estado:** 📝 Pendiente (feature incompleta, implementar después del refactoring de `combat-manager.ts`)
-
-### Issue #28: Visualización de barra de vida en panel Grupo 🟡 ADVERTENCIA
-
-- **Fecha de creación:** 2025-11-14
-- **Ubicación:** `src/components/game/` (componente del panel Grupo)
-- **Severidad:** 🟡 **MEDIA** (bug visual)
-- **Descripción:** En el panel Grupo, cuando un personaje está seleccionado, la visualización de la barra de vida no se muestra correctamente. El trozo de la barra que está vacío (HP perdido) no se ve bien.
-- **Problema:**
-  - Posible problema de CSS/styling cuando el personaje está seleccionado
-  - La barra de vida puede tener un color de fondo que se confunde con el estado seleccionado
-  - O el contraste no es suficiente para distinguir HP perdido
-- **Impacto:** Medio (afecta la legibilidad de la información de HP)
-- **Solución propuesta:**
-  - Revisar el CSS del componente del panel Grupo
-  - Asegurar que la barra de vida tenga suficiente contraste cuando el personaje está seleccionado
-  - Posiblemente usar colores diferentes o bordes más marcados para el estado seleccionado
-- **Archivos afectados:**
-  - Componente del panel Grupo (frontend)
-  - Estilos CSS relacionados
-- **Estado:** 📝 **PENDIENTE** - Bug visual pendiente de corrección
 
 
 ## ⚪ Prioridad Baja (PB) - Mejoras menores
@@ -221,47 +148,11 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
   - Sistema de obtención de datos de monstruos
 - **Estado:** 📝 **PENDIENTE** - Funcionalidad incompleta pendiente de implementación
 
-### Issue #32: Paneles de combate se limpian de forma inconsistente 🟢 MEJORA
-
-- **Fecha de creación:** 2025-11-14
-- **Ubicación:** `src/components/game/` (componentes de paneles de combate)
-- **Severidad:** 🟢 **BAJA** (inconsistencia de UX)
-- **Descripción:** Al terminar un combate, el panel de orden de combate se limpia automáticamente, pero el panel de tiradas no se limpia. Esta inconsistencia puede confundir al jugador.
-- **Problema:**
-  - Inconsistencia en el comportamiento de los paneles
-  - El jugador puede querer revisar las tiradas después del combate
-  - O puede querer que ambos paneles se mantengan limpios
-- **Impacto:** Bajo (inconsistencia de UX, no afecta funcionalidad)
-- **Solución propuesta:**
-  1. No limpiar automáticamente ningún panel (mantener ambos con su contenido después del combate)
-  2. Implementar botón de limpieza manual (añadir un botón para limpiar los paneles cuando el jugador lo desee, solo disponible cuando estamos fuera de combate)
-  3. Consistencia (ambos paneles deben comportarse igual)
-- **Archivos afectados:**
-  - Componentes de paneles de combate (frontend)
-  - Lógica de limpieza de paneles al terminar combate
-- **Estado:** 📝 **PENDIENTE** - Mejora de UX pendiente de implementación
-
 ---
 
 ## ⚫ Prioridad Muy Baja (PMB) - Mejoras muy menores
 
-### Issue #33: Logs muestran turnIndex cuando inCombat es false 🟢 MEJORA
-
-- **Fecha de creación:** 2025-11-14
-- **Ubicación:** `src/lib/logger.ts`, llamadas a `log.gameCoordinator`
-- **Severidad:** 🟢 **MUY BAJA** (inconsistencia menor en logs)
-- **Descripción:** Los logs muestran `turnIndex` incluso cuando `inCombat` es `false`, lo cual no tiene sentido ya que fuera de combate no hay turnos.
-- **Problema:**
-  - Inconsistencia en los logs
-  - Información confusa o irrelevante cuando no hay combate
-- **Impacto:** Muy bajo (solo afecta la legibilidad de los logs)
-- **Solución propuesta:**
-  - En `log.gameCoordinator`, solo incluir `turnIndex` en el contexto cuando `inCombat === true`
-  - O filtrar `turnIndex` del contexto antes de loggear si `inCombat` es `false`
-- **Archivos afectados:**
-  - `src/lib/logger.ts` (función `gameCoordinator`)
-  - Llamadas a `log.gameCoordinator` que pasan `turnIndex` cuando `inCombat` es `false`
-- **Estado:** 📝 **PENDIENTE** - Mejora menor de logging pendiente de implementación
+> No hay issues de prioridad muy baja pendientes actualmente.
 
 ---
 

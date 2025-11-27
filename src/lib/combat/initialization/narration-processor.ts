@@ -81,7 +81,8 @@ export class NarrationProcessor {
                 narrativeResult.dmNarration,
                 updatedEnemies,
                 differentiatedNames,
-                localLog
+                localLog,
+                initiativeOrder
             );
 
             const { html } = await markdownToHtml({ markdown: processedNarration });
@@ -98,12 +99,38 @@ export class NarrationProcessor {
         narration: string,
         enemies: EnemyWithStats[],
         differentiatedNames: Map<string, string>,
-        localLog: (msg: string) => void
+        localLog: (msg: string) => void,
+        initiativeOrder?: Combatant[]
     ): string {
         let processedNarration = narration;
 
+        // Sort enemies by initiative order for ordinal replacement
+        // This ensures "first goblin" refers to the first goblin in initiative, not "Goblin 1"
+        let orderedEnemies = [...enemies];
+        if (initiativeOrder && initiativeOrder.length > 0) {
+            orderedEnemies.sort((a, b) => {
+                const indexA = initiativeOrder.findIndex(c => c.id === a.uniqueId || c.id === a.id);
+                const indexB = initiativeOrder.findIndex(c => c.id === b.uniqueId || c.id === b.id);
+
+                // If both in initiative, sort by index
+                if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                // If only A in initiative, A comes first
+                if (indexA !== -1) return -1;
+                // If only B in initiative, B comes first
+                if (indexB !== -1) return 1;
+                // If neither, keep original order (or sort by ID)
+                return 0;
+            });
+        }
+
         // FIRST: Replace ordinal references (e.g., "primer goblin" -> "Goblin 1")
-        processedNarration = replaceOrdinalReferences(processedNarration, enemies, differentiatedNames);
+        // We pass respectInputOrder: true so it uses our initiative-based sorting
+        processedNarration = replaceOrdinalReferences(
+            processedNarration,
+            orderedEnemies,
+            differentiatedNames,
+            { respectInputOrder: true }
+        );
 
         // Sort enemies by visual name length (longest first) to avoid replacing "Goblin 2" with "Goblin 1 2"
         const enemiesSorted = [...enemies].sort((a, b) => {

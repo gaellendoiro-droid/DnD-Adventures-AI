@@ -319,6 +319,7 @@ export default function Home() {
           initialData={initialGameData}
           onGoToMenu={handleGoToMenu}
           adventureName={adventureName}
+          adventureData={adventureData}
           onSaveGame={(saveData) => {
             // We don't save the gameState anymore as it's static
             const { gameState, ...rest } = saveData;

@@ -26,6 +26,12 @@ export class CombatTurnManager {
         party: any[],
         enemies: any[]
     ): boolean {
+        // 1. Use status field if available (Unified Logic)
+        if (combatant.status) {
+            return combatant.status === 'dead' || combatant.status === 'unconscious';
+        }
+
+        // 2. Fallback to looking up data (Legacy/Safety)
         const isCompanion = party.some(p => p.id === combatant.id);
         const combatantData = isCompanion
             ? party.find(p => p.id === combatant.id)

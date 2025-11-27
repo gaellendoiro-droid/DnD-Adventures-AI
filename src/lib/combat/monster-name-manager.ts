@@ -19,33 +19,33 @@ import { log } from '@/lib/logger';
  */
 export function generateDifferentiatedNames(enemies: any[]): Map<string, string> {
     const nameMap = new Map<string, string>();
-    
+
     // Group enemies by base name (normalize to handle case differences)
     const nameGroups = new Map<string, any[]>();
     for (const enemy of enemies) {
         // Get base name from enemy.name or extract from uniqueId
         const baseName = (enemy.name || enemy.id?.split('-')[0] || 'Unknown').trim();
         const normalizedBaseName = baseName.toLowerCase();
-        
+
         if (!nameGroups.has(normalizedBaseName)) {
             nameGroups.set(normalizedBaseName, []);
         }
         // Store with original base name for display
         nameGroups.get(normalizedBaseName)!.push({ ...enemy, originalBaseName: baseName });
     }
-    
+
     // For each group, assign differentiated names based on original index
     for (const [normalizedBaseName, group] of nameGroups.entries()) {
         // Use the first enemy's original base name for consistency
         const baseName = group[0].originalBaseName;
-        
+
         // Sort by uniqueId to ensure consistent ordering (based on original index)
         const sorted = [...group].sort((a, b) => {
             const aIndex = parseInt(a.uniqueId.split('-').pop() || '1', 10);
             const bIndex = parseInt(b.uniqueId.split('-').pop() || '1', 10);
             return aIndex - bIndex;
         });
-        
+
         // ALWAYS number all enemies, even if there's only one
         // This ensures consistency: if there's 1 goblin, it's "Goblin 1", not just "Goblin"
         // Now the uniqueId number matches the visual number directly (1-indexed)
@@ -54,7 +54,7 @@ export function generateDifferentiatedNames(enemies: any[]): Map<string, string>
             nameMap.set(enemy.uniqueId, `${baseName} ${visualNumber}`);
         });
     }
-    
+
     return nameMap;
 }
 
@@ -90,18 +90,25 @@ export function escapeRegex(str: string): string {
  * @param narration The narration text to process
  * @param enemies The enemies array
  * @param visualNamesMap Map of uniqueId to visual name
+ * @param options Optional configuration
  * @returns The processed narration with ordinal references replaced
  */
-export function replaceOrdinalReferences(narration: string, enemies: any[], visualNamesMap: Map<string, string>): string {
+export function replaceOrdinalReferences(
+    narration: string,
+    enemies: any[],
+    visualNamesMap: Map<string, string>,
+    options: { respectInputOrder?: boolean } = {}
+): string {
     let processed = narration;
-    
+
     log.debug(`Starting ordinal reference replacement`, {
         module: 'MonsterNameManager',
         action: 'replaceOrdinalReferences',
         narrationLength: narration.length,
         enemiesCount: enemies.length,
+        respectInputOrder: options.respectInputOrder,
     });
-    
+
     // Spanish ordinal numbers
     const ordinals = [
         { pattern: /primer[oa]?\s+/gi, index: 0 },
@@ -115,7 +122,7 @@ export function replaceOrdinalReferences(narration: string, enemies: any[], visu
         { pattern: /noveno[oa]?\s+/gi, index: 8 },
         { pattern: /décimo[oa]?\s+/gi, index: 9 },
     ];
-    
+
     // Group enemies by normalized base name to handle multiple enemies of the same type
     const enemiesByNormalizedName = new Map<string, any[]>();
     for (const enemy of enemies) {
@@ -125,7 +132,7 @@ export function replaceOrdinalReferences(narration: string, enemies: any[], visu
         }
         enemiesByNormalizedName.get(normalizedName)!.push(enemy);
     }
-    
+
     log.debug(`Grouped enemies by normalized name`, {
         module: 'MonsterNameManager',
         action: 'replaceOrdinalReferences',
@@ -135,32 +142,36 @@ export function replaceOrdinalReferences(narration: string, enemies: any[], visu
             count: enemies.length,
         })),
     });
-    
+
     // For each group of enemies with the same normalized name
     for (const [normalizedName, sameNameEnemies] of enemiesByNormalizedName.entries()) {
         // Only process if there are multiple enemies of this type (ordinals only make sense for multiples)
         if (sameNameEnemies.length <= 1) continue;
-        
-        // Sort by uniqueId to ensure consistent ordering
-        const sortedEnemies = [...sameNameEnemies].sort((a, b) => {
-            const aIndex = parseInt(a.uniqueId.split('-').pop() || '1', 10);
-            const bIndex = parseInt(b.uniqueId.split('-').pop() || '1', 10);
-            return aIndex - bIndex;
-        });
-        
+
+        let sortedEnemies = [...sameNameEnemies];
+
+        // Sort by uniqueId unless respectInputOrder is true
+        if (!options.respectInputOrder) {
+            sortedEnemies.sort((a, b) => {
+                const aIndex = parseInt(a.uniqueId.split('-').pop() || '1', 10);
+                const bIndex = parseInt(b.uniqueId.split('-').pop() || '1', 10);
+                return aIndex - bIndex;
+            });
+        }
+
         // Get the original name (first enemy's name) for pattern matching
         // We'll match against both the original name and normalized name
         const originalName = sortedEnemies[0].name;
         const escapedOriginalName = escapeRegex(originalName);
         const escapedNormalizedName = escapeRegex(normalizedName);
-        
+
         // Check each ordinal pattern
         for (const ordinal of ordinals) {
             if (ordinal.index >= sortedEnemies.length) continue; // Not enough enemies for this ordinal
-            
+
             const targetEnemy = sortedEnemies[ordinal.index];
             const targetVisualName = visualNamesMap.get(targetEnemy.uniqueId) || targetEnemy.name;
-            
+
             // Create patterns that match:
             // 1. "primer [nombre]" (with or without article)
             // 2. "el/la/los/las primer [nombre]"
@@ -175,14 +186,14 @@ export function replaceOrdinalReferences(narration: string, enemies: any[], visu
                 // Pattern 4: "el/la/los/las primer [nombre]" (with article, normalized name)
                 new RegExp(`\\b(el|la|los|las)\\s+(${ordinal.pattern.source})(${escapedNormalizedName})\\b`, 'gi'),
             ];
-            
+
             for (const pattern of patterns) {
                 // Find all matches first
                 const matches = processed.match(pattern);
                 if (matches) {
                     // Reset regex lastIndex
                     pattern.lastIndex = 0;
-                    
+
                     // Replace the ordinal + name with the visual name
                     processed = processed.replace(pattern, (match, ...groups) => {
                         // If it's "el/la/los/las primer [nombre]", keep the article
@@ -191,7 +202,7 @@ export function replaceOrdinalReferences(narration: string, enemies: any[], visu
                         }
                         return targetVisualName;
                     });
-                    
+
                     log.debug(`Replaced ordinal reference for ${originalName}: "${matches[0]}" -> "${targetVisualName}"`, {
                         module: 'MonsterNameManager',
                         action: 'replaceOrdinalReferences',
@@ -202,12 +213,12 @@ export function replaceOrdinalReferences(narration: string, enemies: any[], visu
                 }
             }
         }
-        
+
         // Also replace "más cercano" / "más próximo" / "más próximo" patterns
         // These should default to the first enemy (index 0)
         const firstEnemy = sortedEnemies[0];
         const firstVisualName = visualNamesMap.get(firstEnemy.uniqueId) || firstEnemy.name;
-        
+
         const proximityPatterns = [
             // "el/la [nombre] más cercano/a"
             new RegExp(`\\b(el|la|los|las)\\s+(${escapedOriginalName})\\s+más\\s+cercano[oa]?\\b`, 'gi'),
@@ -222,7 +233,7 @@ export function replaceOrdinalReferences(narration: string, enemies: any[], visu
             new RegExp(`\\b(${escapedOriginalName})\\s+más\\s+próximo[oa]?\\b`, 'gi'),
             new RegExp(`\\b(${escapedNormalizedName})\\s+más\\s+próximo[oa]?\\b`, 'gi'),
         ];
-        
+
         for (const pattern of proximityPatterns) {
             const matches = processed.match(pattern);
             if (matches) {
@@ -234,7 +245,7 @@ export function replaceOrdinalReferences(narration: string, enemies: any[], visu
                     }
                     return firstVisualName;
                 });
-                
+
                 log.debug(`Replaced proximity reference for ${originalName}: "${matches[0]}" -> "${firstVisualName}"`, {
                     module: 'MonsterNameManager',
                     action: 'replaceOrdinalReferences',
@@ -244,7 +255,7 @@ export function replaceOrdinalReferences(narration: string, enemies: any[], visu
             }
         }
     }
-    
+
     return processed;
 }
 
@@ -263,14 +274,14 @@ export function getVisualName(combatantId: string, initiativeOrder: Combatant[],
     if (combatant) {
         return combatant.characterName;
     }
-    
+
     // Fallback: try to find in enemies and generate name
     const enemy = enemies.find(e => e.uniqueId === combatantId || e.id === combatantId);
     if (enemy) {
         const differentiatedNames = generateDifferentiatedNames(enemies);
         return differentiatedNames.get(enemy.uniqueId) || enemy.name || combatantId;
     }
-    
+
     return combatantId;
 }
 

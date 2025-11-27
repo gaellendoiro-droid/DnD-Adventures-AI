@@ -52,7 +52,7 @@ export function PartyPanel({
                   )}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <Progress value={(character.hp.current / character.hp.max) * 100} className="h-1.5" />
+                  <Progress value={(character.hp.current / character.hp.max) * 100} className="h-1.5 bg-black/20" />
                   <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
                     {character.hp.current}/{character.hp.max}
                   </span>

@@ -71,6 +71,9 @@ export const GameCoordinatorOutputSchema = z.object({
   error: z.string().optional(),
   turnIndex: z.number().optional(), // Added turnIndex to the output
   hasMoreAITurns: z.boolean().optional(), // Step-by-step combat: indicates if more AI turns are pending
+  lastProcessedTurnWasAI: z.boolean().optional(), // true if the last processed turn was AI/Enemy
+  lastProcessedTurnIndex: z.number().optional(),  // index of the turn that was just processed
+  playerActionCompleted: z.boolean().optional(),  // true if the player has completed their action this turn
 });
 export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
 

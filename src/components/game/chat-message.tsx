@@ -13,6 +13,7 @@ import { sanitizeHtml } from "@/lib/sanitize-html";
 
 interface ChatMessageProps {
   message: GameMessage;
+  volume?: number;
 }
 
 const senderInfo = {
@@ -48,7 +49,7 @@ const senderInfo = {
   }
 };
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message, volume = 1.0 }: ChatMessageProps) {
   const { sender, senderName, content, timestamp, characterColor, originalContent, onRetry } = message;
   const info = senderInfo[sender];
   const Icon = info.icon;
@@ -58,6 +59,12 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
 
   const handleAudioToggle = async () => {
     const textToSpeak = originalContent || (typeof content === 'string' ? content.replace(/<[^>]*>?/gm, '') : '');
@@ -92,19 +99,19 @@ export function ChatMessage({ message }: ChatMessageProps) {
       setIsGeneratingAudio(false);
     }
   };
-  
+
   React.useEffect(() => {
     const audio = audioRef.current;
-    
+
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
-    
+
     if (audio) {
       audio.addEventListener('play', handlePlay);
       audio.addEventListener('pause', handlePause);
       audio.addEventListener('ended', handlePause);
     }
-    
+
     return () => {
       if (audio) {
         audio.removeEventListener('play', handlePlay);
@@ -126,7 +133,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   if (sender === "System" && content === "¡Combate Finalizado!") {
     renderedContent = <div className="font-bold uppercase text-green-500 text-lg">{content as string}</div>;
   }
-   if (sender === "System" && (content as string).startsWith("¡Comienza el Combate!")) {
+  if (sender === "System" && (content as string).startsWith("¡Comienza el Combate!")) {
     renderedContent = <div className="font-bold uppercase text-destructive text-lg">{content as string}</div>;
   }
 
@@ -141,17 +148,18 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const isPlayer = sender === "Player";
   const displayName = senderName || info.name;
 
+  // Apply character color for both Character and Player messages
   const bubbleStyle =
-    sender === "Character" && characterColor
+    (sender === "Character" || sender === "Player") && characterColor
       ? { backgroundColor: characterColor, color: 'white' }
       : {};
 
   let bubbleClassName = info.bubbleClassName;
-   if(sender === "Character" && bubbleStyle.backgroundColor){
-       bubbleClassName = "text-primary-foreground rounded-b-none"
-   } else if (sender === "Character") {
-      bubbleClassName = "bg-secondary rounded-b-none";
-   }
+  if ((sender === "Character" || sender === "Player") && bubbleStyle.backgroundColor) {
+    bubbleClassName = "text-primary-foreground rounded-b-none"
+  } else if (sender === "Character") {
+    bubbleClassName = "bg-secondary rounded-b-none";
+  }
 
 
   return (
@@ -164,7 +172,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
           {displayName} @ {timestamp}
         </span>
         <div className="flex items-end gap-2">
-           <div
+          <div
             className={cn(
               "p-3 rounded-lg shadow-sm w-fit prose prose-sm dark:prose-invert max-w-full",
               bubbleClassName,
@@ -175,36 +183,36 @@ export function ChatMessage({ message }: ChatMessageProps) {
             {sender === 'DM' ? (
               <div className="leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeHtml(content as string) }} />
             ) : React.isValidElement(renderedContent) ? (
-                renderedContent
+              renderedContent
             ) : (
               <p className="leading-relaxed">{content as string}</p>
             )}
-             {sender === 'Error' && onRetry && (
-                <div className="mt-3 text-right">
-                    <Button variant="destructive" size="sm" onClick={onRetry}>
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Reintentar
-                    </Button>
-                </div>
+            {sender === 'Error' && onRetry && (
+              <div className="mt-3 text-right">
+                <Button variant="destructive" size="sm" onClick={onRetry}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Reintentar
+                </Button>
+              </div>
             )}
           </div>
           {sender === "DM" && (
-             <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleAudioToggle}
-                disabled={isGeneratingAudio}
-                className="flex-shrink-0"
-              >
-                {isGeneratingAudio ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : isPlaying ? (
-                  <Square className="h-5 w-5" />
-                ) : (
-                  <Play className="h-5 w-5" />
-                )}
-                <span className="sr-only">{isPlaying ? 'Detener narración' : 'Reproducir narración'}</span>
-              </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleAudioToggle}
+              disabled={isGeneratingAudio}
+              className="flex-shrink-0"
+            >
+              {isGeneratingAudio ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : isPlaying ? (
+                <Square className="h-5 w-5" />
+              ) : (
+                <Play className="h-5 w-5" />
+              )}
+              <span className="sr-only">{isPlaying ? 'Detener narración' : 'Reproducir narración'}</span>
+            </Button>
           )}
         </div>
       </div>

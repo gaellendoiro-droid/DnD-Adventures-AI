@@ -2,6 +2,7 @@
   "adventureId": "prueba-combate-goblins",
   "title": "Prueba de Combate - Goblins",
   "summary": "Una aventura de prueba para testear el sistema de combate por turnos. Los aventureros aparecen directamente en una ubicación con dos goblins y un orcohostiles.",
+  "introductoryNarration": "<h3>¡Bienvenidos a la Prueba de Combate!</h3><p>Os encontráis de repente en un <strong>claro del bosque</strong>, rodeados por la espesura de árboles altos. La luz del sol se filtra entre las hojas, creando sombras danzantes en el suelo cubierto de musgo. El aire huele a tierra húmeda y vegetación fresca, pero algo más se cierne en el ambiente: el olor a peligro.</p><p>Antes de que podáis orientaros completamente, dos pequeñas figuras verdes emergen de entre los arbustos con ojos brillantes y sonrisas maliciosas. <strong>¡Goblins!</strong> Blanden cimitarras oxidadas y sus risas agudas resuenan en el claro. Detrás de ellos, una figura más grande y amenazante se alza: un <strong>orco</strong> brutal de piel verdosa, con facciones porcinas y colmillos prominentes, empuñando un hacha a dos manos con intención clara de combate.</p><p>No hay tiempo para preguntas ni negociaciones. El combate es inminente. ¿Estáis preparados para la batalla?</p>",
   "table_of_contents": {
     "locations": [
       {

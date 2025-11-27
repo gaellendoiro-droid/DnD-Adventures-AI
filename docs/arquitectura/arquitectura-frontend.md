@@ -138,6 +138,7 @@ Estos componentes gestionan la visualización y la interacción del juego:
 - **`ChatMessage.tsx`:** 
   - Renderiza un mensaje individual del chat
   - Diferencia estilos según el remitente (DM, Jugador, Personaje, Error)
+  - Aplica el color del personaje a los mensajes (tanto del jugador como de la IA) según el color definido en el panel de grupo
   - Soporta contenido HTML para formato rico
 
 ### 4. Componentes de UI Base (en `components/ui/`)

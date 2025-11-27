@@ -458,6 +458,18 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 ### 20. Música y Sonido Dinámicos
 *   **Problema Actual:** La experiencia es puramente textual/visual.
 *   **Mejora Propuesta:** Integrar un sistema de audio que reproduzca música de fondo y efectos de sonido (ambientales, combate, éxito/fallo) según el contexto narrativo y la ubicación.
+*   **Estado:** ✅ COMPLETADO (2025-11-27)
+*   **Implementación:**
+    *   Sistema de audio multicanal (Música, Ambiente, SFX, Narrador).
+    *   Control de volumen independiente y mezclador en la UI.
+    *   Jerarquía de búsqueda de audio inteligente de 5 niveles:
+        1.  **Lugar Exacto:** ID específico (ej: `bazar-escudo-de-leon`)
+        2.  **Tipo Granular:** Tipo específico extraído del ID (ej: `bazar`)
+        3.  **Región:** Región inferida por ID o metadatos (ej: `phandalin`)
+        4.  **Tipo General:** Categoría de ubicación (ej: `city`)
+        5.  **General:** Fallback global por modo de juego (ej: `exploration_general`)
+    *   Transiciones suaves (crossfading) de 4 segundos entre pistas.
+    *   Detección automática de región basada en metadatos de la aventura.
 *   **Impacto:** Inmersión total.
 
 ---

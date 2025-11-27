@@ -1954,3 +1954,78 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA â†’ PA
 - **Impacto:** Medio - Mejora la 'inteligencia' del sistema para entender referencias naturales del jugador basadas en eventos recientes.
 - **Estado:**  **RESUELTO** - Implementación completada y verificada (2025-11-27)
 
+
+### Issue #28: VisualizaciÃ³n de barra de vida en panel Grupo  ADVERTENCIA
+
+- **Fecha de creaciÃ³n:** 2025-11-14
+- **UbicaciÃ³n:** src/components/game/party-panel.tsx
+- **Severidad:**  **MEDIA** (bug visual)
+- **DescripciÃ³n:** En el panel Grupo, cuando un personaje estÃ¡ seleccionado, la visualizaciÃ³n de la barra de vida no se muestra correctamente. El trozo de la barra que estÃ¡ vacÃ­o (HP perdido) no se ve bien.
+- **Problema:**
+  - El color de fondo de la barra de progreso (bg-secondary) coincidÃ­a con el color de fondo de la tarjeta seleccionada (bg-secondary), haciendo invisible la parte vacÃ­a de la barra.
+- **SoluciÃ³n implementada:**
+  - Se ha aÃ±adido la clase bg-black/20 al componente Progress para oscurecer el track de la barra.
+  - Esto asegura que la barra sea visible tanto cuando el personaje estÃ¡ seleccionado (sobre fondo bg-secondary) como cuando no lo estÃ¡.
+- **Archivos modificados:**
+  - src/components/game/party-panel.tsx
+- **Estado:**  **RESUELTO** (2025-11-27)
+
+
+### Issue #38: Auto-redirección de ataque a enemigo diferente cuando target está muerto  MEJORA / DECISIÓN DE DISEÑO
+
+- **Fecha de creación:** 2025-11-14
+- **Fecha de resolución:** 2025-11-27
+- **Ubicación:** src/lib/combat/turn-processor.ts, src/lib/combat/combat-session.ts, src/lib/combat/turn-manager.ts, src/components/game/initiative-tracker.tsx, src/components/game/dice-roll-result.tsx
+- **Severidad:**  MEDIA
+- **Descripción:** Se implementó la **Opción C**: rechazar la acción y pedir una nueva. Ahora, si el jugador intenta atacar a un objetivo muerto, el sistema devuelve un error TARGET_DEAD y el DM informa: '{Target} ya está muerto. ¿Qué quieres hacer?'.
+- **Solución Implementada:**
+  1.  **Validación en TurnProcessor:** Se comprueba si el objetivo está muerto antes de procesar el ataque. Si lo está, se devuelve success: false y error TARGET_DEAD.
+  2.  **Manejo de Error en CombatSession:** Se añadió TARGET_DEAD a la lista de errores que resetean playerActionCompleted a false, permitiendo al jugador reintentar su turno inmediatamente.
+  3.  **Sistema de Estados de Personaje:** Se implementó un sistema unificado de estados (active, dead, unconscious) en Combatant.
+      - CombatSession calcula el estado basado en HP.
+      - CombatTurnManager usa este estado para saltar turnos de muertos/inconscientes.
+      - InitiativeTracker muestra iconos (Calavera/Actividad) según el estado.
+      - DiceRollResult usa los mismos iconos para mensajes de muerte/inconsciencia.
+- **Archivos afectados:**
+  - src/lib/combat/turn-processor.ts
+  - src/lib/combat/combat-session.ts
+  - src/lib/combat/turn-manager.ts
+  - src/lib/types.ts
+  - src/components/game/initiative-tracker.tsx
+  - src/components/game/dice-roll-result.tsx
+- **Estado:**  **RESUELTO**
+
+
+### Issue #16: Gestión de nombres de múltiples monstruos en módulo separado  MEJORA
+
+- **Fecha de creación:** 2025-11-12
+- **Fecha de resolución:** 2025-11-27
+- **Ubicación:** src/lib/combat/monster-name-manager.ts
+- **Severidad:** Media
+- **Descripción:** Se ha extraído la lógica de gestión de nombres de monstruos a un módulo dedicado.
+- **Solución Implementada:**
+  - Creado src/lib/combat/monster-name-manager.ts con funciones:
+    - generateDifferentiatedNames: Genera nombres únicos (Goblin 1, Goblin 2).
+    - normalizeNameForMatching: Normaliza nombres para búsquedas.
+    - replaceOrdinalReferences: Reemplaza referencias ordinales en narración.
+  - Integrado en InitiativeGenerator y NarrationProcessor.
+- **Archivos afectados:**
+  - src/lib/combat/monster-name-manager.ts (Nuevo)
+  - src/lib/combat/initialization/initiative-generator.ts
+  - src/lib/combat/initialization/narration-processor.ts
+- **Estado:**  **RESUELTO**
+
+
+### Issue #32: Limpieza de paneles de combate  MEJORA
+
+- **Fecha de creación:** 2025-11-14
+- **Fecha de resolución:** 2025-11-27
+- **Ubicación:** src/components/game/game-view.tsx
+- **Severidad:** Baja
+- **Descripción:** Se ha definido el comportamiento deseado para los paneles al finalizar el combate.
+- **Solución Implementada:**
+  - El panel de iniciativa se limpia automáticamente para indicar claramente el fin del combate.
+  - El panel de tiradas se mantiene visible para permitir al jugador revisar el historial de resultados.
+  - Se considera este comportamiento como el diseño correcto para equilibrar claridad de estado y persistencia de información.
+- **Estado:**  **RESUELTO**
+

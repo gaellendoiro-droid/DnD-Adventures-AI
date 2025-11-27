@@ -584,6 +584,33 @@ export class CombatSession {
       enemiesByLocation[this.locationId] = this.enemies;
     }
 
+    // Calculate status for each combatant
+    const initiativeOrderWithStatus = this.initiativeOrder.map(combatant => {
+      let status: 'active' | 'unconscious' | 'dead' = 'active';
+
+      // Find combatant data
+      const isCompanion = this.party.some(p => p.id === combatant.id);
+      const combatantData = isCompanion
+        ? this.party.find(p => p.id === combatant.id)
+        : this.enemies.find(e => (e as any).uniqueId === combatant.id || e.id === combatant.id);
+
+      if (combatantData && combatantData.hp) {
+        if (combatantData.hp.current <= 0) {
+          if (isCompanion) {
+            status = combatantData.isDead ? 'dead' : 'unconscious';
+          } else {
+            // Enemies are generally dead at 0 HP unless specified otherwise
+            status = 'dead';
+          }
+        }
+      }
+
+      return {
+        ...combatant,
+        status
+      };
+    });
+
     return {
       messages: this.messages,
       diceRolls: this.diceRolls,
@@ -592,7 +619,7 @@ export class CombatSession {
       updatedEnemiesByLocation: enemiesByLocation, // New: enemies by location
       nextLocationId: this.nextLocationId,
       inCombat: this.inCombat,
-      initiativeOrder: this.initiativeOrder,
+      initiativeOrder: initiativeOrderWithStatus,
       enemies: this.enemies, // Keep for backward compatibility
       enemiesByLocation: enemiesByLocation, // New: enemies by location
       turnIndex: this.turnIndex,
@@ -671,13 +698,14 @@ export class CombatSession {
       this.addDiceRolls(turnResult.diceRolls);
 
       // For certain errors, don't advance turn (allow player to retry)
-      if (turnResult.error === 'TARGET_AMBIGUOUS' || 
-          turnResult.error === 'TARGET_REQUIRED' || 
-          turnResult.error === 'TARGET_NOT_FOUND' ||
-          turnResult.error === 'WEAPON_NOT_IN_INVENTORY' ||
-          turnResult.error === 'SPELL_NOT_KNOWN' ||
-          turnResult.error === 'ITEM_NOT_IN_INVENTORY' ||
-          turnResult.error === 'INVALID_ACTION') {
+      if (turnResult.error === 'TARGET_AMBIGUOUS' ||
+        turnResult.error === 'TARGET_REQUIRED' ||
+        turnResult.error === 'TARGET_NOT_FOUND' ||
+        turnResult.error === 'TARGET_DEAD' || // Issue #38
+        turnResult.error === 'WEAPON_NOT_IN_INVENTORY' ||
+        turnResult.error === 'SPELL_NOT_KNOWN' ||
+        turnResult.error === 'ITEM_NOT_IN_INVENTORY' ||
+        turnResult.error === 'INVALID_ACTION') {
         this.updateState({
           lastProcessedTurnWasAI: combatant.controlledBy === 'AI',
           lastProcessedTurnIndex: this.turnIndex,

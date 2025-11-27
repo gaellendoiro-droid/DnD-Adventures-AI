@@ -1,8 +1,7 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { Character, GameMessage, DiceRoll, InitiativeRoll, Combatant } from "@/lib/types";
+import type { Character, GameMessage, DiceRoll, InitiativeRoll, Combatant, VolumeSettings } from "@/lib/types";
 import { GameLayout } from "@/components/game/game-layout";
 import { LeftPanel } from "@/components/layout/left-panel";
 import { CharacterSheet } from "@/components/game/character-sheet";
@@ -20,6 +19,7 @@ import { ZodError } from "zod";
 import { InitiativeTracker } from "./initiative-tracker";
 import { AppHeader } from "@/components/layout/app-header";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { MusicManager } from "./music-manager";
 
 interface GameViewProps {
   initialData: {
@@ -35,10 +35,31 @@ interface GameViewProps {
   };
   onSaveGame: (saveData: any) => void;
   onGoToMenu: () => void;
-  adventureName?: string;
+  adventureName: string;
+  adventureData: any; // Added adventureData prop
 }
 
-export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName }: GameViewProps) {
+export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, adventureData }: GameViewProps) {
+  const { toast } = useToast();
+
+  // Audio State
+  const [volumeSettings, setVolumeSettings] = useState<VolumeSettings>({
+    master: 0.5,
+    music: 0.5,
+    ambience: 0.5,
+    sfx: 0.5,
+    narrator: 1.0,
+  });
+  const [isMuted, setIsMuted] = useState(false);
+
+  const handleVolumeChange = useCallback((channel: keyof VolumeSettings, value: number) => {
+    setVolumeSettings(prev => ({
+      ...prev,
+      [channel]: value
+    }));
+  }, []);
+
+  // State
   const [party, setParty] = useState<Character[]>(initialData.party);
   const [messages, setMessages] = useState<GameMessage[]>(initialData.messages);
   const [diceRolls, setDiceRolls] = useState<DiceRoll[]>(initialData.diceRolls);
@@ -73,7 +94,7 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName }:
   const messagesRef = useRef<GameMessage[]>(initialData.messages); // Use ref for synchronous access
   const selectedCharacterRef = useRef<Character | null>(initialData.party.find(c => c.controlledBy === 'Player') || null); // Use ref for synchronous access
   const prevStateRef = useRef<string | null>(null);
-  const { toast } = useToast();
+
 
   const isPlayerTurn = !isDMThinking && initiativeOrder[turnIndex]?.controlledBy === 'Player';
 
@@ -164,9 +185,9 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName }:
           console.log(`  ${index + 1}. ${combatant.characterName} (ID: ${combatant.id})`, {
             id: combatant.id,
             name: combatant.characterName,
-            initiative: combatant.initiative,
-            isPlayer: combatant.isPlayer,
-            isEnemy: combatant.isEnemy,
+            initiative: combatant.total,
+            isPlayer: combatant.type === 'player',
+            isEnemy: combatant.type === 'npc',
           });
         });
       } else {
@@ -287,10 +308,20 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName }:
 
     if (!isRetry && !isContinuation) {
       // Use active combatant name in combat, otherwise use selected character
-      const senderName = wasInCombat && initiativeOrderRef.current[turnIndexRef.current]
-        ? initiativeOrderRef.current[turnIndexRef.current].characterName
-        : selectedCharacterRef.current?.name;
-      addMessage({ sender: "Player", senderName, content }, isRetry);
+      let senderName: string | undefined;
+      let characterColor: string | undefined;
+
+      if (wasInCombat && initiativeOrderRef.current[turnIndexRef.current]) {
+        const activeCombatant = initiativeOrderRef.current[turnIndexRef.current];
+        senderName = activeCombatant.characterName;
+        // Find the character in the party to get their color
+        const activeCharacter = partyRef.current.find(c => c.id === activeCombatant.id);
+        characterColor = activeCharacter?.color;
+      } else {
+        senderName = selectedCharacterRef.current?.name;
+        characterColor = selectedCharacterRef.current?.color;
+      }
+      addMessage({ sender: "Player", senderName, content, characterColor }, isRetry);
     } else if (isRetry) {
       setMessages(prev => {
         const filtered = prev.filter(m => m.sender !== 'Error');
@@ -386,20 +417,20 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName }:
           id: m.id || `backend-msg-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 11)}`,
         }));
         addMessages(messagesWithUniqueIds, isRetry);
-        
+
         // Check if there's an inventory/spell/item error message (e.g., "No tienes el arma", "No conoces el hechizo")
         // If so, reset playerActionCompleted to allow player to try again
         const hasInventoryError = messagesWithUniqueIds.some(m => {
           if (m.sender !== 'DM') return false;
           const content = m.content?.toLowerCase() || '';
-          return content.includes('no tienes el arma') || 
-                 content.includes('no tienes el objeto') ||
-                 content.includes('no conoces el hechizo') ||
-                 content.includes('no tienes') ||
-                 content.includes('no conoces') ||
-                 content.includes('acción no válida');
+          return content.includes('no tienes el arma') ||
+            content.includes('no tienes el objeto') ||
+            content.includes('no conoces el hechizo') ||
+            content.includes('no tienes') ||
+            content.includes('no conoces') ||
+            content.includes('acción no válida');
         });
-        
+
         if (hasInventoryError && inCombatRef.current) {
           logClient.uiEvent('GameView', 'Inventory/spell/item error detected, resetting playerActionCompleted', {
             message: messagesWithUniqueIds.find(m => {
@@ -799,6 +830,15 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName }:
 
   return (
     <div className="flex flex-col h-full">
+      {/* Music Manager (Invisible) */}
+      <MusicManager
+        locationId={locationId}
+        inCombat={inCombat}
+        adventureData={adventureData}
+        volumeSettings={volumeSettings}
+        isMuted={isMuted}
+      />
+
       <AppHeader
         showMenuButton={true}
         onGoToMenu={onGoToMenu}
@@ -874,6 +914,10 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName }:
           isPlayerTurn={isPlayerTurn}
           onPassTurn={handlePassTurn}
           onAdvanceAll={handleAdvanceAll}
+          volumeSettings={volumeSettings}
+          isMuted={isMuted}
+          onVolumeChange={handleVolumeChange}
+          onToggleMute={() => setIsMuted(prev => !prev)}
         />
       </GameLayout>
     </div>

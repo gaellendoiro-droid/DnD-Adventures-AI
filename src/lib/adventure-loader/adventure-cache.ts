@@ -168,6 +168,34 @@ export class AdventureCache {
             this.pendingParses.delete(key);
         });
     }
+
+    // --- Active Adventure Persistence ---
+
+    private getActiveAdventureFilePath(): string {
+        return path.join(this.cacheDir, 'active_adventure_data.json');
+    }
+
+    saveActiveAdventure(data: any): void {
+        try {
+            const filePath = this.getActiveAdventureFilePath();
+            fs.writeFileSync(filePath, JSON.stringify(data), 'utf-8');
+        } catch (error) {
+            console.warn('Failed to save active adventure data:', error);
+        }
+    }
+
+    loadActiveAdventure(): any | null {
+        try {
+            const filePath = this.getActiveAdventureFilePath();
+            if (fs.existsSync(filePath)) {
+                const content = fs.readFileSync(filePath, 'utf-8');
+                return JSON.parse(content);
+            }
+        } catch (error) {
+            console.warn('Failed to load active adventure data:', error);
+        }
+        return null;
+    }
 }
 
 export const adventureCache = AdventureCache.getInstance();

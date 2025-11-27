@@ -3,7 +3,7 @@
 Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras identificados durante el desarrollo del proyecto.
 
 **Fecha de inicio:** Durante el saneamiento general de la aplicación (2025-11-10)  
-**Última actualización:** 2025-01-27 (Issue #15 resuelto y movido a corregidos)
+**Última actualización:** 2025-01-27 (Issue #33 eliminado - ya no relevante)
 
 ---
 
@@ -11,7 +11,7 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 
 - **Total de issues:** 82
 - **Issues corregidos:** 69 (84%)
-- **Issues pendientes:** 10 (12%)
+- **Issues pendientes:** 9 (11%)
 
 ### Por Prioridad
 
@@ -27,7 +27,7 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 - 🟡 PA (Prioridad Alta): 0 issues
 - 🟢 PM (Prioridad Media): 5 issues (incluye Issues #16, #22, #28, #38, #65, #80)
 - ⚪ PB (Prioridad Baja): 2 issues (Issues #31, #32)
-- ⚫ PMB (Prioridad Muy Baja): 1 issue (Issue #33)
+- ⚫ PMB (Prioridad Muy Baja): 0 issues
 
 ---
 
@@ -43,7 +43,7 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 
 ## 📁 Estructura de Archivos
 
-- **[pendientes.md](./pendientes.md)** - Issues activos que requieren atención (10 issues)
+- **[pendientes.md](./pendientes.md)** - Issues activos que requieren atención (9 issues)
 - **[corregidos.md](./corregidos.md)** - Issues resueltos y verificados (69 issues) - Histórico
 
 ---
@@ -71,7 +71,7 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 - [Issue #32: Paneles de combate se limpian de forma inconsistente](./pendientes.md#issue-32-paneles-de-combate-se-limpian-de-forma-inconsistente-mejora) *[PENDIENTE - Inconsistencia de UX]*
 
 **⚫ Prioridad Muy Baja (PMB):**
-- [Issue #33: Logs muestran turnIndex cuando inCombat es false](./pendientes.md#issue-33-logs-muestran-turnindex-cuando-incombat-es-false-mejora) *[PENDIENTE - Mejora menor de logging]*
+> No hay issues de prioridad muy baja pendientes actualmente.
 
 ---
 

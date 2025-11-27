@@ -308,6 +308,23 @@ export class TurnProcessor {
 
                 const resolvedTargetId = resolved.uniqueId || targetIdToUse;
 
+                // Validate that target is alive (Issue #38)
+                // We must check this BEFORE calculating rolls to avoid "zombie dodging" narrations
+                const targetEnemy = initialEnemies.find(e => e.uniqueId === resolvedTargetId || e.id === resolvedTargetId);
+                if (targetEnemy && targetEnemy.hp.current <= 0) {
+                    const targetName = getVisualName(resolvedTargetId, initiativeOrder, initialEnemies);
+                    return {
+                        success: false,
+                        messages: [{ sender: 'DM', content: `${targetName} ya está muerto. ¿Qué quieres hacer?` }],
+                        diceRolls: [],
+                        updatedParty: initialParty,
+                        updatedEnemies: initialEnemies,
+                        combatResult: {},
+                        combatEnded: false,
+                        error: 'TARGET_DEAD',
+                    };
+                }
+
                 // Get player character data
                 const playerChar = initialParty.find(p => p.id === combatant.id);
                 if (!playerChar) {
@@ -516,7 +533,7 @@ export class TurnProcessor {
                                 weaponQuery = parts[1].trim().split(/\s+a\s+/)[0].trim();
                             }
                         }
-                        
+
                         log.debug('Extracted weapon query from actionDescription', {
                             module: 'TurnProcessor',
                             actionDescription,

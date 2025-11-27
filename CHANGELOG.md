@@ -14,14 +14,75 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ---
 
 ## [Unreleased]
+### Added
+- **🎵 Sistema de Música y Sonido Dinámico (2025-11-27):**
+  - **Mejora:** Implementación de un sistema de audio inmersivo que adapta la música y el ambiente al contexto del juego.
+  - **Características:**
+    - ✅ **Audio Multicanal:** Control independiente para Música, Ambiente, Efectos (SFX) y Narrador.
+    - ✅ **Jerarquía de Búsqueda Inteligente (5 Niveles):**
+      1. **Lugar Exacto:** ID específico (ej: `bazar-escudo-de-leon`)
+      2. **Tipo Granular:** Tipo específico extraído del ID (ej: `bazar`)
+      3. **Región:** Región inferida por ID o metadatos (ej: `phandalin`)
+      4.  **Tipo General:** Categoría de ubicación (ej: `city`)
+      5. **General:** Fallback global por modo de juego (ej: `exploration_general`)
+    - ✅ **Inferencia de Región:** Detecta automáticamente si una ubicación pertenece a una región mayor (ej: Phandalin) basándose en metadatos.
+    - ✅ **Transiciones Suaves:** Crossfading de 4 segundos para cambios de pista cinematográficos.
+    - ✅ **Gestión de Estado Eficiente:** Uso de `useRef` para evitar re-renderizados innecesarios y logs redundantes.
+  - **Archivos modificados:**
+    - `src/components/game/music-manager.tsx` (Lógica central y jerarquía)
+    - `src/components/game/game-view.tsx` (Gestión de estado global de audio)
+    - `src/components/game/player-input.tsx` (Controles de volumen en UI)
+    - `src/lib/types.ts` (Tipos de configuración de volumen)
+  - **Referencia:** [Roadmap Item #20](../../docs/roadmap.md#roadmap-20-musica)
+
+### Changed
+- **🎨 Colores de Mensajes del Chat por Personaje (2025-01-23):**
+  - **Mejora:** Los mensajes del chat ahora muestran el color del personaje correspondiente, tanto cuando son controlados por el jugador como por la IA.
+  - **Detalles:**
+    - Los mensajes de Galador se muestran en azul (#3b82f6)
+    - Los mensajes de Merryl se muestran en lila (#8b5cf6)
+    - Los mensajes de Elara se muestran en naranja (#f97316)
+    - El color se aplica consistentemente independientemente de si el personaje está controlado por el jugador o por la IA
+    - En combate, se usa el color del combatiente activo; fuera de combate, se usa el color del personaje seleccionado
+  - **Archivos modificados:** `src/components/game/game-view.tsx`, `src/components/game/chat-message.tsx`
+  - **Impacto:** Mejora la experiencia visual y facilita la identificación rápida de qué personaje está hablando
+
+- **🏗️ Refactorización: Gestión de Nombres de Monstruos (Issue #16) (2025-11-27):**
+  - **Mejora:** Centralizada la lógica de generación de nombres únicos y reemplazo en narraciones en un módulo dedicado.
+  - **Detalles:**
+    - Nuevo módulo `monster-name-manager.ts` que maneja `generateDifferentiatedNames` y `replaceOrdinalReferences`.
+    - Elimina duplicación de código y mejora la mantenibilidad.
+  - **Archivos modificados:** `src/lib/combat/monster-name-manager.ts`, `src/lib/combat/initialization/initiative-generator.ts`, `src/lib/combat/initialization/narration-processor.ts`.
+  - **Referencia:** [Issue #16](../../docs/tracking/issues/corregidos.md#issue-16-gestión-de-nombres-de-múltiples-monstruos-en-módulo-separado-🟢-mejora)
 
 ### Fixed
+- **✅ Comportamiento de Paneles Post-Combate (Issue #32) (2025-11-27):**
+  - **Problema:** Inconsistencia percibida en la limpieza de paneles tras el combate.
+  - **Solución:** Se ha estandarizado el comportamiento: el tracker de iniciativa se limpia (fin de combate) y el historial de tiradas se mantiene (revisión de resultados).
+  - **Referencia:** [Issue #32](../../docs/tracking/issues/corregidos.md#issue-32-limpieza-de-paneles-de-combate-🟢-mejora)
+- **✅ Validación de Ataque a Objetivo Muerto (Issue #38) (2025-11-27):**
+  - **Problema:** El sistema permitía atacar a enemigos muertos y luego bloqueaba el input del jugador.
+  - **Solución:**
+    - Implementada validación `TARGET_DEAD` en `TurnProcessor` para rechazar ataques a muertos.
+    - El sistema ahora informa: "{Target} ya está muerto. ¿Qué quieres hacer?" y permite nueva acción.
+    - Implementado sistema de estados visuales (Calavera/Actividad) en `InitiativeTracker` y `DiceRollResult`.
+  - **Archivos modificados:** `src/lib/combat/turn-processor.ts`, `src/lib/combat/combat-session.ts`, `src/components/game/initiative-tracker.tsx`.
+  - **Referencia:** [Issue #38](../../docs/tracking/issues/corregidos.md#issue-38-auto-redirección-de-ataque-a-enemigo-diferente-cuando-target-está-muerto-🟢-mejora--decisión-de-diseño)
+
+
 - **✅ Regresión UI - Botones de avance de turno (Issue #130) (2025-11-26):**
   - **Problema:** Los botones "Avanzar 1 turno" y "Avance automático" desaparecieron tras un refactor de UI, bloqueando el combate.
   - **Causa:** El componente `ChatPanel` no recibía el prop `onAdvanceAll` necesario para renderizar los controles.
   - **Solución:** Implementados handlers `handlePassTurn` y `handleAdvanceAll` en `GameView` y conectados correctamente a `ChatPanel`.
   - **Archivos modificados:** `src/components/game/game-view.tsx`.
   - **Referencia:** [Issue #130](../../docs/tracking/issues/corregidos.md#issue-130-regresión-ui---botones-de-avance-de-turno-no-aparecen-tras-refactor--resuelto)
+
+
+- **✅ Visualización de Barra de Vida en Panel Grupo (Issue #28) (2025-11-27):**
+  - **Problema:** La barra de vida vacía era invisible cuando el personaje estaba seleccionado debido a coincidencia de colores (`bg-secondary`).
+  - **Solución:** Añadida clase `bg-black/20` al track de la barra de progreso para asegurar contraste y visibilidad en todos los estados.
+  - **Archivos modificados:** `src/components/game/party-panel.tsx`.
+  - **Referencia:** [Issue #28](../../docs/tracking/issues/corregidos.md#issue-28-visualización-de-barra-de-vida-en-panel-grupo-🟡-advertencia)
 
 
 ### Changed

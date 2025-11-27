@@ -4,6 +4,7 @@
 import React from 'react';
 import type { DiceRoll } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Skull, Activity } from "lucide-react";
 
 interface DiceRollResultProps {
   roll: DiceRoll;
@@ -223,14 +224,16 @@ export function DiceRollResult({ roll, rollNumber }: DiceRollResultProps) {
               )}
               {/* Show death message if target was killed */}
               {roll.targetKilled && (
-                <p className="text-[10px] font-bold text-red-400 leading-tight mt-0.5">
-                  💀 ¡{roll.roller} ha matado a {roll.targetName}!
+                <p className="text-[10px] font-bold text-red-400 leading-tight mt-0.5 flex items-center gap-1">
+                  <Skull className="h-3 w-3" />
+                  ¡{roll.roller} ha matado a {roll.targetName}!
                 </p>
               )}
               {/* Show unconscious message if target was knocked out */}
               {roll.targetKnockedOut && (
-                <p className="text-[10px] font-bold text-orange-400 leading-tight mt-0.5">
-                  😴 ¡{roll.roller} ha dejado inconsciente a {roll.targetName}!
+                <p className="text-[10px] font-bold text-orange-400 leading-tight mt-0.5 flex items-center gap-1">
+                  <Activity className="h-3 w-3" />
+                  ¡{roll.roller} ha dejado inconsciente a {roll.targetName}!
                 </p>
               )}
             </>
