@@ -670,11 +670,18 @@ export class CombatSession {
       this.addMessages(turnResult.messages);
       this.addDiceRolls(turnResult.diceRolls);
 
-      // For certain errors, don't advance turn
-      if (turnResult.error === 'TARGET_AMBIGUOUS' || turnResult.error === 'TARGET_REQUIRED' || turnResult.error === 'TARGET_NOT_FOUND') {
+      // For certain errors, don't advance turn (allow player to retry)
+      if (turnResult.error === 'TARGET_AMBIGUOUS' || 
+          turnResult.error === 'TARGET_REQUIRED' || 
+          turnResult.error === 'TARGET_NOT_FOUND' ||
+          turnResult.error === 'WEAPON_NOT_IN_INVENTORY' ||
+          turnResult.error === 'SPELL_NOT_KNOWN' ||
+          turnResult.error === 'ITEM_NOT_IN_INVENTORY' ||
+          turnResult.error === 'INVALID_ACTION') {
         this.updateState({
           lastProcessedTurnWasAI: combatant.controlledBy === 'AI',
           lastProcessedTurnIndex: this.turnIndex,
+          playerActionCompleted: false, // Reset to allow player to try again
         });
         return;
       }

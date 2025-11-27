@@ -492,9 +492,79 @@ describe('TurnProcessor', () => {
         const result = await TurnProcessor.processTurn(input);
 
         expect(result.success).toBe(false);
-        expect(result.error).toBe('RESOLUTION_FAILED');
+        expect(result.error).toBe('WEAPON_NOT_IN_INVENTORY');
         expect(result.messages[0].content).toContain('No tienes el arma');
         expect(result.messages[0].content).toContain('lanza');
+      });
+
+      it('should return error when spell is not known', async () => {
+        const partyWithSpells: Character[] = [
+          {
+            ...baseParty[0],
+            spells: [
+              { id: 'spell-1', name: 'Bola de fuego', level: 3, description: 'Explosión de fuego' },
+            ],
+          },
+        ];
+
+        const input: TurnProcessorInput = {
+          combatant: baseCombatant,
+          interpretedAction: {
+            actionType: 'attack',
+            targetId: 'goblin-1',
+          },
+          playerAction: 'Lanzo rayo al goblin', // Rayo not in spells
+          party: partyWithSpells,
+          enemies: baseEnemies,
+          initiativeOrder: baseInitiativeOrder,
+          dependencies: {
+            narrationExpert: mockNarrationExpert,
+            diceRollerTool: mockDiceRoller,
+            updateRollNotationWithModifiers: mockUpdateRollNotation,
+          },
+        };
+
+        const result = await TurnProcessor.processTurn(input);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('SPELL_NOT_KNOWN');
+        expect(result.messages[0].content).toContain('No conoces el hechizo');
+        expect(result.messages[0].content).toContain('rayo');
+      });
+
+      it('should return error when item is not in inventory', async () => {
+        const partyWithItems: Character[] = [
+          {
+            ...baseParty[0],
+            inventory: [
+              { id: 'item-1', name: 'Poción de curación', quantity: 2, description: 'Restaura HP' },
+            ],
+          },
+        ];
+
+        const input: TurnProcessorInput = {
+          combatant: baseCombatant,
+          interpretedAction: {
+            actionType: 'attack',
+            targetId: 'goblin-1',
+          },
+          playerAction: 'Uso mi pergamino de fuego', // Pergamino not in inventory
+          party: partyWithItems,
+          enemies: baseEnemies,
+          initiativeOrder: baseInitiativeOrder,
+          dependencies: {
+            narrationExpert: mockNarrationExpert,
+            diceRollerTool: mockDiceRoller,
+            updateRollNotationWithModifiers: mockUpdateRollNotation,
+          },
+        };
+
+        const result = await TurnProcessor.processTurn(input);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('ITEM_NOT_IN_INVENTORY');
+        expect(result.messages[0].content).toContain('No tienes el objeto');
+        expect(result.messages[0].content).toContain('pergamino');
       });
     });
   });

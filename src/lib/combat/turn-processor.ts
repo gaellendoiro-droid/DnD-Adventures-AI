@@ -126,6 +126,75 @@ export function extractWeaponName(action: string): string | null {
     return null; // No specific weapon mentioned
 }
 
+/**
+ * Extracts spell name from player action.
+ * Returns null if no specific spell is mentioned.
+ * 
+ * @param action - Player action string (e.g., "Lanzo bola de fuego al goblin")
+ * @returns Spell name if found, null otherwise
+ * 
+ * @example
+ * extractSpellName("Lanzo bola de fuego") // "bola de fuego"
+ * extractSpellName("Uso curación") // "curación"
+ */
+export function extractSpellName(action: string): string | null {
+    if (!action) return null;
+
+    const actionLower = action.toLowerCase();
+
+    // Patterns to match: "lanzo [spell]", "uso [spell]", "conjuro [spell]", "hechizo [spell]"
+    const patterns = [
+        /lanzo (?:el |la |un |una )?([a-záéíóúñü\s]+?)(?:\s+a\s+|\s+contra\s+|$)/i,
+        /uso (?:el |la |un |una )?([a-záéíóúñü\s]+?)(?:\s+a\s+|\s+contra\s+|$)/i,
+        /conjuro (?:el |la |un |una )?([a-záéíóúñü\s]+?)(?:\s+a\s+|\s+contra\s+|$)/i,
+        /hechizo (?:el |la |un |una )?([a-záéíóúñü\s]+?)(?:\s+a\s+|\s+contra\s+|$)/i,
+        /lanzar (?:el |la |un |una )?([a-záéíóúñü\s]+?)(?:\s+a\s+|\s+contra\s+|$)/i,
+    ];
+
+    for (const pattern of patterns) {
+        const match = actionLower.match(pattern);
+        if (match && match[1]) {
+            return match[1].trim(); // e.g., "bola de fuego", "curación"
+        }
+    }
+
+    return null; // No specific spell mentioned
+}
+
+/**
+ * Extracts item name from player action.
+ * Returns null if no specific item is mentioned.
+ * 
+ * @param action - Player action string (e.g., "Uso mi poción de curación")
+ * @returns Item name if found, null otherwise
+ * 
+ * @example
+ * extractItemName("Uso mi poción de curación") // "poción de curación"
+ * extractItemName("Consumo un pergamino") // "pergamino"
+ */
+export function extractItemName(action: string): string | null {
+    if (!action) return null;
+
+    const actionLower = action.toLowerCase();
+
+    // Patterns to match: "uso [item]", "consumo [item]", "utilizo [item]", "con [item]"
+    const patterns = [
+        /uso (?:mi |el |la |un |una )?([a-záéíóúñü\s]+?)(?:\s+a\s+|\s+contra\s+|$)/i,
+        /consumo (?:mi |el |la |un |una )?([a-záéíóúñü\s]+?)(?:\s+a\s+|\s+contra\s+|$)/i,
+        /utilizo (?:mi |el |la |un |una )?([a-záéíóúñü\s]+?)(?:\s+a\s+|\s+contra\s+|$)/i,
+        /con (?:mi |el |la |un |una )?([a-záéíóúñü\s]+?)(?:\s+a\s+|\s+contra\s+|$)/i,
+    ];
+
+    for (const pattern of patterns) {
+        const match = actionLower.match(pattern);
+        if (match && match[1]) {
+            return match[1].trim(); // e.g., "poción de curación", "pergamino"
+        }
+    }
+
+    return null; // No specific item mentioned
+}
+
 export class TurnProcessor {
     /**
      * Processes a complete combat turn.
@@ -254,6 +323,41 @@ export class TurnProcessor {
                     };
                 }
 
+                // Validate spells and items if mentioned in the action
+                const spellQuery = extractSpellName(playerAction);
+                if (spellQuery) {
+                    const spellValidation = CombatActionResolver.validateSpell(playerChar, spellQuery);
+                    if (!spellValidation.success) {
+                        return {
+                            success: false,
+                            messages: [{ sender: 'DM', content: spellValidation.errorMessage || 'No conoces ese hechizo.' }],
+                            diceRolls: [],
+                            updatedParty: initialParty,
+                            updatedEnemies: initialEnemies,
+                            combatResult: {},
+                            combatEnded: false,
+                            error: spellValidation.error || 'SPELL_NOT_KNOWN',
+                        };
+                    }
+                }
+
+                const itemQuery = extractItemName(playerAction);
+                if (itemQuery) {
+                    const itemValidation = CombatActionResolver.validateItem(playerChar, itemQuery);
+                    if (!itemValidation.success) {
+                        return {
+                            success: false,
+                            messages: [{ sender: 'DM', content: itemValidation.errorMessage || 'No tienes ese objeto.' }],
+                            diceRolls: [],
+                            updatedParty: initialParty,
+                            updatedEnemies: initialEnemies,
+                            combatResult: {},
+                            combatEnded: false,
+                            error: itemValidation.error || 'ITEM_NOT_IN_INVENTORY',
+                        };
+                    }
+                }
+
                 // Use CombatActionResolver to calculate rolls
                 // This ensures consistency with the new robust system
                 const targetName = getVisualName(resolvedTargetId, initiativeOrder, initialEnemies);
@@ -265,13 +369,13 @@ export class TurnProcessor {
                 if (!resolution.success) {
                     return {
                         success: false,
-                        messages: [{ sender: 'DM', content: resolution.error || 'No se pudo realizar el ataque.' }],
+                        messages: [{ sender: 'DM', content: resolution.errorMessage || resolution.error || 'No se pudo realizar el ataque.' }],
                         diceRolls: [],
                         updatedParty: initialParty,
                         updatedEnemies: initialEnemies,
                         combatResult: {},
                         combatEnded: false,
-                        error: 'RESOLUTION_FAILED',
+                        error: resolution.error || 'RESOLUTION_FAILED', // Preserve the error code from resolver
                     };
                 }
 

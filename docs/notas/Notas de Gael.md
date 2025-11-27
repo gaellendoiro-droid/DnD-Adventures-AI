@@ -165,6 +165,8 @@ Al clasificar un item de esta sección, debe moverse a su sección correspondien
 
 5. REVISION: revisar el proceso de carga de una aventura JSON. Parece que con una muy sencilla tarda demasiado. (PMA)
 
+6. ISSUE: por algún motivo el DM se refiere a Merryl en femenino cuando en su ficha dice que es varón. (PA)
+
 
 
 

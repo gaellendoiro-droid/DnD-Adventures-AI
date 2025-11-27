@@ -2,52 +2,47 @@
 
 Este documento describe posibles mejoras y nuevas funcionalidades que podrían llevar la experiencia de D&D Adventures AI al siguiente nivel. La arquitectura actual es modular y robusta, sentando una base excelente para las siguientes evoluciones.
 
-**Nota:** Para ver las mejoras ya implementadas, consulta el [CHANGELOG.md](../CHANGELOG.md).
+**Nota:** Para ver las mejoras ya implementadas, consulta el [CHANGELOG.md](../CHANGELOG.md).  
+**Histórico de roadmap:** Las iniciativas finalizadas viven ahora en [`docs/roadmap-historico.md`](./roadmap-historico.md).
 
-**Última actualización:** 2025-01-23  
-**Estado:** Actualizado - Verificado estado de todas las entradas. Issue #117 (Simplificación de Arquitectura de Combate) marcado como ✅ COMPLETADO. Narración Unificada marcada como ✅ PARCIALMENTE IMPLEMENTADA. Añadida entrada #12: Sistema de Comprobación de Competencia en Tiradas. Añadida entrada #7: Integración de Google File Search (RAG Automatizado) con Prioridad Alta.
+**Última actualización:** 2025-11-27  
+**Estado:** Enfocado solo en iniciativas activas. Los elementos completados se movieron al histórico para simplificar la planificación.
 
 ---
 
 ## 📑 Índice
 
 ### 🔴 Prioridad Muy Alta
-- [0. Estandarización de Niveles de Logging](#0-estandarización-de-niveles-de-logging-completado) ✅ COMPLETADO
-- [1. Refactorización y Simplificación Arquitectónica](#1-refactorización-y-simplificación-arquitectónica-completado) ✅ COMPLETADO
-- [1. Simplificación de Arquitectura de Combate](#1-simplificación-de-arquitectura-de-combate-completado) ✅ COMPLETADO
-- [1. Revisión y Reorganización de la Interfaz de Usuario](#1-revisión-y-reorganización-de-la-interfaz-de-usuario)
+- (Sin iniciativas activas en este momento. Ver [histórico](./roadmap-historico.md).)
 
 ### 🔴 Prioridad Alta
-- [2. Sistema de Progresión y Gestión](#2-sistema-de-progresión-y-gestión)
-- [3. Sistema de Inicio de Combate Dinámico](#3-sistema-de-inicio-de-combate-dinámico)
-- [4. Mejora de Estructura de Fichas de Personajes en la UI](#4-mejora-de-estructura-de-fichas-de-personajes-en-la-ui)
-- [5. Sistema de Modos de Juego Diferenciados](#5-sistema-de-modos-de-juego-diferenciados)
-- [6. Revisiones de Sistema de Combate](#6-revisiones-de-sistema-de-combate)
-- [7. Integración de Google File Search (RAG Automatizado)](#7-integración-de-google-file-search-rag-automatizado)
+- [2. Sistema de Progresión y Gestión](#roadmap-2)
+- [3. Sistema de Inicio de Combate Dinámico](#roadmap-3)
+- [4. Mejora de Estructura de Fichas de Personajes en la UI](#roadmap-4)
+- [5. Sistema de Modos de Juego Diferenciados](#roadmap-5)
+- [6. Revisiones de Sistema de Combate](#roadmap-6)
+- [7. Integración de Google File Search (RAG Automatizado)](#roadmap-7)
 
 ### 🟡 Prioridad Media
-- [8. Ajuste Dinámico de Longitud de Narración](#8-ajuste-dinámico-de-longitud-de-narración-completado) ✅ COMPLETADO
-- [9. Sistema de Tablas Aleatorias en JSON](#9-sistema-de-tablas-aleatorias-en-json-completado) ✅ COMPLETADO
-- [10. Sistema de Mundo Persistente](#10-sistema-de-mundo-persistente)
-- [11. Atención Multijugador/NPC en Diálogos](#11-atención-multijugadornpc-en-diálogos)
-- [12. Compendio de D&D Local - Base de Datos Local](#12-compendio-de-dd-local---base-de-datos-local)
-- [13. IA Conversacional Avanzada](#13-ia-conversacional-avanzada)
-- [14. Calidad y Profundidad de la IA](#14-calidad-y-profundidad-de-la-ia)
-- [15. Separación de IDs de Fichas de Personajes](#15-separación-de-ids-de-fichas-de-personajes)
-- [16. Sistema de Comprobación de Competencia en Tiradas](#16-sistema-de-comprobación-de-competencia-en-tiradas)
-- [17. Mejoras de Mecánicas de D&D 5e](#17-mejoras-de-mecánicas-de-dd-5e)
-  - [17.1. Información de Dados de Daño de Armas en Fichas](#171-información-de-dados-de-daño-de-armas-en-fichas)
-- [18. Actualización Automática de Fichas desde Archivos JSON](#18-actualización-automática-de-fichas-desde-archivos-json)
-- [19. Convertidor de PDF a JSON - Aplicación Auxiliar](#19-convertidor-de-pdf-a-json---aplicación-auxiliar)
-- [20. Música y Sonido Dinámicos](#20-música-y-sonido-dinámicos)
+- [10. Sistema de Mundo Persistente](#roadmap-10)
+- [12. Compendio de D&D Local - Base de Datos Local](#roadmap-12-compendio)
+- [13. IA Conversacional Avanzada](#roadmap-13-ia)
+- [14. Calidad y Profundidad de la IA](#roadmap-14-calidad)
+- [12. Separación de IDs de Fichas de Personajes](#roadmap-12-separacion)
+- [13. Sistema de Comprobación de Competencia en Tiradas](#roadmap-13-competencia)
+- [14. Mejoras de Mecánicas de D&D 5e](#roadmap-14-dnd)
+  - [17.1. Información de Dados de Daño de Armas en Fichas](#roadmap-17-1)
+- [18. Actualización Automática de Fichas desde Archivos JSON](#roadmap-18-json)
+- [19. Convertidor de PDF a JSON - Aplicación Auxiliar](#roadmap-19-convertidor)
+- [20. Música y Sonido Dinámicos](#roadmap-20-musica)
 
 ### 🟢 Prioridad Baja
-- [17. Mejoras de Interfaz de Usuario](#17-mejoras-de-interfaz-de-usuario)
-- [18. Mejoras de Sistema de Personajes y Compañeros](#18-mejoras-de-sistema-de-personajes-y-compañeros)
-- [19. Mejoras de Sistema de Aventuras y Datos](#19-mejoras-de-sistema-de-aventuras-y-datos)
-- [20. Mejoras de Calidad y Pulido](#20-mejoras-de-calidad-y-pulido)
-- [21. Comandos de Voz](#21-comandos-de-voz)
-- [22. Automatización del Versionado y Changelog](#22-automatización-del-versionado-y-changelog)
+- [18. Mejoras de Interfaz de Usuario](#roadmap-18-ui)
+- [20. Mejoras de Sistema de Aventuras y Datos](#roadmap-20-adv)
+- [23. Mejoras de Sistema de Aventuras y Datos](#roadmap-23-adv)
+- [24. Mejoras de Calidad y Pulido](#roadmap-24-calidad)
+- [25. Comandos de Voz](#roadmap-25-voz)
+- [26. Automatización del Versionado y Changelog](#roadmap-26-versionado)
 
 ---
 
@@ -55,102 +50,14 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 
 Mejoras críticas que mejoran significativamente la arquitectura, mantenibilidad y consistencia del sistema.
 
-### 0. Estandarización de Niveles de Logging ✅ COMPLETADO {#0-estandarización-de-niveles-de-logging-completado}
-*   **Problema Actual:** Existe una inconsistencia sistemática en los niveles de logging utilizados en todo el código base. Mensajes marcados como `DEBUG` contienen texto que dice "WARNING", mensajes marcados como `INFO` contienen texto que dice "DEBUG", y en general hay una falta de coherencia entre el nivel de log declarado y el contenido del mensaje.
-*   **Mejora Implementada:** ✅
-    *   ✅ **Guías de Estilo:** Creada documentación completa sobre cuándo usar cada nivel de log (DEBUG, INFO, WARN, ERROR) - [Guía de Estilo de Logging](../arquitectura/guia-estilo-logging.md)
-    *   ✅ **Validación:** Añadida validación automática en el logger para detectar inconsistencias futuras
-    *   ✅ **Documentación:** Actualizada la documentación del sistema de logging con referencias a la guía de estilo
-    *   ✅ **Auditoría y Estandarización:** Revisado código base y corregidas 5 inconsistencias detectadas
-*   **Impacto:** Muy Alto - Mejora significativa de la calidad de logs, facilita depuración y mantenimiento, y permite que los filtros de log funcionen correctamente.
-*   **Estado:** ✅ **COMPLETADO** - Guía de estilo creada, validación implementada, inconsistencias corregidas (2025-01-22)
-*   **Correcciones realizadas:**
-    *   Corregido mensaje DEBUG con palabra "Critical" → "Damage calculated for critical hit"
-    *   Corregido mensaje WARN con palabra "error" → "encountered an issue"
-    *   Mejorado mensaje WARN para clarificar fallback recuperable
-    *   Eliminada redundancia "CRITICAL" en mensajes ERROR
-    *   Mejorados mensajes de error con contexto estructurado
-*   **Referencia:** 
-    - Issue #119 (Inconsistencia en niveles de logging) 🔴 CRÍTICO
-    - Relacionado con Issue #30 (Errores de conexión a APIs con logs verbosos)
-    - Relacionado con Issue #25 (Logs del navegador colapsados por defecto)
-    - [Guía de Estilo de Logging](../arquitectura/guia-estilo-logging.md)
-
----
-
-### 1. Refactorización y Simplificación Arquitectónica ✅ COMPLETADO {#1-refactorización-y-simplificación-arquitectónica-completado}
-*   **Problema Actual:** El `GameCoordinator` ha asumido demasiadas responsabilidades de "micro-gestión", convirtiéndose en un controlador demasiado complejo. Contiene bucles explícitos para gestionar compañeros, lógica de filtrado de enemigos muertos, y conoce demasiado sobre la estructura interna del turno narrativo.
-*   **Mejora Implementada:** ✅
-    *   ✅ **Fase 1 - CompanionReactionManager:** Extraída toda la lógica de reacciones de compañeros a `src/ai/flows/managers/companion-reaction-manager.ts`
-    *   ✅ **Fase 2 - EntityStatusUtils:** Centralizadas 11 funciones de verificación de estados en `src/lib/game/entity-status-utils.ts`
-    *   ✅ **Fase 3 - NarrativeTurnManager:** Encapsulado el flujo narrativo completo en `src/ai/flows/managers/narrative-turn-manager.ts` + extraído `TranscriptFormatter`
-    *   ⏸️ **Fase 4 - SystemCommandDetector:** Pospuesta por baja prioridad (no necesaria actualmente)
-*   **Impacto:** Transformacional - Reducción de `GameCoordinator.ts` de 493 → 321 líneas (-35%), mejora significativa de testabilidad, modularidad y escalabilidad.
-*   **Resultados Obtenidos:**
-    *   ✅ Código más limpio y enfocado en orquestación de alto nivel
-    *   ✅ Testabilidad mejorada (4 nuevos módulos especializados)
-    *   ✅ Escalabilidad (añadir nuevas fases al turno narrativo sin tocar el coordinador)
-    *   ✅ Prompts de IA preservados sin modificaciones
-    *   ✅ Tests validados: Sin nuevos fallos introducidos
-    *   ✅ Pruebas manuales: Flujo narrativo funcionando correctamente
-*   **Estado:** ✅ **COMPLETADO** - 3 de 4 fases implementadas (Fase 4 pospuesta) (2025-11-22)
-*   **Referencia:** [Plan Detallado](planes-desarrollo/completados/plan-refactorizacion-arquitectura.md)
-*   **Referencia:** 
-    - Análisis de arquitectura realizado el 2025-11-22
-    - Relacionado con la complejidad del GameCoordinator (~500 líneas)
-    - Base para futuras mejoras del flujo narrativo
-
----
-
-### 1. Simplificación de Arquitectura de Combate ✅ COMPLETADO {#1-simplificación-de-arquitectura-de-combate-completado}
-*   **Problema Actual:** El sistema de combate tenía una arquitectura excesivamente compleja con múltiples capas de delegación (8-9 niveles de profundidad). El flujo del jugador y el de la IA eran diferentes, causando duplicación de código, inconsistencias y dificultando el mantenimiento.
-*   **Mejora Implementada:** ✅
-    *   ✅ **TurnProcessor Unificado:** Creado `TurnProcessor` único que funciona igual para jugador e IA, eliminando la duplicación entre `action-processor.ts` y `dice-roll-processor.ts`.
-    *   ✅ **CombatActionExecutor Unificado:** Creado módulo unificado que maneja cualquier acción de combate independientemente de quién la ejecute.
-    *   ✅ **Inicialización Simplificada:** Eliminado `first-turn-handler.ts`, el primer turno se procesa como cualquier otro usando el flujo normal.
-    *   ✅ **Flujo Simplificado:** Reducido de 8-9 niveles de profundidad a 3-4 niveles.
-*   **Impacto:** Transformacional - Mejora significativa de la arquitectura, elimina duplicación, garantiza consistencia total entre jugador e IA, y facilita enormemente el mantenimiento futuro. Resuelve problemas como mensajes de muerte duplicados y otras inconsistencias.
-*   **Resultados Obtenidos:**
-    *   ✅ Consistencia total: Jugador e IA usan exactamente el mismo código
-    *   ✅ Complejidad reducida: De 8-9 niveles de profundidad a 3-4 niveles
-    *   ✅ Duplicación eliminada: Lógica unificada en módulos centralizados
-    *   ✅ Mantenibilidad mejorada: Menos archivos, menos duplicación, más fácil de depurar
-    *   ✅ Módulos eliminados: `action-processor.ts`, `dice-roll-processor.ts`, `first-turn-handler.ts`
-*   **Estado:** ✅ **COMPLETADO** - Implementación completada y verificada (2025-11-21)
-*   **Plan Detallado:** ✅ [Simplificación de Arquitectura de Combate](../planes-desarrollo/completados/issue-117-simplificacion-arquitectura-combate.md)
-*   **Referencia:** 
-    - Issue #117 (Simplificación de Arquitectura de Combate) ✅ RESUELTO
-    - Relacionado con Issue #94 (Refactorización de Prompts de Tacticians)
-    - Resuelve Issue #82 (Unificar sistema de procesamiento de tiradas) ✅ RESUELTO
-    - Resuelve Issue #21 (Código duplicado en combat-manager) ✅ RESUELTO
-
----
-
-Mejoras críticas de interfaz de usuario que mejoran significativamente la experiencia y usabilidad del juego.
-
-### 1. Revisión y Reorganización de la Interfaz de Usuario ✅ COMPLETADO {#1-revisión-y-reorganización-de-la-interfaz-de-usuario}
-*   **Problema Original:** La UI distribuía controles críticos en lugares poco accesibles (botón de guardar en el panel izquierdo, panel DebugLog ocupando espacio productivo y paneles sin jerarquía visual), lo que entorpecía la usabilidad.
-*   **Mejoras Implementadas (v0.5.5–v0.5.8):**
-    *   ✅ **Header funcional y contextual:** `AppHeader` ahora se renderiza en `GameView`, muestra el nombre de la aventura y aloja el botón de "Guardar Partida" junto al botón de menú para acceso inmediato. (`src/components/layout/app-header.tsx`, `src/components/game/game-view.tsx`)
-    *   ✅ **Panel izquierdo redimensionable y sin ruido:** `LeftPanel` pasó a un layout vertical de `InitiativeTracker` + `DiceLogPanel` con `ResizablePanelGroup`, y se eliminaron las dependencias de DebugLog, reduciendo el ruido visual.
-    *   ✅ **Deprecación completa de DebugLog UI:** Se eliminó el panel, el estado asociado y el componente `debug-panel.tsx`, alineado con la eliminación de `debugLogs` en el flujo de combate (`CHANGELOG.md` 0.5.5).
-    *   ✅ **Panel derecho optimizado:** Layout colapsable, `PartyPanel` compacto y `CharacterSheet` densificado (skills en grid 2x, badges mini, inventario con truncado). Referencia `CHANGELOG.md` 0.5.8.
-    *   ✅ **Feedback de acciones simplificado:** Eliminado el botón de dados del chat para enfocar el input del jugador en texto.
-    *   ✅ **Datos listos para la UI:** Sistema de modificadores de skills pre-calculados expuesto directamente en la ficha, evitando cálculos duplicados en el frontend.
-*   **Impacto:** La UI es más limpia y jerárquica, libera espacio en el panel izquierdo, reduce scroll en el panel derecho y mejora el acceso a acciones críticas (guardar partida, navegación). Además, el código quedó libre de componentes obsoletos y propiedades muertas.
-*   **Plan Detallado:** ✅ [Reorganización de UI](../planes-desarrollo/completados/reorganizacion-ui.md)
-*   **Estado:** ✅ **COMPLETADO** (2025-11-25) – Revisión total desplegada en producción interna.
-*   **Referencias:** 
-    - [Notas de Gael - #268](../notas/Notas%20de%20Gael.md) - Rediseño del Panel Izquierdo
-    - `CHANGELOG.md` [0.5.5] (eliminación DebugLog) y [0.5.8] (compactación panel derecho, skills pre-calculados)
-
----
+> Actualmente no hay iniciativas activas en esta prioridad. Las últimas cuatro entregas se documentan en el [histórico](./roadmap-historico.md).
 
 ## 🔴 Prioridad Alta
 
 Mejoras críticas que impactan directamente en la experiencia core del juego y son fundamentales para la jugabilidad.
 
-### 2. Sistema de Progresión y Gestión {#2-sistema-de-progresión-y-gestión}
+<a id="roadmap-2"></a>
+### 2. Sistema de Progresión y Gestión
 *   **Problema Actual:** El juego es una experiencia "de una sola sesión". No hay subida de nivel, el inventario no se puede gestionar de forma dinámica y la persistencia de datos depende de archivos de guardado manuales.
 *   **Mejora Propuesta:**
     *   **Sistema de Experiencia (XP) y Subida de Nivel:** La IA podría otorgar XP por completar misiones o superar desafíos, permitiendo a los personajes subir de nivel y mejorar sus estadísticas y habilidades.
@@ -159,7 +66,8 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
 *   **Impacto:** Es fundamental para crear una campaña duradera y gratificante, que es el núcleo de la experiencia D&D.
 *   **Plan Detallado:** ❌ No creado
 
-### 3. Sistema de Inicio de Combate Dinámico {#3-sistema-de-inicio-de-combate-dinámico}
+<a id="roadmap-3"></a>
+### 3. Sistema de Inicio de Combate Dinámico
 *   **Problema Actual:** El mundo del juego es pasivo. El combate solo se inicia si el jugador declara explícitamente un ataque. Una acción narrativa que debería provocar hostilidad (como robar a un PNJ o insultar a un orco) no tiene consecuencias mecánicas, lo que rompe la inmersión.
 *   **Mejora Propuesta:**
     *   Añadir un paso de **"Evaluación de Hostilidad"** al flujo del `gameCoordinator`. Después de que el `narrativeExpert` procese una acción, este nuevo paso evaluaría si la disposición de algún PNJ en la escena debería cambiar a `hostil`.
@@ -167,7 +75,8 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
 *   **Impacto Estratégico:** Crítico. Es la mejora más importante para la credibilidad del mundo de juego. Hará que el mundo se sienta vivo, reactivo y peligroso, y que las acciones de los jugadores tengan un peso y consecuencias reales.
 *   **Plan Detallado:** ❌ No creado
 
-### 4. Mejora de Estructura de Fichas de Personajes en la UI {#4-mejora-de-estructura-de-fichas-de-personajes-en-la-ui}
+<a id="roadmap-4"></a>
+### 4. Mejora de Estructura de Fichas de Personajes en la UI
 *   **Problema Actual:** Las fichas de personajes pueden ser abrumadoras con toda la información mostrada a la vez. Falta organización y visualización de estados temporales.
 *   **Mejora Propuesta:**
     *   **Mejor Organización:** Reestructurar la información en secciones lógicas y accesibles
@@ -183,7 +92,8 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
 *   **Plan Detallado:** ❌ No creado
 *   **Referencia:** [Notas de Gael - #06, #17, #18, #44, #69](../notas/Notas%20de%20Gael.md)
 
-### 5. Sistema de Modos de Juego Diferenciados {#5-sistema-de-modos-de-juego-diferenciados}
+<a id="roadmap-5"></a>
+### 5. Sistema de Modos de Juego Diferenciados
 *   **Problema Actual:** El sistema no diferencia claramente entre los diferentes modos de juego (exploración, combate, interacción social), lo que limita las mecánicas específicas de cada modo.
 *   **Mejora Propuesta:**
     *   **Modos Diferenciados:** Implementar claramente Modo exploración, Modo combate y Modo social o interacción.
@@ -196,7 +106,8 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
 *   **Plan Detallado:** ❌ No creado
 *   **Referencia:** [Notas de Gael - #79, #80, #81, #78](../notas/Notas%20de%20Gael.md)
 
-### 6. Revisiones de Sistema de Combate {#6-revisiones-de-sistema-de-combate}
+<a id="roadmap-6"></a>
+### 6. Revisiones de Sistema de Combate
 *   **Mejoras Propuestas:**
     *   **Minimizar Mensajes del DM en Combate:** En combate, a veces en un solo turno el DM puede llegar a mandar 5 mensajes (narración inicial, acción, daño, mensaje de "ha dejado inconsciente a X" y mensaje de "X cae inconsciente"). Buscar la forma de minimizar esta cantidad de mensajes a lo mínimo, diferenciando entre mensajes narrativos y mensajes informativos y agrupando estos últimos en un solo mensaje del DM.
     *   **Ignorar Turnos de Personajes Muertos o Inconscientes:** En combate, los turnos de los personajes muertos o inconscientes ya no deberían ni ejecutarse para no perder tiempo. El bucle debería ignorar a los personajes que están muertos o inconscientes, pero si un personaje se recupera de la inconsciencia o revive habría que volver a tenerlo en cuenta en el bucle. Esto tiene que ir acompañado de alguna señal visual de qué personajes están fuera del combate (quizás tachando su nombre en el combat tracker o con algún tipo de símbolos para marcar su estado).
@@ -207,7 +118,8 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
 *   **Plan Detallado:** ❌ No creado
 *   **Referencia:** [Notas de Gael - #102, #104, #109, #122, #123](../notas/Notas%20de%20Gael.md)
 
-### 7. Integración de Google File Search (RAG Automatizado) {#7-integración-de-google-file-search-rag-automatizado}
+<a id="roadmap-7"></a>
+### 7. Integración de Google File Search (RAG Automatizado)
 *   **Problema Actual:** El sistema actual depende de búsquedas directas por ID en archivos JSON y llamadas a APIs externas para obtener información. No hay capacidad de búsqueda semántica que permita encontrar información basándose en significado o contexto, lo que limita la capacidad de la IA para acceder a conocimiento relevante de forma inteligente.
 *   **Qué es Google File Search:**
     *   **Sistema RAG Automatizado:** Google File Search es un sistema de Retrieval-Augmented Generation (RAG) completamente gestionado e integrado en la API de Gemini. Automatiza todo el proceso RAG sin necesidad de configurar infraestructura propia (bases de datos vectoriales, pipelines de embeddings, etc.).
@@ -325,36 +237,8 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
 
 Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, pero no son críticas para la funcionalidad básica.
 
-### 8. Ajuste Dinámico de Longitud de Narración ✅ COMPLETADO {#8-ajuste-dinámico-de-longitud-de-narración-completado}
-*   **Problema Actual:** Las narraciones del DM tenían una longitud fija y a veces resultaban repetitivas o demasiado largas para acciones simples, o demasiado cortas para momentos importantes.
-*   **Mejora Implementada:** ✅
-    *   ✅ **Detección de Momentos Clave:** El sistema identifica automáticamente cambios de ubicación, muertes de entidades y descansos.
-    *   ✅ **Narración Adaptativa:**
-        *   **Estándar:** 2-3 frases para acciones rutinarias.
-        *   **Clave:** 3-4 frases para momentos importantes, con mayor carga descriptiva.
-    *   ✅ **Integración Profunda:** La lógica se propaga desde el `NarrativeTurnManager` hasta los expertos de `Exploration` e `Interaction`.
-*   **Impacto:**    - Mejora el ritmo del juego (menos texto en rutina, más en momentos importantes).
-    - Aumenta la inmersión en transiciones y eventos dramáticos.
-    - Reduce la fatiga de lectura del jugador.
-*   **Estado:** ✅ **COMPLETADO** - Implementado y verificado (2025-11-26)
-
----
-
-### 9. Sistema de Tablas Aleatorias en JSON ✅ COMPLETADO {#9-sistema-de-tablas-aleatorias-en-json-completado}
-*   **Problema Actual:** Los PNJs a menudo necesitan compartir rumores o información que en la aventura original proviene de tablas aleatorias. Al no tener acceso a estas tablas en el JSON, la IA tiende a alucinar o inventar información falsa.
-*   **Mejora Implementada:** ✅
-    *   **Soporte de Tablas en JSON:** Se ha extendido el esquema de aventura para soportar una nueva sección `tables` que contiene tablas de tiradas (ej: "Historias de Phandalin").
-    *   **Etiquetas Dinámicas:** Se ha implementado un sistema de etiquetas `[[ROLL_TABLE:id-tabla]]` que pueden insertarse en cualquier texto del JSON (diálogos, descripciones, notas).
-    *   **Resolución Automática:** La herramienta `adventureLookupTool` detecta estas etiquetas y las reemplaza automáticamente por un resultado aleatorio de la tabla correspondiente antes de enviar la información a la IA.
-*   **Beneficios:**
-    *   ✅ **Fidelidad:** Los PNJs ahora dan rumores y datos canónicos de la aventura.
-    *   ✅ **Variedad:** Cada partida puede tener resultados diferentes sin intervención manual.
-    *   ✅ **Transparencia para la IA:** La IA recibe el texto final ya procesado, por lo que lo narra con total naturalidad.
-*   **Estado:** ✅ **COMPLETADO** - Implementado en `adventureLookupTool` y añadido al JSON de la aventura (2025-11-26)
-
----
-
-### 10. Sistema de Mundo Persistente {#10-sistema-de-mundo-persistente}
+<a id="roadmap-10"></a>
+### 10. Sistema de Mundo Persistente
 *   **Problema Actual:** El mundo del juego no persiste cambios entre sesiones. Cuando los jugadores derrotan enemigos, interactúan con objetos, o modifican el estado del mundo, estos cambios se pierden al recargar la partida o al volver a una ubicación. El sistema actual mantiene los enemigos derrotados en el estado del juego, pero no actualiza el `locationContext` original, lo que puede causar inconsistencias narrativas.
 *   **Mejora Propuesta:**
     *   **Sistema de Estado del Mundo:** Implementar un sistema que rastree y persista cambios en el mundo del juego (enemigos derrotados, objetos recogidos, puertas abiertas/cerradas, NPCs con actitudes modificadas, etc.)
@@ -388,7 +272,8 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   Sistema de Progresión (Roadmap #2) - Base para un sistema de campaña duradera
 *   **Impacto:** Alto - Fundamental para crear un mundo coherente y persistente que reaccione a las acciones del jugador. Mejora significativamente la inmersión y la sensación de que las acciones tienen consecuencias.
 *   **Plan Detallado:** ❌ No creado
-### 12. Compendio de D&D Local - Base de Datos Local {#12-compendio-de-dd-local---base-de-datos-local}
+<a id="roadmap-12-compendio"></a>
+### 12. Compendio de D&D Local - Base de Datos Local
 *   **Problema Actual:** El sistema depende completamente de la API externa de D&D 5e para obtener información sobre monstruos, hechizos, reglas, etc. Esto causa latencia, dependencia de conectividad, y múltiples llamadas redundantes a la API.
 *   **Mejora Propuesta:**
     *   **Base de Datos Local:** Crear un sistema de base de datos local (SQLite recomendado) que almacene un compendio completo de conocimiento de D&D (fichas de monstruos, reglas, razas, clases, hechizos, equipamiento, etc.).
@@ -406,7 +291,8 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   **Base para RAG:** Esta infraestructura sentará las bases para futuras implementaciones de RAG y búsqueda semántica
 *   **Plan Detallado:** ✅ [Compendio de D&D Local](../planes-desarrollo/sin-comenzar/compendio-dnd-local.md)
 
-### 13. IA Conversacional Avanzada {#13-ia-conversacional-avanzada}
+<a id="roadmap-13-ia"></a>
+### 13. IA Conversacional Avanzada
 *   **Problema Actual:** Los compañeros de IA reaccionan de forma aislada a la acción del jugador, sin ser conscientes de lo que los otros compañeros han dicho en el mismo turno. El flujo es secuencial y el servidor devuelve todos los mensajes a la vez.
 *   **Mejora Propuesta:**
     *   **Arquitectura de Streaming:** Reemplazar el modelo actual de "una petición, una respuesta" por una comunicación persistente entre el cliente y el servidor (usando, por ejemplo, WebSockets o Server-Sent Events).
@@ -414,7 +300,8 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Impacto:** Lograría una dinámica de grupo mucho más orgánica y creíble, mejorando significativamente la inmersión.
 *   **Plan Detallado:** ❌ No creado
 
-### 14. Calidad y Profundidad de la IA {#14-calidad-y-profundidad-de-la-ia}
+<a id="roadmap-14-calidad"></a>
+### 14. Calidad y Profundidad de la IA
 *   **Mejora Propuesta: Implementación de RAG (Retrieval-Augmented Generation)**
     *   **Estado Actual:** La IA recupera información del mundo (lore, personajes) mediante búsquedas directas en archivos JSON por ID. No "comprende" el contexto, solo busca datos.
     *   **Salto Evolutivo:** Migrar a un sistema RAG donde el lore se almacena en una base de datos vectorial. Esto permitiría a herramientas como `narrativeExpert` hacer preguntas en lenguaje natural (ej: "¿Cuál es la historia de la Vieja Atalaya?", "¿Qué sabe Elara sobre el dragón Cryovain?").
@@ -458,7 +345,8 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
         - Issue #94 (Refactorización de Prompts de Tacticians) - Mejora adicional pendiente
 *   **Plan Detallado:** ❌ No creado (parcialmente implementado por Issue #117)
 
-### 12. Separación de IDs de Fichas de Personajes {#12-separación-de-ids-de-fichas-de-personajes}
+<a id="roadmap-12-separacion"></a>
+### 12. Separación de IDs de Fichas de Personajes
 *   **Problema Actual:** Las fichas de personajes (`initial-party.ts`) incluyen IDs hardcodeados (ej: `id: "1"`, `id: "6"`, `id: "3"`). Esto mezcla datos de ficha (stats, habilidades, inventario) con metadatos del sistema (IDs para identificación interna). Las fichas deberían ser datos puros y portables, mientras que los IDs son una necesidad interna del procesamiento del juego.
 *   **Nota:** La party inicial ya ha sido separada en `src/lib/initial-party.ts` (2025-01-23), preparando el terreno para esta mejora.
 *   **Mejora Propuesta:**
@@ -480,7 +368,8 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Estado:** 📝 Documentado como mejora futura - No implementado
 *   **Plan Detallado:** ❌ No creado
 
-### 13. Sistema de Comprobación de Competencia en Tiradas {#13-sistema-de-comprobación-de-competencia-en-tiradas}
+<a id="roadmap-13-competencia"></a>
+### 13. Sistema de Comprobación de Competencia en Tiradas
 *   **Problema Actual:** El sistema aplica siempre el bonus de competencia (proficiency bonus) en las tiradas de ataque y otras tiradas, independientemente de si el personaje es competente o no en el arma, habilidad o herramienta que está usando. Por ejemplo, Galador usando un arco recibe el bonus de competencia aunque no tenga competencia con arcos.
 *   **Mejora Propuesta:**
     *   **Añadir Información de Competencias a Fichas:** Las fichas de personajes deben incluir información sobre las competencias del personaje (armas simples, armas marciales, armas específicas, herramientas, habilidades, etc.). Esta información debe estar estructurada y accesible para el sistema de combate.
@@ -497,7 +386,8 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     - Relacionado con Issue #121 (Fix Weapon Parsing) - El sistema ya identifica qué arma se usa
     - Relacionado con Roadmap #12 (Mejoras de Mecánicas de D&D 5e) - Parte del sistema completo de mecánicas
 
-### 14. Mejoras de Mecánicas de D&D 5e {#14-mejoras-de-mecánicas-de-dd-5e}
+<a id="roadmap-14-dnd"></a>
+### 14. Mejoras de Mecánicas de D&D 5e
 *   **Estado Actual:** El sistema implementa las mecánicas básicas de D&D 5e, pero algunas reglas avanzadas están simplificadas o pendientes.
 *   **Mejoras Propuestas:**
     *   **Sistema Completo de Saving Throws:** Actualmente los hechizos con saving throws aplican daño automáticamente. Implementar cálculo de Spell Save DC, tirada de salvación del objetivo, y regla de mitad de daño si acierta.
@@ -531,34 +421,41 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   [Issues Tracker - Issue #22](../tracking/issues/pendientes.md#issue-22-sistema-completo-de-saving-throws-tiradas-de-salvación-del-objetivo-feature-incompleta)
     *   [Notas de Gael - #04, #10, #12, #13, #23, #24, #25, #26, #27, #36, #37, #38, #40, #45, #53, #68, #70, #71, #72, #121, #4](../notas/Notas%20de%20Gael.md)
 
-### 15. Separación de IDs de Fichas de Personajes {#15-separación-de-ids-de-fichas-de-personajes}
+<a id="roadmap-15-extra"></a>
+### 15. Separación de IDs de Fichas de Personajes
 *   **Problema Actual:** Los IDs de las fichas de personajes están acoplados a sus nombres, lo que dificulta el manejo de múltiples instancias del mismo tipo de enemigo o personaje.
 *   **Mejora Propuesta:** Implementar un sistema de IDs únicos (UUIDs) para cada instancia de personaje, separando la identidad única de la definición del arquetipo.
 *   **Impacto:** Necesario para manejar combates complejos y persistencia de estado correctamente.
 
-### 16. Sistema de Comprobación de Competencia en Tiradas {#16-sistema-de-comprobación-de-competencia-en-tiradas}
+<a id="roadmap-16-extra"></a>
+### 16. Sistema de Comprobación de Competencia en Tiradas
 *   **Problema Actual:** El sistema asume competencia en tiradas de salvación y habilidades basándose en reglas simples o hardcodeadas.
 *   **Mejora Propuesta:** Implementar un sistema robusto que verifique las competencias (proficiencies) reales de la ficha del personaje antes de calcular los modificadores de tirada.
 *   **Impacto:** Mayor fidelidad a las reglas de D&D 5e.
 
-### 17. Mejoras de Mecánicas de D&D 5e {#17-mejoras-de-mecánicas-de-dd-5e}
+<a id="roadmap-17-extra"></a>
+### 17. Mejoras de Mecánicas de D&D 5e
 
-#### 17.1. Información de Dados de Daño de Armas en Fichas {#171-información-de-dados-de-daño-de-armas-en-fichas}
+<a id="roadmap-17-1"></a>
+#### 17.1. Información de Dados de Daño de Armas en Fichas
 *   **Problema Actual:** La información sobre el daño de las armas (ej: "1d8 slashing") no siempre está estructurada o disponible en la ficha del personaje de forma que el sistema de combate pueda usarla automáticamente.
 *   **Mejora Propuesta:** Estandarizar la estructura de datos de armas en las fichas de personajes para incluir explícitamente el dado de daño, tipo de daño y propiedades.
 *   **Impacto:** Automatización real del cálculo de daño en combate.
 
-### 18. Actualización Automática de Fichas desde Archivos JSON {#18-actualización-automática-de-fichas-desde-archivos-json}
+<a id="roadmap-18-json"></a>
+### 18. Actualización Automática de Fichas desde Archivos JSON
 *   **Problema Actual:** Si se actualiza el archivo JSON de una aventura (ej: corrigiendo stats de un monstruo), los cambios no se reflejan automáticamente en las partidas guardadas o en el estado en memoria.
 *   **Mejora Propuesta:** Implementar un sistema de "hot-reload" o sincronización que actualice las definiciones de entidades en memoria cuando detecte cambios en los archivos fuente.
 *   **Impacto:** Facilita enormemente el desarrollo y corrección de aventuras sin reiniciar el servidor.
 
-### 19. Convertidor de PDF a JSON - Aplicación Auxiliar {#19-convertidor-de-pdf-a-json---aplicación-auxiliar}
+<a id="roadmap-19-convertidor"></a>
+### 19. Convertidor de PDF a JSON - Aplicación Auxiliar
 *   **Problema Actual:** Crear nuevas aventuras requiere escribir manualmente archivos JSON enormes, lo cual es propenso a errores y lento.
 *   **Mejora Propuesta:** Crear una herramienta (CLI o Web) que ayude a convertir texto de aventuras en PDF al formato JSON estructurado que usa el sistema, posiblemente usando IA para el parseo inicial.
 *   **Impacto:** Acelera drásticamente la creación de nuevo contenido.
 
-### 20. Música y Sonido Dinámicos {#20-música-y-sonido-dinámicos}
+<a id="roadmap-20-musica"></a>
+### 20. Música y Sonido Dinámicos
 *   **Problema Actual:** La experiencia es puramente textual/visual.
 *   **Mejora Propuesta:** Integrar un sistema de audio que reproduzca música de fondo y efectos de sonido (ambientales, combate, éxito/fallo) según el contexto narrativo y la ubicación.
 *   **Impacto:** Inmersión total.
@@ -569,29 +466,35 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 
 Mejoras de calidad de vida y características adicionales que mejoran la experiencia pero no son esenciales.
 
-### 18. Mejoras de Interfaz de Usuario {#18-mejoras-de-interfaz-de-usuario}
-*   **Mejoras Propuestas:**
-    *   **Mejorar Input del Jugador Durante su Turno:** Cuando es el turno del jugador, el input debería mostrar "Es tu turno ¿Qué haces?" y posiblemente sugerir acciones disponibles (atacar, moverse, usar objeto, lanzar hechizo).
-    *   **Mostrar Nombre de la Aventura:** La ventana del juego debería mostrar el nombre de la aventura que se está jugando en la barra superior/header.
-    *   **Menú de Selección de Aventuras JSON:** El botón "Cargar Aventura JSON" debería desplegar un menú con las aventuras disponibles en la carpeta JSON_adventures. Conservar también la opción de cargar desde el sistema de archivos.
-    *   **Reestructurar Panel DebugLog:** Mostrar solo logs esenciales para el desarrollo de la partida. En combate, cada log debe mostrar el personaje al que pertenece. Deben ser más sencillos y legibles que los logs de la terminal.
-    *   **Historial de Comandos en Input:** En el input de texto para dar las acciones del personaje implementar un sistema para recuperar órdenes ya dadas. Usando la tecla de flecha arriba mientras estamos en este cuadro se recuperarían los mensajes anteriores, del más reciente al más antiguo.
-    *   **Integrar Botones de Avance de Turnos:** En el combate turno a turno, los botones de "avanzar 1 turno" y "avanzar todos" quizás deberían estar integrados en el panel de Orden de combate. Mejoraría la organización visual y la accesibilidad de estas funciones.
-    *   **Resaltar Turno del Jugador:** En el combate turno a turno, cuando llega el turno del jugador, hay que hacer un resalte de alguna forma para avisar de que es el turno del jugador. Mejoraría la claridad y evitaría que el jugador se pierda en el orden de turnos.
-    *   **Mejorar Colores en Panel de Tiradas:** En el panel de Tiradas hay que darle un nuevo color a las tiradas de curación. Buscar otros colores para otros tipos de tiradas para mejorar la diferenciación visual.
-    *   **Revisar Formateo de Texto en Mensajes:** Revisar el formateo del texto en los mensajes del DM y de los Compañeros. Mejorar la presentación visual y legibilidad de los mensajes. Sistematizar el formateo para que sea consistente en todos los mensajes.
-    *   **Revisión Completa de la UI:** Hacer una revisión completa de la UI. Evaluar consistencia, usabilidad y mejoras generales de la interfaz.
-    *   **Botón de Configuración:** Implementar un botón de configuración al lado del botón para ir al menú inicial, permitiendo configurar cosas como el modelo LLM en uso, la voz de DM, guardado automático, etc.
-    *   **Mensaje de Victoria/Derrota al Finalizar Combate:** Al finalizar un combate, el panel de Tiradas podría mostrar un mensaje de victoria o derrota y que el combate ha finalizado, mejorando el feedback visual al concluir un encuentro.
-    *   **Cambiar Texto de Botones de Avanzar Turnos:** Los botones de avanzar turnos deberían poner "Avanzar 1 turno" y "Avance automático" para mejorar la claridad de las acciones disponibles.
-    *   **Botón de Pausa en Avance Automático:** En combate, después de pulsar el botón de avanzar todos, mientras el botón esté en "Avanzando...", el otro botón debería convertirse en un botón de pausa para detener el avance automático de turnos.
-    *   **Sistema de Equipamiento con Límites y Validación:** Las fichas de los personajes deberían incluir en la parte de equipamiento qué elementos están equipados o no. Los elementos equipados deberían seguir un esquema del que no se pueden salir, por ejemplo: 2 anillos máximo, 1 botas máximo, 2 armas máximo, etc. Tener en cuenta armas a 2 manos y versátiles, etc.
-    *   **Sistema de Peso de Inventario y Capacidad de Carga:** Implementar peso de inventario, peso de cada item y el concepto de estar cargado y sus consecuencias. El sistema debe calcular el peso total del inventario y aplicar las reglas de D&D 5e sobre capacidad de carga. Las consecuencias de estar sobrecargado deben afectar el movimiento y las acciones del personaje.
+<a id="roadmap-18-ui"></a>
+### 18. Mejoras de Interfaz de Usuario
+*   **Estado actual de las sub-mejoras:**
+
+| Mejora | Estado | Evidencia / notas |
+| --- | --- | --- |
+| Input del jugador muestra “Es tu turno…” | ✅ | `src/components/game/player-input.tsx` renderiza el mensaje contextual (líneas 64-68). |
+| Mostrar nombre de la aventura en el header | ✅ | `AppHeader` recibe `adventureName` y lo pinta en `game-view.tsx` (líneas 802-809). |
+| Menú para seleccionar aventuras JSON disponibles | ⏳ Pendiente | Actualmente solo hay carga manual vía `<input type="file">` en `main-menu.tsx`. |
+| Reestructurar / eliminar DebugLog UI | ✅ | DebugLog fue retirado junto con dependencias (`debug-panel.tsx` ya no existe; comentario en `combat-manager.ts`). |
+| Historial de comandos en el input (flechas arriba/abajo) | ⏳ Pendiente | El input no mantiene buffer de comandos. |
+| Botones de avance integrados en el panel de orden de combate | ⏳ Pendiente | Botones siguen en `chat-panel.tsx`, no en `initiative-tracker.tsx`. |
+| Resaltar el turno del jugador | ✅ | `initiative-tracker.tsx` muestra badge “Tu Turno” y resalta la fila activa. |
+| Colores diferenciados para tiradas (curación, etc.) | ⏳ Pendiente | No hay estilo específico para tiradas de curación en `dice-roll-result.tsx`; `isHealingRoll` aún no se utiliza. |
+| Formateo consistente de mensajes del DM/compañeros | ⏳ Pendiente | No existe aún una capa de formateo unificada; sigue pendiente de revisión. |
+| Revisión completa de la UI | ✅ | Cubierta por la reorganización documentada en `docs/roadmap-historico.md#1-revisión-y-reorganización-de-la-interfaz-de-usuario`. |
+| Botón de configuración (preferencias rápidas) | ⏳ Pendiente | No hay botón en `AppHeader` ni en menú que abra configuración global. |
+| Mensaje de victoria/derrota en panel de tiradas | ✅ | `dice-roll-result.tsx` muestra mensajes especiales “¡VICTORIA!” / “¡DERROTA!” (líneas 139-154). |
+| Texto “Avanzar 1 turno / Avance automático” en los botones | ✅ | Etiquetas actualizadas en `chat-panel.tsx` (líneas 88-107). |
+| Botón de pausa durante el avance automático | ⏳ Pendiente | No existe toggle/pause; solo botones Pasar/Avance. |
+| Sistema de equipamiento con límites | ⏳ Pendiente | Fichas no gestionan slots ni validación de equipamiento activo. |
+| Sistema de peso de inventario / carga | ⏳ Pendiente | Inventario actual no calcula peso ni aplica penalizaciones. |
+
 *   **Impacto:** Mejora la interacción con compañeros y la gestión de personajes.
 *   **Plan Detallado:** ❌ No creado
 *   **Referencia:** [Notas de Gael - #39, #42, #54, #56, #67, #73, #85, #87, #93, #98, #118, #120](../notas/Notas%20de%20Gael.md)
 
-### 20. Mejoras de Sistema de Aventuras y Datos {#20-mejoras-de-sistema-de-aventuras-y-datos}
+<a id="roadmap-20-adv"></a>
+### 20. Mejoras de Sistema de Aventuras y Datos
 *   **Mejoras Propuestas:**
     *   **Mejorar Generación de Introducciones:** ✅ COMPLETADO - Sistema implementado que permite incluir introducciones pre-generadas en el JSON (`introductoryNarration`/`openingScene`) para carga instantánea, con fallback automático a generación con IA si no existe. Revisar la creación de introducciones para aventuras cargadas desde JSON que no traen una intro definida. La IA debería generar una introducción contextual y atractiva.
     *   **Cache de Parseo de Aventuras JSON:** ✅ COMPLETADO - El parseo de aventuras de JSON_adventures debería guardarse en caché para cargas más rápidas. Implementar sistema de verificación de si el parseo está actualizado (comparar fecha de modificación del JSON).
@@ -605,13 +508,8 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
 *   **Plan Detallado:** ❌ No creado
 *   **Referencia:** [Notas de Gael - #07, #15, #43, #55, #74, #94, #86, #97](../notas/Notas%20de%20Gael.md)
 
-### 21. Mejoras de Calidad y Pulido {#21-mejoras-de-calidad-y-pulido}
-*   **Mejoras Implementadas:**
-    *   **Atribución Narrativa en Diálogos:** ✅ **COMPLETADO** (2025-11-26) - Los PNJs ahora siempre incluyen una breve descripción narrativa (quién habla y cómo) antes o durante sus diálogos, mejorando la inmersión y claridad.
-*   **Mejoras Propuestas:**
-*   **Referencia:** [Notas de Gael - #05, #11, #15, #17, #18, #19, #20, #21, #41, #42, #43, #44, #46, #47, #48, #49, #50, #52, #54, #55, #56, #62, #63, #64, #65, #67, #69, #73, #74, #76, #77, #78, #80, #82, #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #97, #98, #111, #112, #113, #114, #115](../notas/Notas%20de%20Gael.md)
-
-### 23. Mejoras de Sistema de Aventuras y Datos {#23-mejoras-de-sistema-de-aventuras-y-datos}
+<a id="roadmap-23-adv"></a>
+### 23. Mejoras de Sistema de Aventuras y Datos
 *   **Mejoras Propuestas:**
     *   **Sistema de Generación de Aventuras Aleatorias:** Implementar un sistema que genere aventuras aleatorias basadas en parámetros (nivel, temática, duración), creando mapas, enemigos y tramas sobre la marcha.
     *   **Integración con D&D Beyond:** Investigar la posibilidad de importar personajes y campañas desde D&D Beyond.
@@ -619,7 +517,8 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
 *   **Impacto:** Aumenta infinitamente la rejugabilidad y personalización.
 *   **Plan Detallado:** ❌ No creado
 
-### 24. Mejoras de Calidad y Pulido {#24-mejoras-de-calidad-y-pulido}
+<a id="roadmap-24-calidad"></a>
+### 24. Mejoras de Calidad y Pulido
 *   **Mejoras Propuestas:**
     *   **Optimización de Rendimiento:** Mejorar el rendimiento general de la aplicación, reduciendo tiempos de carga y consumo de recursos.
     *   **Pruebas Automatizadas (E2E):** Implementar pruebas end-to-end para asegurar la estabilidad de las funcionalidades críticas.
@@ -627,12 +526,14 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
 *   **Impacto:** Asegura una base sólida y profesional para el proyecto.
 *   **Plan Detallado:** ❌ No creado
 
-### 25. Comandos de Voz {#25-comandos-de-voz}
+<a id="roadmap-25-voz"></a>
+### 25. Comandos de Voz
 *   **Mejora Propuesta:** Permitir al jugador dictar sus acciones por voz (Speech-to-Text) y recibir la narración por voz (Text-to-Speech, ya parcialmente implementado).
 *   **Impacto:** Accesibilidad y comodidad.
 *   **Plan Detallado:** ❌ No creado
 
-### 26. Automatización del Versionado y Changelog {#26-automatización-del-versionado-y-changelog}
+<a id="roadmap-26-versionado"></a>
+### 26. Automatización del Versionado y Changelog
 *   **Mejora Propuesta:** Implementar `semantic-release` o similar para automatizar la generación de números de versión y changelogs basados en los commits.
 *   **Impacto:** Profesionalización del flujo de desarrollo.
 *   **Plan Detallado:** ❌ No creado

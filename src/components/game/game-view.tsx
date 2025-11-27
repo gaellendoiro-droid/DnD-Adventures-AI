@@ -386,6 +386,29 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName }:
           id: m.id || `backend-msg-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 11)}`,
         }));
         addMessages(messagesWithUniqueIds, isRetry);
+        
+        // Check if there's an inventory/spell/item error message (e.g., "No tienes el arma", "No conoces el hechizo")
+        // If so, reset playerActionCompleted to allow player to try again
+        const hasInventoryError = messagesWithUniqueIds.some(m => {
+          if (m.sender !== 'DM') return false;
+          const content = m.content?.toLowerCase() || '';
+          return content.includes('no tienes el arma') || 
+                 content.includes('no tienes el objeto') ||
+                 content.includes('no conoces el hechizo') ||
+                 content.includes('no tienes') ||
+                 content.includes('no conoces') ||
+                 content.includes('acción no válida');
+        });
+        
+        if (hasInventoryError && inCombatRef.current) {
+          logClient.uiEvent('GameView', 'Inventory/spell/item error detected, resetting playerActionCompleted', {
+            message: messagesWithUniqueIds.find(m => {
+              const content = m.content?.toLowerCase() || '';
+              return content.includes('no tienes') || content.includes('no conoces') || content.includes('acción no válida');
+            })?.content,
+          });
+          setPlayerActionCompleted(false);
+        }
       }
       if (result.diceRolls) addDiceRolls(result.diceRolls);
       if (result.nextLocationId) {

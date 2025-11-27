@@ -15,13 +15,16 @@ import { executePromptWithRetry } from './retry-utils';
 // This prompt no longer needs tools. All context is provided directly.
 const actionInterpreterPrompt = ai.definePrompt({
     name: 'actionInterpreterPrompt',
-    input: { schema: z.object({ 
-        playerAction: z.string(), 
-        locationContext: z.string(), 
-        party: ActionInterpreterInputSchema.shape.party,
-        allLocationNames: z.array(z.string()), // Provide all possible location names
-        updatedEnemies: z.array(z.any()).optional(),
-    }) },
+    input: {
+        schema: z.object({
+            playerAction: z.string(),
+            locationContext: z.string(),
+            party: ActionInterpreterInputSchema.shape.party,
+            allLocationNames: z.array(z.string()), // Provide all possible location names
+            updatedEnemies: z.array(z.any()).optional(),
+            conversationHistory: z.string().optional(),
+        })
+    },
     output: { schema: ActionInterpreterOutputSchema },
     prompt: `You are an expert action interpreter for a D&D game. Your ONLY job is to determine the player's intent and return a structured JSON object. You must follow a strict priority flow.
 
@@ -35,6 +38,7 @@ const actionInterpreterPrompt = ai.definePrompt({
     *   If detected, classify as 'attack'.
     *   **IMPORTANT - Target Identification:**
     *     - **Combat State Priority:** If 'updatedEnemies' is provided, look there FIRST. It contains the current state of combatants with unique IDs (e.g., "Goblin 2", "Orc 1"). Match the player's target (e.g., "ataco al goblin 2") to the 'id' or 'name' in 'updatedEnemies'.
+    *     - **Contextual References:** Use 'conversationHistory' to resolve relative references like "the one who attacked me", "the one who killed Merryl", "the wounded one". Look for recent events in the history to identify the correct target ID.
     *     - If the player explicitly mentions a specific target (e.g., "ataco al goblin", "ataco a la mantícora"), use that target's ID from 'updatedEnemies' or 'entitiesPresent'.
     *     - If the player's action is generic (e.g., "atacamos", "ataco", "luchamos") without specifying a target, you MAY leave 'targetId' as null or use the first hostile entity ID as a fallback.
     *     - The 'targetId' is just the INITIAL target - other hostile entities in the location will join combat automatically.
@@ -71,6 +75,10 @@ const actionInterpreterPrompt = ai.definePrompt({
 {{{locationContext}}}
 \`\`\`
 - All Possible Locations: {{{json allLocationNames}}}
+- Recent History:
+\`\`\`
+{{{conversationHistory}}}
+\`\`\`
 - Player Action: "{{{playerAction}}}"
 
 Determine the player's intent based on the strict priority flow above.
@@ -79,12 +87,12 @@ Determine the player's intent based on the strict priority flow above.
 
 export const actionInterpreterFlow = ai.defineFlow(
     {
-      name: 'actionInterpreterFlow',
-      inputSchema: ActionInterpreterInputSchema,
-      outputSchema: z.object({
-        interpretation: ActionInterpreterOutputSchema,
-        debugLogs: z.array(z.string()),
-      }),
+        name: 'actionInterpreterFlow',
+        inputSchema: ActionInterpreterInputSchema,
+        outputSchema: z.object({
+            interpretation: ActionInterpreterOutputSchema,
+            debugLogs: z.array(z.string()),
+        }),
     },
     async (input) => {
         const debugLogs: string[] = [];
@@ -107,6 +115,7 @@ export const actionInterpreterFlow = ai.defineFlow(
                         party: input.party,
                         allLocationNames: allLocationNames,
                         updatedEnemies: input.updatedEnemies,
+                        conversationHistory: input.conversationHistory,
                     },
                     { flowName: 'actionInterpreter' }
                 );
@@ -118,19 +127,19 @@ export const actionInterpreterFlow = ai.defineFlow(
                     error: retryError.message,
                     playerAction: input.playerAction,
                 });
-                
+
                 // Intelligent fallback: simple pattern matching for common actions
                 const actionLower = input.playerAction.toLowerCase().trim();
                 const attackPatterns = ['ataco', 'atacar', 'atacamos', 'ataque', 'lucho', 'luchamos', 'golpeo', 'golpeamos'];
                 const isAttack = attackPatterns.some(pattern => actionLower.includes(pattern));
-                
+
                 if (isAttack) {
                     // Check if player mentioned a specific target
                     let targetId: string | null = null;
-                    const locationContextObj = typeof input.locationContext === 'string' 
-                        ? JSON.parse(input.locationContext) 
+                    const locationContextObj = typeof input.locationContext === 'string'
+                        ? JSON.parse(input.locationContext)
                         : input.locationContext;
-                    
+
                     if (locationContextObj?.entitiesPresent) {
                         // Issue #27: Filtrar enemigos muertos SOLO para interpretación de ataques
                         // locationContextObj.entitiesPresent permanece intacto (incluye cadáveres)
@@ -141,7 +150,7 @@ export const actionInterpreterFlow = ai.defineFlow(
                             // Si NO existe, asumir vivo (nuevo enemigo o primer combate)
                             return !enemy || (enemy.hp && enemy.hp.current > 0);
                         });
-                        
+
                         if (aliveEntities.length === 0) {
                             // Todos los enemigos están muertos, no puede atacar
                             log.info('Fallback: No living enemies to attack', {
@@ -149,11 +158,11 @@ export const actionInterpreterFlow = ai.defineFlow(
                                 flow: 'actionInterpreter',
                             });
                             return {
-                                interpretation: { actionType: 'narrate', targetId: null },
+                                interpretation: { actionType: 'narrate' as const, targetId: null },
                                 debugLogs: ['Fallback: No hay enemigos vivos para atacar'],
                             };
                         }
-                        
+
                         // Try to find target mention in player action (usar aliveEntities)
                         for (const entity of aliveEntities) {
                             const entityName = entity.name?.toLowerCase() || '';
@@ -162,44 +171,44 @@ export const actionInterpreterFlow = ai.defineFlow(
                                 break;
                             }
                         }
-                        
+
                         // If no specific target, use first alive hostile entity
                         if (!targetId && aliveEntities.length > 0) {
                             targetId = aliveEntities[0].id;
                         }
                     }
-                    
+
                     log.info('Fallback detected attack action', {
                         module: 'AIFlow',
                         flow: 'actionInterpreter',
                         targetId,
                     });
-                    
+
                     return {
-                        interpretation: { actionType: 'attack', targetId },
+                        interpretation: { actionType: 'attack' as const, targetId },
                         debugLogs: [`Fallback: Detected attack action with target: ${targetId}`],
                     };
                 }
-                
+
                 // Default fallback: narrate
                 log.warn('Fallback defaulting to narrate', {
                     module: 'AIFlow',
                     flow: 'actionInterpreter',
                 });
-                
+
                 return {
-                    interpretation: { actionType: 'narrate' },
+                    interpretation: { actionType: 'narrate' as const },
                     debugLogs: ['Fallback: Defaulting to narrate'],
                 };
             }
-            
+
             let output = llmResponse.output;
 
             if (!output) {
                 const msg = "ActionInterpreter: AI returned null output. Defaulting to 'narrate'.";
                 log.error(msg, { module: 'AIFlow', flow: 'actionInterpreter' });
                 debugLogs.push(msg);
-                output = { actionType: 'narrate' };
+                output = { actionType: 'narrate' as const };
             }
 
             // Post-processing to map title back to ID if a global move was detected
@@ -225,11 +234,11 @@ export const actionInterpreterFlow = ai.defineFlow(
             const msg = `ActionInterpreter: Flow failed. Error: ${e.message}. Defaulting to 'narrate'.`;
             log.error(msg, { module: 'AIFlow', flow: 'actionInterpreter' }, e);
             debugLogs.push(msg);
-            return { interpretation: { actionType: 'narrate' }, debugLogs };
+            return { interpretation: { actionType: 'narrate' as const }, debugLogs };
         }
     }
 );
 
-export async function actionInterpreter(input: ActionInterpreterInput): Promise<{interpretation: ActionInterpreterOutput, debugLogs: string[]}> {
+export async function actionInterpreter(input: ActionInterpreterInput): Promise<{ interpretation: ActionInterpreterOutput, debugLogs: string[] }> {
     return actionInterpreterFlow(input);
 }

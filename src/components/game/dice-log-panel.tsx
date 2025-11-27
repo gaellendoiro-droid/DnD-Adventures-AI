@@ -27,14 +27,14 @@ export function DiceLogPanel({ rolls: diceRolls = [] }: DiceLogPanelProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <CardHeader className="flex-row items-center gap-2 pt-4 pb-2">
-        <Dices className="w-6 h-6" />
-        <CardTitle className="font-headline text-xl">Tiradas</CardTitle>
+      <CardHeader className="flex-row items-center gap-2 pt-2 pb-1">
+        <Dices className="w-5 h-5" />
+        <CardTitle className="font-headline text-lg">Tiradas</CardTitle>
       </CardHeader>
-      <ScrollArea className="px-2 flex-grow" viewportRef={scrollViewportRef}>
-        <div className="p-2 space-y-3">
+      <ScrollArea className="px-1 flex-grow" viewportRef={scrollViewportRef}>
+        <div className="p-1.5 space-y-1.5">
           {diceRolls.length === 0 ? (
-            <p className="text-sm text-center text-muted-foreground p-4">
+            <p className="text-xs text-center text-muted-foreground p-2">
               Aún no se ha lanzado ningún dado.
             </p>
           ) : (

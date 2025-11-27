@@ -6,12 +6,50 @@
 
 Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA → PM → PB → PMB).
 
-**Total:** 55 issues  
-**Última actualización:** 2025-01-23 (Issue #93 resuelto y movido a corregidos)
+**Total:** 68 issues  
+**Última actualización:** 2025-01-27 (Issue #15 resuelto y movido a corregidos)
 
 ---
 
 ## 🔴 Prioridad Muy Alta (PMA) - Críticos
+
+### Issue #126: Revisión completa del sistema de carga de aventuras JSON e inicio de partida ✅ RESUELTO
+
+- **Fecha de creación:** 2025-01-23
+- **Fecha de corrección:** 2025-11-23
+- **Ubicación:** `src/app/page.tsx`, `src/ai/flows/parse-adventure-from-json.ts`, `src/app/game-state-actions.ts`
+- **Severidad:** 🔴 **MUY ALTA** (afecta la experiencia inicial del juego y puede causar problemas de estabilidad)
+- **Descripción:** Revisar por completo el sistema de carga de aventuras JSON e inicio de la partida para mejorarlo y optimizarlo. El sistema actual puede tener problemas de rendimiento, manejo de errores, o flujo de inicialización.
+- **Problema resuelto:**
+  - ✅ **Fast Parser:** Carga instantánea (<1s) para archivos bien formados (sin IA)
+  - ✅ **Validación Robusta:** Esquema Zod estricto + validación de integridad referencial (detecta enlaces rotos en `exits` y IDs duplicados)
+  - ✅ **Caché Persistente:** Almacena aventuras procesadas en disco (`node_modules/.cache/dnd-adventures`), sobreviviendo a reinicios del servidor
+  - ✅ **Sanitización Inteligente:** Auto-corrección de referencias rotas convirtiéndolas en elementos interactuables para preservar la narrativa
+  - ✅ **Feedback Visual:** Nuevo componente `AdventureLoadProgress` que muestra cada paso (Parseando, Validando, Conectando, Inicializando, Narrando)
+  - ✅ **Inicio Limpio:** Forzado silencio de compañeros en el turno 0 para que solo el DM narre la introducción
+- **Solución implementada:** ✅
+  - Rediseño completo con arquitectura modular (`adventure-parser`, `validator`, `adventure-cache`, `game-initializer`)
+  - Todas las 6 fases completadas: Manejo de errores, Optimización de parseo, Mejora de inicialización, Feedback al usuario, Optimización de cache, Testing exhaustivo
+- **Archivos modificados:**
+  - `src/app/page.tsx` - Orquestación completa y UI de progreso
+  - `src/lib/adventure-loader/*` - Nuevos módulos del sistema
+  - `src/ai/flows/parse-adventure-from-json.ts` - Integración con caché y fast parser
+- **Impacto:** Muy Alto - Mejora drástica del tiempo de carga (de 10-15s a <1s), validación robusta, y experiencia de usuario superior
+- **Beneficios logrados:**
+  - 🚀 Carga inmediata para la mayoría de aventuras
+  - 🛡️ Imposible cargar aventuras rotas que crashearían el juego después
+  - 💾 Persistencia entre sesiones de desarrollo
+  - 👁️ UX muy superior con feedback claro
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada (2025-11-23)
+- **Tiempo invertido:** ~40 horas
+- **Plan de implementación:** [Issue #126 - Revisión Sistema de Carga de Aventuras](../../planes-desarrollo/completados/issue-126-revision-sistema-carga-aventuras.md)
+- **Referencia:** [CHANGELOG.md](../../CHANGELOG.md) | [Arquitectura](../../arquitectura/sistema-carga-aventuras.md) | [Notas de Gael - #5](../notas/Notas%20de%20Gael.md)
+- **Relacionado con:**
+  - Issue #6 (Manejo de errores en `handleLoadAdventure`) - ✅ RESUELTO - Incluido en este issue
+  - Issue #8 (Fallos al cargar aventura desde JSON) - ✅ RESUELTO - Incluido en este issue
+  - Roadmap #14 (Actualización Automática de Fichas desde Archivos JSON) - Mejora relacionada
+
+---
 
 ### Issue #130: Regresión UI - Botones de avance de turno no aparecen tras refactor ✅ RESUELTO
 
@@ -306,8 +344,120 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 - **Plan de implementación:** [Issue #117 - Simplificación de Arquitectura de Combate](../../planes-desarrollo/completados/issue-117-simplificacion-arquitectura-combate.md)
 - **Relacionado con:**
   - Issue #94 (Refactorización de Prompts de Tacticians) - Resuelto problemas de consistencia
-  - Issue #82 (Unificar sistema de procesamiento de tiradas) - Resuelto completamente
-  - Issue #21 (Código duplicado) - Eliminada duplicación
+  - Issue #82 (Unificar sistema de procesamiento de tiradas) - Resuelto completamente (✅ RESUELTO)
+  - Issue #21 (Código duplicado) - Eliminada duplicación (✅ RESUELTO)
+  - Issue #119 (Testeo profundo del sistema de combate) - Testing después de esta refactorización (✅ RESUELTO)
+
+---
+
+### Issue #82: Unificar sistema de procesamiento de tiradas de dados (jugador, companions, enemigos) ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-17
+- **Fecha de corrección:** 2025-11-21 (resuelto como parte del Issue #117)
+- **Ubicación:** `src/lib/combat/action-executor.ts`, `src/lib/combat/turn-processor.ts`
+- **Severidad:** Media (deuda técnica)
+- **Descripción:** El procesamiento de tiradas de datos estaba dividido en dos sistemas diferentes:
+  - **Jugador:** Las tiradas se procesaban directamente en `combat-manager.ts`, calculando modificadores manualmente y llamando a `diceRollerTool` directamente
+  - **Companions/Enemigos:** Las tiradas se generaban por la IA (tacticians) y luego se procesaban en `processAICombatantRolls` en `dice-roll-processor.ts`
+- **Problema resuelto:**
+  - ✅ Sistema unificado creado: `CombatActionExecutor` procesa tiradas para todos los tipos de combatientes (jugador, companions, enemigos)
+  - ✅ Código duplicado eliminado: `action-processor.ts` y `dice-roll-processor.ts` fusionados en un solo módulo
+  - ✅ Lógica consistente: Todos los combatientes usan el mismo flujo de procesamiento de tiradas
+  - ✅ Mantenimiento simplificado: Cambios ahora se aplican en un solo lugar
+  - ✅ Función `updateRollNotationWithModifiers` utilizada consistentemente en todos los casos
+- **Solución implementada:** ✅
+  - Creado `CombatActionExecutor` unificado que procesa cualquier acción de combate (ataque, hechizo, curación) para cualquier tipo de combatiente
+  - Creado `TurnProcessor` unificado que maneja el flujo completo para jugador, companions y enemigos
+  - Eliminados módulos obsoletos: `action-processor.ts` y `dice-roll-processor.ts`
+  - Todos los combatientes ahora usan el mismo código para procesar tiradas de dados
+- **Archivos modificados:**
+  - ✅ Nuevo: `src/lib/combat/action-executor.ts` (sistema unificado)
+  - ✅ Nuevo: `src/lib/combat/turn-processor.ts` (procesador unificado de turnos)
+  - ✅ Eliminado: `src/lib/combat/action-processor.ts`
+  - ✅ Eliminado: `src/ai/tools/combat/dice-roll-processor.ts`
+- **Impacto:** Medio - Mejora significativa de mantenibilidad y consistencia. Todos los combatientes ahora usan el mismo sistema de procesamiento de tiradas.
+- **Estado:** ✅ **RESUELTO** - Implementación completada como parte del Issue #117 (2025-11-21)
+- **Prioridad:** Media
+- **Relacionado con:**
+  - Issue #117 (Simplificación de Arquitectura de Combate) - Resuelto como parte de esta refactorización (✅ RESUELTO)
+  - Issue #21 (Código duplicado en combat-manager.ts) - Eliminada duplicación relacionada (✅ RESUELTO)
+
+---
+
+### Issue #21: Código duplicado en `combat-manager.ts` para procesamiento de rolls ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-13
+- **Fecha de corrección:** 2025-11-21 (resuelto como parte del Issue #117)
+- **Ubicación:** `src/ai/tools/combat-manager.ts` (código duplicado eliminado)
+- **Severidad:** Media (deuda técnica)
+- **Descripción:** El procesamiento de dice rolls para AI combatants estaba duplicado en dos lugares: turnos normales (líneas 1241-1500) e iniciación de combate (líneas 2081-2340). Esta duplicación dificultaba el mantenimiento y causó que el fix del Issue #20 tuviera que aplicarse dos veces.
+- **Problema resuelto:**
+  - ✅ ~260 líneas de código duplicado eliminadas
+  - ✅ Código unificado en `CombatActionExecutor` y `TurnProcessor`
+  - ✅ Cambios ahora se aplican en un solo lugar
+  - ✅ Eliminado riesgo de inconsistencias por actualizaciones en múltiples lugares
+  - ✅ Eliminados módulos obsoletos: `action-processor.ts` y `dice-roll-processor.ts`
+- **Solución implementada:** ✅
+  - Creado `CombatActionExecutor` unificado que procesa cualquier acción de combate para cualquier tipo de combatiente
+  - Creado `TurnProcessor` unificado que maneja el flujo completo (planificación → intención → ejecución → resolución)
+  - Eliminada duplicación de lógica de procesamiento de rolls entre turnos normales e iniciación de combate
+  - Todos los combatientes (jugador, companions, enemigos) ahora usan el mismo código
+- **Archivos modificados:**
+  - ✅ Nuevo: `src/lib/combat/action-executor.ts` (sistema unificado)
+  - ✅ Nuevo: `src/lib/combat/turn-processor.ts` (procesador unificado de turnos)
+  - ✅ Eliminado: `src/lib/combat/action-processor.ts`
+  - ✅ Eliminado: `src/ai/tools/combat/dice-roll-processor.ts`
+  - ✅ Simplificado: `src/ai/tools/combat-manager.ts` (código duplicado eliminado)
+- **Impacto:** Medio - Mejora significativa de mantenibilidad. Eliminación de ~260 líneas de código duplicado y unificación del procesamiento de rolls.
+- **Estado:** ✅ **RESUELTO** - Implementación completada como parte del Issue #117 (2025-11-21)
+- **Prioridad:** Media
+- **Relacionado con:**
+  - Issue #117 (Simplificación de Arquitectura de Combate) - Resuelto como parte de esta refactorización (✅ RESUELTO)
+  - Issue #82 (Unificar sistema de procesamiento de tiradas) - Problema relacionado también resuelto (✅ RESUELTO)
+- **Referencia:** [Plan de Refactorización](../../planes-desarrollo/completados/issue-117-simplificacion-arquitectura-combate.md)
+
+---
+
+### Issue #119: Testeo profundo del sistema de combate después de refactorización ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-22
+- **Fecha de corrección:** 2025-01-27
+- **Ubicación:** Sistema de combate completo (`src/lib/combat/`, `src/ai/tools/combat-manager.ts`, `src/ai/flows/action-interpreter.ts`)
+- **Severidad:** 🟢 **MEDIA** (necesario para asegurar estabilidad y corrección del sistema refactorizado)
+- **Descripción:** Después de la refactorización profunda del sistema de combate (Issue #117), era necesario realizar un testeo profundo y sistemático para verificar que todos los casos de uso funcionan correctamente y que no había regresiones de problemas anteriores.
+- **Problema resuelto:**
+  - ✅ Verificación sistemática de todos los casos de uso del sistema de combate
+  - ✅ Confirmación de que los problemas específicos mencionados están corregidos:
+    - Fallos al hacer target sobre enemigos con el mismo nombre en ubicaciones diferentes (corregido con `enemiesByLocation`)
+    - Enemigos que no hacían nada en sus turnos (corregido con mejoras en `actionInterpreter` y `enemyTactician`)
+  - ✅ Validación de que no hay regresiones de problemas anteriores
+  - ✅ Sistema verificado como estable y predecible en todos los escenarios probados
+- **Casos verificados:**
+  - ✅ Identificación correcta de objetivos en combate (enemigos con nombres similares, múltiples enemigos del mismo tipo)
+  - ✅ Turnos de enemigos se procesan correctamente en todos los escenarios
+  - ✅ Turnos de compañeros funcionan correctamente
+  - ✅ Manejo de enemigos muertos/inconscientes
+  - ✅ Inicio de combate desde diferentes estados (exploración, interacción)
+  - ✅ Finalización de combate y transición a exploración
+  - ✅ Sincronización entre UI y estado del servidor
+- **Solución implementada:** ✅
+  - Testing exhaustivo del sistema de combate después de la refactorización
+  - Verificación de casos de uso comunes y edge cases
+  - Confirmación de que todos los flujos funcionan correctamente
+  - Validación de que no hay regresiones de problemas anteriores
+- **Archivos verificados:**
+  - `src/lib/combat/` (todos los módulos del sistema de combate)
+  - `src/ai/tools/combat-manager.ts`
+  - `src/ai/flows/action-interpreter.ts`
+  - `src/ai/flows/game-coordinator.ts`
+- **Impacto:** Medio - Asegura la confiabilidad y estabilidad del sistema de combate después de la refactorización
+- **Estado:** ✅ **RESUELTO** - Testing completado y sistema verificado (2025-01-27)
+- **Prioridad:** Media
+- **Relacionado con:**
+  - Issue #117 (Simplificación de Arquitectura de Combate) - La refactorización que requería este testing (✅ RESUELTO)
+  - Issue #92 (Identificación incorrecta de enemigo en combate) - Problema relacionado verificado como resuelto
+  - Issue #112 (Sincronización entre DM y combat tracker) - Problema de sincronización verificado como resuelto
+- **Referencia:** Reportado por usuario después de la refactorización (2025-11-22)
 
 ---
 
@@ -380,7 +530,43 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 - **Plan de implementación:** [Issue #121 - Fix Weapon Parsing Regression](../../planes-desarrollo/completados/issue-121-fix-weapon-parsing.md)
 - **Relacionado con:**
   - Issue #120 (Inconsistencia en Cálculos de Tiradas) - Regresión introducida durante su implementación (✅ RESUELTO)
-  - Issue #115 (Validación de inventario) - Problema relacionado de validación de armas en inventario
+  - Issue #115 (Validación de inventario) - Problema relacionado de validación de armas en inventario (✅ RESUELTO)
+
+---
+
+### Issue #115: Validación de inventario al usar armas u objetos ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-18
+- **Fecha de corrección:** 2025-01-27
+- **Ubicación:** `src/lib/combat/turn-processor.ts`, `src/lib/combat/action-resolver.ts`, `src/lib/combat/combat-session.ts`, `src/components/game/game-view.tsx`
+- **Severidad:** 🟡 **ALTA** (afecta la coherencia del juego y permite acciones imposibles)
+- **Descripción:** En combate, cuando el jugador intentaba usar un arma, hechizo u objeto que no tenía en su inventario, el sistema lo procesaba igualmente sin validar, permitiendo acciones imposibles y rompiendo la inmersión.
+- **Problema resuelto:**
+  - ✅ Validación de armas: El sistema valida que el arma mencionada está en el inventario antes de procesar el ataque
+  - ✅ Validación de hechizos: El sistema valida que el hechizo mencionado está en la lista de hechizos conocidos del personaje
+  - ✅ Validación de objetos: El sistema valida que el objeto mencionado está en el inventario y tiene cantidad > 0
+  - ✅ Errores específicos que no avanzan el turno, permitiendo al jugador reintentar la acción
+  - ✅ Frontend detecta errores de inventario y resetea `playerActionCompleted` automáticamente
+- **Solución implementada:** ✅
+  - Funciones de extracción: `extractWeaponName()`, `extractSpellName()`, `extractItemName()` para parsear acciones del jugador
+  - Métodos de validación en `CombatActionResolver`: `validateSpell()`, `validateItem()`
+  - Validación automática en `TurnProcessor` cuando el jugador menciona hechizos u objetos
+  - Códigos de error específicos: `WEAPON_NOT_IN_INVENTORY`, `SPELL_NOT_KNOWN`, `ITEM_NOT_IN_INVENTORY`
+  - Estos errores no avanzan el turno en `CombatSession`, permitiendo reintentar
+  - Frontend detecta mensajes de error y habilita el input automáticamente
+- **Archivos modificados:**
+  - ✅ `src/lib/combat/combat-session.ts` - Añadidos códigos de error que no avanzan turno
+  - ✅ `src/lib/combat/turn-processor.ts` - Funciones de extracción y validación
+  - ✅ `src/lib/combat/action-resolver.ts` - Métodos de validación de hechizos y objetos
+  - ✅ `src/components/game/game-view.tsx` - Detección de errores en frontend
+  - ✅ `tests/unit/combat/turn-processor.test.ts` - Tests para validación
+- **Impacto:** Alto - Mejora la coherencia del juego y previene acciones imposibles. El jugador ahora recibe feedback claro cuando intenta usar algo que no tiene.
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada (2025-01-27)
+- **Prioridad:** Alta
+- **Plan de implementación:** [Issue #115 - Validación de Inventario](../../planes-desarrollo/completados/issue-115-validacion-inventario.md)
+- **Referencia:** [Notas de Gael - #115](../notas/Notas%20de%20Gael.md)
+- **Relacionado con:**
+  - Issue #121 (Regresión en Parsing de Armas) - Problema relacionado de validación/búsqueda de armas en inventario (✅ RESUELTO)
 
 ---
 
@@ -1130,6 +1316,69 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
   - `src/ai/tools/companion-expert.ts` (líneas 102-111)
 - **Estado:** ✅ RESUELTO
 
+---
+
+### Issue #15: Mejora de búsqueda en D&D API para monstruos no mapeados ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-12
+- **Fecha de corrección:** 2025-01-22 (implementado como parte de Issue #125 - Unificación de APIs)
+- **Ubicación:** `src/lib/dnd-api-client.ts`
+- **Severidad:** Baja
+- **Descripción:** Cuando un monstruo, hechizo o equipo no estaba en el mapeo español→inglés, el sistema intentaba buscar con el nombre normalizado (sin acentos), pero si el nombre estaba en español y no tenía equivalente directo, la búsqueda fallaba.
+- **Problema resuelto:**
+  - ✅ Sistema de búsqueda mejorado con fallback de dos niveles
+  - ✅ Mapeo español→inglés extenso implementado
+  - ✅ Normalización inteligente que busca mapeo directo, parcial, o normaliza el nombre
+  - ✅ Búsqueda por endpoint cuando el fetch directo falla
+- **Solución implementada:** ✅
+  - Implementado en `src/lib/dnd-api-client.ts` como parte de la unificación de APIs (Issue #125)
+  - **Mapeo español→inglés extenso:** `SPANISH_TO_ENGLISH_MAP` con más de 100 entradas para monstruos, hechizos y equipamiento
+  - **Normalización inteligente:** La función `normalizeQuery`:
+    - Busca mapeo directo en el diccionario
+    - Busca mapeo parcial para consultas de múltiples palabras
+    - Si no encuentra mapeo, normaliza el nombre (quita acentos) y lo devuelve
+  - **Sistema de fallback de dos niveles en `searchResource`:**
+    1. **Primer intento:** Fetch directo por nombre normalizado (`/${resourceType}/${formattedQuery}`)
+    2. **Segundo intento:** Si falla, usa endpoint de búsqueda (`/${resourceType}/?name=${normalizedQuery}`)
+    3. Si encuentra resultados, obtiene el detalle del primer resultado encontrado
+  - Esto permite encontrar monstruos incluso si no están en el mapeo, usando el nombre normalizado o la búsqueda por endpoint
+- **Archivos modificados:**
+  - ✅ `src/lib/dnd-api-client.ts` (implementación completa del sistema de búsqueda mejorado)
+- **Impacto:** Bajo - Mejora la capacidad del sistema para encontrar información de monstruos, hechizos y equipamiento incluso cuando no están en el mapeo manual
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada (2025-01-22)
+- **Prioridad:** Baja
+- **Relacionado con:**
+  - Issue #125 (Unificación de APIs) - Implementado como parte de esta mejora (✅ RESUELTO)
+
+---
+
+### Issue #30: Errores de conexión a APIs con logs verbosos ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-14
+- **Fecha de corrección:** 2025-11-21
+- **Ubicación:** `src/ai/flows/retry-utils.ts`, `src/ai/flows/action-interpreter.ts` y otros módulos que usan APIs
+- **Severidad:** 🟡 **MEDIA** (afecta legibilidad de logs)
+- **Descripción:** Los errores de conexión a las APIs (especialmente Gemini API) generaban logs muy verbosos que ocupaban mucho espacio en la terminal, dificultando la lectura de otros logs importantes.
+- **Problema resuelto:**
+  - ✅ Stack traces completos suprimidos en errores de conexión
+  - ✅ Mensajes de error simplificados mostrando solo información esencial
+  - ✅ Stack traces limitados solo a la función `retryWithExponentialBackoff`
+  - ✅ Logs más legibles y fáciles de diagnosticar
+- **Solución implementada:** ✅
+  - Modificado `retryWithExponentialBackoff` en `src/ai/flows/retry-utils.ts` para crear errores limpios sin stack traces completos
+  - Cuando se agotan los reintentos, se crea un nuevo error con mensaje limpio: `API call failed: [mensaje] ([código])`
+  - Se usa `Error.captureStackTrace` para limitar el stack trace solo a la función `retryWithExponentialBackoff`
+  - Los errores ahora muestran solo el mensaje esencial y código de error, sin stack traces largos
+- **Archivos modificados:**
+  - ✅ `src/ai/flows/retry-utils.ts` (líneas 66-91, 114-137: creación de errores limpios)
+- **Impacto:** Medio - Mejora significativa de la legibilidad de logs durante desarrollo. Los errores de API ahora son más fáciles de diagnosticar sin stack traces verbosos.
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada (2025-11-21)
+- **Prioridad:** Media
+- **Relacionado con:**
+  - Issue #125 (Primera llamada a APIs siempre falla) - Mejoras relacionadas en manejo de errores de API (✅ RESUELTO)
+
+---
+
 ### Issue #27: Verificación de muerte de personajes en combate y fuera de combate ✅ RESUELTO
 
 - **Fecha de creación:** 2025-11-13
@@ -1336,6 +1585,34 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 
 ---
 
+### Issue #77: Mensajes lentos al avanzar turno cuando el siguiente personaje está muerto o inconsciente ✅ RESUELTO
+
+- **Fecha de creación:** 2025-11-17
+- **Fecha de corrección:** 2025-01-27
+- **Ubicación:** `src/app/game-state-actions.ts`, `src/components/game/initiative-tracker.tsx`, sistema de avance de turnos
+- **Severidad:** 🟢 **MEDIA** (ralentiza el flujo de combate sin aportar información)
+- **Descripción:** Al presionar "Avanzar turno", si el siguiente combatiente está muerto o inconsciente, el mensaje que indica el salto de turno tardaba demasiado en mostrarse, creando la sensación de que la UI se congeló.
+- **Problema resuelto:**
+  - ✅ Transición instantánea cuando se salta un turno de combatiente muerto/inconsciente
+  - ✅ Mensaje breve e inmediato que indica que el combatiente está fuera de combate
+  - ✅ Eliminación de delays y esperas innecesarias en el avance de turnos
+  - ✅ Mejora del flujo de combate durante combates largos con múltiples personajes KO
+- **Solución implementada:** ✅
+  - Detección automática de combatientes sin acciones disponibles (muertos/inconscientes)
+  - Saltado automático de turnos sin delays ni narraciones largas
+  - Mensaje corto e inmediato ("[Nombre] está inconsciente, se salta su turno" o similar)
+  - Revisión y eliminación de timers/awaits innecesarios ligados al avance de turnos
+- **Archivos modificados:**
+  - ✅ `src/app/game-state-actions.ts` (lógica de avance de turnos)
+  - ✅ `src/components/game/initiative-tracker.tsx` (visualización de turnos)
+  - ✅ Sistema de procesamiento de turnos en combate
+- **Impacto:** Medio - Reduce fricción durante combates largos con múltiples personajes KO, mejorando la experiencia de usuario
+- **Estado:** ✅ **RESUELTO** - Implementación completada y verificada (2025-01-27)
+- **Prioridad:** Media
+- **Detección:** Testing manual del sistema de turnos
+
+---
+
 ### Issue #78: Auto-avance se detiene un turno antes del jugador ✅ RESUELTO
 
 - **Fecha de creación:** 2025-11-17
@@ -1351,6 +1628,43 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 - **Archivos modificados:** `src/components/game/game-view.tsx`
 - **Estado:** ✅ RESUELTO
 - **Detección:** Testing manual – Test 1.5 (Flujo "Avanzar Todos").
+
+### Issue #6: Manejo de errores en `handleLoadAdventure` ✅ NO RELEVANTE
+
+- **Fecha de creación:** 2025-11-10
+- **Fecha de cierre:** 2025-01-27
+- **Ubicación:** `src/app/page.tsx`
+- **Severidad:** Baja
+- **Descripción:** El manejo de errores en `handleLoadAdventure` podría ser más específico, diferenciando entre errores de parseo JSON, errores de la IA, y errores de red.
+- **Estado:** ✅ **NO RELEVANTE** - Ya no es relevante debido a mejoras en el sistema de carga de aventuras (Issue #126)
+- **Nota:** Este issue fue marcado como no relevante porque el sistema de carga de aventuras ha sido completamente refactorizado y mejorado, incluyendo mejor manejo de errores.
+
+---
+
+### Issue #7: Advertencia de Content Security Policy sobre 'eval' ✅ NO RELEVANTE
+
+- **Fecha de creación:** 2025-11-10
+- **Fecha de cierre:** 2025-01-27
+- **Ubicación:** Consola del navegador
+- **Severidad:** Baja (solo advertencia, no error)
+- **Descripción:** Aparece el mensaje "Content Security Policy of your site blocks the use of 'eval' in JavaScript" en la consola del navegador.
+- **Problema:** Este mensaje es común en Next.js en modo desarrollo debido a source maps y hot reloading. No afecta la funcionalidad.
+- **Estado:** ✅ **NO RELEVANTE** - Comportamiento esperado en desarrollo, no requiere acción
+- **Nota:** Este issue fue marcado como no relevante porque es un comportamiento normal de Next.js en desarrollo y no afecta la funcionalidad de la aplicación.
+
+---
+
+### Issue #8: Fallos al cargar aventura desde JSON ✅ NO RELEVANTE
+
+- **Fecha de creación:** 2025-11-10
+- **Fecha de cierre:** 2025-01-27
+- **Ubicación:** `src/app/page.tsx`, función `handleLoadAdventure`
+- **Severidad:** Baja (funcionalidad aún no implementada completamente)
+- **Descripción:** Al intentar cargar una aventura desde un archivo JSON, se producían varios fallos.
+- **Estado:** ✅ **NO RELEVANTE** - Funcionalidad completamente implementada y mejorada (Issue #126)
+- **Nota:** Este issue fue marcado como no relevante porque la funcionalidad de carga de aventuras desde JSON ha sido completamente implementada y mejorada en el Issue #126, incluyendo validación robusta, manejo de errores mejorado y sistema de caché.
+
+---
 
 ### Issue #1: Archivo Duplicado `game-view.tsx` ✅ CORREGIDO
 
@@ -1614,4 +1928,29 @@ Issues que han sido resueltos y verificados. Ordenados por prioridad (PMA → PA
 - Los números de issue se mantienen como referencia histórica del orden en que fueron añadidos
 - Para más detalles sobre cada issue, consultar el historial de commits y el [CHANGELOG.md](../../../CHANGELOG.md)
 - Los issues corregidos se mantienen aquí como referencia histórica y para documentar las soluciones implementadas
+
+
+---
+
+### Issue #92: Identificaci�n incorrecta de enemigo en combate  RESUELTO
+
+- **Fecha de creaci�n:** 2025-11-16
+- **Fecha de correcci�n:** 2025-11-27
+- **Ubicaci�n:** \src/ai/flows/action-interpreter.ts\, \src/ai/flows/game-coordinator.ts\, \src/ai/flows/schemas.ts\
+- **Severidad:**  **MEDIA** (afecta precisi�n de acciones del jugador)
+- **Descripci�n:** Cuando el jugador hac�a referencia a un enemigo por acciones recientes (ej: 'el goblin que me acaba de atacar'), el sistema a veces identificaba incorrectamente al enemigo objetivo porque el int�rprete de acciones no ten�a acceso al historial reciente del combate.
+- **Problema resuelto:**
+  -  El \ActionInterpreter\ ahora recibe el \conversationHistory\ completo
+  -  El prompt del int�rprete ha sido actualizado para usar este historial y resolver referencias contextuales ('el que me atac�', 'el que mat� a X')
+  -  El \GameCoordinator\ genera y pasa el transcript del historial antes de llamar al int�rprete
+- **Soluci�n implementada:** 
+  - Modificado \ActionInterpreterInputSchema\ para incluir \conversationHistory\
+  - Actualizado \ctionInterpreterPrompt\ para incluir instrucciones sobre el uso del historial
+  - Actualizado \gameCoordinatorFlow\ para pasar el historial formateado
+- **Archivos modificados:**
+  - \src/ai/flows/schemas.ts\
+  - \src/ai/flows/action-interpreter.ts\
+  - \src/ai/flows/game-coordinator.ts\
+- **Impacto:** Medio - Mejora la 'inteligencia' del sistema para entender referencias naturales del jugador basadas en eventos recientes.
+- **Estado:**  **RESUELTO** - Implementaci�n completada y verificada (2025-11-27)
 

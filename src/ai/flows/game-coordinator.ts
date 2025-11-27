@@ -140,11 +140,16 @@ export const gameCoordinatorFlow = ai.defineFlow(
         } else {
             log.gameCoordinator('Interpreting player action', { action: playerAction });
             localLog("GameCoordinator: Interpreting player action...");
+
+            // Generate transcript for context
+            const historyTranscript = conversationHistory.map(formatMessageForTranscript).join('\n');
+
             const result = await actionInterpreter({
                 playerAction,
                 locationContext: JSON.stringify(currentLocationData),
                 party: party,
                 updatedEnemies: currentLocationEnemies, // Issue #27: Pass enemies to filter dead ones
+                conversationHistory: historyTranscript,
             });
             interpretation = result.interpretation;
             interpreterLogs = result.debugLogs;

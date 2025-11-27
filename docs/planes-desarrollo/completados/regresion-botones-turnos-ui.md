@@ -1,4 +1,8 @@
-# Plan en curso: Corrección regresión botones de avance de turno en la UI
+# Plan completado: Corrección regresión botones de avance de turno en la UI
+
+**Estado:** ✅ **COMPLETADO**  
+**Fecha de finalización:** 2025-11-26  
+**Issue relacionado:** [Issue #130](../../tracking/issues/corregidos.md#issue-130-regresión-ui---botones-de-avance-de-turno-no-aparecen-tras-refactor--resuelto)
 
 ## Contexto
 - Tras la refactorización de la UI del chat/combat tracker, los botones **“Avanzar 1 turno”** y **“Avance automático”** dejaron de mostrarse de forma consistente.
@@ -100,4 +104,43 @@ Excluido:
 
 Tiempo total estimado: **1.5 días** de trabajo concentrado.
 
+---
 
+## ✅ Implementación Completada
+
+### Resumen de la Solución
+El problema se resolvió identificando que el componente `ChatPanel` requería las funciones `onPassTurn` y `onAdvanceAll` para renderizar los botones de avance de turno, pero estas no se estaban pasando correctamente desde `GameView`.
+
+### Cambios Implementados
+1. **Implementación de Handlers en `game-view.tsx`:**
+   - Se creó la función `handlePassTurn` para manejar el avance de un solo turno
+   - Se creó la función `handleAdvanceAll` para manejar el avance automático de todos los turnos de IA
+   - Ambas funciones se pasaron correctamente como props a `ChatPanel`
+
+2. **Limpieza de Props Obsoletos:**
+   - Se eliminó el prop `onDiceRoll` que causaba errores de tipo y ya no era necesario
+
+3. **Verificación de Funcionamiento:**
+   - Los botones ahora aparecen correctamente cuando:
+     - Hay turnos de IA pendientes (`hasMoreAITurns=true`)
+     - Se acaba de procesar un turno de IA (`justProcessedAITurn=true`)
+     - El jugador ha completado su acción (`playerActionCompleted=true`)
+     - El auto-avance está activo (`autoAdvancing=true`)
+
+### Archivos Modificados
+- ✅ `src/components/game/game-view.tsx` - Implementación de handlers y paso de props
+
+### Testing Realizado
+- ✅ Escenario IA→IA: Botones aparecen correctamente
+- ✅ Escenario IA→Jugador: Botones aparecen y "Es tu turno..." se muestra
+- ✅ Escenario Jugador→IA: Botones desaparecen tras pulsarlos
+- ✅ Auto-avance: Funciona correctamente en ambos modos
+
+### Resultados
+- ✅ **Funcionalidad restaurada:** Los botones de avance de turno funcionan correctamente en todos los escenarios
+- ✅ **Sin regresiones:** No se introdujeron nuevos problemas
+- ✅ **Código limpio:** Se eliminaron props obsoletos y se mejoró la estructura
+
+### Referencias
+- [Issue #130](../../tracking/issues/corregidos.md#issue-130-regresión-ui---botones-de-avance-de-turno-no-aparecen-tras-refactor--resuelto)
+- [CHANGELOG.md](../../../CHANGELOG.md) - Entrada del 2025-11-26

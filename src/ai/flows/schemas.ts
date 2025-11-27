@@ -13,6 +13,7 @@ export const ActionInterpreterInputSchema = z.object({
   locationContext: z.string().describe('A JSON string with the full data of the current location, including its exits, interactable objects and entities present.'),
   party: z.array(z.any()).describe("The array of party member objects. Used to identify companions."),
   updatedEnemies: z.array(z.any()).optional().describe("Array of enemies with current HP status to filter out dead entities."),
+  conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation to provide immediate context."),
 });
 export type ActionInterpreterInput = z.infer<typeof ActionInterpreterInputSchema>;
 

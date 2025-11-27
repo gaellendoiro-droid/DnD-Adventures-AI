@@ -21,8 +21,15 @@ export interface DiceRollRequest {
 export interface ResolutionResult {
     success: boolean;
     diceRollRequests: DiceRollRequest[];
-    error?: string;
+    error?: string; // Error code (e.g., 'WEAPON_NOT_IN_INVENTORY', 'SPELL_NOT_KNOWN', 'ITEM_NOT_IN_INVENTORY')
+    errorMessage?: string; // Human-readable error message
     actionDescription?: string;
+}
+
+export interface ValidationResult {
+    success: boolean;
+    error?: string; // Error code
+    errorMessage?: string; // Human-readable error message
 }
 
 export class CombatActionResolver {
@@ -220,7 +227,12 @@ export class CombatActionResolver {
         }
 
         if (!weapon && weaponQuery.toLowerCase() !== 'ataque') {
-            return { success: false, diceRollRequests: [], error: `No tienes el arma "${weaponQuery}".` };
+            return { 
+                success: false, 
+                diceRollRequests: [], 
+                error: 'WEAPON_NOT_IN_INVENTORY',
+                errorMessage: `No tienes el arma "${weaponQuery}".` 
+            };
         }
 
         const actualWeaponName = weapon?.name || 'Ataque desarmado';
@@ -473,5 +485,78 @@ export class CombatActionResolver {
             diceRollRequests,
             actionDescription: `${enemy.name} usa ${action.name} contra ${targetName}.`
         };
+    }
+
+    /**
+     * Validates that a spell is known by the player character.
+     * @param player - Player character
+     * @param spellQuery - Spell name to validate
+     * @returns Validation result
+     */
+    static validateSpell(player: Character, spellQuery: string): ValidationResult {
+        if (!spellQuery) {
+            return {
+                success: false,
+                error: 'SPELL_NOT_KNOWN',
+                errorMessage: 'No has especificado un hechizo.'
+            };
+        }
+
+        // Search for spell in player's spell list
+        const spell = player.spells?.find((s: any) =>
+            s.name.toLowerCase().includes(spellQuery.toLowerCase()) ||
+            spellQuery.toLowerCase().includes(s.name.toLowerCase())
+        );
+
+        if (!spell) {
+            return {
+                success: false,
+                error: 'SPELL_NOT_KNOWN',
+                errorMessage: `No conoces el hechizo "${spellQuery}".`
+            };
+        }
+
+        return { success: true };
+    }
+
+    /**
+     * Validates that an item is in the player character's inventory.
+     * @param player - Player character
+     * @param itemQuery - Item name to validate
+     * @returns Validation result
+     */
+    static validateItem(player: Character, itemQuery: string): ValidationResult {
+        if (!itemQuery) {
+            return {
+                success: false,
+                error: 'ITEM_NOT_IN_INVENTORY',
+                errorMessage: 'No has especificado un objeto.'
+            };
+        }
+
+        // Search for item in player's inventory
+        const item = player.inventory?.find((i: any) =>
+            i.name.toLowerCase().includes(itemQuery.toLowerCase()) ||
+            itemQuery.toLowerCase().includes(i.name.toLowerCase())
+        );
+
+        if (!item) {
+            return {
+                success: false,
+                error: 'ITEM_NOT_IN_INVENTORY',
+                errorMessage: `No tienes el objeto "${itemQuery}" en tu inventario.`
+            };
+        }
+
+        // Check if item has quantity > 0
+        if (item.quantity !== undefined && item.quantity <= 0) {
+            return {
+                success: false,
+                error: 'ITEM_NOT_IN_INVENTORY',
+                errorMessage: `No tienes "${itemQuery}" disponible (cantidad: 0).`
+            };
+        }
+
+        return { success: true };
     }
 }

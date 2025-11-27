@@ -22,50 +22,50 @@ export function InitiativeTracker({
 }: InitiativeTrackerProps) {
   return (
     <div className="flex flex-col h-full">
-      <CardHeader className="flex-row items-center gap-2 pt-4 pb-2">
-        <Swords className="w-6 h-6 text-destructive" />
-        <CardTitle className="font-headline text-xl">Orden de Combate</CardTitle>
+      <CardHeader className="flex-row items-center gap-2 pt-2 pb-1">
+        <Swords className="w-5 h-5 text-destructive" />
+        <CardTitle className="font-headline text-lg">Orden de Combate</CardTitle>
       </CardHeader>
-      <ScrollArea className="px-2 flex-grow">
-        <div className="p-2 space-y-2">
+      <ScrollArea className="px-1 flex-grow">
+        <div className="p-1.5 space-y-1">
           {combatants.length === 0 ? (
-            <p className="text-sm text-center text-muted-foreground p-4">
+            <p className="text-xs text-center text-muted-foreground p-2">
               Esperando a que comience el combate...
             </p>
           ) : (
-            <ol className="space-y-2">
+            <ol className="space-y-1">
               {combatants.map((combatant, index) => {
                 const isActive = index === currentTurnIndex;
                 return (
                   <li
                     key={combatant.id}
-                    className={`flex items-center space-x-3 p-2 rounded-lg transition-all duration-300 border-l-4 ${isActive ? "bg-secondary border-primary/80" : "border-transparent"
+                    className={`flex items-center space-x-2 p-1.5 rounded-lg transition-all duration-300 border-l-4 ${isActive ? "bg-secondary border-primary/80" : "border-transparent"
                       } ${isActive && isProcessing ? "animate-pulse" : ""}`}
                   >
-                    <div className="flex-shrink-0 font-mono text-xs h-6 w-6 flex items-center justify-center rounded-full bg-muted-foreground/20 text-muted-foreground font-bold">
+                    <div className="flex-shrink-0 font-mono text-[10px] h-5 w-5 flex items-center justify-center rounded-full bg-muted-foreground/20 text-muted-foreground font-bold">
                       {index + 1}
                     </div>
-                    <div className="flex-1 flex justify-between items-center">
-                      <p className="font-semibold">{combatant.characterName}</p>
-                      <div className="flex items-center gap-2">
+                    <div className="flex-1 flex justify-between items-center min-w-0">
+                      <p className="font-semibold text-sm truncate">{combatant.characterName}</p>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
                         {isActive && isProcessing && (
-                          <Badge variant="outline" className="text-xs border-amber-500 text-amber-500">
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500 text-amber-500">
                             Procesando...
                           </Badge>
                         )}
                         {isActive && isPlayerTurn && !isProcessing && (
-                          <Badge variant="outline" className="text-xs border-blue-500 text-blue-500">
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-blue-500 text-blue-500">
                             Tu Turno
                           </Badge>
                         )}
                         {combatant.type === 'enemy' ? (
-                          <Swords className="h-4 w-4 text-red-500" title="Enemigo" />
+                          <Swords className="h-3.5 w-3.5 text-red-500 flex-shrink-0" title="Enemigo" />
                         ) : combatant.controlledBy === 'Player' ? (
-                          <User className="h-4 w-4 text-blue-500" title="Jugador" />
+                          <User className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" title="Jugador" />
                         ) : (
-                          <Users className="h-4 w-4 text-green-500" title="Aliado" />
+                          <Users className="h-3.5 w-3.5 text-green-500 flex-shrink-0" title="Aliado" />
                         )}
-                        <Badge variant="outline" className="font-mono">
+                        <Badge variant="outline" className="font-mono text-xs px-1.5 py-0">
                           {combatant.total}
                         </Badge>
                       </div>

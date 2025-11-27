@@ -3,10 +3,9 @@
 **Issue:** #115  
 **Prioridad:** 🟡 ALTA  
 **Fecha de creación del plan:** 2025-01-27  
-**Estado:** ⏸️ POSPUESTO  
-**Fecha de posposición:** 2025-01-27  
-**Razón de posposición:** Priorizar otras mejoras arquitectónicas (Issue #94) y features del roadmap. Este issue mejora la calidad pero no es bloqueador.  
-**Referencia:** [Issue #115](../../tracking/issues/pendientes.md#issue-115-validación-de-inventario-al-usar-armas-u-objetos-🟡-advertencia)
+**Fecha de finalización:** 2025-01-27  
+**Estado:** ✅ COMPLETADO  
+**Referencia:** [Issue #115](../../tracking/issues/corregidos.md#issue-115-validación-de-inventario-al-usar-armas-u-objetos-advertencia-resuelto)
 
 ---
 
@@ -349,18 +348,45 @@ function normalizeItemName(name: string): string {
 
 ---
 
-## 🚀 Próximos Pasos
+## ✅ Implementación Completada
 
-1. ✅ Crear este plan
-2. ⏸️ **POSPUESTO** - Priorizar otras mejoras arquitectónicas y features del roadmap
-3. ⏳ Revisar y aprobar plan (cuando se retome)
-4. ⏳ Implementar Fase 1 (módulo de validación)
-5. ⏳ Implementar Fase 2 (validación en combate)
-6. ⏳ Implementar Fase 3 (validación en exploración)
-7. ⏳ Testing completo (Fase 4)
-8. ⏳ Mover issue #115 a resueltos
+### Resumen de Cambios
+
+El Issue #115 fue completado como parte de la implementación de validación de inventario para armas, hechizos y objetos. La solución implementada incluye:
+
+1. **Validación de Armas** (Issue #121 - ya implementado previamente):
+   - Función `extractWeaponName()` para extraer nombres de armas de acciones del jugador
+   - Validación en `CombatActionResolver.resolveAttack()` con código de error `WEAPON_NOT_IN_INVENTORY`
+
+2. **Validación de Hechizos** (implementado en esta sesión):
+   - Función `extractSpellName()` para extraer nombres de hechizos de acciones del jugador
+   - Método `CombatActionResolver.validateSpell()` con código de error `SPELL_NOT_KNOWN`
+
+3. **Validación de Objetos** (implementado en esta sesión):
+   - Función `extractItemName()` para extraer nombres de objetos de acciones del jugador
+   - Método `CombatActionResolver.validateItem()` con código de error `ITEM_NOT_IN_INVENTORY`
+
+4. **Integración en Turn Processor**:
+   - Validación automática de hechizos y objetos cuando el jugador los menciona en su acción
+   - Errores específicos que no avanzan el turno, permitiendo al jugador reintentar
+
+5. **Frontend**:
+   - Detección de errores de inventario/hechizos/objetos
+   - Reset automático de `playerActionCompleted` para permitir reintentar
+
+### Archivos Modificados
+
+- `src/lib/combat/combat-session.ts` - Añadidos códigos de error que no avanzan turno
+- `src/lib/combat/turn-processor.ts` - Funciones de extracción y validación
+- `src/lib/combat/action-resolver.ts` - Métodos de validación de hechizos y objetos
+- `src/components/game/game-view.tsx` - Detección de errores en frontend
+- `tests/unit/combat/turn-processor.test.ts` - Tests para validación
+
+### Estado Final
+
+✅ **COMPLETADO** - Todas las validaciones de inventario implementadas y funcionando correctamente.
 
 ---
 
-**Última actualización:** 2025-01-27 (Pospuesto)
+**Última actualización:** 2025-01-27 (Completado)
 
