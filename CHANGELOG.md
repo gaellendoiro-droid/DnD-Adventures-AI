@@ -14,6 +14,20 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ---
 
 ## [Unreleased]
+
+## [0.5.9] - 2025-11-27
+
+### Changed
+- **🚀 Refactorización de "Nueva Partida" (2025-11-27):**
+  - **Mejora:** El botón "Nueva Partida" ahora utiliza el sistema robusto de inicialización (`initializeGame`) en lugar de lógica hardcodeada.
+  - **Detalles:**
+    - Se ha eliminado la dependencia de `new-game-data.ts`, que contenía una copia hardcodeada de la introducción.
+    - Ahora la introducción se carga dinámicamente desde el archivo JSON de la aventura (`el-dragon-del-pico-agujahelada.json`), facilitando actualizaciones de contenido sin tocar código.
+    - Se garantiza que la validación y el caché funcionen igual para "Nueva Partida" que para "Cargar Aventura".
+  - **Archivos modificados:**
+    - `src/app/page.tsx` (Lógica de `handleNewGame` actualizada)
+    - `src/lib/new-game-data.ts` (Eliminado)
+
 ### Added
 - **🎵 Sistema de Música y Sonido Dinámico (2025-11-27):**
   - **Mejora:** Implementación de un sistema de audio inmersivo que adapta la música y el ambiente al contexto del juego.

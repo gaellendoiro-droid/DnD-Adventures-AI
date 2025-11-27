@@ -3,7 +3,6 @@
 
 import { useState } from "react";
 import type { Character, GameMessage, DiceRoll, Combatant } from "@/lib/types";
-import { initialMessage } from "@/lib/new-game-data";
 import { initialParty } from "@/lib/initial-party";
 import { AppHeader } from "@/components/layout/app-header";
 import { MainMenu } from "@/components/game/main-menu";
@@ -74,30 +73,22 @@ export default function Home() {
       // Validate adventure data structure
       AdventureDataSchema.parse(defaultAdventure);
 
-      setAdventureData(defaultAdventure);
-      setAdventureName(defaultAdventure.title || "Aventura Predeterminada");
+      // Initialize Game using the shared logic (Cache + First Action/Intro)
+      const { initializeGame } = await import('@/lib/adventure-loader/game-initializer');
 
-      // Update server-side cache with the default adventure
-      const { setAdventureDataCache } = await import('./actions');
-      await setAdventureDataCache(defaultAdventure);
+      const initResult = await initializeGame(
+        defaultAdventure,
+        initialParty,
+        defaultAdventure.title || "Aventura Predeterminada"
+      );
 
-      const firstLocation = defaultAdventure.locations[0];
-
-      if (!firstLocation || !firstLocation.id) {
-        throw new Error("La aventura no tiene una ubicación inicial válida.");
+      if (!initResult.success) {
+        throw initResult.error;
       }
 
-      setInitialGameData({
-        party: initialParty,
-        messages: [initialMessage],
-        diceRolls: [],
-        locationId: firstLocation.id,
-        inCombat: false,
-        initiativeOrder: [],
-        turnIndex: 0,
-        enemies: [], // Deprecated: kept for backward compatibility
-        enemiesByLocation: {}, // New: enemies by location (empty initially)
-      });
+      setAdventureData(defaultAdventure);
+      setAdventureName(defaultAdventure.title || "Aventura Predeterminada");
+      setInitialGameData(initResult.initialGameData);
 
       setGameInProgress(true);
       setGameStarted(true);
@@ -318,7 +309,7 @@ export default function Home() {
         <GameView
           initialData={initialGameData}
           onGoToMenu={handleGoToMenu}
-          adventureName={adventureName}
+          adventureName={adventureName || "Aventura"}
           adventureData={adventureData}
           onSaveGame={(saveData) => {
             // We don't save the gameState anymore as it's static

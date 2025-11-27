@@ -11,8 +11,8 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 ## 📋 Índice de Planes
 
 - [🚧 Planes en Curso](#-planes-en-curso) (0 planes activos)
-- [✅ Planes Completados](#-planes-completados) (20 planes)
-- [💡 Planes Sin Comenzar](#-planes-sin-comenzar-priorizados) (12 planes)
+- [✅ Planes Completados](#-planes-completados) (21 planes)
+- [💡 Planes Sin Comenzar](#-planes-sin-comenzar-priorizados) (11 planes)
 - [🎯 Prioridades Estratégicas](#-prioridades-estratégicas)
 - [📊 Resumen Ejecutivo](#-resumen-ejecutivo)
 
@@ -20,7 +20,7 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** 0 planes activos | **Última implementación:** Ajuste Dinámico de Longitud de Narración (2025-11-26) - COMPLETADO
+**Estado:** 0 planes activos | **Última implementación:** Música y Sonido Dinámicos (2025-11-27) - COMPLETADO
 
 > Actualmente no hay planes en curso.
 
@@ -28,9 +28,22 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 20 planes
+**Estado:** Finalizados | **Cantidad:** 21 planes
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Música y Sonido Dinámicos](completados/sistema-musica-ambiental.md) ✅ **COMPLETADO**
+- **Estado:** Implementado y Documentado
+- **Objetivo:** Implementar un sistema de audio dinámico y robusto que se adapte al estado del juego (exploración vs. combate) y a la ubicación actual.
+- **Prioridad:** Media
+- **Resultados:**
+  - ✅ **Audio Multicanal:** Control independiente para Música, Ambiente, SFX y Narrador.
+  - ✅ **Jerarquía de 5 Niveles:** Búsqueda de audio desde lo más específico (ID exacto) hasta lo más general.
+  - ✅ **Inferencia de Región:** Detección automática de regiones (ej: 'bazar' -> 'phandalin').
+  - ✅ **Transiciones Suaves:** Crossfading de 4 segundos para cambios cinematográficos.
+  - ✅ **Persistencia:** Caché de aventura activa para sobrevivir reinicios del servidor.
+- **Fecha de finalización:** 2025-11-27
+- **Referencia:** [Plan Detallado](completados/sistema-musica-ambiental.md)
 
 ### [Ajuste Dinámico de Longitud de Narración](completados/ajuste-longitud-narracion.md) ✅ **COMPLETADO**
 - **Estado:** Implementado
@@ -440,10 +453,7 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 - **Prioridad:** Media
 - **Referencia:** Ver detalles completos en [Roadmap - Sección 12](../roadmap.md#12-mejoras-de-mecánicas-de-dd-5e-prioridad-media) (subsección "Sistema de Foco de Objetivo")
 
-#### [Música y Sonido Dinámicos](../roadmap.md#15-música-y-sonido-dinámicos-prioridad-media)
-- **Estado:** Sin comenzar
-- **Prioridad:** Media-Baja
-- **Referencia:** Ver detalles completos en [Roadmap - Sección 15](../roadmap.md#15-música-y-sonido-dinámicos-prioridad-media)
+
 
 ### Prioridad Baja
 
@@ -496,7 +506,7 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 5. **Sistema de Estados y Condiciones en Combate** - Estados temporales, condiciones, recursos gastados
 6. **Sistema de Foco de Objetivo en Combate** - Selección inteligente de objetivos basada en táctica
 7. **Convertidor de PDF a JSON** - Aplicación auxiliar para convertir aventuras de PDF a JSON
-8. **Música y Sonido Dinámicos** - Sistema de audio adaptativo según estado del juego
+
 
 ### Prioridad Baja
 
@@ -519,14 +529,14 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 ### Estado General del Proyecto
 
 **Progreso Total:**
-- ✅ **20 planes completados** (incluyendo 1 parcialmente completado)
+- ✅ **21 planes completados** (incluyendo 1 parcialmente completado)
 - 🚧 **0 planes en curso** actualmente
-- 📝 **12 planes sin comenzar** identificados y planificados
+- 📝 **11 planes sin comenzar** identificados y planificados
 
 **Distribución por Prioridad:**
 - **Prioridad Muy Alta:** 0 planes en curso (último completado: Issue #126)
 - **Prioridad Alta:** 6 planes pendientes
-- **Prioridad Media:** 8 planes pendientes (incluyendo 1 relacionado con testing)
+- **Prioridad Media:** 7 planes pendientes (incluyendo 1 relacionado con testing)
 - **Prioridad Baja:** 2 planes pendientes
 
 ### Logros Principales
