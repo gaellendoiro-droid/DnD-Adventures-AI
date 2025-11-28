@@ -97,10 +97,37 @@
                 "$ref": "#/definitions/event"
             }
         },
-        "table_of_contents": {
+        "tables": {
             "type": "array",
             "items": {
-                "type": "string"
+                "type": "object",
+                "required": ["id", "title", "dice", "rows"],
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "dice": {
+                        "type": "string"
+                    },
+                    "rows": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": ["range", "content"],
+                            "properties": {
+                                "range": {
+                                    "type": "string"
+                                },
+                                "content": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     },
@@ -118,31 +145,13 @@
                 "title": {
                     "type": "string"
                 },
-                "name": {
-                    "type": "string"
-                },
                 "description": {
                     "type": "string"
                 },
                 "dmNotes": {
                     "type": "string"
                 },
-                "type": {
-                    "type": "string",
-                    "enum": [
-                        "room",
-                        "region",
-                        "point_of_interest",
-                        "other"
-                    ]
-                },
                 "exits": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/connection"
-                    }
-                },
-                "connections": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/connection"
@@ -159,47 +168,23 @@
                     "items": {
                         "type": "string"
                     }
-                },
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "encounters": {
-                    "type": "array",
-                    "items": {
-                        "type": "object"
-                    }
                 }
             }
         },
         "connection": {
-            "anyOf": [
-                {
+            "type": "object",
+            "required": [
+                "toLocationId",
+                "description"
+            ],
+            "properties": {
+                "toLocationId": {
                     "type": "string"
                 },
-                {
-                    "type": "object",
-                    "required": [
-                        "toLocationId"
-                    ],
-                    "properties": {
-                        "toLocationId": {
-                            "type": "string"
-                        },
-                        "direction": {
-                            "type": "string"
-                        },
-                        "description": {
-                            "type": "string"
-                        },
-                        "requirements": {
-                            "type": "object"
-                        }
-                    }
+                "description": {
+                    "type": "string"
                 }
-            ]
+            }
         },
         "interactable": {
             "type": "object",
@@ -218,6 +203,7 @@
                     "type": "array",
                     "items": {
                         "type": "object",
+                        "required": ["action", "result"],
                         "properties": {
                             "action": {
                                 "type": "string"
@@ -227,6 +213,9 @@
                             }
                         }
                     }
+                },
+                "state": {
+                    "type": "string"
                 }
             }
         },
@@ -243,26 +232,15 @@
                 "name": {
                     "type": "string"
                 },
-                "baseType": {
-                    "type": "string"
-                },
-                "isUnique": {
-                    "type": "boolean"
+                "type": {
+                    "type": "string",
+                    "enum": ["monster", "npc", "other"]
                 },
                 "description": {
                     "type": "string"
                 },
-                "behavior": {
+                "dmNotes": {
                     "type": "string"
-                },
-                "dialogue": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "stats": {
-                    "type": "object"
                 }
             }
         },
@@ -327,6 +305,9 @@
                     "type": "string"
                 },
                 "locationId": {
+                    "type": "string"
+                },
+                "interactableId": {
                     "type": "string"
                 },
                 "action": {

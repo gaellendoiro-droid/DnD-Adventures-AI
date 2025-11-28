@@ -13,7 +13,7 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 ## 📑 Índice
 
 ### 🔴 Prioridad Muy Alta
-- (Sin iniciativas activas en este momento. Ver [histórico](./roadmap-historico.md).)
+- [1. Sistema de Movimiento y Conciencia Espacial](#roadmap-1)
 
 ### 🔴 Prioridad Alta
 - [2. Sistema de Progresión y Gestión](#roadmap-2)
@@ -50,7 +50,16 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 
 Mejoras críticas que mejoran significativamente la arquitectura, mantenibilidad y consistencia del sistema.
 
-> Actualmente no hay iniciativas activas en esta prioridad. Las últimas cuatro entregas se documentan en el [histórico](./roadmap-historico.md).
+<a id="roadmap-1"></a>
+### 1. Sistema de Movimiento y Conciencia Espacial
+*   **Problema Actual:** El motor del juego carece de un concepto real de espacio y movimiento. El combate y la exploración son abstractos, sin distancias, posicionamiento relativo o movimiento táctico. Esto limita severamente las tácticas de combate (ataques de oportunidad, alcance de hechizos, flanqueo) y la inmersión en la exploración.
+*   **Mejora Propuesta:**
+    *   **Sistema de Posicionamiento:** Implementar un sistema interno que rastree la posición relativa de cada entidad en una escena (zonas o coordenadas abstractas).
+    *   **Mecánicas de Movimiento:** Implementar reglas de movimiento (velocidad por turno) y acciones asociadas (Dash, Disengage).
+    *   **Conciencia Espacial para la IA:** Dotar a la IA (DM y NPCs) de conocimiento sobre distancias y posiciones para que puedan narrar y actuar de forma coherente con el espacio (ej: "El orco carga contra ti desde el otro lado de la sala").
+    *   **Validación de Alcance:** El sistema debe validar si un objetivo está dentro del alcance de un arma o hechizo antes de permitir la acción.
+*   **Impacto:** Fundamental para dar profundidad táctica al combate y realismo a la exploración. Es la base necesaria para muchas otras mecánicas de D&D.
+*   **Plan Detallado:** ❌ No creado
 
 ## 🔴 Prioridad Alta
 

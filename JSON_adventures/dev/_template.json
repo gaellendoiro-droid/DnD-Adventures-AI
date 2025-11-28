@@ -16,21 +16,25 @@
         "startingLocationId": "loc-start",
         "initialPartySize": 4
     },
+    "tables": [
+        {
+            "id": "table-rumors",
+            "title": "Rumores del Pueblo",
+            "dice": "1d6",
+            "rows": [
+                {
+                    "range": "1",
+                    "content": "Un rumor sobre algo peligroso."
+                }
+            ]
+        }
+    ],
     "locations": [
         {
             "id": "loc-start",
             "title": "Punto de Inicio",
-            "name": "Entrada de la Cueva",
-            "type": "point_of_interest",
             "description": "Descripción detallada de la ubicación que verá el jugador. Debe incluir detalles sensoriales.",
-            "dmNotes": "Notas secretas para el DM. Trampas, CDs de pruebas, tesoros ocultos.",
-            "exits": [
-                {
-                    "toLocationId": "loc-room-1",
-                    "direction": "north",
-                    "description": "Un túnel oscuro que se adentra en la montaña."
-                }
-            ],
+            "entitiesPresent": [],
             "interactables": [
                 {
                     "name": "Cartel Viejo",
@@ -43,38 +47,38 @@
                     ]
                 }
             ],
-            "entitiesPresent": [],
-            "items": []
+            "exits": [
+                {
+                    "description": "Un túnel oscuro que se adentra en la montaña.",
+                    "toLocationId": "loc-room-1"
+                }
+            ],
+            "dmNotes": "Notas secretas para el DM. Trampas, CDs de pruebas, tesoros ocultos."
         },
         {
             "id": "loc-room-1",
             "title": "Sala de Guardia",
             "description": "Una sala pequeña con olor a humedad.",
-            "type": "room",
-            "exits": [
-                {
-                    "toLocationId": "loc-start",
-                    "direction": "south",
-                    "description": "La salida hacia el exterior."
-                }
-            ],
             "entitiesPresent": [
                 "goblin-guard"
-            ]
+            ],
+            "interactables": [],
+            "exits": [
+                {
+                    "description": "La salida hacia el exterior.",
+                    "toLocationId": "loc-start"
+                }
+            ],
+            "dmNotes": "Notas adicionales para el DM."
         }
     ],
     "entities": [
         {
             "id": "goblin-guard",
             "name": "Goblin Guardia",
-            "baseType": "goblin",
-            "isUnique": false,
+            "type": "monster",
             "description": "Un goblin pequeño y maloliente con una lanza oxidada.",
-            "behavior": "hostile",
-            "stats": {
-                "hp": 7,
-                "ac": 15
-            }
+            "dmNotes": "Notas adicionales sobre este goblin para el DM."
         }
     ],
     "narrativeScenes": [
