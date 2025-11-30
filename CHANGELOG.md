@@ -15,6 +15,23 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+### Added
+- **🗺️ Sistema de Movimiento y Conciencia Espacial (2025-11-30):**
+  - **Mejora:** Implementación de un sistema de navegación robusto que permite movimiento multi-salto, cálculo de tiempos y detección de bloqueos.
+  - **Características:**
+    - ✅ **Pathfinding BFS:** Calcula automáticamente la ruta más corta entre dos ubicaciones no adyacentes.
+    - ✅ **Validación Paso a Paso:** Verifica bloqueos (`isBlocked`) y puertas cerradas (`isLocked`) en cada paso de la ruta.
+    - ✅ **Cálculo de Tiempo:** Suma acumulativa del tiempo de viaje basado en el tipo de conexión (urbano, overland, directo).
+    - ✅ **Narración Fluida:** Separa la narración del viaje (transición) de la descripción de llegada, permitiendo interrupciones narrativas naturales.
+    - ✅ **Integración Semántica:** Permite moverse hacia NPCs o lugares por nombre (ej: "Ir a ver a Halia" -> "Casa de Cambio").
+    - ✅ **Caché Reactiva:** El sistema de caché de aventuras ahora detecta cambios en el archivo JSON y se invalida automáticamente.
+  - **Archivos modificados:**
+    - `src/ai/flows/managers/navigation-manager.ts` (Nuevo motor de pathfinding)
+    - `src/ai/flows/managers/narrative-turn-manager.ts` (Integración con flujo narrativo)
+    - `src/lib/adventure-loader/adventure-cache.ts` (Soporte para invalidación por hash)
+    - `src/lib/schemas.ts` (Nuevos tipos para conexiones ricas)
+  - **Referencia:** [Plan Completado](../docs/planes-desarrollo/completados/sistema-movimiento-conciencia-espacial.md)
+
 ## [0.5.9] - 2025-11-27
 
 ### Changed

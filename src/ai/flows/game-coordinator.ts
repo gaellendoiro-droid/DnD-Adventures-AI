@@ -32,7 +32,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         outputSchema: GameCoordinatorOutputSchema,
     },
     async (input) => {
-        const { playerAction, inCombat, conversationHistory, party, turnIndex } = input;
+        const { playerAction, inCombat, conversationHistory, party, turnIndex = 0 } = input;
         let { locationId } = input;
 
         // Get enemies for current location from enemiesByLocation, fallback to enemies for backward compatibility
@@ -144,9 +144,26 @@ export const gameCoordinatorFlow = ai.defineFlow(
             // Generate transcript for context
             const historyTranscript = conversationHistory.map(formatMessageForTranscript).join('\n');
 
+            // Context Enrichment: Add implicit destinations for Hubs
+            const enrichedLocationData = { ...currentLocationData };
+            if (currentLocationData.regionId) {
+                const implicitDestinations = adventureData.locations
+                    .filter((l: any) => l.regionId === currentLocationData.regionId && l.id !== currentLocationData.id)
+                    .map((l: any) => ({
+                        id: l.id,
+                        name: l.name || l.title,
+                        type: 'implicit_hub_connection'
+                    }));
+
+                if (implicitDestinations.length > 0) {
+                    (enrichedLocationData as any).implicitDestinations = implicitDestinations;
+                    localLog(`Context Enrichment: Added ${implicitDestinations.length} implicit destinations from region "${currentLocationData.regionId}"`);
+                }
+            }
+
             const result = await actionInterpreter({
                 playerAction,
-                locationContext: JSON.stringify(currentLocationData),
+                locationContext: JSON.stringify(enrichedLocationData),
                 party: party,
                 updatedEnemies: currentLocationEnemies, // Issue #27: Pass enemies to filter dead ones
                 conversationHistory: historyTranscript,
@@ -183,7 +200,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 diceRollsCount: combatResult.diceRolls?.length || 0,
             });
 
-            return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
+            return { ...combatResult, debugLogs: debugLogs };
         }
         interpreterLogs.forEach(localLog);
 
@@ -292,7 +309,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 interpretedAction: interpretation, // This was missing.
                 locationContext: currentLocationData, // This was missing.
             });
-            return { ...combatResult, debugLogs: [...debugLogs, ...(combatResult.debugLogs || [])] };
+            return { ...combatResult, debugLogs: debugLogs };
         }
 
         // Execute narrative turn (outside of combat)
@@ -317,6 +334,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
             nextLocationId: narrativeResult.nextLocationId,
             inCombat: false,
             turnIndex: 0,
+            updatedWorldTime: narrativeResult.updatedWorldTime
         };
     }
 );

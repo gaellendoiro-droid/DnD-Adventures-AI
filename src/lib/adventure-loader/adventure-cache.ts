@@ -175,21 +175,33 @@ export class AdventureCache {
         return path.join(this.cacheDir, 'active_adventure_data.json');
     }
 
-    saveActiveAdventure(data: any): void {
+    saveActiveAdventure(data: any, sourceHash?: string): void {
         try {
             const filePath = this.getActiveAdventureFilePath();
-            fs.writeFileSync(filePath, JSON.stringify(data), 'utf-8');
+            const content = {
+                data,
+                sourceHash,
+                timestamp: Date.now()
+            };
+            fs.writeFileSync(filePath, JSON.stringify(content), 'utf-8');
         } catch (error) {
             console.warn('Failed to save active adventure data:', error);
         }
     }
 
-    loadActiveAdventure(): any | null {
+    loadActiveAdventure(): { data: any, sourceHash?: string } | null {
         try {
             const filePath = this.getActiveAdventureFilePath();
             if (fs.existsSync(filePath)) {
                 const content = fs.readFileSync(filePath, 'utf-8');
-                return JSON.parse(content);
+                const parsed = JSON.parse(content);
+
+                // Backward compatibility: if parsed has no 'data' property, assume it's the raw data
+                if (!parsed.data && parsed.adventureId) {
+                    return { data: parsed };
+                }
+
+                return parsed;
             }
         } catch (error) {
             console.warn('Failed to load active adventure data:', error);

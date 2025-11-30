@@ -34,6 +34,8 @@
             "id": "loc-start",
             "title": "Punto de Inicio",
             "description": "Descripción detallada de la ubicación que verá el jugador. Debe incluir detalles sensoriales.",
+            "regionId": "region-inicio",
+            "allowFastTravel": true,
             "entitiesPresent": [],
             "interactables": [
                 {
@@ -47,10 +49,18 @@
                     ]
                 }
             ],
-            "exits": [
+            "connections": [
                 {
-                    "description": "Un túnel oscuro que se adentra en la montaña.",
-                    "toLocationId": "loc-room-1"
+                    "targetId": "loc-room-1",
+                    "type": "direct",
+                    "direction": "norte",
+                    "description": "Un túnel oscuro que se adentra en la montaña."
+                },
+                {
+                    "targetId": "loc-exterior",
+                    "type": "overland",
+                    "description": "El camino que lleva al exterior del complejo.",
+                    "travelTime": "30 minutos"
                 }
             ],
             "dmNotes": "Notas secretas para el DM. Trampas, CDs de pruebas, tesoros ocultos."
@@ -59,14 +69,17 @@
             "id": "loc-room-1",
             "title": "Sala de Guardia",
             "description": "Una sala pequeña con olor a humedad.",
+            "regionId": "region-inicio",
             "entitiesPresent": [
                 "goblin-guard"
             ],
             "interactables": [],
-            "exits": [
+            "connections": [
                 {
-                    "description": "La salida hacia el exterior.",
-                    "toLocationId": "loc-start"
+                    "targetId": "loc-start",
+                    "type": "direct",
+                    "direction": "sur",
+                    "description": "La salida hacia el exterior."
                 }
             ],
             "dmNotes": "Notas adicionales para el DM."

@@ -20,6 +20,8 @@ import { narrativeExpert } from '../narrative-manager';
 import { processCompanionReactions } from './companion-reaction-manager';
 import { isEntityOutOfCombat } from '@/lib/game/entity-status-utils';
 import { formatMessageForTranscript } from '@/lib/utils/transcript-formatter';
+import { NavigationManager } from './navigation-manager';
+import { GameState } from '@/ai/flows/schemas';
 
 /**
  * Input para procesar un turno narrativo
@@ -46,6 +48,11 @@ export interface NarrativeTurnOutput {
     debugLogs: string[];
     nextLocationId: string | null;
     updatedParty: Character[];
+    updatedWorldTime?: {
+        day: number;
+        hour: number;
+        minute: number;
+    };
 }
 
 /**
@@ -81,24 +88,76 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
     let newLocationId: string | null = null;
     let finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
     let currentLocationEnemies = enemiesByLocation?.[locationId] || enemies || [];
+    let updatedWorldTime = undefined;
+    let systemFeedback: string | undefined = undefined;
 
     if (interpretation.actionType === 'move' && interpretation.targetId) {
-        newLocationId = interpretation.targetId;
-        locationId = newLocationId;
-        log.gameCoordinator('Player moving to new location', {
-            from: currentLocationId,
-            to: newLocationId,
-        });
-        finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
-        if (!finalLocationData) {
-            log.error('Location not found', {
-                module: 'NarrativeTurnManager',
-                locationId,
+        // Construct a temporary GameState for NavigationManager
+        const tempGameState: GameState = {
+            playerAction,
+            party,
+            locationId: currentLocationId,
+            inCombat: false,
+            conversationHistory: conversationHistory,
+        };
+
+        const movementResult = await NavigationManager.resolveMovement(
+            tempGameState,
+            interpretation.targetId,
+            adventureData
+        );
+
+        if (movementResult.success && movementResult.newLocationId) {
+            newLocationId = movementResult.newLocationId;
+            locationId = newLocationId;
+
+            log.gameCoordinator('Player moving to new location', {
+                from: currentLocationId,
+                to: newLocationId,
+                narration: movementResult.narration
             });
-            throw new Error(`Could not find data for location: ${locationId}.`);
+
+            // Add movement narration to messages
+            if (movementResult.narration) {
+                messages.push({
+                    sender: 'DM',
+                    content: movementResult.narration
+                });
+            }
+
+            // Update Time
+            if (movementResult.timePassed) {
+                const newState = NavigationManager.updateWorldTime(tempGameState, movementResult.timePassed);
+                updatedWorldTime = newState.worldTime;
+                localLog(`Time passed: ${movementResult.timePassed.minutes}m. New time: Day ${updatedWorldTime?.day}, ${updatedWorldTime?.hour}:${updatedWorldTime?.minute}`);
+            }
+
+            finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
+            if (!finalLocationData) {
+                log.error('Location not found', {
+                    module: 'NarrativeTurnManager',
+                    locationId,
+                });
+                throw new Error(`Could not find data for location: ${locationId}.`);
+            }
+            // Update currentLocationEnemies for the new location
+            currentLocationEnemies = enemiesByLocation?.[locationId] || enemies || [];
+        } else {
+            // Movement failed
+            localLog(`Movement failed: ${movementResult.error}`);
+            systemFeedback = `Movement failed: ${movementResult.error || "No puedes ir allí."}`;
+            // We do NOT push the error message directly to 'messages' here.
+            // Instead, we pass 'systemFeedback' to the NarrativeExpert (DM) so it can weave the failure into the narration.
+            // This prevents double messaging and allows for more immersive failure descriptions.
+
+            /* 
+            messages.push({
+                sender: 'DM',
+                content: movementResult.error || "No puedes ir allí."
+            });
+            */
+            // Don't change location
         }
-        // Update currentLocationEnemies for the new location
-        currentLocationEnemies = enemiesByLocation?.[locationId] || enemies || [];
     }
 
     // Prepare chat history for companions (last 10 messages)
@@ -178,6 +237,7 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         // Pass explicit list of dead entities so the AI knows to describe them as corpses
         deadEntities: deadEntities.length > 0 ? deadEntities.join(', ') : undefined,
         isKeyMoment: isKeyMoment,
+        systemFeedback: systemFeedback,
     };
 
     const narrativeResult = await narrativeExpert(narrativeInput);
@@ -217,5 +277,6 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         debugLogs,
         nextLocationId: newLocationId,
         updatedParty: party,
+        updatedWorldTime: updatedWorldTime
     };
 }

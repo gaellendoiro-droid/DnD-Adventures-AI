@@ -167,6 +167,10 @@ Al clasificar un item de esta sección, debe moverse a su sección correspondien
 
 6. ISSUE: por algún motivo el DM se refiere a Merryl en femenino cuando en su ficha dice que es varón. (PA)
 
+7. ISSUE: Gestionar los errores de quota exceeded de Eleven Labs y Gemini. (PMA)
+
+8. REVISION: revisar y ajustar los archivos de audio (musica y ambiente) según el nuevo sistema. (PA)
+
 
 
 

@@ -20,7 +20,7 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** 0 planes activos | **Última implementación:** Música y Sonido Dinámicos (2025-11-27) - COMPLETADO
+**Estado:** 0 planes activos | **Última implementación:** Sistema de Movimiento y Conciencia Espacial (2025-11-30) - COMPLETADO
 
 > Actualmente no hay planes en curso.
 
@@ -28,9 +28,22 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 21 planes
+**Estado:** Finalizados | **Cantidad:** 22 planes
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Sistema de Movimiento y Conciencia Espacial](completados/sistema-movimiento-conciencia-espacial.md) ✅ **COMPLETADO**
+- **Estado:** Implementado y Documentado
+- **Objetivo:** Implementar un sistema de navegación espacial robusto que permita movimiento multi-salto, cálculo de tiempos y detección de bloqueos, mejorando la inmersión y la lógica del mundo.
+- **Prioridad:** Muy Alta
+- **Resultados:**
+  - ✅ **Pathfinding BFS:** Motor de búsqueda de rutas optimizado para grafos de ubicaciones.
+  - ✅ **Validación de Bloqueos:** Soporte para `isBlocked` (derrumbes) e `isLocked` (puertas cerradas con llave).
+  - ✅ **Cálculo de Tiempo:** Estimación precisa del tiempo de viaje basada en tipos de conexión (`urban`, `overland`).
+  - ✅ **Navegación Semántica:** Capacidad de moverse hacia entidades (NPCs) o lugares por nombre.
+  - ✅ **Caché Reactiva:** Invalidación automática del caché de aventuras al detectar cambios en el JSON.
+- **Fecha de finalización:** 2025-11-30
+- **Referencia:** [Plan Detallado](completados/sistema-movimiento-conciencia-espacial.md)
 
 ### [Música y Sonido Dinámicos](completados/sistema-musica-ambiental.md) ✅ **COMPLETADO**
 - **Estado:** Implementado y Documentado
@@ -529,7 +542,7 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 ### Estado General del Proyecto
 
 **Progreso Total:**
-- ✅ **21 planes completados** (incluyendo 1 parcialmente completado)
+- ✅ **22 planes completados** (incluyendo 1 parcialmente completado)
 - 🚧 **0 planes en curso** actualmente
 - 📝 **11 planes sin comenzar** identificados y planificados
 

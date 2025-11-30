@@ -13,7 +13,7 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 ## 📑 Índice
 
 ### 🔴 Prioridad Muy Alta
-- [1. Sistema de Movimiento y Conciencia Espacial](#roadmap-1)
+- [1. Sistema de Movimiento y Conciencia Espacial](#roadmap-1) - **COMPLETADO (2025-11-30)**
 
 ### 🔴 Prioridad Alta
 - [2. Sistema de Progresión y Gestión](#roadmap-2)
@@ -52,6 +52,11 @@ Mejoras críticas que mejoran significativamente la arquitectura, mantenibilidad
 
 <a id="roadmap-1"></a>
 ### 1. Sistema de Movimiento y Conciencia Espacial
+- [x] **Sistema de Movimiento y Conciencia Espacial**
+  - [x] Navegación basada en grafos (nodos y conexiones).
+  - [x] Soporte para conexiones bloqueadas (`isBlocked`) y cerradas (`isLocked`).
+  - [x] Viaje rápido (`allowFastTravel`) y tiempos de viaje (`travelTime`).
+  - [x] Compatibilidad con formato legacy (`exits`).
 *   **Problema Actual:** El motor del juego carece de un concepto real de espacio y movimiento. El combate y la exploración son abstractos, sin distancias, posicionamiento relativo o movimiento táctico. Esto limita severamente las tácticas de combate (ataques de oportunidad, alcance de hechizos, flanqueo) y la inmersión en la exploración.
 *   **Mejora Propuesta:**
     *   **Sistema de Posicionamiento:** Implementar un sistema interno que rastree la posición relativa de cada entidad en una escena (zonas o coordenadas abstractas).

@@ -46,6 +46,10 @@ Your job is to describe the world, the environment, and the immediate consequenc
 - **DEFEATED ENEMIES / DEAD BODIES:** {{{deadEntities}}}
   **CRITICAL:** The location description in the context may mention these entities as alive or threatening. You MUST IGNORE those parts. Instead, describe them as DEAD BODIES lying on the ground, defeated, or as corpses. Do NOT describe them as attacking, moving, or alive in any way.
 {{/if}}
+{{#if systemFeedback}}
+- **SYSTEM FEEDBACK:** "{{{systemFeedback}}}"
+  **CRITICAL:** The game system has provided feedback (e.g., movement failure). You MUST respect this. If the system says movement failed, describe the attempt and the reason it failed, but DO NOT describe the player successfully reaching the destination.
+{{/if}}
 
 **GUIDELINES:**
 1.  **Focus on the Environment:** Describe the setting vividly. If the player moves, describe the transition. If they look at something, describe it in detail using the context.

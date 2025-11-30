@@ -119,6 +119,36 @@ export const CharacterSchema = z.object({
 export const PartySchema = z.array(CharacterSchema);
 
 /**
+ * Schema for travel types in the spatial movement system.
+ */
+export const TravelTypeSchema = z.enum([
+    'direct',   // Puerta, pasillo inmediato (segundos)
+    'urban',    // Movimiento dentro de un Hub seguro (minutos)
+    'overland', // Viaje por mapa de región (horas/días)
+    'special'   // Teletransporte, barco, etc.
+]);
+
+/**
+ * Schema for connections between locations (edges in the graph).
+ */
+export const ConnectionSchema = z.object({
+    targetId: z.string(), // ID del nodo destino
+    type: TravelTypeSchema.default('direct'),
+    description: z.string().optional(), // Descripción narrativa del camino
+
+    // Metadatos Espaciales (Para el cerebro del DM)
+    direction: z.enum(['norte', 'sur', 'este', 'oeste', 'arriba', 'abajo', 'dentro', 'fuera']).optional(),
+    distance: z.string().optional(), // Ej: "5 millas", "200 pies"
+    travelTime: z.string().optional(), // Ej: "2 horas", "10 minutos"
+
+    // Restricciones Lógicas (El problema de la "Puerta Cerrada")
+    isLocked: z.boolean().default(false),
+    requiredKeyId: z.string().optional(), // Item necesario para pasar
+    isBlocked: z.boolean().default(false), // Camino derrumbado/cortado
+    blockedReason: z.string().optional()   // Narración del bloqueo
+});
+
+/**
  * Schema for a Location in an adventure.
  */
 export const LocationSchema = z.object({
@@ -126,10 +156,17 @@ export const LocationSchema = z.object({
     name: z.string().optional(),
     title: z.string().optional(), // Alias for name found in JSON
     description: z.string(),
-    connections: z.array(z.union([
-        z.string(),
-        z.object({ toLocationId: z.string(), description: z.string().optional() })
-    ])).optional(),
+
+    // Jerarquía de Hubs
+    regionId: z.string().optional().describe("Agrupa ubicaciones (ej: 'phandalin') para movimiento implícito"),
+
+    // Restricción de Viaje (El problema de la "Celda")
+    allowFastTravel: z.boolean().default(true).describe("Si false, bloquea viajes tipo 'overland' desde aquí"),
+
+    // Nuevas conexiones ricas
+    connections: z.array(ConnectionSchema).optional(),
+
+    // Legacy support (to be deprecated or mapped to connections)
     exits: z.array(z.union([
         z.string(),
         z.object({ toLocationId: z.string(), description: z.string().optional() })

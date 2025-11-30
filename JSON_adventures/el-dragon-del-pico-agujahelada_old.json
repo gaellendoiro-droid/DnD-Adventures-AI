@@ -54,8 +54,6 @@
       "id": "phandalin-plaza-del-pueblo",
       "title": "Phandalin - Plaza del Pueblo",
       "description": "Enclavado en las nevadas laderas rocosas de las Montañas de la Espada, el pueblo minero de Phandalin está formado por unos cuarenta o cincuenta edificios de madera. Unas ruinas de piedra medio desmoronadas rodean las nuevas casas y tiendas, lo que permite intuir el gran tamaño que tenía esta localidad hace siglos. Los habitantes de Phandalin son personas tranquilas y trabajadoras. El pueblo no tiene murallas ni una guarnición que lo proteja. Los visitantes son bienvenidos aquí. Junto a la entrada de la casa consistorial hay un tablón de oportunidades para aventureros.",
-      "regionId": "phandalin",
-      "allowFastTravel": true,
       "entitiesPresent": [],
       "interactables": [
         {
@@ -81,42 +79,34 @@
           ]
         }
       ],
-      "connections": [
+      "exits": [
         {
-          "targetId": "posada-rocacolina",
-          "type": "urban",
-          "description": "La posada Rocacolina, un modesto edificio de dos plantas."
+          "description": "La posada Rocacolina, un modesto edificio de dos plantas.",
+          "toLocationId": "posada-rocacolina"
         },
         {
-          "targetId": "suministros-barthen",
-          "type": "urban",
-          "description": "La tienda general, Suministros Barthen."
+          "description": "La tienda general, Suministros Barthen.",
+          "toLocationId": "suministros-barthen"
         },
         {
-          "targetId": "bazar-escudo-de-leon",
-          "type": "urban",
-          "description": "El Bazar Escudo de León, que vende armas y armaduras."
+          "description": "El Bazar Escudo de León, que vende armas y armaduras.",
+          "toLocationId": "bazar-escudo-de-leon"
         },
         {
-          "targetId": "casa-de-cambio-de-phandalin",
-          "type": "urban",
-          "description": "La Casa de Cambio de Phandalin."
+          "description": "La Casa de Cambio de Phandalin.",
+          "toLocationId": "casa-de-cambio-de-phandalin"
         },
         {
-          "targetId": "santuario-de-la-suerte",
-          "type": "urban",
-          "description": "Un santuario de piedra, el Santuario de la Suerte."
+          "description": "Un santuario de piedra, el Santuario de la Suerte.",
+          "toLocationId": "santuario-de-la-suerte"
         },
         {
-          "targetId": "casa-de-harbin-wester",
-          "type": "urban",
-          "description": "La casa de Harbin Wester, el alcalde."
+          "description": "La casa de Harbin Wester, el alcalde.",
+          "toLocationId": "casa-de-harbin-wester"
         },
         {
-          "targetId": "camino-a-las-afueras-de-phandalin",
-          "type": "overland",
           "description": "El camino que sale del pueblo hacia las tierras salvajes.",
-          "travelTime": "10 minutos"
+          "toLocationId": "camino-a-las-afueras-de-phandalin"
         }
       ],
       "dmNotes": "Phandalin es el punto de partida de la aventura. Los personajes pueden comprar equipo, descansar y obtener misiones del tablón de anuncios. El alcalde, Harbin Wester, es quien publica las misiones."
@@ -125,39 +115,28 @@
       "id": "camino-a-las-afueras-de-phandalin",
       "title": "Camino a las afueras de Phandalin",
       "description": "Dejáis atrás la relativa seguridad de Phandalin y os adentráis en las tierras salvajes. El camino se convierte en un sendero embarrado que serpentea entre colinas cubiertas de nieve y bosques dispersos. El viento frío silba a vuestro alrededor y el imponente Pico Agujahelada domina el horizonte. Desde aquí, podéis dirigiros a varios lugares de interés en la región.",
-      "allowFastTravel": true,
       "entitiesPresent": [],
       "interactables": [],
-      "connections": [
+      "exits": [
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "overland",
           "description": "El camino de vuelta a la plaza de Phandalin.",
-          "travelTime": "10 minutos"
+          "toLocationId": "phandalin-plaza-del-pueblo"
         },
         {
-          "targetId": "colina-del-resentimiento",
-          "type": "overland",
           "description": "Un sendero que asciende hacia una colina con un molino. (Colina del Resentimiento)",
-          "travelTime": "1 hora"
+          "toLocationId": "colina-del-resentimiento"
         },
         {
-          "targetId": "excavacion-de-los-enanos",
-          "type": "overland",
           "description": "Un camino que se adentra en las estribaciones de las montañas. (Excavación de los Enanos)",
-          "travelTime": "2 horas"
+          "toLocationId": "excavacion-de-los-enanos"
         },
         {
-          "targetId": "terragnoma-entrada-cascada",
-          "type": "overland",
           "description": "Un sendero de montaña que lleva a una cascada. (Terragnoma)",
-          "travelTime": "3 horas"
+          "toLocationId": "terragnoma-entrada-cascada"
         },
         {
-          "targetId": "rancho-de-mantecalavera",
-          "type": "overland",
           "description": "El Camino de Trijabal que se dirige hacia el este. (Rancho de Mantecalavera)",
-          "travelTime": "4 horas"
+          "toLocationId": "rancho-de-mantecalavera"
         }
       ],
       "dmNotes": "Esta es una zona de transición que conecta Phandalin con varias de las primeras ubicaciones de la aventura."
@@ -166,8 +145,6 @@
       "id": "posada-rocacolina",
       "title": "Posada Rocacolina",
       "description": "Este modesto edificio de dos plantas ofrece alojamiento y viandas. El propietario es un humano bajito y amigable llamado Toblen Rocacolina.",
-      "regionId": "phandalin",
-      "allowFastTravel": true,
       "entitiesPresent": [
         "toblen-rocacolina"
       ],
@@ -191,11 +168,10 @@
           ]
         }
       ],
-      "connections": [
+      "exits": [
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "urban",
-          "description": "La puerta principal que da a la plaza del pueblo."
+          "description": "La puerta principal que da a la plaza del pueblo.",
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "Toblen puede proporcionar una de las 'Historias de Phandalin' de la página 9 del libro de aventuras, que pueden servir como ganchos para explorar otros lugares."
@@ -204,8 +180,6 @@
       "id": "suministros-barthen",
       "title": "Suministros Barthen",
       "description": "Las estanterías de esta tienda están repletas de las mercancías y suministros más habituales, como petates, mochilas, cuerdas y raciones. El propietario, Elmar Barthen, es un humano delgado y con entradas de cincuenta años.",
-      "regionId": "phandalin",
-      "allowFastTravel": true,
       "entitiesPresent": [
         "elmar-barthen"
       ],
@@ -225,11 +199,10 @@
           ]
         }
       ],
-      "connections": [
+      "exits": [
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "urban",
-          "description": "La puerta que da a la plaza del pueblo."
+          "description": "La puerta que da a la plaza del pueblo.",
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "Aquí es donde los jugadores recogen los suministros para la misión del 'Campamento de los leñadores'."
@@ -238,8 +211,6 @@
       "id": "bazar-escudo-de-leon",
       "title": "Bazar Escudo de León",
       "description": "En la puerta principal de esta modesta tienda hay colgado un cartel de madera con forma de escudo y un león azul pintado en él. La dueña de la tienda es una humana de lengua mordaz llamada Linene Vientogrís.",
-      "regionId": "phandalin",
-      "allowFastTravel": true,
       "entitiesPresent": [
         "linene-vientogris"
       ],
@@ -259,11 +230,10 @@
           ]
         }
       ],
-      "connections": [
+      "exits": [
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "urban",
-          "description": "La puerta que da a la plaza del pueblo."
+          "description": "La puerta que da a la plaza del pueblo.",
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "Linene no vende armas a quienes sospeche que puedan suponer una amenaza para el pueblo."
@@ -272,8 +242,6 @@
       "id": "casa-de-cambio-de-phandalin",
       "title": "Casa de Cambio de Phandalin",
       "description": "Los mineros se acercan a este establecimiento para que pesen, midan y les paguen por sus valiosos hallazgos. La maestra del gremio es Halia Thornton, una humana de mente calculadora.",
-      "regionId": "phandalin",
-      "allowFastTravel": true,
       "entitiesPresent": [
         "halia-thornton"
       ],
@@ -293,11 +261,10 @@
           ]
         }
       ],
-      "connections": [
+      "exits": [
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "urban",
-          "description": "La puerta que da a la plaza del pueblo."
+          "description": "La puerta que da a la plaza del pueblo.",
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "Halia es una agente de los Zhentarim y busca hacerse con el control de Phandalin. Puede ser una mecenas valiosa para los aventureros."
@@ -306,8 +273,6 @@
       "id": "santuario-de-la-suerte",
       "title": "Santuario de la Suerte",
       "description": "El único templo de Phandalin es un santuario hecho de piedra extraída de unas ruinas cercanas. Está dedicado a Tymora, diosa de la suerte y la buena fortuna. El santuario parece estar desatendido.",
-      "regionId": "phandalin",
-      "allowFastTravel": true,
       "entitiesPresent": [],
       "interactables": [
         {
@@ -321,11 +286,10 @@
           ]
         }
       ],
-      "connections": [
+      "exits": [
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "urban",
-          "description": "La puerta que da a la plaza del pueblo."
+          "description": "La puerta que da a la plaza del pueblo.",
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "La acólita elfa, la hermana Garaele, está ausente durante la aventura. Es miembro de los Arpistas."
@@ -334,8 +298,6 @@
       "id": "casa-de-harbin-wester",
       "title": "Casa de Harbin Wester",
       "description": "Esta es la casa del alcalde de Phandalin, Harbin Wester. La puerta está firmemente cerrada.",
-      "regionId": "phandalin",
-      "allowFastTravel": true,
       "entitiesPresent": [
         "harbin-wester"
       ],
@@ -356,11 +318,10 @@
           "state": "cerrada"
         }
       ],
-      "connections": [
+      "exits": [
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "urban",
-          "description": "La calle que lleva de vuelta a la plaza del pueblo."
+          "description": "La calle que lleva de vuelta a la plaza del pueblo.",
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "Harbin Wester es un banquero pretencioso y cobarde. Está aterrorizado por el dragón y no saldrá de su casa. Es la fuente de todas las misiones del tablón."
@@ -369,7 +330,6 @@
       "id": "colina-del-resentimiento",
       "title": "Colina del Resentimiento",
       "description": "En la ladera de la Colina del Resentimiento hay un viejo molino de piedra al que bordea una valla de hierro. Un gran monstruo alado con una cola con púas intenta derribar la puerta del molino. Una mujer aparece en la ventana del segundo piso, gesticula con los brazos y grita: '¡¿Me echáis una ayudita?!'.",
-      "allowFastTravel": false,
       "entitiesPresent": [
         "manticora",
         "adabra-gwynn"
@@ -386,17 +346,14 @@
           ]
         }
       ],
-      "connections": [
+      "exits": [
         {
-          "targetId": "molino-de-piedra",
-          "type": "direct",
-          "description": "La puerta del molino de piedra."
+          "description": "La puerta del molino de piedra.",
+          "toLocationId": "molino-de-piedra"
         },
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "overland",
           "description": "El camino de vuelta hacia Phandalin.",
-          "travelTime": "1 hora"
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "La mantícora fue expulsada de las montañas por Cryovain. Puede ser combatida o sobornada con 25 po o carne. Si sobrevive, podría regresar más tarde con su pareja."
@@ -405,7 +362,6 @@
       "id": "molino-de-piedra",
       "title": "Molino de Piedra",
       "description": "El interior del molino es funcional. En la planta baja, una rueda de molino se usa para moler hierbas y otros ingredientes. La segunda planta es el cuarto de Adabra. La tercera es una buhardilla para huéspedes.",
-      "allowFastTravel": true,
       "entitiesPresent": [
         "adabra-gwynn"
       ],
@@ -425,11 +381,10 @@
           ]
         }
       ],
-      "connections": [
+      "exits": [
         {
-          "targetId": "colina-del-resentimiento",
-          "type": "direct",
-          "description": "La puerta exterior que da a la colina."
+          "description": "La puerta exterior que da a la colina.",
+          "toLocationId": "colina-del-resentimiento"
         }
       ],
       "dmNotes": "Adabra recompensa a los personajes con una poción de curación gratuita por deshacerse de la mantícora."
@@ -454,18 +409,14 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "templo-abbathor-vestibulo",
-          "type": "direct",
-          "description": "Una puerta abierta de 10 pies de altura en la fachada de un templo."
+          "description": "Una puerta abierta de 10 pies de altura en la fachada de un templo.",
+          "toLocationId": "templo-abbathor-vestibulo"
         },
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "overland",
           "description": "El camino de vuelta hacia Phandalin.",
-          "travelTime": "2 horas"
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "Dazlyn y Norbus están comiendo raciones detrás de una pila de escombros. Están agradecidos por la advertencia sobre el dragón y ofrecen una misión secundaria: limpiar el templo de monstruos a cambio de un par de piedras mensajeras. Cuando los personajes terminen, un grupo de orcos atacará."
@@ -476,17 +427,14 @@
       "description": "Un vestíbulo polvoriento con dos juegos de puertas dobles mantenidas abiertas por puntas clavadas en el suelo. Una puerta que da al norte, otrora oculta, se encuentra abierta y conduce a una habitación llena de escombros.",
       "entitiesPresent": [],
       "interactables": [],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "excavacion-de-los-enanos",
-          "type": "direct",
-          "description": "La salida del templo hacia el patio."
+          "description": "La salida del templo hacia el patio.",
+          "toLocationId": "excavacion-de-los-enanos"
         },
         {
-          "targetId": "templo-abbathor-santuario",
-          "type": "direct",
-          "description": "Unas puertas dobles que conducen más adentro del templo."
+          "description": "Unas puertas dobles que conducen más adentro del templo.",
+          "toLocationId": "templo-abbathor-santuario"
         }
       ],
       "dmNotes": "Este es el vestíbulo del antiguo templo de Abbathor, el dios enano de la codicia."
@@ -520,12 +468,10 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "templo-abbathor-vestibulo",
-          "type": "direct",
-          "description": "La puerta de vuelta al vestíbulo."
+          "description": "La puerta de vuelta al vestíbulo.",
+          "toLocationId": "templo-abbathor-vestibulo"
         }
       ],
       "dmNotes": "Una gelatina ocre se aferra al techo sobre el altar. Si hay dos o más personajes, una segunda gelatina está en la pared sur. La puerta secreta en el pilar revela una cavidad con un cofre que contiene 15 gemas de 10 po cada una."
@@ -557,18 +503,14 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "terragnoma-comedor",
-          "type": "direct",
-          "description": "Un sendero estrecho que asciende a una de las cuevas."
+          "description": "Un sendero estrecho que asciende a una de las cuevas.",
+          "toLocationId": "terragnoma-comedor"
         },
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "overland",
           "description": "El camino de vuelta hacia Phandalin.",
-          "travelTime": "3 horas"
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "Terragnoma es una fuente de magia salvaje. Cualquier conjuro de nivel 1 o superior lanzado aquí puede desencadenar un efecto aleatorio. Los gnomos están preocupados por su rey Korboz, que ha enloquecido, y por la desaparición de dos de los suyos. Un mimeto se ha infiltrado en la comunidad."
@@ -603,12 +545,10 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "terragnoma-comedor",
-          "type": "direct",
-          "description": "Un pasillo que conecta con otras cuevas."
+          "description": "Un pasillo que conecta con otras cuevas.",
+          "toLocationId": "terragnoma-comedor"
         }
       ],
       "dmNotes": "Estos gnomos son la clave para la misión. Prometen un amuleto de relojería, una pértiga contraíble, una varita de pirotecnia y un sombrero de hechicería si los personajes ayudan a los reyes."
@@ -643,18 +583,14 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "terragnoma-salon-del-trono",
-          "type": "direct",
           "description": "La puerta principal, cerrada con llave.",
-          "isLocked": true
+          "toLocationId": "terragnoma-salon-del-trono"
         },
         {
-          "targetId": "terragnoma-salon-del-trono",
-          "type": "direct",
-          "description": "Una puerta secreta en la pared norte."
+          "description": "Una puerta secreta en la pared norte.",
+          "toLocationId": "terragnoma-salon-del-trono"
         }
       ],
       "dmNotes": "Korboz enloqueció tras ser atacado por el mimeto. Si los personajes le convencen (con pruebas o con una prueba de Persuasión CD 12) de que el mimeto ha muerto, recuperará la cordura, liberará a Gnerkli y recompensará a los aventureros."
@@ -686,18 +622,14 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "cabana-de-tibor",
-          "type": "direct",
-          "description": "Una cabaña intacta que parece ser una oficina y almacén."
+          "description": "Una cabaña intacta que parece ser una oficina y almacén.",
+          "toLocationId": "cabana-de-tibor"
         },
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "overland",
           "description": "El camino de vuelta hacia Phandalin.",
-          "travelTime": "1 día"
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "Los ankhegs se esconden bajo tierra y atacan cuando los personajes se acercan a ciertas zonas. El tótem en la chimenea es lo que atrae a los ankhegs; si se destruye, los ankhegs restantes se irán. Los leñadores fueron asesinados por los monstruos."
@@ -726,12 +658,10 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "campamento-de-los-lenadores",
-          "type": "direct",
-          "description": "La puerta que da al campamento."
+          "description": "La puerta que da al campamento.",
+          "toLocationId": "campamento-de-los-lenadores"
         }
       ],
       "dmNotes": "Un ankheg se oculta bajo el suelo de la habitación grande y atacará al primer personaje que la atraviese. Tibor Wester es un plebeyo cobarde y egoísta. Es el hermanastro del alcalde Harbin Wester."
@@ -755,18 +685,14 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "granja-del-rancho",
-          "type": "direct",
-          "description": "La puerta de la granja de dos pisos."
+          "description": "La puerta de la granja de dos pisos.",
+          "toLocationId": "granja-del-rancho"
         },
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "overland",
           "description": "El Camino a Trijabal, que lleva de vuelta a Phandalin.",
-          "travelTime": "4 horas"
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "El rancho fue atacado por orcos. Los orcos restantes están dentro de la granja, bebiendo y comiendo. El dueño, Alfonse 'Gran Al' Kalazorn, está cautivo en la bodega."
@@ -790,17 +716,14 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "rancho-de-mantecalavera",
-          "type": "direct",
-          "description": "La puerta principal que da al exterior del rancho."
+          "description": "La puerta principal que da al exterior del rancho.",
+          "toLocationId": "rancho-de-mantecalavera"
         },
         {
-          "targetId": "bodega-del-rancho",
-          "type": "direct",
-          "description": "Unas puertas de madera en el ala norte que conducen a una bodega."
+          "description": "Unas puertas de madera en el ala norte que conducen a una bodega.",
+          "toLocationId": "bodega-del-rancho"
         }
       ],
       "dmNotes": "El número de orcos es el triple del número de personajes. Están dispersos por la casa y no esperan problemas."
@@ -824,12 +747,10 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "granja-del-rancho",
-          "type": "direct",
-          "description": "Las escaleras de piedra que suben a la granja."
+          "description": "Las escaleras de piedra que suben a la granja.",
+          "toLocationId": "granja-del-rancho"
         }
       ],
       "dmNotes": "Gran Al es un veterano con 9 puntos de golpe restantes. Quiere encontrar a su preciada vaca, Petunia. Ofrece su cota de malla de mithral como recompensa por traerla de vuelta sana y salva."
@@ -875,20 +796,14 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "alcazhacha-pasaje-exterior",
-          "type": "direct",
           "description": "El pasaje interior de la fortaleza, más allá de la verja.",
-          "isBlocked": true,
-          "blockedReason": "La verja levadiza de hierro está bajada y bloquea el paso."
+          "toLocationId": "alcazhacha-pasaje-exterior"
         },
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "overland",
           "description": "El camino de vuelta hacia Phandalin.",
-          "travelTime": "1 día"
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "La fortaleza está maldita por la banshee Vyldara y plagada de gules. Para completar la misión, los aventureros deben matar o expulsar a todos los monstruos. Las manivelas para la verja están dentro, en los bastiones (A2 y A3)."
@@ -912,17 +827,14 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "alcazhacha-pasillo-embrujado",
-          "type": "direct",
-          "description": "Un pasillo con escaleras que van hacia arriba."
+          "description": "Un pasillo con escaleras que van hacia arriba.",
+          "toLocationId": "alcazhacha-pasillo-embrujado"
         },
         {
-          "targetId": "alcazhacha-pasaje-interior",
-          "type": "direct",
-          "description": "La salida hacia el pasaje interior."
+          "description": "La salida hacia el pasaje interior.",
+          "toLocationId": "alcazhacha-pasaje-interior"
         }
       ],
       "dmNotes": "Oculto tras el trono hay un gul con 40 PG, el antiguo castellano. Su alarido atrae a más gules (dos más uno por personaje) desde la chimenea. El castellano gul lleva un anillo de sellar que abre un cofre en la zona A29."
@@ -947,24 +859,18 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "casa-del-bosque-recibidor",
-          "type": "direct",
-          "description": "La entrada principal de la casa, con una puerta doble."
+          "description": "La entrada principal de la casa, con una puerta doble.",
+          "toLocationId": "casa-del-bosque-recibidor"
         },
         {
-          "targetId": "circulo-del-trueno",
-          "type": "overland",
           "description": "El camino que sale por el norte lleva al Círculo del Trueno.",
-          "travelTime": "30 minutos"
+          "toLocationId": "circulo-del-trueno"
         },
         {
-          "targetId": "pabellon-de-caza-de-halcon",
-          "type": "overland",
           "description": "El camino hacia el oeste conduce al pabellón de caza de Halcón.",
-          "travelTime": "1 hora"
+          "toLocationId": "pabellon-de-caza-de-halcon"
         }
       ],
       "dmNotes": "Hay nueve jabalíes en los huertos. Tres de ellos son en realidad anacoretas de Talos en forma animal. Si se ataca a un jabalí normal, huye. Si se ataca a un anacoreta, todos contraatacan. La hiedra que cubre la casa es venenosa."
@@ -986,17 +892,14 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "casa-del-bosque-laboratorio",
-          "type": "direct",
-          "description": "Una puerta que lleva al laboratorio de la maga."
+          "description": "Una puerta que lleva al laboratorio de la maga.",
+          "toLocationId": "casa-del-bosque-laboratorio"
         },
         {
-          "targetId": "casa-del-bosque-aprendices",
-          "type": "direct",
-          "description": "Una puerta que lleva a la habitación de los aprendices."
+          "description": "Una puerta que lleva a la habitación de los aprendices.",
+          "toLocationId": "casa-del-bosque-aprendices"
         }
       ],
       "dmNotes": "Dentro del pozo habita un Árbol de Gulthias y varias enredaderas marchitas. Atacarán si se les daña a ellos o al árbol, o si Grannoc (en la zona C10) se lo ordena. Cualquier ruido fuerte en el patio alerta a Grannoc y a los orcos de la zona C18."
@@ -1030,19 +933,14 @@
           ]
         }
       ],
-      "allowFastTravel": true,
-      "connections": [
+      "exits": [
         {
-          "targetId": "casa-del-bosque-exterior",
-          "type": "overland",
           "description": "El camino que se adentra en el bosque hacia la casa en ruinas.",
-          "travelTime": "1 hora"
+          "toLocationId": "casa-del-bosque-exterior"
         },
         {
-          "targetId": "campamento-de-los-lenadores",
-          "type": "overland",
           "description": "El camino que sigue el río hacia el campamento de los leñadores.",
-          "travelTime": "2 horas"
+          "toLocationId": "campamento-de-los-lenadores"
         }
       ],
       "dmNotes": "Halcón ofrece alojamiento y comida gratis, especialmente si los visitantes le traen una botella de vino. Es un veterano retirado. Si los personajes limpian la Casa del Bosque, los anacoretas lanzarán un contraataque al pabellón al día siguiente, liderado por Gorthok, el Jabalí del Trueno."
@@ -1055,18 +953,14 @@
         "hombre-rata"
       ],
       "interactables": [],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "madriguera-hombres-rata",
-          "type": "direct",
-          "description": "El túnel se adentra en la mina."
+          "description": "El túnel se adentra en la mina.",
+          "toLocationId": "madriguera-hombres-rata"
         },
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "overland",
           "description": "El camino de vuelta a Phandalin.",
-          "travelTime": "1 día"
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "La mina ha sido invadida por hombres rata de la Banda de los Bigotes. Dos guardias en forma híbrida en la entrada escoltarán a los recién llegados hasta su líder, Zeleen Varnaster."
@@ -1091,12 +985,10 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "mina-dedo-de-la-montana",
-          "type": "direct",
-          "description": "Un túnel que lleva de vuelta a la entrada de la mina."
+          "description": "Un túnel que lleva de vuelta a la entrada de la mina.",
+          "toLocationId": "mina-dedo-de-la-montana"
         }
       ],
       "dmNotes": "Los 'humanos' son hombres rata en forma humana. Hay un hombre rata por cada miembro del grupo, más la líder Zeleen. Don-Jon Raskin instará a los personajes a erradicarlos. Si se niegan, Raskin intentará negociar y será convertido en un hombre rata."
@@ -1121,18 +1013,14 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "nave-principal-santuario",
-          "type": "direct",
-          "description": "La entrada al templo principal."
+          "description": "La entrada al templo principal.",
+          "toLocationId": "nave-principal-santuario"
         },
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "overland",
           "description": "El camino de vuelta a Conyberry y Phandalin.",
-          "travelTime": "2 días"
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "El santuario está ocupado por orcos y ogros. El número de enemigos depende del nivel y tamaño del grupo. Un centinela orco vigila desde la torre noreste."
@@ -1154,12 +1042,10 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "nave-principal-santuario",
-          "type": "direct",
-          "description": "La salida a la nave principal del santuario."
+          "description": "La salida a la nave principal del santuario.",
+          "toLocationId": "nave-principal-santuario"
         }
       ],
       "dmNotes": "El altar revela la ubicación de la guarida de Cryovain. Si se empuja el altar, se revela una cavidad que contiene 57 po y una 'llave misteriosa'."
@@ -1184,17 +1070,14 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "cueva-embrujada",
-          "type": "direct",
-          "description": "Una cueva en un pilar de roca natural."
+          "description": "Una cueva en un pilar de roca natural.",
+          "toLocationId": "cueva-embrujada"
         },
         {
-          "targetId": "vestibulo-faro",
-          "type": "direct",
-          "description": "Unos toscos escalones que ascienden por el saliente rocoso hacia el faro."
+          "description": "Unos toscos escalones que ascienden por el saliente rocoso hacia el faro.",
+          "toLocationId": "vestibulo-faro"
         }
       ],
       "dmNotes": "Este es un templo de Talos. El guardián, Moesko, usa la luz para atraer barcos a su perdición. La luz es alimentada por su propio corazón, que fue arrancado en un ritual."
@@ -1216,12 +1099,10 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "vestibulo-faro",
-          "type": "direct",
-          "description": "La puerta de vuelta al vestíbulo."
+          "description": "La puerta de vuelta al vestíbulo.",
+          "toLocationId": "vestibulo-faro"
         }
       ],
       "dmNotes": "El altar solo otorga el sortilegio una vez hasta que se recarga con tres rayos de una tormenta."
@@ -1243,12 +1124,10 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "interior-faro",
-          "type": "direct",
-          "description": "La escalera de caracol que desciende por la torre."
+          "description": "La escalera de caracol que desciende por la torre.",
+          "toLocationId": "interior-faro"
         }
       ],
       "dmNotes": "El corazón es un objeto Pequeño con CA 10 y 10 PG. Los ataques contra él tienen desventaja a menos que el atacante sea inmune a la ceguera o cubra la luz. Destruir el corazón apaga el faro."
@@ -1270,18 +1149,14 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "catacumbas-del-tumulo",
-          "type": "direct",
-          "description": "Una escalera de caracol que desciende bajo la roca."
+          "description": "Una escalera de caracol que desciende bajo la roca.",
+          "toLocationId": "catacumbas-del-tumulo"
         },
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "overland",
           "description": "El camino de vuelta a Phandalin.",
-          "travelTime": "1 día"
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "El centauro Xanth puede ser encontrado cerca y advertirá sobre luces fantasmales (fuegos fatuos) y almas en pena. Se ofrecerá a guiar a los personajes al Círculo del Trueno después de que exploren el túmulo."
@@ -1305,12 +1180,10 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "catacumbas-del-tumulo",
-          "type": "direct",
-          "description": "El túnel de vuelta a las catacumbas."
+          "description": "El túnel de vuelta a las catacumbas.",
+          "toLocationId": "catacumbas-del-tumulo"
         }
       ],
       "dmNotes": "La espada es una 'matadragones'. El acechador invisible fue convocado para protegerla y atacará hasta que la espada sea devuelta o sea derrotado."
@@ -1321,18 +1194,14 @@
       "description": "Las nubes tapan parte de una fortaleza de piedra situada en la estribación helada del pico Agujahelada. La fortaleza, formada por dos edificios unidos por un puente de piedra, parece pequeña en medio de la montaña. Un sendero sinuoso y estrecho asciende por la ladera hasta el menor de los dos edificios. Es un camino complicado, y el viento intenso y gélido os golpea.",
       "entitiesPresent": [],
       "interactables": [],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "bastion-casa-del-guarda",
-          "type": "direct",
-          "description": "El sendero acaba en la puerta exterior de la casa del guarda."
+          "description": "El sendero acaba en la puerta exterior de la casa del guarda.",
+          "toLocationId": "bastion-casa-del-guarda"
         },
         {
-          "targetId": "phandalin-plaza-del-pueblo",
-          "type": "overland",
           "description": "El camino de vuelta montaña abajo.",
-          "travelTime": "2 días"
+          "toLocationId": "phandalin-plaza-del-pueblo"
         }
       ],
       "dmNotes": "Esta es la guarida de Cryovain. El dragón duerme en la azotea de la fortaleza principal (zona B20). Unos mercenarios llamados los Saqueadores Sangrefría están en la casa del guarda, esperando a que el dragón se vaya para saquear el lugar."
@@ -1356,12 +1225,10 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "bastion-barracon-orcos",
-          "type": "direct",
-          "description": "Una escalera que desciende al interior de la fortaleza."
+          "description": "Una escalera que desciende al interior de la fortaleza.",
+          "toLocationId": "bastion-barracon-orcos"
         }
       ],
       "dmNotes": "Si Cryovain no ha sido derrotado, el encuentro final con el dragón blanco joven tendrá lugar aquí. El dragón luchará hasta la muerte para defender su guarida."
@@ -1387,13 +1254,10 @@
           ]
         }
       ],
-      "allowFastTravel": false,
-      "connections": [
+      "exits": [
         {
-          "targetId": "casa-del-bosque-exterior",
-          "type": "overland",
           "description": "El camino de vuelta a través del bosque de Nuncainvierno.",
-          "travelTime": "30 minutos"
+          "toLocationId": "casa-del-bosque-exterior"
         }
       ],
       "dmNotes": "Dos anacoretas de Talos (Flenz y Narux) y varias ramas marchitas están realizando un ritual. Si Gorthok no ha sido derrotado, aparecerá en medio del círculo una vez que mueran los anacoretas. Hay tres cuevas en la ladera de la colina que sirven como guaridas para los anacoretas."

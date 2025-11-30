@@ -101,7 +101,12 @@
             "type": "array",
             "items": {
                 "type": "object",
-                "required": ["id", "title", "dice", "rows"],
+                "required": [
+                    "id",
+                    "title",
+                    "dice",
+                    "rows"
+                ],
                 "properties": {
                     "id": {
                         "type": "string"
@@ -116,7 +121,10 @@
                         "type": "array",
                         "items": {
                             "type": "object",
-                            "required": ["range", "content"],
+                            "required": [
+                                "range",
+                                "content"
+                            ],
                             "properties": {
                                 "range": {
                                     "type": "string"
@@ -151,6 +159,21 @@
                 "dmNotes": {
                     "type": "string"
                 },
+                "regionId": {
+                    "type": "string",
+                    "description": "Identificador de la región o Hub al que pertenece esta ubicación (ej: 'phandalin'). Permite movimiento implícito."
+                },
+                "allowFastTravel": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Si es false, impide iniciar viajes largos desde esta ubicación (ej: celdas, combate)."
+                },
+                "connections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/connection"
+                    }
+                },
                 "exits": {
                     "type": "array",
                     "items": {
@@ -174,15 +197,65 @@
         "connection": {
             "type": "object",
             "required": [
-                "toLocationId",
-                "description"
+                "targetId"
             ],
             "properties": {
-                "toLocationId": {
-                    "type": "string"
+                "targetId": {
+                    "type": "string",
+                    "description": "ID del nodo destino (location) al que conecta esta conexión"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "direct",
+                        "urban",
+                        "overland",
+                        "special"
+                    ],
+                    "default": "direct",
+                    "description": "Tipo de conexión: direct (inmediato), urban (minutos, seguro), overland (horas/días, viaje), special (teletransporte)."
                 },
                 "description": {
                     "type": "string"
+                },
+                "direction": {
+                    "type": "string",
+                    "enum": [
+                        "norte",
+                        "sur",
+                        "este",
+                        "oeste",
+                        "arriba",
+                        "abajo",
+                        "dentro",
+                        "fuera"
+                    ]
+                },
+                "distance": {
+                    "type": "string",
+                    "description": "Distancia física o narrativa (ej: '5 millas', '300 pies')."
+                },
+                "travelTime": {
+                    "type": "string",
+                    "description": "Tiempo estimado de viaje (ej: '10 minutos', '2 días')."
+                },
+                "isLocked": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Si la conexión está cerrada con llave o mecanismo."
+                },
+                "requiredKeyId": {
+                    "type": "string",
+                    "description": "ID del objeto necesario para desbloquear la conexión."
+                },
+                "isBlocked": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Si el camino está bloqueado (ej: derrumbe)."
+                },
+                "blockedReason": {
+                    "type": "string",
+                    "description": "Texto narrativo que explica por qué está bloqueado."
                 }
             }
         },
@@ -203,7 +276,10 @@
                     "type": "array",
                     "items": {
                         "type": "object",
-                        "required": ["action", "result"],
+                        "required": [
+                            "action",
+                            "result"
+                        ],
                         "properties": {
                             "action": {
                                 "type": "string"
@@ -234,7 +310,11 @@
                 },
                 "type": {
                     "type": "string",
-                    "enum": ["monster", "npc", "other"]
+                    "enum": [
+                        "monster",
+                        "npc",
+                        "other"
+                    ]
                 },
                 "description": {
                     "type": "string"

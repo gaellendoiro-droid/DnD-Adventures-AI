@@ -185,6 +185,7 @@ export const narrativeManagerFlow = ai.defineFlow(
                     interpretedAction: input.interpretedAction,
                     deadEntities: input.deadEntities,
                     isKeyMoment: (input as any).isKeyMoment,
+                    systemFeedback: input.systemFeedback,
                 });
                 finalNarration = expResult.explorationNarration;
                 // updatedStats = expResult.updatedStats || null; // Feature not yet implemented in experts
@@ -197,6 +198,7 @@ export const narrativeManagerFlow = ai.defineFlow(
                     conversationHistory: input.conversationHistory || "",
                     interpretedAction: input.interpretedAction,
                     isKeyMoment: (input as any).isKeyMoment,
+                    // Interaction expert doesn't strictly need systemFeedback for movement, but good for consistency if we add it later
                 } as any); // Cast to any to bypass strict type check for now
                 finalNarration = intResult.npcResponse;
                 // updatedStats = intResult.updatedStats || null; // Feature not yet implemented in experts
@@ -213,6 +215,7 @@ export const narrativeManagerFlow = ai.defineFlow(
                         interpretedAction: input.interpretedAction,
                         deadEntities: input.deadEntities,
                         isKeyMoment: (input as any).isKeyMoment,
+                        systemFeedback: input.systemFeedback,
                     }),
                     interactionExpert({
                         playerAction: input.playerAction,

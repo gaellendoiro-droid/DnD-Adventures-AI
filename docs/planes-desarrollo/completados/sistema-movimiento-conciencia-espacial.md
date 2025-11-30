@@ -2,24 +2,6 @@
 
 **Estado:** En Curso  
 **Prioridad:** Muy Alta  
-**Fecha de Inicio:** 28-11-2025  
-
-## 1. Contexto y Motivación
-
-Actualmente, el motor de *DnD Adventures AI* carece de un concepto robusto de espacio y movimiento. Tanto el combate como la exploración se resuelven de manera abstracta, sin distancias definidas, posicionamiento relativo o movimiento táctico real. Esto limita severamente la profundidad estratégica del combate y reduce la inmersión durante la exploración de mazmorras y viajes.
-
-Este plan propone implementar un **Sistema de Movimiento y Conciencia Espacial** que adapte la granularidad del tiempo y el espacio según el contexto narrativo.
-
-## 2. Estrategia de Implementación
-
-La implementación se realizará de forma **iterativa e incremental**, dividiendo el sistema en tres modos distintos de granularidad. 
-
-**Foco Actual:** Nos centraremos exclusivamente en la implementación completa del **Modo Navegación (Macro)**. Los modos de Exploración de Mazmorra y Combate Táctico se abordarán en fases posteriores una vez que la navegación macro esté consolidada.
-
----
-
-## 3. Fase 1: Modo Navegación (Macro)
-
 Este modo cubre tanto los viajes por el mundo (Overland) como el movimiento urbano cotidiano (Urban Hubs).
 
 ### 3.1. Concepto Central: Navegación por Nodos y Hubs
@@ -172,35 +154,6 @@ Reflejar estas capacidades en la plantilla para creadores.
     ]
 }
 ```
-
-### 3.4. Capa de Lógica: El Router de Movimiento (`NavigationManager`)
-
-La lógica de movimiento actual es simplista. Implementaremos un nuevo módulo `NavigationManager` y mejoraremos el `GameCoordinator` para resolver el problema del "Objetivo Invisible".
-
-#### 1. Solución al "Objetivo Invisible" (Context Enrichment)
-**Problema:** En un Hub (ej: Plaza), las conexiones a edificios cercanos (ej: Taberna) son implícitas. Si no se pasan al contexto de la IA, esta no sabrá que existen.
-**Solución:** Antes de llamar al `ActionInterpreter`, el `GameCoordinator` debe:
-1.  Verificar si `currentLocation` tiene `regionId`.
-2.  Si tiene, buscar todas las ubicaciones hermanas (mismo `regionId`) en `adventureData`.
-3.  Inyectar estos "destinos implícitos" en el contexto de la IA para que sepa que son accesibles.
-
-#### 2. Nuevo Módulo: `src/ai/flows/managers/navigation-manager.ts`
-Este servicio encapsulará la lógica de validación, enrutamiento y tiempo.
-
-```typescript
-export class NavigationManager {
-  async resolveMovement(
-    currentLocation: Location, 
-    targetId: string, 
-    party: Character[],
-    gameState: GameState
-  ): Promise<MovementResult> {
-    // 1. Identificar destino (AdventureLookup)
-    // 2. Determinar tipo de ruta (Hub vs Direct vs Overland)
-    // 3. Validar restricciones (Locked, Blocked)
-    // 4. Calcular costes (Tiempo, Recursos) y actualizar worldTime
-    // 5. Manejo defensivo de conexiones legacy (strings) vs objetos
-    // Retorna: { success, newLocationId?, narration, timePassed }
   }
 }
 ```

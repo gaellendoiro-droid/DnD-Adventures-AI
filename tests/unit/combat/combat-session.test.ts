@@ -30,7 +30,7 @@ describe('CombatSession', () => {
   describe('Factory Methods', () => {
     it('should create an empty session with createEmpty()', () => {
       const session = CombatSession.createEmpty();
-      
+
       expect(session).toBeInstanceOf(CombatSession);
       expect(session.isActive()).toBe(false);
       expect(session.getTurnIndex()).toBe(0);
@@ -169,7 +169,7 @@ describe('CombatSession', () => {
 
     it('should return copies of arrays to prevent external mutation', () => {
       const session = CombatSession.createEmpty();
-      
+
       const party = session.getParty();
       const enemies = session.getEnemies();
       const initiativeOrder = session.getInitiativeOrder();
@@ -278,10 +278,10 @@ describe('CombatSession', () => {
       };
 
       const session = CombatSession.fromInput(mockInput);
-      
+
       // Mock CombatTurnManager.nextTurnIndex
       vi.mocked(CombatTurnManager.nextTurnIndex).mockReturnValue(1);
-      
+
       expect(session.getTurnIndex()).toBe(0);
       session.advanceTurn();
       expect(CombatTurnManager.nextTurnIndex).toHaveBeenCalledWith(0, 2);
@@ -304,10 +304,10 @@ describe('CombatSession', () => {
       };
 
       const session = CombatSession.fromInput(mockInput);
-      
+
       // Mock wrap-around
       vi.mocked(CombatTurnManager.nextTurnIndex).mockReturnValue(0);
-      
+
       session.advanceTurn();
       expect(session.getTurnIndex()).toBe(0);
     });
@@ -315,10 +315,10 @@ describe('CombatSession', () => {
     it('should not advance if initiative order is empty', () => {
       const session = CombatSession.createEmpty();
       const initialIndex = session.getTurnIndex();
-      
+
       // Clear any previous calls
       vi.clearAllMocks();
-      
+
       session.advanceTurn();
       expect(session.getTurnIndex()).toBe(initialIndex);
       // Should not call nextTurnIndex when order is empty (early return)
@@ -385,14 +385,14 @@ describe('CombatSession', () => {
       };
 
       const session = CombatSession.fromInput(mockInput);
-      
+
       // Mock checkEndOfCombat to return not ended
       vi.mocked(checkEndOfCombat).mockReturnValue({ combatEnded: false, reason: null });
       // Mock hasMoreAITurns to return false
       vi.mocked(CombatTurnManager.hasMoreAITurns).mockReturnValue(false);
 
       const result = session.hasMoreAITurns();
-      
+
       expect(checkEndOfCombat).toHaveBeenCalledWith(session.getParty(), session.getEnemies());
       expect(CombatTurnManager.hasMoreAITurns).toHaveBeenCalled();
       expect(result).toBe(false);
@@ -413,7 +413,7 @@ describe('CombatSession', () => {
       };
 
       const session = CombatSession.fromInput(mockInput);
-      
+
       // Mock checkEndOfCombat to return ended
       vi.mocked(checkEndOfCombat).mockReturnValue({ combatEnded: true, reason: 'All enemies defeated' });
 
@@ -430,7 +430,7 @@ describe('CombatSession', () => {
     it('should return false if combat is not active', () => {
       const session = CombatSession.createEmpty();
       const result = session.checkEndOfCombat();
-      
+
       expect(result.combatEnded).toBe(false);
       expect(checkEndOfCombat).not.toHaveBeenCalled();
     });
@@ -470,12 +470,12 @@ describe('CombatSession', () => {
       };
 
       const session = CombatSession.fromInput(mockInput);
-      
+
       // Mock checkEndOfCombat to return not ended
       vi.mocked(checkEndOfCombat).mockReturnValue({ combatEnded: false, reason: null });
 
       const result = session.checkEndOfCombat();
-      
+
       expect(checkEndOfCombat).toHaveBeenCalledWith(session.getParty(), session.getEnemies());
       expect(result.combatEnded).toBe(false);
     });
@@ -493,12 +493,12 @@ describe('CombatSession', () => {
       };
 
       const session = CombatSession.fromInput(mockInput);
-      
+
       // Mock checkEndOfCombat to return ended
       vi.mocked(checkEndOfCombat).mockReturnValue({ combatEnded: true, reason: 'All enemies defeated' });
 
       const result = session.checkEndOfCombat();
-      
+
       expect(result.combatEnded).toBe(true);
       expect(result.reason).toBe('All enemies defeated');
     });
@@ -638,7 +638,7 @@ describe('CombatSession', () => {
       expect(session.getTurnIndex()).toBe(1); // Player's turn
       expect(session.getInitiativeOrder()).toHaveLength(2);
       expect(session.getEnemies()).toHaveLength(1);
-      
+
       // Check that firstTurnData was applied
       const output = session.toJSON();
       expect(output.lastProcessedTurnWasAI).toBe(true);
@@ -749,7 +749,7 @@ describe('CombatSession', () => {
       const mockDeps = {} as any;
 
       await session.processCurrentTurn(null, '', {}, [], mockDeps);
-      
+
       // Should not throw, just return early
       expect(session.isActive()).toBe(false);
     });
@@ -770,7 +770,7 @@ describe('CombatSession', () => {
       const mockDeps = {} as any;
 
       await session.processCurrentTurn(null, '', {}, [], mockDeps);
-      
+
       // Should not throw, just return early
       expect(session.getActiveCombatant()).toBeNull();
     });
@@ -812,13 +812,13 @@ describe('CombatSession', () => {
       const mockDeps = {
         enemyTacticianTool: vi.fn().mockResolvedValue({ narration: 'Goblin attacks!', targetId: 'player-1', diceRolls: [] }),
         // Note: processAICombatantRolls is deprecated - TurnProcessor now handles this
-        processAICombatantRolls: undefined, // vi.fn().mockResolvedValue({
+        processAICombatantRolls: undefined, /* vi.fn().mockResolvedValue({
           diceRolls: [],
           messages: [],
           updatedParty: session.getParty(),
           updatedEnemies: session.getEnemies(),
           combatEnded: false,
-        }),
+        }), */
       } as any;
 
       vi.mocked(CombatTurnManager.nextTurnIndex).mockReturnValue(1);
@@ -955,400 +955,400 @@ describe('CombatSession', () => {
         }),
         // Note: processAICombatantRolls is deprecated - TurnProcessor now handles this
         processAICombatantRolls: undefined, // vi.fn().mockResolvedValue({
-          diceRolls: [],
-          messages: [{ sender: 'DM', content: 'Goblin hits Player for 3 damage!' }],
-          updatedParty: [{ ...session.getParty()[0], hp: { current: 17, max: 20 } }],
-          updatedEnemies: session.getEnemies(),
-          combatEnded: false,
-        }),
+        diceRolls: [],
+        messages: [{ sender: 'DM', content: 'Goblin hits Player for 3 damage!' }],
+        updatedParty: [{ ...session.getParty()[0], hp: { current: 17, max: 20 } }],
+        updatedEnemies: session.getEnemies(),
+        combatEnded: false,
+      }),
       } as any;
 
-      vi.mocked(CombatTurnManager.nextTurnIndex).mockReturnValue(0);
+  vi.mocked(CombatTurnManager.nextTurnIndex).mockReturnValue(0);
 
-      await session.processCurrentTurn(
-        null,
-        '',
-        {},
-        [],
-        mockDeps
-      );
+  await session.processCurrentTurn(
+    null,
+    '',
+    {},
+    [],
+    mockDeps
+  );
 
-      // Should have processed AI turn
-      expect(mockDeps.enemyTacticianTool).toHaveBeenCalled();
-      // Note: processAICombatantRolls is deprecated - this assertion needs updating
-      // expect(mockDeps.processAICombatantRolls).toHaveBeenCalled();
-      
-      const output = session.toJSON();
-      expect(output.lastProcessedTurnWasAI).toBe(true);
-    });
+  // Should have processed AI turn
+  expect(mockDeps.enemyTacticianTool).toHaveBeenCalled();
+  // Note: processAICombatantRolls is deprecated - this assertion needs updating
+  // expect(mockDeps.processAICombatantRolls).toHaveBeenCalled();
+
+  const output = session.toJSON();
+  expect(output.lastProcessedTurnWasAI).toBe(true);
+});
   });
 
-  describe('Edge Cases and Error Handling', () => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
+describe('Edge Cases and Error Handling', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-    it('should handle processCurrentTurn when combat ends during AI turn', async () => {
-      const mockInput: CombatManagerInput = {
-        party: [
-          {
-            id: 'player-1',
-            name: 'Player',
-            hp: { current: 20, max: 20 },
-            abilityScores: {
-              fuerza: 10,
-              destreza: 10,
-              constitución: 10,
-              inteligencia: 10,
-              sabiduría: 10,
-              carisma: 10,
-            },
-            skills: [],
-            inventory: [],
-            spells: [],
-            controlledBy: 'Player',
-          } as Character,
-        ],
-        enemies: [
-          { uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 1, max: 7 }, ac: 15 } as any,
-        ],
-        initiativeOrder: [
-          { id: 'enemy-1', characterName: 'Goblin', total: 18, type: 'npc', controlledBy: 'AI' } as Combatant,
-        ],
-        turnIndex: 0,
-        inCombat: true,
-        locationId: 'test',
-        messages: [],
-        diceRolls: [],
-      };
+  it('should handle processCurrentTurn when combat ends during AI turn', async () => {
+    const mockInput: CombatManagerInput = {
+      party: [
+        {
+          id: 'player-1',
+          name: 'Player',
+          hp: { current: 20, max: 20 },
+          abilityScores: {
+            fuerza: 10,
+            destreza: 10,
+            constitución: 10,
+            inteligencia: 10,
+            sabiduría: 10,
+            carisma: 10,
+          },
+          skills: [],
+          inventory: [],
+          spells: [],
+          controlledBy: 'Player',
+        } as Character,
+      ],
+      enemies: [
+        { uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 1, max: 7 }, ac: 15 } as any,
+      ],
+      initiativeOrder: [
+        { id: 'enemy-1', characterName: 'Goblin', total: 18, type: 'npc', controlledBy: 'AI' } as Combatant,
+      ],
+      turnIndex: 0,
+      inCombat: true,
+      locationId: 'test',
+      messages: [],
+      diceRolls: [],
+    };
 
-      const session = CombatSession.fromInput(mockInput);
-      const mockDeps = {
-        enemyTacticianTool: vi.fn().mockResolvedValue({
-          narration: 'Goblin attacks Player!',
-          targetId: 'player-1',
-          diceRolls: [{ rollNotation: '1d20+3', type: 'attack' }],
-        }),
-        // Note: processAICombatantRolls is deprecated - TurnProcessor now handles this
-        processAICombatantRolls: undefined, // vi.fn().mockResolvedValue({
-          diceRolls: [],
-          messages: [{ sender: 'DM', content: 'Goblin hits Player!' }],
-          updatedParty: session.getParty(),
-          updatedEnemies: [{ uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 0, max: 7 }, ac: 15 } as any],
-          combatEnded: true,
-        }),
+    const session = CombatSession.fromInput(mockInput);
+    const mockDeps = {
+      enemyTacticianTool: vi.fn().mockResolvedValue({
+        narration: 'Goblin attacks Player!',
+        targetId: 'player-1',
+        diceRolls: [{ rollNotation: '1d20+3', type: 'attack' }],
+      }),
+      // Note: processAICombatantRolls is deprecated - TurnProcessor now handles this
+      processAICombatantRolls: undefined, // vi.fn().mockResolvedValue({
+      diceRolls: [],
+      messages: [{ sender: 'DM', content: 'Goblin hits Player!' }],
+      updatedParty: session.getParty(),
+      updatedEnemies: [{ uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 0, max: 7 }, ac: 15 } as any],
+      combatEnded: true,
+    }),
       } as any;
 
-      vi.mocked(CombatTurnManager.nextTurnIndex).mockReturnValue(0);
-      vi.mocked(checkEndOfCombat).mockReturnValue({
-        combatEnded: true,
-        reason: 'Todos los enemigos derrotados',
-      });
+vi.mocked(CombatTurnManager.nextTurnIndex).mockReturnValue(0);
+vi.mocked(checkEndOfCombat).mockReturnValue({
+  combatEnded: true,
+  reason: 'Todos los enemigos derrotados',
+});
 
-      await session.processCurrentTurn(
-        null,
-        '',
-        {},
-        [],
-        mockDeps
-      );
+await session.processCurrentTurn(
+  null,
+  '',
+  {},
+  [],
+  mockDeps
+);
 
-      const output = session.toJSON();
-      expect(output.inCombat).toBe(false);
-      expect(output.enemies).toEqual([]);
-      expect(output.initiativeOrder).toEqual([]);
+const output = session.toJSON();
+expect(output.inCombat).toBe(false);
+expect(output.enemies).toEqual([]);
+expect(output.initiativeOrder).toEqual([]);
     });
 
-    it('should handle player turn with ambiguous target', async () => {
-      const mockInput: CombatManagerInput = {
-        party: [
-          {
-            id: 'player-1',
-            name: 'Player',
-            hp: { current: 20, max: 20 },
-            abilityScores: {
-              fuerza: 10,
-              destreza: 10,
-              constitución: 10,
-              inteligencia: 10,
-              sabiduría: 10,
-              carisma: 10,
-            },
-            skills: [],
-            inventory: [],
-            spells: [],
-            controlledBy: 'Player',
-          } as Character,
-        ],
-        enemies: [
-          { uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 7, max: 7 }, ac: 15 } as any,
-          { uniqueId: 'enemy-2', name: 'Goblin', hp: { current: 7, max: 7 }, ac: 15 } as any,
-        ],
-        initiativeOrder: [
-          { id: 'player-1', characterName: 'Player', total: 15, type: 'player', controlledBy: 'Player' } as Combatant,
-        ],
-        turnIndex: 0,
-        inCombat: true,
-        locationId: 'test',
-        messages: [],
-        diceRolls: [],
-      };
+it('should handle player turn with ambiguous target', async () => {
+  const mockInput: CombatManagerInput = {
+    party: [
+      {
+        id: 'player-1',
+        name: 'Player',
+        hp: { current: 20, max: 20 },
+        abilityScores: {
+          fuerza: 10,
+          destreza: 10,
+          constitución: 10,
+          inteligencia: 10,
+          sabiduría: 10,
+          carisma: 10,
+        },
+        skills: [],
+        inventory: [],
+        spells: [],
+        controlledBy: 'Player',
+      } as Character,
+    ],
+    enemies: [
+      { uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 7, max: 7 }, ac: 15 } as any,
+      { uniqueId: 'enemy-2', name: 'Goblin', hp: { current: 7, max: 7 }, ac: 15 } as any,
+    ],
+    initiativeOrder: [
+      { id: 'player-1', characterName: 'Player', total: 15, type: 'player', controlledBy: 'Player' } as Combatant,
+    ],
+    turnIndex: 0,
+    inCombat: true,
+    locationId: 'test',
+    messages: [],
+    diceRolls: [],
+  };
 
-      const session = CombatSession.fromInput(mockInput);
-      const mockDeps = {} as any;
+  const session = CombatSession.fromInput(mockInput);
+  const mockDeps = {} as any;
 
-      await session.processCurrentTurn(
-        { actionType: 'attack' }, // No targetId specified
-        'I attack',
-        {},
-        [],
-        mockDeps
-      );
+  await session.processCurrentTurn(
+    { actionType: 'attack' }, // No targetId specified
+    'I attack',
+    {},
+    [],
+    mockDeps
+  );
 
-      const output = session.toJSON();
-      // Should ask for clarification
-      expect(output.messages.some((m: any) => m.content.includes('objetivo'))).toBe(true);
-      expect(output.turnIndex).toBe(0); // Should not advance turn
-    });
+  const output = session.toJSON();
+  // Should ask for clarification
+  expect(output.messages.some((m: any) => m.content.includes('objetivo'))).toBe(true);
+  expect(output.turnIndex).toBe(0); // Should not advance turn
+});
 
-    it('should handle player turn with no enemies alive', async () => {
-      const mockInput: CombatManagerInput = {
-        party: [
-          {
-            id: 'player-1',
-            name: 'Player',
-            hp: { current: 20, max: 20 },
-            abilityScores: {
-              fuerza: 10,
-              destreza: 10,
-              constitución: 10,
-              inteligencia: 10,
-              sabiduría: 10,
-              carisma: 10,
-            },
-            skills: [],
-            inventory: [],
-            spells: [],
-            controlledBy: 'Player',
-          } as Character,
-        ],
-        enemies: [
-          { uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 0, max: 7 }, ac: 15 } as any,
-        ],
-        initiativeOrder: [
-          { id: 'player-1', characterName: 'Player', total: 15, type: 'player', controlledBy: 'Player' } as Combatant,
-        ],
-        turnIndex: 0,
-        inCombat: true,
-        locationId: 'test',
-        messages: [],
-        diceRolls: [],
-      };
+it('should handle player turn with no enemies alive', async () => {
+  const mockInput: CombatManagerInput = {
+    party: [
+      {
+        id: 'player-1',
+        name: 'Player',
+        hp: { current: 20, max: 20 },
+        abilityScores: {
+          fuerza: 10,
+          destreza: 10,
+          constitución: 10,
+          inteligencia: 10,
+          sabiduría: 10,
+          carisma: 10,
+        },
+        skills: [],
+        inventory: [],
+        spells: [],
+        controlledBy: 'Player',
+      } as Character,
+    ],
+    enemies: [
+      { uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 0, max: 7 }, ac: 15 } as any,
+    ],
+    initiativeOrder: [
+      { id: 'player-1', characterName: 'Player', total: 15, type: 'player', controlledBy: 'Player' } as Combatant,
+    ],
+    turnIndex: 0,
+    inCombat: true,
+    locationId: 'test',
+    messages: [],
+    diceRolls: [],
+  };
 
-      const session = CombatSession.fromInput(mockInput);
-      const mockDeps = {} as any;
+  const session = CombatSession.fromInput(mockInput);
+  const mockDeps = {} as any;
 
-      vi.mocked(CombatTurnManager.nextTurnIndex).mockReturnValue(0);
+  vi.mocked(CombatTurnManager.nextTurnIndex).mockReturnValue(0);
 
-      await session.processCurrentTurn(
-        { actionType: 'attack' },
-        'I attack',
-        {},
-        [],
-        mockDeps
-      );
+  await session.processCurrentTurn(
+    { actionType: 'attack' },
+    'I attack',
+    {},
+    [],
+    mockDeps
+  );
 
-      const output = session.toJSON();
-      // Should show message about no enemies alive
-      expect(output.messages.some((m: any) => m.content.includes('enemigos vivos'))).toBe(true);
-    });
+  const output = session.toJSON();
+  // Should show message about no enemies alive
+  expect(output.messages.some((m: any) => m.content.includes('enemigos vivos'))).toBe(true);
+});
 
-    it('should handle AI turn with no targetId', async () => {
-      const mockInput: CombatManagerInput = {
-        party: [
-          {
-            id: 'player-1',
-            name: 'Player',
-            hp: { current: 20, max: 20 },
-            abilityScores: {
-              fuerza: 10,
-              destreza: 10,
-              constitución: 10,
-              inteligencia: 10,
-              sabiduría: 10,
-              carisma: 10,
-            },
-            skills: [],
-            inventory: [],
-            spells: [],
-            controlledBy: 'Player',
-          } as Character,
-        ],
-        enemies: [
-          { uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 7, max: 7 }, ac: 15 } as any,
-        ],
-        initiativeOrder: [
-          { id: 'enemy-1', characterName: 'Goblin', total: 18, type: 'npc', controlledBy: 'AI' } as Combatant,
-        ],
-        turnIndex: 0,
-        inCombat: true,
-        locationId: 'test',
-        messages: [],
-        diceRolls: [],
-      };
+it('should handle AI turn with no targetId', async () => {
+  const mockInput: CombatManagerInput = {
+    party: [
+      {
+        id: 'player-1',
+        name: 'Player',
+        hp: { current: 20, max: 20 },
+        abilityScores: {
+          fuerza: 10,
+          destreza: 10,
+          constitución: 10,
+          inteligencia: 10,
+          sabiduría: 10,
+          carisma: 10,
+        },
+        skills: [],
+        inventory: [],
+        spells: [],
+        controlledBy: 'Player',
+      } as Character,
+    ],
+    enemies: [
+      { uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 7, max: 7 }, ac: 15 } as any,
+    ],
+    initiativeOrder: [
+      { id: 'enemy-1', characterName: 'Goblin', total: 18, type: 'npc', controlledBy: 'AI' } as Combatant,
+    ],
+    turnIndex: 0,
+    inCombat: true,
+    locationId: 'test',
+    messages: [],
+    diceRolls: [],
+  };
 
-      const session = CombatSession.fromInput(mockInput);
-      const mockDeps = {
-        enemyTacticianTool: vi.fn().mockResolvedValue({
-          narration: 'Goblin looks around.',
-          targetId: null, // No target
-          diceRolls: [],
-        }),
-        // Note: processAICombatantRolls is deprecated - kept for backward compatibility in tests
-        processAICombatantRolls: undefined,
-      } as any;
+  const session = CombatSession.fromInput(mockInput);
+  const mockDeps = {
+    enemyTacticianTool: vi.fn().mockResolvedValue({
+      narration: 'Goblin looks around.',
+      targetId: null, // No target
+      diceRolls: [],
+    }),
+    // Note: processAICombatantRolls is deprecated - kept for backward compatibility in tests
+    processAICombatantRolls: undefined,
+  } as any;
 
-      vi.mocked(CombatTurnManager.nextTurnIndex).mockReturnValue(0);
+  vi.mocked(CombatTurnManager.nextTurnIndex).mockReturnValue(0);
 
-      await session.processCurrentTurn(
-        null,
-        '',
-        {},
-        [],
-        mockDeps
-      );
+  await session.processCurrentTurn(
+    null,
+    '',
+    {},
+    [],
+    mockDeps
+  );
 
-      // Should process narration but not call processAICombatantRolls
-      expect(mockDeps.enemyTacticianTool).toHaveBeenCalled();
-      // Note: processAICombatantRolls is deprecated - this assertion needs updating
-      // expect(mockDeps.processAICombatantRolls).not.toHaveBeenCalled();
-    });
+  // Should process narration but not call processAICombatantRolls
+  expect(mockDeps.enemyTacticianTool).toHaveBeenCalled();
+  // Note: processAICombatantRolls is deprecated - this assertion needs updating
+  // expect(mockDeps.processAICombatantRolls).not.toHaveBeenCalled();
+});
 
-    it('should handle initialize failure gracefully', async () => {
-      const session = CombatSession.createEmpty();
-      
-      vi.mocked(CombatInitializer.initializeCombat).mockResolvedValue({
-        success: false,
-        initiativeOrder: [],
-        enemies: [],
-        updatedParty: [],
-        messages: [{ sender: 'DM', content: 'Error al iniciar combate' }],
-        diceRolls: [],
-        error: 'Test error',
-      });
+it('should handle initialize failure gracefully', async () => {
+  const session = CombatSession.createEmpty();
 
-      const mockDeps = {
-        diceRollerTool: vi.fn(),
-        enemyTacticianTool: vi.fn(),
-        companionTacticianTool: vi.fn(),
-        // Note: processAICombatantRolls is deprecated - kept for backward compatibility in tests
-        processAICombatantRolls: undefined,
-        narrativeExpert: vi.fn(),
-        markdownToHtml: vi.fn(),
-      } as any;
+  vi.mocked(CombatInitializer.initializeCombat).mockResolvedValue({
+    success: false,
+    initiativeOrder: [],
+    enemies: [],
+    updatedParty: [],
+    messages: [{ sender: 'DM', content: 'Error al iniciar combate' }],
+    diceRolls: [],
+    error: 'Test error',
+  });
 
-      await session.initialize(
-        mockDeps,
-        [], // combatantIds
-        {}, // locationContext
-        [], // conversationHistory
-        '', // playerAction
-        null // interpretedAction
-      );
+  const mockDeps = {
+    diceRollerTool: vi.fn(),
+    enemyTacticianTool: vi.fn(),
+    companionTacticianTool: vi.fn(),
+    // Note: processAICombatantRolls is deprecated - kept for backward compatibility in tests
+    processAICombatantRolls: undefined,
+    narrativeExpert: vi.fn(),
+    markdownToHtml: vi.fn(),
+  } as any;
 
-      const output = session.toJSON();
-      expect(output.inCombat).toBe(false);
-      expect(output.messages.length).toBeGreaterThan(0);
-    });
+  await session.initialize(
+    mockDeps,
+    [], // combatantIds
+    {}, // locationContext
+    [], // conversationHistory
+    '', // playerAction
+    null // interpretedAction
+  );
 
-    it('should handle fromInput with invalid turnIndex (out of bounds)', () => {
-      const mockInput: CombatManagerInput = {
-        party: [],
-        enemies: [],
-        initiativeOrder: [
-          { id: 'player-1', characterName: 'Player', total: 15, type: 'player', controlledBy: 'Player' } as Combatant,
-        ],
-        turnIndex: 999, // Out of bounds
-        inCombat: true,
-        locationId: 'test',
-        messages: [],
-        diceRolls: [],
-      };
+  const output = session.toJSON();
+  expect(output.inCombat).toBe(false);
+  expect(output.messages.length).toBeGreaterThan(0);
+});
 
-      const session = CombatSession.fromInput(mockInput);
-      
-      // Should clamp turnIndex to valid range
-      expect(session.getTurnIndex()).toBe(0);
-    });
+it('should handle fromInput with invalid turnIndex (out of bounds)', () => {
+  const mockInput: CombatManagerInput = {
+    party: [],
+    enemies: [],
+    initiativeOrder: [
+      { id: 'player-1', characterName: 'Player', total: 15, type: 'player', controlledBy: 'Player' } as Combatant,
+    ],
+    turnIndex: 999, // Out of bounds
+    inCombat: true,
+    locationId: 'test',
+    messages: [],
+    diceRolls: [],
+  };
 
-    it('should handle fromInput with negative turnIndex', () => {
-      const mockInput: CombatManagerInput = {
-        party: [],
-        enemies: [],
-        initiativeOrder: [
-          { id: 'player-1', characterName: 'Player', total: 15, type: 'player', controlledBy: 'Player' } as Combatant,
-        ],
-        turnIndex: -5, // Negative
-        inCombat: true,
-        locationId: 'test',
-        messages: [],
-        diceRolls: [],
-      };
+  const session = CombatSession.fromInput(mockInput);
 
-      const session = CombatSession.fromInput(mockInput);
-      
-      // Should clamp turnIndex to 0
-      expect(session.getTurnIndex()).toBe(0);
-    });
+  // Should clamp turnIndex to valid range
+  expect(session.getTurnIndex()).toBe(0);
+});
 
-    it('should handle processCurrentTurn with invalid action type', async () => {
-      const mockInput: CombatManagerInput = {
-        party: [
-          {
-            id: 'player-1',
-            name: 'Player',
-            hp: { current: 20, max: 20 },
-            abilityScores: {
-              fuerza: 10,
-              destreza: 10,
-              constitución: 10,
-              inteligencia: 10,
-              sabiduría: 10,
-              carisma: 10,
-            },
-            skills: [],
-            inventory: [],
-            spells: [],
-            controlledBy: 'Player',
-          } as Character,
-        ],
-        enemies: [],
-        initiativeOrder: [
-          { id: 'player-1', characterName: 'Player', total: 15, type: 'player', controlledBy: 'Player' } as Combatant,
-        ],
-        turnIndex: 0,
-        inCombat: true,
-        locationId: 'test',
-        messages: [],
-        diceRolls: [],
-      };
+it('should handle fromInput with negative turnIndex', () => {
+  const mockInput: CombatManagerInput = {
+    party: [],
+    enemies: [],
+    initiativeOrder: [
+      { id: 'player-1', characterName: 'Player', total: 15, type: 'player', controlledBy: 'Player' } as Combatant,
+    ],
+    turnIndex: -5, // Negative
+    inCombat: true,
+    locationId: 'test',
+    messages: [],
+    diceRolls: [],
+  };
 
-      const session = CombatSession.fromInput(mockInput);
-      const mockDeps = {} as any;
+  const session = CombatSession.fromInput(mockInput);
 
-      // Should not throw, just return early
-      await session.processCurrentTurn(
-        { actionType: 'unknown_action' },
-        'unknown action',
-        {},
-        [],
-        mockDeps
-      );
+  // Should clamp turnIndex to 0
+  expect(session.getTurnIndex()).toBe(0);
+});
 
-      // Should not have processed anything
-      const output = session.toJSON();
-      expect(output.messages.length).toBe(0);
-    });
+it('should handle processCurrentTurn with invalid action type', async () => {
+  const mockInput: CombatManagerInput = {
+    party: [
+      {
+        id: 'player-1',
+        name: 'Player',
+        hp: { current: 20, max: 20 },
+        abilityScores: {
+          fuerza: 10,
+          destreza: 10,
+          constitución: 10,
+          inteligencia: 10,
+          sabiduría: 10,
+          carisma: 10,
+        },
+        skills: [],
+        inventory: [],
+        spells: [],
+        controlledBy: 'Player',
+      } as Character,
+    ],
+    enemies: [],
+    initiativeOrder: [
+      { id: 'player-1', characterName: 'Player', total: 15, type: 'player', controlledBy: 'Player' } as Combatant,
+    ],
+    turnIndex: 0,
+    inCombat: true,
+    locationId: 'test',
+    messages: [],
+    diceRolls: [],
+  };
+
+  const session = CombatSession.fromInput(mockInput);
+  const mockDeps = {} as any;
+
+  // Should not throw, just return early
+  await session.processCurrentTurn(
+    { actionType: 'unknown_action' },
+    'unknown action',
+    {},
+    [],
+    mockDeps
+  );
+
+  // Should not have processed anything
+  const output = session.toJSON();
+  expect(output.messages.length).toBe(0);
+});
   });
 });
 

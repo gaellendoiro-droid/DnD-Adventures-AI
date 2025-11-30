@@ -34,6 +34,7 @@ export const NarrativeExpertInputSchema = z.object({
   phase: z.enum(['normal', 'combat_initiation']).optional().describe("The narrative phase. Use 'combat_initiation' for the initial combat narration before any turns are processed."),
   combatContext: z.string().optional().describe("A JSON string with combat-specific information (initiative order, combatants list) for combat_initiation phase."),
   deadEntities: z.string().optional().describe("Comma-separated list of entity names that have been defeated/killed in this location. The location description may mention them as alive, but they should be described as dead bodies."),
+  systemFeedback: z.string().optional().describe("Feedback from the game system, such as movement failure reasons."),
 });
 export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
 
@@ -74,6 +75,11 @@ export const GameCoordinatorOutputSchema = z.object({
   lastProcessedTurnWasAI: z.boolean().optional(), // true if the last processed turn was AI/Enemy
   lastProcessedTurnIndex: z.number().optional(),  // index of the turn that was just processed
   playerActionCompleted: z.boolean().optional(),  // true if the player has completed their action this turn
+  updatedWorldTime: z.object({
+    day: z.number(),
+    hour: z.number(),
+    minute: z.number()
+  }).optional(),
 });
 export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
 
@@ -88,6 +94,11 @@ export const GameStateSchema = z.object({
   initiativeOrder: z.array(z.any()).optional(), // This represents Combatant[]
   enemies: z.array(z.any()).optional(), // Deprecated: Use enemiesByLocation instead
   enemiesByLocation: z.record(z.string(), z.array(z.any())).optional(), // Map of locationId -> enemies array
+  worldTime: z.object({
+    day: z.number().default(1),
+    hour: z.number().default(8), // 8:00 AM start
+    minute: z.number().default(0)
+  }).optional(),
 });
 export type GameState = z.infer<typeof GameStateSchema>;
 
@@ -99,6 +110,7 @@ export const ExplorationExpertInputSchema = z.object({
   interpretedAction: z.string().describe("A JSON string of the structured interpretation of the player's action."),
   deadEntities: z.string().optional().describe("Comma-separated list of entity names that have been defeated/killed in this location. The location description may mention them as alive, but they should be described as dead bodies."),
   isKeyMoment: z.boolean().optional().describe("Whether this is a key narrative moment (location change, death, rest)."),
+  systemFeedback: z.string().optional().describe("Feedback from the game system, such as movement failure reasons."),
 });
 export type ExplorationExpertInput = z.infer<typeof ExplorationExpertInputSchema>;
 
