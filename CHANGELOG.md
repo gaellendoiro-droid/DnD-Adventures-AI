@@ -263,15 +263,6 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - Se han añadido directrices estrictas de **FACTUALITY & LOCATIONS** en el prompt para prohibir la invención de lugares y forzar el uso de la herramienta de búsqueda.
   - **Archivos modificados:**
     - `src/ai/flows/experts/interaction-expert.ts` (Prompt y tools actualizados)
-
-- **✅ Alucinación de Localizaciones por PNJs (2025-11-26):**
-  - **Problema:** Los PNJs inventaban nombres de localizaciones o traducían incorrectamente nombres propios (ej: "Boca del Crag" en lugar de "Cragmaw Hideout") al dar información al jugador.
-  - **Causa:** El `InteractionExpert` no tenía acceso a la herramienta `adventureLookupTool` para verificar la existencia y nombres correctos de las localizaciones, dependiendo solo de su conocimiento base (propenso a alucinaciones).
-  - **Solución:**
-    - Se ha añadido `adventureLookupTool` a las herramientas disponibles para `InteractionExpert`.
-    - Se han añadido directrices estrictas de **FACTUALITY & LOCATIONS** en el prompt para prohibir la invención de lugares y forzar el uso de la herramienta de búsqueda.
-  - **Archivos modificados:**
-    - `src/ai/flows/experts/interaction-expert.ts` (Prompt y tools actualizados)
 ### Added
 - **🎲 Sistema de Tablas Aleatorias en JSON (2025-11-26):**
   - **Mejora:** Soporte para tablas de tiradas aleatorias (ej: rumores, encuentros) directamente en el archivo JSON de la aventura.
