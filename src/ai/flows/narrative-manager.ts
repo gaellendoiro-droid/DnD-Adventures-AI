@@ -186,6 +186,7 @@ export const narrativeManagerFlow = ai.defineFlow(
                     deadEntities: input.deadEntities,
                     isKeyMoment: (input as any).isKeyMoment,
                     systemFeedback: input.systemFeedback,
+                    explorationContext: input.explorationContext, // Pass exploration context
                 });
                 finalNarration = expResult.explorationNarration;
                 // updatedStats = expResult.updatedStats || null; // Feature not yet implemented in experts
@@ -216,6 +217,7 @@ export const narrativeManagerFlow = ai.defineFlow(
                         deadEntities: input.deadEntities,
                         isKeyMoment: (input as any).isKeyMoment,
                         systemFeedback: input.systemFeedback,
+                        explorationContext: input.explorationContext, // Pass exploration context
                     }),
                     interactionExpert({
                         playerAction: input.playerAction,

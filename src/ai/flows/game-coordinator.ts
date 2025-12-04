@@ -21,6 +21,7 @@ import { actionInterpreter } from './action-interpreter';
 import { GameStateSchema, GameCoordinatorOutputSchema, type GameState, type GameCoordinatorOutput } from '@/ai/flows/schemas';
 import { combatManagerTool } from '../tools/combat-manager';
 import { combatInitiationExpertTool } from '../tools/combat-initiation-expert';
+import { CombatTriggerManager } from './managers/combat-trigger-manager';
 import { log } from '@/lib/logger';
 
 
@@ -114,6 +115,14 @@ export const gameCoordinatorFlow = ai.defineFlow(
             locationId,
             locationTitle: currentLocationData.title || 'unknown',
         });
+
+        // Log openDoors state for debugging
+        if (input.openDoors && Object.keys(input.openDoors).length > 0) {
+            log.debug('Open doors state received', {
+                module: 'GameCoordinator',
+                openDoors: input.openDoors,
+            });
+        }
 
         // Check if this is a "continue turn" action (step-by-step combat)
         const isContinueTurn = playerAction.toLowerCase().includes('continuar') ||
@@ -285,8 +294,24 @@ export const gameCoordinatorFlow = ai.defineFlow(
         }
 
         if (interpretation.actionType === 'attack') {
-            log.gameCoordinator('Initiating combat', { targetId: interpretation.targetId });
-            localLog("GameCoordinator: Action is 'attack'. Initiating combat...");
+            // Evaluate if this is a player surprise attack (attacking from outside combat)
+            const playerActionTrigger = CombatTriggerManager.evaluatePlayerAction({
+                actionType: interpretation.actionType,
+                targetId: interpretation.targetId || undefined,
+                isCombatAction: true
+            });
+
+            if (playerActionTrigger.surpriseSide === 'player') {
+                log.gameCoordinator('Player Surprise Attack detected', { 
+                    targetId: interpretation.targetId,
+                    reason: playerActionTrigger.reason 
+                });
+                localLog(`GameCoordinator: Player surprise attack! Target: ${interpretation.targetId}`);
+            } else {
+                log.gameCoordinator('Initiating combat', { targetId: interpretation.targetId });
+                localLog("GameCoordinator: Action is 'attack'. Initiating combat...");
+            }
+
             const initiationResult = await combatInitiationExpertTool({
                 playerAction,
                 locationId,
@@ -298,6 +323,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
 
             log.gameCoordinator('Combat initiated', {
                 combatantIds: initiationResult.combatantIds?.length || 0,
+                surpriseSide: playerActionTrigger.surpriseSide,
             });
 
             // FIXED: Pass all required properties to the combatManagerTool for initiation.
@@ -308,6 +334,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 combatantIds: initiationResult.combatantIds,
                 interpretedAction: interpretation, // This was missing.
                 locationContext: currentLocationData, // This was missing.
+                surpriseSide: playerActionTrigger.surpriseSide, // Pass surprise side to mark surprised combatants
             });
             return { ...combatResult, debugLogs: debugLogs };
         }
@@ -322,10 +349,140 @@ export const gameCoordinatorFlow = ai.defineFlow(
             conversationHistory,
             enemiesByLocation: input.enemiesByLocation,
             enemies: input.enemies,
+            explorationState: input.exploration, // Pass current exploration state
+            openDoors: input.openDoors // Pass current door states
         });
 
         // Merge logs
         narrativeResult.debugLogs.forEach(localLog);
+
+        // --- DYNAMIC COMBAT TRIGGER HANDLING ---
+        if (narrativeResult.combatTriggerResult && narrativeResult.combatTriggerResult.shouldStartCombat) {
+            const trigger = narrativeResult.combatTriggerResult;
+            log.gameCoordinator('Dynamic Combat Triggered', { reason: trigger.reason, surprise: trigger.surpriseSide });
+            localLog(`GameCoordinator: Dynamic Combat Triggered! Reason: ${trigger.reason}`);
+
+            // 1. Identify Enemies
+            // CRITICAL FIX: Use enemies from the COMBAT location (current or new)
+            let combatLocationId = locationId;
+            let combatLocationData = currentLocationData;
+            
+            // Check if we moved to a new location
+            if (narrativeResult.nextLocationId && narrativeResult.nextLocationId !== locationId) {
+                combatLocationId = narrativeResult.nextLocationId;
+                combatLocationData = adventureData.locations.find((l: any) => l.id === combatLocationId) || currentLocationData;
+                localLog(`Dynamic Combat: Switching context to new location ${combatLocationId}.`);
+            }
+            
+            // Get enemies ONLY for the combat location (not fallback to all enemies)
+            let combatEnemies = input.enemiesByLocation?.[combatLocationId] || [];
+
+            // Fallback: Load from adventureData if not in state
+            if (combatEnemies.length === 0 && combatLocationData.entitiesPresent) {
+                combatEnemies = combatLocationData.entitiesPresent.map((id: string) =>
+                    adventureData.entities?.find((e: any) => e.id === id)
+                ).filter((e: any) => e);
+                localLog(`Dynamic Combat: Loaded ${combatEnemies.length} enemies from adventure data for location ${combatLocationId}`);
+            }
+
+            // Normalize entities loaded from JSON (convert stats.hp to hp: {current, max})
+            combatEnemies = combatEnemies.map((entity: any) => {
+                if (entity.stats?.hp && !entity.hp) {
+                    return {
+                        ...entity,
+                        hp: { current: entity.stats.hp, max: entity.stats.hp },
+                        ac: entity.stats.ac
+                    };
+                }
+                return entity;
+            });
+            
+            localLog(`Dynamic Combat: Found ${combatEnemies.length} enemies for location ${combatLocationId}`);
+            
+
+            // 3. Filter enemies to include ONLY visible ones AND the triggering entity (if any)
+            let filteredCombatEnemies: any[] = [];
+            
+            if (combatEnemies.length > 0) {
+                // If there's a specific triggering entity (e.g. mimic), we MUST include it and reveal it
+                if (trigger.triggeringEntityId) {
+                    const triggeringEnemy = combatEnemies.find((e: any) => e.id === trigger.triggeringEntityId);
+                    if (triggeringEnemy) {
+                        // Reveal the hidden enemy
+                        // Create a copy to modify
+                        const revealedEnemy = { ...triggeringEnemy, disposition: 'hostile', status: 'active' };
+                        filteredCombatEnemies.push(revealedEnemy);
+                        localLog(`Dynamic Combat: Revealed hidden enemy ${revealedEnemy.name} (${revealedEnemy.id})`);
+                    } else {
+                        localLog(`Dynamic Combat: WARNING - Triggering entity ${trigger.triggeringEntityId} not found in combatEnemies list.`);
+                    }
+                }
+
+                // Add other visible/hostile enemies
+                const otherEnemies = combatEnemies.filter((e: any) => {
+                    // Skip if it's the triggering entity (already added)
+                    if (trigger.triggeringEntityId && e.id === trigger.triggeringEntityId) return false;
+                    
+                    // Filter hidden enemies
+                    const isHidden = e.disposition === 'hidden' || e.status === 'hidden';
+                    return !isHidden;
+                });
+                
+                filteredCombatEnemies = [...filteredCombatEnemies, ...otherEnemies];
+                localLog(`Dynamic Combat: Included ${otherEnemies.length} other visible enemies.`);
+            }
+
+            const enemyIds = filteredCombatEnemies.map((e: any) => e.id || (e as any).uniqueId);
+            const partyIds = party.map(p => p.id);
+            const allCombatantIds = [...partyIds, ...enemyIds];
+
+            // Update combatEnemies with the filtered list for initialization context if needed
+            // But combatManagerTool might reload them from IDs. 
+            // IMPORTANT: If we modified the 'disposition' of the mimic, we need to pass this updated state.
+            // However, combatManagerTool usually re-fetches or uses passed enemies. 
+            // We should pass 'updatedEnemies' to combatManagerTool if possible, or ensure EnemyValidator respects the IDs.
+            
+            // Issue: combatManagerTool / EnemyValidator re-fetches enemies from adventureData by ID if not provided.
+            // If it re-fetches, it will get the "hidden" version again.
+            // We need to pass the *revealed* enemies to combatManagerTool.
+            
+            // 2. Add Trigger Message
+            if (trigger.message) {
+                narrativeResult.messages.push({
+                    sender: 'DM',
+                    content: `**${trigger.message}**`
+                });
+            }
+
+            // Prepare updated enemies map with revealed enemies
+            const updatedEnemiesByLocation = {
+                ...(input.enemiesByLocation || {}),
+                [combatLocationId]: filteredCombatEnemies
+            };
+
+            // 3. Initialize Combat
+            const combatResult = await combatManagerTool({
+                ...input,
+                inCombat: false,
+                turnIndex: 0,
+                combatantIds: allCombatantIds,
+                enemiesByLocation: updatedEnemiesByLocation, // Pass updated enemies (revealed mimic)
+                interpretedAction: { actionType: 'attack', targetId: 'dynamic_trigger' },
+                locationContext: combatLocationData,
+                surpriseSide: trigger.surpriseSide, // Pass surprise side for ambushes, mimics, etc.
+            });
+
+            // 4. Merge Results
+            // IMPORTANT: Use combatLocationId as nextLocationId since we moved before combat started
+            return {
+                ...combatResult,
+                messages: [...narrativeResult.messages, ...(combatResult.messages || [])],
+                debugLogs: [...debugLogs, ...narrativeResult.debugLogs],
+                updatedExplorationState: narrativeResult.updatedExplorationState,
+                updatedOpenDoors: narrativeResult.updatedOpenDoors,
+                nextLocationId: combatLocationId, // Preserve the location we moved to before combat
+            };
+        }
 
         return {
             messages: narrativeResult.messages,
@@ -334,7 +491,9 @@ export const gameCoordinatorFlow = ai.defineFlow(
             nextLocationId: narrativeResult.nextLocationId,
             inCombat: false,
             turnIndex: 0,
-            updatedWorldTime: narrativeResult.updatedWorldTime
+            updatedWorldTime: narrativeResult.updatedWorldTime,
+            updatedExplorationState: narrativeResult.updatedExplorationState, // Return updated state
+            updatedOpenDoors: narrativeResult.updatedOpenDoors // Return updated door states
         };
     }
 );

@@ -1,0 +1,258 @@
+{
+    "adventureId": "test-ambush",
+    "title": "Prueba de Emboscada",
+    "summary": "Aventura de prueba para el sistema de inicio de combate dinámico.",
+    "introduction": "Estás en una zona de pruebas. Al norte hay una sala sospechosa, al este una sala con un cofre, al sur hay una puerta cerrada, y al oeste hay un mercader.",
+    "startingLocationId": "sala-segura",
+    "settings": {
+        "initialWorldTime": {
+            "day": 1,
+            "hour": 8,
+            "minute": 0
+        }
+    },
+    "locations": [
+        {
+            "id": "sala-segura",
+            "title": "Sala Segura",
+            "description": "Una habitación tranquila y segura. Hay una puerta al norte, otra al este, una puerta cerrada (sin llave) al sur, y al oeste se ve a un mercader.",
+            "type": "room",
+            "connections": [
+                {
+                    "targetId": "sala-emboscada",
+                    "direction": "norte",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "sala-mimico",
+                    "direction": "este",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "sala-goblin-cerrada",
+                    "direction": "sur",
+                    "visibility": "restricted",
+                    "isOpen": false
+                },
+                {
+                    "targetId": "sala-mercader",
+                    "direction": "oeste",
+                    "visibility": "open"
+                }
+            ],
+            "interactables": [
+                {
+                    "id": "puerta-sur",
+                    "name": "Puerta del Sur",
+                    "description": "Una puerta de madera cerrada. No tiene cerradura visible.",
+                    "interactions": [
+                        {
+                            "action": "Abrir puerta",
+                            "description": "Abres la puerta con cuidado..."
+                        },
+                        {
+                            "action": "Inspeccionar puerta",
+                            "description": "Examinas la puerta cuidadosamente..."
+                        },
+                        {
+                            "action": "Escuchar a través de la puerta",
+                            "description": "Aplicas el oído contra la puerta..."
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "sala-emboscada",
+            "title": "Sala de la Emboscada",
+            "description": "Una sala oscura y silenciosa. Demasiado silenciosa.",
+            "type": "room",
+            "hazards": [
+                {
+                    "id": "emboscada-goblin",
+                    "type": "ambush",
+                    "active": true,
+                    "detectionDC": 30,
+                    "description": "Una sensación de peligro inminente te eriza la piel.",
+                    "triggerDescription": "¡De repente, varios goblins saltan de las sombras gritando!"
+                }
+            ],
+            "entitiesPresent": [
+                "goblin-1",
+                "goblin-2"
+            ],
+            "connections": [
+                {
+                    "targetId": "sala-segura",
+                    "direction": "sur",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "sala-mimico",
+            "title": "Sala del Tesoro",
+            "description": "Una pequeña cámara con un cofre de madera en el centro. El cofre parece antiguo pero en buen estado.",
+            "type": "room",
+            "hazards": [
+                {
+                    "id": "cofre-mimico",
+                    "type": "mimic",
+                    "active": true,
+                    "detectionDC": 20,
+                    "description": "El cofre parece normal, pero algo te dice que no deberías tocarlo.",
+                    "triggerDescription": "¡Cuando tocas la tapa del cofre, la madera se vuelve pegajosa y una boca llena de dientes afilados se abre para morderte! ¡Es un mímico!"
+                }
+            ],
+            "entitiesPresent": [
+                "cofre-mimico"
+            ],
+            "interactables": [
+                {
+                    "id": "cofre-mimico",
+                    "name": "Cofre de Madera",
+                    "description": "Un cofre de madera antiguo con herrajes de hierro. Parece contener algo valioso.",
+                    "interactions": [
+                        {
+                            "action": "Abrir cofre",
+                            "description": "Intentas abrir el cofre..."
+                        },
+                        {
+                            "action": "Inspeccionar cofre",
+                            "description": "Examinas el cofre cuidadosamente..."
+                        }
+                    ]
+                }
+            ],
+            "connections": [
+                {
+                    "targetId": "sala-segura",
+                    "direction": "oeste",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "sala-goblin-cerrada",
+            "title": "Sala del Guardián",
+            "description": "Una pequeña habitación con un goblin visible que patrulla cerca de la puerta cerrada. El goblin te mira con desconfianza.",
+            "type": "room",
+            "entitiesPresent": [
+                "goblin-3"
+            ],
+            "connections": [
+                {
+                    "targetId": "sala-segura",
+                    "direction": "norte",
+                    "visibility": "restricted"
+                }
+            ]
+        },
+        {
+            "id": "sala-mercader",
+            "title": "Puesto del Mercader",
+            "description": "Un pequeño puesto comercial con un mercader amigable que vende provisiones. El mercader te saluda con una sonrisa.",
+            "type": "room",
+            "entitiesPresent": [
+                "mercader-boris"
+            ],
+            "interactables": [
+                {
+                    "id": "mostrador",
+                    "name": "Mostrador de mercancías",
+                    "description": "Un mostrador lleno de pociones, raciones y equipo básico.",
+                    "interactions": [
+                        {
+                            "action": "Ver mercancías",
+                            "description": "Examinas las mercancías disponibles..."
+                        }
+                    ]
+                }
+            ],
+            "connections": [
+                {
+                    "targetId": "sala-segura",
+                    "direction": "este",
+                    "visibility": "open"
+                }
+            ]
+        }
+    ],
+    "entities": [
+        {
+            "id": "goblin-1",
+            "name": "Goblin Acechador",
+            "type": "enemy",
+            "description": "Un goblin pequeño y malicioso.",
+            "stats": {
+                "hp": 7,
+                "ac": 15
+            },
+            "equipment": {
+                "weapons": [
+                    "scimitar"
+                ]
+            }
+        },
+        {
+            "id": "goblin-2",
+            "name": "Goblin Arquero",
+            "type": "enemy",
+            "description": "Un goblin con un arco corto.",
+            "stats": {
+                "hp": 7,
+                "ac": 15
+            },
+            "equipment": {
+                "weapons": [
+                    "shortbow"
+                ]
+            }
+        },
+        {
+            "id": "cofre-mimico",
+            "name": "Mímico",
+            "type": "enemy",
+            "disposition": "hidden",
+            "description": "Un mímico disfrazado de cofre. Sus dientes afilados brillan con hambre.",
+            "stats": {
+                "hp": 58,
+                "ac": 12
+            },
+            "equipment": {
+                "weapons": [
+                    "pseudopod"
+                ]
+            }
+        },
+        {
+            "id": "goblin-3",
+            "name": "Goblin Guardián",
+            "type": "enemy",
+            "description": "Un goblin que vigila la puerta cerrada. Tiene una expresión hostil y una espada corta en la mano.",
+            "stats": {
+                "hp": 7,
+                "ac": 15
+            },
+            "equipment": {
+                "weapons": [
+                    "scimitar"
+                ]
+            }
+        },
+        {
+            "id": "mercader-boris",
+            "name": "Boris el Mercader",
+            "type": "npc",
+            "disposition": "friendly",
+            "description": "Un mercader humano de mediana edad con una barba poblada y ojos amables. Viste ropas sencillas pero limpias.",
+            "stats": {
+                "hp": 10,
+                "ac": 10
+            },
+            "equipment": {
+                "weapons": []
+            }
+        }
+    ]
+}

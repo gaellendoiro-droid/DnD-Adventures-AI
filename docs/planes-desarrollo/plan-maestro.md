@@ -20,7 +20,7 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** 0 planes activos | **Última implementación:** Sistema de Movimiento y Conciencia Espacial (2025-11-30) - COMPLETADO
+**Estado:** 0 planes activos | **Última implementación:** Sistema de Exploración de Mazmorras (Fase 2) (2025-12-01) - COMPLETADO
 
 > Actualmente no hay planes en curso.
 
@@ -28,9 +28,22 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 22 planes
+**Estado:** Finalizados | **Cantidad:** 23 planes
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Sistema de Exploración de Mazmorras (Fase 2)](completados/sistema-exploracion-mazmorras.md) ✅ **COMPLETADO**
+- **Estado:** Implementado y Documentado
+- **Objetivo:** Implementar un sistema de exploración inmersivo con "Niebla de Guerra", percepción pasiva y peligros ocultos.
+- **Prioridad:** Muy Alta
+- **Resultados:**
+  - ✅ **Niebla de Guerra:** Gestión de estados `visited`, `seen`, `unknown` para ubicaciones.
+  - ✅ **Percepción Pasiva:** Detección automática de peligros basada en la percepción del grupo.
+  - ✅ **Peligros y Trampas:** Sistema de `HazardSchema` para trampas y emboscadas.
+  - ✅ **Visibilidad:** Control de visión a través de conexiones (`open`, `restricted`).
+  - ✅ **Narrativa Contextual:** Descripciones adaptadas a la luz y el conocimiento previo.
+- **Fecha de finalización:** 2025-12-01
+- **Referencia:** [Plan Detallado](completados/sistema-exploracion-mazmorras.md)
 
 ### [Sistema de Movimiento y Conciencia Espacial](completados/sistema-movimiento-conciencia-espacial.md) ✅ **COMPLETADO**
 - **Estado:** Implementado y Documentado
@@ -409,9 +422,9 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 - **Referencia:** Ver detalles completos en [Roadmap - Sección 2](../roadmap.md#2-sistema-de-progresión-y-gestión-prioridad-alta)
 
 #### [Sistema de Inicio de Combate Dinámico](../roadmap.md#3-sistema-de-inicio-de-combate-dinámico-prioridad-alta)
-- **Estado:** Sin comenzar
+- **Estado:** ✅ Completado (2025-12-03)
 - **Prioridad:** Alta
-- **Referencia:** Ver detalles completos en [Roadmap - Sección 3](../roadmap.md#3-sistema-de-inicio-de-combate-dinámico-prioridad-alta)
+- **Referencia:** Ver detalles completos en [Plan Completado](../completados/sistema-inicio-combate-dinamico.md) y [Roadmap - Sección 3](../roadmap.md#3-sistema-de-inicio-de-combate-dinámico-prioridad-alta)
 
 #### [Mejora de Estructura de Fichas de Personajes](../roadmap.md#4-mejora-de-estructura-de-fichas-de-personajes-prioridad-alta)
 - **Estado:** Sin comenzar
@@ -497,7 +510,7 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 1. **✅ Refactorización CombatSession - State Object Pattern** - Reducción de ~926 → ~165 líneas (~80%), patrón State Object implementado, 52 tests pasando - **COMPLETADO**
 2. **✅ Refactorización del Módulo `combat-manager.ts` (Fases 1-2)** - Reducción de 2723 → 1235 líneas (54.6%), Issues #21 y #16 resueltos - **COMPLETADO (Fase 3 pausada)**
 3. **Sistema de Progresión y Gestión** - XP, niveles, inventario, persistencia con base de datos
-4. **Sistema de Inicio de Combate Dinámico** - Evaluación automática de hostilidad
+4. **✅ Sistema de Inicio de Combate Dinámico** - Evaluación automática de hostilidad - **COMPLETADO (2025-12-03)**
 5. **Mejora de Estructura de Fichas de Personajes** - Mejor organización y visualización de datos
 6. **Mejoras del Sistema de Combate** - Sistema completo de Saving Throws (Issue #22)
 
@@ -578,7 +591,7 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 
 **Corto Plazo (Prioridad Alta):**
 1. **Sistema de Progresión y Gestión** - Fundamental para campañas duraderas
-2. **Sistema de Inicio de Combate Dinámico** - Mejora la credibilidad del mundo
+2. **✅ Sistema de Inicio de Combate Dinámico** - Mejora la credibilidad del mundo - **COMPLETADO (2025-12-03)**
 3. **Mejora de Estructura de Fichas** - Mejora la experiencia del usuario
 
 **Medio Plazo (Prioridad Media):**

@@ -487,17 +487,54 @@ export class TurnProcessor {
                     };
                 }
 
+                // FIX: Detect "No hacer nada" and force a default attack
+                let finalActionDescription = actionDescription;
+                let finalTargetId = targetId;
+                const actionLower = actionDescription.toLowerCase();
+                const noActionPatterns = ['no hacer nada', 'no hace nada', 'no hace', 'no actúa', 'pasa', 'espera'];
+                if (noActionPatterns.some(pattern => actionLower.includes(pattern))) {
+                    log.warn('Tactician returned "no action", forcing default attack', {
+                        module: 'TurnProcessor',
+                        combatant: combatant.characterName,
+                        originalAction: actionDescription,
+                    });
+                    
+                    // Force a default attack on the first available target
+                    const firstAlivePartyMember = aliveParty[0];
+                    if (firstAlivePartyMember) {
+                        finalActionDescription = 'Ataque';
+                        finalTargetId = firstAlivePartyMember.id;
+                        log.debug('Forcing default attack', {
+                            module: 'TurnProcessor',
+                            combatant: combatant.characterName,
+                            forcedAction: finalActionDescription,
+                            forcedTarget: finalTargetId,
+                        });
+                    } else {
+                        // No valid targets - skip turn
+                        return {
+                            success: false,
+                            messages: [{ sender: 'DM', content: `${combatant.characterName} no encuentra ningún objetivo válido.` }],
+                            diceRolls: [],
+                            updatedParty: initialParty,
+                            updatedEnemies: initialEnemies,
+                            combatResult: {},
+                            combatEnded: false,
+                            error: 'NO_VALID_TARGETS',
+                        };
+                    }
+                }
+
                 // Resolve target
-                const resolved = resolveEnemyId(targetId, initialEnemies, initiativeOrder, initialParty);
+                const resolved = resolveEnemyId(finalTargetId, initialEnemies, initiativeOrder, initialParty);
                 let resolvedTargetId = resolved.uniqueId;
                 if (resolved.ambiguous && resolved.matches.length > 0) {
                     const firstMatchName = resolved.matches[0];
                     const firstMatchCombatant = initiativeOrder.find(c => c.characterName === firstMatchName);
                     resolvedTargetId = firstMatchCombatant?.id || null;
                 }
-
                 if (!resolvedTargetId) {
-                    resolvedTargetId = targetId;
+                    resolvedTargetId = finalTargetId;
                 }
 
                 // Determine action type from rolls or description
@@ -509,89 +546,92 @@ export class TurnProcessor {
                     actionType = 'spell';
                 }
 
-                // Convert requestedRolls to DiceRollRequest[]
-                let diceRollRequests: DiceRollRequest[] = [];
+                // Resolve action using CombatActionResolver.resolveAttack
+                // Find the combatant data (Character or EnemyWithStats)
+                const targetName = getVisualName(resolvedTargetId, initiativeOrder, initialEnemies);
+                
+                // Extract weapon/action name from action description
+                const actionLowerForWeapon = finalActionDescription.toLowerCase();
+                let weaponQuery = 'ataque'; // default
+                
+                // Try to extract weapon name from description (e.g., "Ataque con Cimitarra" -> "Cimitarra")
+                const weaponMatch = actionLowerForWeapon.match(/(?:ataque con|ataca con|usa|utiliza)\s+(.+?)(?:\s+a\s+|$)/i);
+                if (weaponMatch && weaponMatch[1]) {
+                    weaponQuery = weaponMatch[1].trim();
+                } else if (actionLowerForWeapon.includes('bastón')) {
+                    weaponQuery = 'bastón';
+                } else if (actionLowerForWeapon.includes('cimitarra') || actionLowerForWeapon.includes('scimitar')) {
+                    weaponQuery = 'cimitarra';
+                } else if (actionLowerForWeapon.includes('arco')) {
+                    weaponQuery = 'arco';
+                } else if (actionLowerForWeapon.includes('daga')) {
+                    weaponQuery = 'daga';
+                } else if (actionLowerForWeapon.includes('espada')) {
+                    weaponQuery = 'espada';
+                } else if (actionLowerForWeapon.includes('pseudopod') || actionLowerForWeapon.includes('pseudópodo')) {
+                    weaponQuery = 'pseudopod';
+                }
 
-                // NEW LOGIC: If it's an attack, use CombatActionResolver instead of trusting AI rolls
-                // This ensures consistency between what the AI says ("I attack with +5") and the actual stats
-                if (actionType === 'attack') {
-                    // Find the enemy/companion data
-                    // For companions, they are in initialParty. For enemies, in initialEnemies.
-                    const combatantData = isCompanion
-                        ? initialParty.find(p => p.id === combatant.id)
-                        : initialEnemies.find(e => (e as any).uniqueId === combatant.id || e.id === combatant.id);
+                // Find the combatant's data for resolution
+                let combatantData: any = null;
+                
+                // Check if it's a party member (Character)
+                const partyMember = initialParty.find(p => p.id === combatant.id || p.name === combatant.characterName);
+                if (partyMember) {
+                    combatantData = partyMember;
+                } else {
+                    // It's an enemy - find in enemies array
+                    const enemy = initialEnemies.find(e => e.id === combatant.id || e.uniqueId === combatant.id || e.name === combatant.characterName);
+                    if (enemy) {
+                        combatantData = enemy;
+                    }
+                }
 
-                    if (combatantData) {
-                        // Extract weapon name from description or use "ataque"
-                        // Heuristic: "Ataque con Cimitarra" -> "Cimitarra"
-                        // Also handles: "Ataque con Cimitarra a X" -> "Cimitarra"
-                        let weaponQuery = 'ataque';
-                        if (actionDescription && actionDescription.toLowerCase().includes('con ')) {
-                            const parts = actionDescription.toLowerCase().split('con ');
-                            if (parts.length > 1) {
-                                // Extract weapon name, removing "a [target]" if present
-                                weaponQuery = parts[1].trim().split(/\s+a\s+/)[0].trim();
-                            }
-                        }
-
-                        log.debug('Extracted weapon query from actionDescription', {
-                            module: 'TurnProcessor',
-                            actionDescription,
-                            weaponQuery,
-                        });
-
-                        const targetName = getVisualName(resolvedTargetId || 'objetivo', initiativeOrder, initialEnemies);
-                        const resolution = CombatActionResolver.resolveAttack(
+                let resolution;
+                if (combatantData) {
+                    resolution = CombatActionResolver.resolveAttack(
                             combatantData,
                             weaponQuery,
-                            targetName,
-                            combatant.characterName // Use visual name with number (e.g., "Goblin 1")
-                        );
-
-                        if (resolution.success) {
-                            diceRollRequests = resolution.diceRollRequests;
-                            log.debug('Resolved AI attack using CombatActionResolver', {
-                                combatant: combatant.characterName,
-                                weapon: weaponQuery,
-                                rolls: diceRollRequests.length
-                            });
-                        } else {
-                            // Fallback to AI rolls if resolution fails
-                            log.warn('Failed to resolve AI attack, falling back to AI rolls', {
-                                combatant: combatant.characterName,
-                                error: resolution.error
-                            });
-                            diceRollRequests = requestedRolls.map((roll: any) => ({
-                                rollNotation: roll.rollNotation,
-                                description: roll.description,
-                                roller: roll.roller || combatant.characterName,
-                                attackType: roll.attackType,
-                            }));
-                        }
-                    } else {
-                        diceRollRequests = requestedRolls.map((roll: any) => ({
-                            rollNotation: roll.rollNotation,
-                            description: roll.description,
-                            roller: roll.roller || combatant.characterName,
-                            attackType: roll.attackType,
-                        }));
-                    }
+                        targetName || 'objetivo',
+                        combatant.characterName // Use visual name for display
+                    );
                 } else {
-                    // Non-attack actions (spells, heals) still use AI rolls for now
-                    diceRollRequests = requestedRolls.map((roll: any) => ({
-                        rollNotation: roll.rollNotation,
-                        description: roll.description,
-                        roller: roll.roller || combatant.characterName,
-                        attackType: roll.attackType,
-                    }));
+                    // Fallback: create basic attack rolls
+                    log.warn('Could not find combatant data for action resolution', {
+                        module: 'TurnProcessor',
+                        combatant: combatant.characterName,
+                        combatantId: combatant.id,
+                    });
+                    resolution = {
+                        success: true,
+                        diceRollRequests: requestedRolls.length > 0 ? requestedRolls : [
+                            { rollNotation: '1d20+2', description: `Ataque a ${targetName}`, roller: combatant.characterName, attackType: 'attack_roll' as const },
+                            { rollNotation: '1d4', description: 'Daño', roller: combatant.characterName, attackType: 'damage_roll' as const }
+                        ],
+                        actionDescription: finalActionDescription
+                    };
+                }
+
+                if (!resolution.success) {
+                    return {
+                        success: false,
+                        messages: [{ sender: 'DM', content: `${combatant.characterName} no puede realizar esa acción.` }],
+                        diceRolls: [],
+                        updatedParty: initialParty,
+                        updatedEnemies: initialEnemies,
+                        combatResult: {},
+                        combatEnded: false,
+                        error: 'ACTION_RESOLUTION_FAILED',
+                    };
                 }
 
                 plannedAction = {
                     type: actionType,
                     targetId: resolvedTargetId,
-                    actionDescription: actionDescription || 'ataque',
-                    diceRollRequests,
+                    actionDescription: resolution.actionDescription || finalActionDescription,
+                    diceRollRequests: resolution.diceRollRequests,
                 };
+
             }
 
             if (!plannedAction) {

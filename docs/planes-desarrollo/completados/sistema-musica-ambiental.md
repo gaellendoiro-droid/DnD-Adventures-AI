@@ -12,7 +12,7 @@ Implement a dynamic and robust ambient music system that adapts to the game stat
 > `[type]_[mode]_[location_type]_[intensity]_[name].mp3`
 >
 > - **Types**: `music` (melodic), `ambience` (background noise), `sfx` (sound effects)
-> - **Modes**: `exploration`, `combat`, `any`
+> - **Modes**: `exploration`, `combat`
 > - **Location Types**: `forest`, `dungeon`, `inn`, `city`, `mountain`, `cave`, `general`
 > - **Intensity**: `low`, `medium`, `high` (optional, defaults to `low`)
 >
@@ -49,14 +49,13 @@ Implement a dynamic and robust ambient music system that adapts to the game stat
 
 ### Selection Logic & Fallback (Implemented)
 
-The system uses a **5-level priority-based fallback mechanism** to ensure audio always plays with the highest specificity possible:
+The system uses a **5-level priority-based fallback mechanism** to ensure audio plays with the highest specificity possible. If no matching file is found, the system will remain silent:
 
 1.  **Exact Location ID**: `/sound/{type}_{mode}_{ID-EXACTO}_low.mp3` (e.g., `music_exploration_phandalin-plaza-del-pueblo_low.mp3`)
 2.  **Granular Type**: `/sound/{type}_{mode}_{GRANULAR-TYPE}_low.mp3` (e.g., `music_exploration_bazar_low.mp3` - inferred from ID like "bazar-escudo-de-leon" -> "bazar")
 3.  **Parent Region**: `/sound/{type}_{mode}_{REGION}_low.mp3` (e.g., `music_exploration_phandalin_low.mp3` - inferred from ID like "phandalin-plaza-del-pueblo" -> "phandalin", or from adventure metadata).
 4.  **General Location Type**: `/sound/{type}_{mode}_{LOCATION-TYPE}_low.mp3` (e.g., `music_exploration_city_low.mp3` - inferred from ID or metadata).
 5.  **General Mode**: `/sound/{type}_{mode}_general_low.mp3` (e.g., `music_exploration_general_low.mp3`).
-6.  **Fallback**: `/sound/{type}_any_{LOCATION-TYPE}_low.mp3` and `/sound/{type}_any_general_low.mp3`.
 
 ### Game View
 

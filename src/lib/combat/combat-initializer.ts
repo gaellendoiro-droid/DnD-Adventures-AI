@@ -29,6 +29,7 @@ export class CombatInitializer {
             playerAction,
             interpretedAction,
             locationId,
+            surpriseSide,
             diceRollerTool,
             narrativeExpert,
             markdownToHtml,
@@ -48,6 +49,13 @@ export class CombatInitializer {
 
         try {
             localLog("Initiating new combat sequence.");
+            
+            // Log surprise side for debugging
+            if (surpriseSide) {
+                localLog(`Combat initiated with surpriseSide: ${surpriseSide}`);
+            } else {
+                localLog("Combat initiated WITHOUT surpriseSide (no surprise)");
+            }
 
             // Validate required data
             if (!combatantIds || !interpretedAction || !locationContext || !party) {
@@ -98,11 +106,12 @@ export class CombatInitializer {
 
             diceRolls.push(...initiativeDiceRolls);
 
-            // Step 4: Create initiative order
+            // Step 4: Create initiative order and mark surprised combatants
             const newInitiativeOrder = InitiativeGenerator.createInitiativeOrder(
                 initiativeRolls,
                 differentiatedNames,
-                localLog
+                localLog,
+                surpriseSide
             );
 
             // Step 5: Generate combat narration

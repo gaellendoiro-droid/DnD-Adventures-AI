@@ -13,6 +13,7 @@ export interface CombatInitContext {
     playerAction: string;
     interpretedAction: any;
     locationId: string;
+    surpriseSide?: 'player' | 'enemy'; // Which side is surprised (loses first turn)
     // Tool functions
     diceRollerTool: (input: any) => Promise<any>;
     narrativeExpert: (input: any) => Promise<any>;

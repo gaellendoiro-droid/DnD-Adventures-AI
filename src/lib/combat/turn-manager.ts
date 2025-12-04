@@ -26,6 +26,11 @@ export class CombatTurnManager {
         party: any[],
         enemies: any[]
     ): boolean {
+        // 0. Check if combatant is surprised (loses first turn)
+        if (combatant.isSurprised === true) {
+            return true;
+        }
+
         // 1. Use status field if available (Unified Logic)
         if (combatant.status) {
             return combatant.status === 'dead' || combatant.status === 'unconscious';

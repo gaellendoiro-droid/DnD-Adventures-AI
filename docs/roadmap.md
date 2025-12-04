@@ -17,7 +17,7 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 
 ### 🔴 Prioridad Alta
 - [2. Sistema de Progresión y Gestión](#roadmap-2)
-- [3. Sistema de Inicio de Combate Dinámico](#roadmap-3)
+- [3. Sistema de Inicio de Combate Dinámico](#roadmap-3) - ✅ **COMPLETADO (2025-12-03)**
 - [4. Mejora de Estructura de Fichas de Personajes en la UI](#roadmap-4)
 - [5. Sistema de Modos de Juego Diferenciados](#roadmap-5)
 - [6. Revisiones de Sistema de Combate](#roadmap-6)
@@ -35,6 +35,7 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 - [18. Actualización Automática de Fichas desde Archivos JSON](#roadmap-18-json)
 - [19. Convertidor de PDF a JSON - Aplicación Auxiliar](#roadmap-19-convertidor)
 - [20. Música y Sonido Dinámicos](#roadmap-20-musica)
+- [21. Mejoras del Sistema de Inicio de Combate Dinámico](#roadmap-21-combate-dinamico)
 
 ### 🟢 Prioridad Baja
 - [18. Mejoras de Interfaz de Usuario](#roadmap-18-ui)
@@ -66,6 +67,21 @@ Mejoras críticas que mejoran significativamente la arquitectura, mantenibilidad
 *   **Impacto:** Fundamental para dar profundidad táctica al combate y realismo a la exploración. Es la base necesaria para muchas otras mecánicas de D&D.
 *   **Plan Detallado:** ❌ No creado
 
+<a id="roadmap-1-1"></a>
+### 1.1. Sistema de Exploración de Mazmorras (Fase 2) - **COMPLETADO (2025-12-01)**
+- [x] **Sistema de Exploración de Mazmorras**
+  - [x] Niebla de Guerra (Visited/Seen/Unknown).
+  - [x] Percepción Pasiva y Detección de Peligros.
+  - [x] Trampas y Emboscadas (`HazardSchema`).
+  - [x] Visibilidad en Conexiones (`open`/`restricted`).
+  - [x] Visibilidad en Conexiones (`open`/`restricted`).
+  - [x] Contexto Narrativo de Exploración (Luz, Atmósfera).
+  - [x] Direcciones Explícitas (`direction`) y Regiones (`regionId`) para mejor orientación espacial (2025-12-01).
+*   **Problema Actual:** La exploración era plana; el jugador sabía todo sobre la habitación al entrar y no había tensión por peligros ocultos o visibilidad limitada.
+*   **Mejora Implementada:** Un sistema completo de gestión de conocimiento del mapa y peligros que añade profundidad táctica y tensión narrativa.
+*   **Impacto:** Aumenta significativamente la inmersión y el realismo de la exploración de mazmorras.
+*   **Plan Detallado:** ✅ [Plan Completado](../docs/planes-desarrollo/completados/sistema-exploracion-mazmorras.md)
+
 ## 🔴 Prioridad Alta
 
 Mejoras críticas que impactan directamente en la experiencia core del juego y son fundamentales para la jugabilidad.
@@ -81,13 +97,18 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
 *   **Plan Detallado:** ❌ No creado
 
 <a id="roadmap-3"></a>
-### 3. Sistema de Inicio de Combate Dinámico
-*   **Problema Actual:** El mundo del juego es pasivo. El combate solo se inicia si el jugador declara explícitamente un ataque. Una acción narrativa que debería provocar hostilidad (como robar a un PNJ o insultar a un orco) no tiene consecuencias mecánicas, lo que rompe la inmersión.
-*   **Mejora Propuesta:**
-    *   Añadir un paso de **"Evaluación de Hostilidad"** al flujo del `gameCoordinator`. Después de que el `narrativeExpert` procese una acción, este nuevo paso evaluaría si la disposición de algún PNJ en la escena debería cambiar a `hostil`.
-    *   Si la hostilidad aumenta, el `gameCoordinator` iniciaría automáticamente el modo de combate llamando al `combatManagerTool`.
-*   **Impacto Estratégico:** Crítico. Es la mejora más importante para la credibilidad del mundo de juego. Hará que el mundo se sienta vivo, reactivo y peligroso, y que las acciones de los jugadores tengan un peso y consecuencias reales.
-*   **Plan Detallado:** ❌ No creado
+### 3. Sistema de Inicio de Combate Dinámico - ✅ COMPLETADO (2025-12-03)
+*   **Problema Resuelto:** El mundo del juego era pasivo. El combate solo se iniciaba si el jugador declaraba explícitamente un ataque. Una acción narrativa que debería provocar hostilidad (como robar a un PNJ o insultar a un orco) no tenía consecuencias mecánicas, lo que rompía la inmersión.
+*   **Solución Implementada:**
+    *   ✅ **Sistema de Evaluación de Hostilidad:** `CombatTriggerManager` evalúa automáticamente si una situación debe escalar a combate.
+    *   ✅ **Emboscadas Automáticas:** El sistema detecta emboscadas no detectadas y inicia combate con sorpresa automáticamente.
+    *   ✅ **Combate por Proximidad:** Enemigos visibles y hostiles inician combate automáticamente al entrar en la sala.
+    *   ✅ **Fallo de Sigilo:** Si el jugador intenta moverse sigilosamente pero falla, los enemigos detectan la intrusión e inician combate.
+    *   ✅ **Detección de Mímicos:** Interactuar con objetos que son hazards tipo `mimic` inicia combate automáticamente.
+    *   ✅ **Ataques Sorpresa del Jugador:** Detección automática de ataques a NPCs neutrales/amigables fuera de combate.
+    *   ✅ **Sistema de Sorpresa Mecánico:** Combatientes sorprendidos pierden su primer turno con mensaje narrativo.
+*   **Impacto Estratégico:** ✅ **LOGRADO** - El mundo ahora se siente vivo, reactivo y peligroso. Las acciones de los jugadores tienen peso y consecuencias reales.
+*   **Plan Detallado:** ✅ [Plan Completado](../planes-desarrollo/completados/sistema-inicio-combate-dinamico.md)
 
 <a id="roadmap-4"></a>
 ### 4. Mejora de Estructura de Fichas de Personajes en la UI
@@ -485,6 +506,18 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
     *   Transiciones suaves (crossfading) de 4 segundos entre pistas.
     *   Detección automática de región basada en metadatos de la aventura.
 *   **Impacto:** Inmersión total.
+
+<a id="roadmap-21-combate-dinamico"></a>
+### 21. Mejoras del Sistema de Inicio de Combate Dinámico
+*   **Estado Actual:** El sistema de inicio de combate dinámico está implementado y funcional para los casos principales (emboscadas, proximidad, sigilo, mímicos, ataques sorpresa del jugador). Sin embargo, hay mejoras adicionales que podrían añadir más profundidad y realismo al sistema.
+*   **Mejoras Propuestas:**
+    *   **Provocación Social (Interaction Expert):** Añadir lógica al `InteractionExpert` para que los NPCs puedan decidir atacar basándose en interacciones sociales agresivas (insultos graves, amenazas, intentos de robo fallidos). Definir umbrales de paciencia o reglas simples para NPCs (ej: Guardias atacan si ven crímenes, Bandidos atacan si se les amenaza). Esto permitiría transiciones fluidas de diálogo a combate cuando un NPC decide que ha tenido suficiente.
+    *   **Ruido y Refuerzos:** Enemigos de salas adyacentes que se unen al combate al oír ruido fuerte (ej: *Thunderwave*). El sistema debería detectar acciones especialmente ruidosas y evaluar si enemigos cercanos pueden oírlas y unirse al combate.
+    *   **Fin de Efectos Mágicos:** NPCs que se vuelven hostiles automáticamente cuando termina un hechizo de encanto (*Charm Person*, *Friends*). El sistema debería rastrear efectos mágicos temporales y evaluar la reacción del NPC cuando el efecto termina.
+*   **Impacto:** Añade más profundidad y realismo al sistema de combate dinámico, permitiendo transiciones más naturales y reactivas del mundo del juego.
+*   **Relacionado con:** 
+    *   [Sistema de Inicio de Combate Dinámico](../planes-desarrollo/completados/sistema-inicio-combate-dinamico.md) - Plan completado, mejoras futuras documentadas
+*   **Plan Detallado:** ❌ No creado
 
 ---
 

@@ -32,6 +32,7 @@ interface GameViewProps {
     turnIndex?: number;
     enemies?: any[]; // Deprecated: kept for backward compatibility
     enemiesByLocation?: Record<string, any[]>; // New: enemies by location
+    openDoors?: Record<string, boolean>; // Map of "locationId:direction" -> isOpen
   };
   onSaveGame: (saveData: any) => void;
   onGoToMenu: () => void;
@@ -83,10 +84,12 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
   const [isPartyPanelCollapsed, setIsPartyPanelCollapsed] = useState(false); // Track if party panel is collapsed
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
+  const [openDoors, setOpenDoors] = useState<Record<string, boolean>>(initialData.openDoors || {});
   const autoAdvancingRef = useRef(false); // Use ref for synchronous access
   const turnIndexRef = useRef(initialData.turnIndex || 0); // Use ref for synchronous access
   const initiativeOrderRef = useRef<Combatant[]>(initialData.initiativeOrder || []); // Use ref for synchronous access
   const enemiesRef = useRef<any[]>(initialData.enemies || []); // Deprecated: kept for backward compatibility
+  const openDoorsRef = useRef<Record<string, boolean>>(initialData.openDoors || {}); // Use ref for synchronous access
   const enemiesByLocationRef = useRef<Record<string, any[]>>(initialData.enemiesByLocation || {}); // Use ref for synchronous access
   const partyRef = useRef<Character[]>(initialData.party); // Use ref for synchronous access
   const locationIdRef = useRef<string>(initialData.locationId); // Use ref for synchronous access
@@ -105,12 +108,13 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     initiativeOrderRef.current = initiativeOrder;
     enemiesRef.current = enemies; // Deprecated: kept for backward compatibility
     enemiesByLocationRef.current = enemiesByLocation;
+    openDoorsRef.current = openDoors;
     partyRef.current = party;
     locationIdRef.current = locationId;
     inCombatRef.current = inCombat;
     messagesRef.current = messages;
     selectedCharacterRef.current = selectedCharacter;
-  }, [initiativeOrder, enemies, enemiesByLocation, party, locationId, inCombat, messages, selectedCharacter]);
+  }, [initiativeOrder, enemies, enemiesByLocation, openDoors, party, locationId, inCombat, messages, selectedCharacter]);
 
   // addDebugMessages removed
 
@@ -142,12 +146,14 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     setTurnIndex(initialData.turnIndex || 0);
     setEnemies(initialData.enemies || []); // Deprecated: kept for backward compatibility
     setEnemiesByLocation(initialData.enemiesByLocation || {});
+    setOpenDoors(initialData.openDoors || {});
     // setDebugMessages([]);
     // Sync refs with initial data
     turnIndexRef.current = initialData.turnIndex || 0;
     initiativeOrderRef.current = initialData.initiativeOrder || [];
     enemiesRef.current = initialData.enemies || []; // Deprecated: kept for backward compatibility
     enemiesByLocationRef.current = initialData.enemiesByLocation || {};
+    openDoorsRef.current = initialData.openDoors || {};
     partyRef.current = initialData.party;
     // addDebugMessages(["Game state initialized from initialData."]);
   }, [initialData]);
@@ -345,6 +351,8 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
         turnIndex: turnIndexRef.current,
         initiativeOrder: initiativeOrderRef.current,
         enemies: enemiesRef.current,
+        enemiesByLocation: enemiesByLocationRef.current,
+        openDoors: openDoorsRef.current,
       };
 
       logClient.uiEvent('GameView', 'Sending action to backend', {
@@ -467,6 +475,15 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
         setEnemiesByLocation(prev => {
           const updated = { ...prev, ...result.updatedEnemiesByLocation };
           enemiesByLocationRef.current = updated;
+          return updated;
+        });
+      }
+
+      // Update open doors if provided
+      if (result.updatedOpenDoors) {
+        setOpenDoors(prev => {
+          const updated = { ...prev, ...result.updatedOpenDoors };
+          openDoorsRef.current = updated;
           return updated;
         });
       }
@@ -811,7 +828,7 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
   }, [turnIndex, hasMoreAITurns, handlePassTurn]);
 
   const handleInternalSaveGame = useCallback(() => {
-    const saveData = { savedAt: new Date().toISOString(), party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex };
+    const saveData = { savedAt: new Date().toISOString(), party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex, openDoors };
 
     logClient.info('Saving game', {
       component: 'GameView',
@@ -826,7 +843,7 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     });
 
     onSaveGame(saveData);
-  }, [party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex, onSaveGame]);
+  }, [party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex, openDoors, onSaveGame]);
 
   return (
     <div className="flex flex-col h-full">

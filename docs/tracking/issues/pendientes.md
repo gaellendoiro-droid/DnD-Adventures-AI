@@ -176,7 +176,7 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
   - Detectar ataques a compañeros en `action-interpreter`
   - Iniciar combate automáticamente cuando se detecta un ataque a un compañero
   - O al menos reconocer la acción como un ataque real y mostrar un mensaje apropiado
-  - Relacionado con: [Sistema de Inicio de Combate Dinámico](../roadmap.md#2-sistema-de-inicio-de-combate-dinámico-prioridad-alta)
+  - Relacionado con: [Sistema de Inicio de Combate Dinámico](../roadmap.md#3-sistema-de-inicio-de-combate-dinámico-prioridad-alta) - ✅ **COMPLETADO (2025-12-03)**
 - **Archivos afectados:**
   - `src/ai/flows/action-interpreter.ts` (detección de ataques)
   - `src/ai/flows/game-coordinator.ts` (inicio de combate)

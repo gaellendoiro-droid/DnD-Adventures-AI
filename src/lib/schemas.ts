@@ -131,13 +131,30 @@ export const TravelTypeSchema = z.enum([
 /**
  * Schema for connections between locations (edges in the graph).
  */
+/**
+ * Schema for Hazards (Traps, Ambushes, Environmental Dangers).
+ */
+export const HazardSchema = z.object({
+    id: z.string(),
+    type: z.enum(['trap', 'ambush', 'environmental']),
+    detectionDC: z.number().describe("CD para Percepción Pasiva/Activa"),
+    disarmDC: z.number().optional().describe("CD para desactivar (si aplica)"),
+    description: z.string().describe("Lo que se narra si se detecta"),
+    triggerDescription: z.string().describe("Lo que se narra si se activa"),
+    effect: z.string().optional().describe("Efecto mecánico simplificado (ej: '2d6 daño fuego' o 'Ataque +5')"),
+    active: z.boolean().default(true)
+});
+
+/**
+ * Schema for connections between locations (edges in the graph).
+ */
 export const ConnectionSchema = z.object({
     targetId: z.string(), // ID del nodo destino
     type: TravelTypeSchema.default('direct'),
     description: z.string().optional(), // Descripción narrativa del camino
 
     // Metadatos Espaciales (Para el cerebro del DM)
-    direction: z.enum(['norte', 'sur', 'este', 'oeste', 'arriba', 'abajo', 'dentro', 'fuera']).optional(),
+    direction: z.enum(['norte', 'sur', 'este', 'oeste', 'noreste', 'noroeste', 'sureste', 'suroeste', 'arriba', 'abajo', 'dentro', 'fuera']).optional(),
     distance: z.string().optional(), // Ej: "5 millas", "200 pies"
     travelTime: z.string().optional(), // Ej: "2 horas", "10 minutos"
 
@@ -145,7 +162,11 @@ export const ConnectionSchema = z.object({
     isLocked: z.boolean().default(false),
     requiredKeyId: z.string().optional(), // Item necesario para pasar
     isBlocked: z.boolean().default(false), // Camino derrumbado/cortado
-    blockedReason: z.string().optional()   // Narración del bloqueo
+    blockedReason: z.string().optional(),   // Narración del bloqueo
+    isOpen: z.boolean().optional(), // Si la puerta/pasaje está abierto (false = cerrado, true = abierto, undefined = sin puerta)
+
+    // Visibilidad (Fase 2: Exploración)
+    visibility: z.enum(['restricted', 'open']).default('restricted').describe("Si 'open', se ve el destino desde el origen")
 });
 
 /**
@@ -162,6 +183,11 @@ export const LocationSchema = z.object({
 
     // Restricción de Viaje (El problema de la "Celda")
     allowFastTravel: z.boolean().default(true).describe("Si false, bloquea viajes tipo 'overland' desde aquí"),
+
+    // Contexto de Exploración (Fase 2)
+    explorationMode: z.enum(['safe', 'dungeon', 'wilderness']).default('safe').describe("Define el ritmo y la tensión de la exploración"),
+    lightLevel: z.enum(['bright', 'dim', 'dark']).default('bright').describe("Nivel de luz base (Narrativo por ahora)"),
+    hazards: z.array(HazardSchema).optional(),
 
     // Nuevas conexiones ricas
     connections: z.array(ConnectionSchema).optional(),
@@ -209,8 +235,34 @@ export const EventSchema = z.object({
     id: z.string(),
     trigger: z.string(),
     locationId: z.string().optional(),
+    interactableId: z.string().optional(),
     action: z.string(),
     target: z.union([z.string(), z.array(z.string())]).optional(),
+});
+
+/**
+ * Schema for a Random Table.
+ */
+export const TableSchema = z.object({
+    id: z.string(),
+    title: z.string(),
+    dice: z.string(), // Ej: "1d6", "2d6"
+    rows: z.array(z.object({
+        range: z.string(), // Ej: "1", "2-3", "4-6"
+        content: z.string(),
+    })),
+});
+
+/**
+ * Schema for an Item.
+ */
+export const ItemSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    type: z.string().optional(), // Ej: "weapon", "potion", "key"
+    rarity: z.string().optional(),
+    description: z.string().optional(),
+    properties: z.any().optional(), // Objeto libre para propiedades mecánicas extra
 });
 
 /**
@@ -224,6 +276,8 @@ export const AdventureDataSchema = z.object({
     openingScene: z.string().optional(), // Alias for introductoryNarration
     locations: z.array(LocationSchema).min(1, "La aventura debe tener al menos una ubicación"),
     entities: z.array(EntitySchema).optional(),
+    items: z.array(ItemSchema).optional(),
+    tables: z.array(TableSchema).optional(),
     startingLocationId: z.string().optional(), // Optional explicit starting location
     narrativeScenes: z.array(NarrativeSceneSchema).optional(),
     events: z.array(EventSchema).optional(),

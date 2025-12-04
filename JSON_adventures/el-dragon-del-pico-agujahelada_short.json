@@ -1,0 +1,759 @@
+{
+    "adventureId": "el-dragon-del-pico-agujahelada-short",
+    "title": "El Dragón del Pico Agujahelada (Short)",
+    "summary": "Versión reducida con las 3 primeras misiones para probar el sistema de exploración.",
+    "introductoryNarration": "<h3>¡Bienvenidos a El Dragón del Pico Agujahelada!</h3><p>Acabáis de llegar al pueblo de <strong>Phandalin</strong> tras varios días de viaje por caminos escarpados. El aire gélido de las Montañas de la Espada os recibe en este asentamiento minero que lucha por resurgir de sus cenizas. Casas de madera nueva se mezclan con ruinas de piedra, testigos de una grandeza pasada. Sin embargo, una sombra se cierne sobre el pueblo: un joven dragón blanco llamado <strong>Cryovain</strong> ha reclamado el cercano Pico Agujahelada, y su presencia empuja a orcos y otras bestias a las tierras bajas.</p><p>Os encontráis en la plaza del pueblo. A vuestro alrededor, la vida continúa con una tensión palpable. Podéis ver la modesta <strong>Posada Rocacolina</strong>, la tienda de <strong>Suministros Barthen</strong>, el <strong>Bazar Escudo de León</strong>, un pequeño <strong>Santuario de la Suerte</strong>, la <strong>Casa de Cambio</strong> y la residencia del alcalde <strong>Harbin Wester</strong>. Justo enfrente, junto a la casa consistorial, un <strong>tablón de anuncios</strong> de madera atrae vuestra atención con varios carteles escritos con caligrafía nerviosa.</p><p>El futuro de Phandalin es incierto. Sus gentes necesitan héroes. ¿Qué hacéis?</p>",
+    "system": "D&D 5e",
+    "levelRange": {
+        "start": 1,
+        "end": 3
+    },
+    "settings": {
+        "startingLocationId": "phandalin-plaza-del-pueblo",
+        "initialPartySize": 4
+    },
+    "tables": [
+        {
+            "id": "historias-phandalin",
+            "title": "Historias de Phandalin",
+            "dice": "1d6",
+            "rows": [
+                {
+                    "range": "1",
+                    "content": "¡Los orcos han vuelto a descender de las montañas para aterrorizar las tierras bajas! Si Nuncainvierno no envía pronto refuerzos, los orcos invadirán Phandalin y echarán a perder todo el esfuerzo en reconstruir este pueblo."
+                },
+                {
+                    "range": "2",
+                    "content": "En su recorrido hacia el este, el Camino a Trijabal atraviesa las ruinas de Conyberry, un pueblo saqueado por bárbaros hace muchos años. Hay un templo en ruinas al sur de Conyberry, donde se dice que los lugareños escondieron su oro."
+                },
+                {
+                    "range": "3",
+                    "content": "Una magia extraña impregna el bosque de Nuncainvierno, que desorienta a los viajeros y oculta las antiguas ruinas de reinos de otrora perdidos en sus profundidades."
+                },
+                {
+                    "range": "4",
+                    "content": "El pabellón de caza de Halcón es el único lugar seguro del bosque de Nuncainvierno. Se encuentra en las profundidades del bosque, en la ribera de un río, y ciertos nobles acaudalados se aventuran hasta allí para cazar bajo la protección de Halcón. Halcón es un veterano retirado con muchas guerras a su espalda y se dice que ofrece alojamiento y comida gratis a quien le lleve una botella de vino."
+                },
+                {
+                    "range": "5",
+                    "content": "Al oeste de Phandalin, en la costa, hay un viejo faro de piedra. Los barcos se sienten atraídos por esta reluciente torre como las polillas a la luz y están condenados a chocarse contra sus rocas. ¡Sus restos deben de estar llenos de tesoros!"
+                },
+                {
+                    "range": "6",
+                    "content": "Hay quienes afirman haber visto un dragón volando entre las nubes más altas. A esa distancia, es difícil calcular el tamaño de la criatura, pero algunos dicen que es tan grande como un elefante y tiene brillantes escamas blancas."
+                }
+            ]
+        }
+    ],
+    "locations": [
+        {
+            "id": "phandalin-plaza-del-pueblo",
+            "title": "Phandalin - Plaza del Pueblo",
+            "description": "Enclavado en las nevadas laderas rocosas de las Montañas de la Espada, el pueblo minero de Phandalin está formado por unos cuarenta o cincuenta edificios de madera. Unas ruinas de piedra medio desmoronadas rodean las nuevas casas y tiendas. Los visitantes son bienvenidos aquí. Junto a la entrada de la casa consistorial hay un tablón de oportunidades para aventureros.",
+            "regionId": "phandalin",
+            "explorationMode": "safe",
+            "allowFastTravel": true,
+            "interactables": [
+                {
+                    "name": "Tablón de oportunidades",
+                    "description": "Un tablón de madera con varios anuncios escritos en lengua común.",
+                    "interactionResults": [
+                        {
+                            "action": "Leer anuncios",
+                            "result": "Hay tres misiones: Colina del Resentimiento (ayudar a la boticaria), Excavación Enana (advertir a los mineros) y Terragnoma (ayudar a los gnomos)."
+                        }
+                    ]
+                }
+            ],
+            "connections": [
+                {
+                    "targetId": "posada-rocacolina",
+                    "type": "urban",
+                    "description": "La posada Rocacolina.",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "suministros-barthen",
+                    "type": "urban",
+                    "description": "Suministros Barthen.",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "bazar-escudo-de-leon",
+                    "type": "urban",
+                    "description": "El Bazar Escudo de León.",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "casa-de-cambio-de-phandalin",
+                    "type": "urban",
+                    "description": "La Casa de Cambio.",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "santuario-de-la-suerte",
+                    "type": "urban",
+                    "description": "El Santuario de la Suerte.",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "casa-de-harbin-wester",
+                    "type": "urban",
+                    "description": "La casa del alcalde.",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "camino-a-las-afueras-de-phandalin",
+                    "type": "overland",
+                    "description": "El camino hacia las tierras salvajes.",
+                    "travelTime": "10 minutos",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "posada-rocacolina",
+            "title": "Posada Rocacolina",
+            "description": "Este modesto edificio de dos plantas ofrece alojamiento y viandas. El propietario es un humano bajito y amigable llamado Toblen Rocacolina.",
+            "regionId": "phandalin",
+            "explorationMode": "safe",
+            "allowFastTravel": true,
+            "entitiesPresent": [
+                "toblen-rocacolina"
+            ],
+            "interactables": [
+                {
+                    "name": "Toblen Rocacolina",
+                    "description": "Un humano bajito y amigable, dueño de la posada.",
+                    "interactionResults": [
+                        {
+                            "action": "Alquilar una habitación",
+                            "result": "Una cama para pasar la noche cuesta 5 pp."
+                        },
+                        {
+                            "action": "Comprar una comida",
+                            "result": "Una comida cuesta 1 pp."
+                        },
+                        {
+                            "action": "Hablar sobre rumores",
+                            "result": "Toblen comparte una historia: [[ROLL_TABLE:historias-phandalin]]"
+                        }
+                    ]
+                }
+            ],
+            "connections": [
+                {
+                    "targetId": "phandalin-plaza-del-pueblo",
+                    "type": "urban",
+                    "description": "La puerta principal que da a la plaza del pueblo.",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "suministros-barthen",
+            "title": "Suministros Barthen",
+            "description": "Las estanterías de esta tienda están repletas de las mercancías y suministros más habituales. El propietario, Elmar Barthen, es un humano delgado y con entradas de cincuenta años.",
+            "regionId": "phandalin",
+            "explorationMode": "safe",
+            "allowFastTravel": true,
+            "entitiesPresent": [
+                "elmar-barthen"
+            ],
+            "interactables": [
+                {
+                    "name": "Elmar Barthen",
+                    "description": "Un humano delgado de unos cincuenta años, dueño de la tienda.",
+                    "interactionResults": [
+                        {
+                            "action": "Comprar suministros",
+                            "result": "Puedes comprar artículos de aventurero que no cuesten más de 25 po. No vende armas ni armaduras."
+                        },
+                        {
+                            "action": "Hablar sobre rumores",
+                            "result": "Elmar comparte un rumor: [[ROLL_TABLE:historias-phandalin]]"
+                        }
+                    ]
+                }
+            ],
+            "connections": [
+                {
+                    "targetId": "phandalin-plaza-del-pueblo",
+                    "type": "urban",
+                    "description": "La puerta que da a la plaza del pueblo.",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "bazar-escudo-de-leon",
+            "title": "Bazar Escudo de León",
+            "description": "En la puerta principal de esta modesta tienda hay colgado un cartel de madera con forma de escudo y un león azul pintado en él. La dueña de la tienda es una humana de lengua mordaz llamada Linene Vientogrís.",
+            "regionId": "phandalin",
+            "explorationMode": "safe",
+            "allowFastTravel": true,
+            "entitiesPresent": [
+                "linene-vientogris"
+            ],
+            "interactables": [
+                {
+                    "name": "Linene Vientogrís",
+                    "description": "Una humana de lengua mordaz de unos treinta y cinco años.",
+                    "interactionResults": [
+                        {
+                            "action": "Comprar armas o armaduras",
+                            "result": "Linene vende una variedad de armas y armaduras comunes."
+                        },
+                        {
+                            "action": "Hablar sobre rumores",
+                            "result": "Linene comparte un rumor: [[ROLL_TABLE:historias-phandalin]]"
+                        }
+                    ]
+                }
+            ],
+            "connections": [
+                {
+                    "targetId": "phandalin-plaza-del-pueblo",
+                    "type": "urban",
+                    "description": "La puerta que da a la plaza del pueblo.",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "casa-de-cambio-de-phandalin",
+            "title": "Casa de Cambio de Phandalin",
+            "description": "Los mineros se acercan a este establecimiento para que pesen, midan y les paguen por sus valiosos hallazgos. La maestra del gremio es Halia Thornton, una humana de mente calculadora.",
+            "regionId": "phandalin",
+            "explorationMode": "safe",
+            "allowFastTravel": true,
+            "entitiesPresent": [
+                "halia-thornton"
+            ],
+            "interactables": [
+                {
+                    "name": "Halia Thornton",
+                    "description": "Una humana de mente calculadora y maestra del gremio.",
+                    "interactionResults": [
+                        {
+                            "action": "Vender hallazgos valiosos",
+                            "result": "Halia pesa y paga por el oro y otros minerales."
+                        },
+                        {
+                            "action": "Hablar sobre rumores",
+                            "result": "Halia comparte un rumor: [[ROLL_TABLE:historias-phandalin]]"
+                        }
+                    ]
+                }
+            ],
+            "connections": [
+                {
+                    "targetId": "phandalin-plaza-del-pueblo",
+                    "type": "urban",
+                    "description": "La puerta que da a la plaza del pueblo.",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "santuario-de-la-suerte",
+            "title": "Santuario de la Suerte",
+            "description": "El único templo de Phandalin es un santuario hecho de piedra extraída de unas ruinas cercanas. Está dedicado a Tymora, diosa de la suerte y la buena fortuna. El santuario parece estar desatendido.",
+            "regionId": "phandalin",
+            "explorationMode": "safe",
+            "allowFastTravel": true,
+            "entitiesPresent": [],
+            "interactables": [
+                {
+                    "name": "Altar de Tymora",
+                    "description": "Un simple altar de piedra dedicado a la diosa de la suerte.",
+                    "interactionResults": [
+                        {
+                            "action": "Rezar en el altar",
+                            "result": "Sientes una cálida sensación de esperanza."
+                        }
+                    ]
+                }
+            ],
+            "connections": [
+                {
+                    "targetId": "phandalin-plaza-del-pueblo",
+                    "type": "urban",
+                    "description": "La puerta que da a la plaza del pueblo.",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "casa-de-harbin-wester",
+            "title": "Casa de Harbin Wester",
+            "description": "Esta es la casa del alcalde de Phandalin, Harbin Wester. La puerta está firmemente cerrada.",
+            "regionId": "phandalin",
+            "explorationMode": "safe",
+            "allowFastTravel": true,
+            "entitiesPresent": [
+                "harbin-wester"
+            ],
+            "interactables": [
+                {
+                    "name": "Puerta de la casa",
+                    "description": "Una puerta de madera robusta.",
+                    "interactionResults": [
+                        {
+                            "action": "Llamar a la puerta",
+                            "result": "Escuchas una voz nerviosa desde el otro lado: 'Si eres un dragón, que sepas que soy demasiado delgado y huesudo como para que te aproveche'. Harbin se niega a abrir, pero hablará a través de la puerta."
+                        },
+                        {
+                            "action": "Cobrar una recompensa",
+                            "result": "Harbin deslizará el pago por debajo de la puerta, moneda a moneda."
+                        }
+                    ],
+                    "state": "cerrada"
+                }
+            ],
+            "connections": [
+                {
+                    "targetId": "phandalin-plaza-del-pueblo",
+                    "type": "urban",
+                    "description": "La calle que lleva de vuelta a la plaza del pueblo.",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "camino-a-las-afueras-de-phandalin",
+            "title": "Camino a las afueras de Phandalin",
+            "description": "El camino se convierte en un sendero embarrado que serpentea entre colinas cubiertas de nieve. Desde aquí podéis viajar a las misiones.",
+            "explorationMode": "wilderness",
+            "connections": [
+                {
+                    "targetId": "phandalin-plaza-del-pueblo",
+                    "type": "overland",
+                    "description": "Volver a Phandalin.",
+                    "travelTime": "10 minutos",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "colina-del-resentimiento",
+                    "type": "overland",
+                    "direction": "sur",
+                    "description": "Un sendero hacia una colina con un molino (Colina del Resentimiento).",
+                    "travelTime": "1 hora",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "excavacion-canon",
+                    "type": "overland",
+                    "direction": "este",
+                    "description": "Un camino hacia las montañas (Excavación Enana).",
+                    "travelTime": "2 horas",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "terragnoma-entrada-cascada",
+                    "type": "overland",
+                    "direction": "sureste",
+                    "description": "Un sendero hacia una cascada (Terragnoma).",
+                    "travelTime": "3 horas",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "colina-del-resentimiento",
+            "title": "Colina del Resentimiento",
+            "description": "En la ladera hay un viejo molino de piedra. Un gran monstruo alado (Mantícora) intenta derribar la puerta. Una mujer pide ayuda desde la ventana.",
+            "explorationMode": "wilderness",
+            "entitiesPresent": [
+                "manticora",
+                "adabra-gwynn"
+            ],
+            "connections": [
+                {
+                    "targetId": "molino-de-piedra",
+                    "type": "direct",
+                    "description": "La puerta del molino.",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "camino-a-las-afueras-de-phandalin",
+                    "type": "overland",
+                    "direction": "norte",
+                    "description": "Volver al camino principal.",
+                    "travelTime": "1 hora",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "molino-de-piedra",
+            "title": "Molino de Piedra",
+            "description": "El interior del molino es funcional y huele a hierbas.",
+            "explorationMode": "safe",
+            "entitiesPresent": [
+                "adabra-gwynn"
+            ],
+            "connections": [
+                {
+                    "targetId": "colina-del-resentimiento",
+                    "type": "direct",
+                    "description": "Salir al exterior.",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "excavacion-canon",
+            "title": "Excavación - Cañón (E1)",
+            "description": "Las paredes rocosas del cañón se elevan a una altura de ochenta pies. Al fondo del cañón se divisa una puerta rota esculpida en una pared de piedra negra de 20 pies de altura; a la puerta le falta una de sus jambas de piedra y la otra, a punto de caerse, cuelga de un gozne. Tras esta puerta abierta, a la sombra de una gran montaña al noreste, se encuentra un asentamiento en ruinas. Reina el silencio.",
+            "regionId": "excavacion-de-los-enanos",
+            "explorationMode": "wilderness",
+            "entitiesPresent": [],
+            "connections": [
+                {
+                    "targetId": "excavacion-ruinas",
+                    "type": "direct",
+                    "direction": "noreste",
+                    "description": "Avanzar hacia las ruinas visibles al fondo.",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "camino-a-las-afueras-de-phandalin",
+                    "type": "overland",
+                    "direction": "oeste",
+                    "description": "Volver al camino principal por el que llegamos",
+                    "travelTime": "2 horas",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "excavacion-ruinas",
+            "title": "Excavación - Asentamiento en Ruinas (E2)",
+            "description": "Camináis entre los muros derrumbados de un antiguo asentamiento. La mayoría de los edificios están sepultados bajo una avalancha de rocas y nieve que ocurrió hace mucho tiempo. Solo quedan en pie algunos muros de piedra gris, creando un laberinto de escombros.",
+            "regionId": "excavacion-de-los-enanos",
+            "explorationMode": "wilderness",
+            "entitiesPresent": [],
+            "interactables": [
+                {
+                    "name": "Asentamiento en ruinas",
+                    "description": "Muros derrumbados de edificios de piedra y un pozo lleno de escombros.",
+                    "interactionResults": [
+                        {
+                            "action": "Buscar entre las ruinas",
+                            "result": "Encuentras algunos huesos de enano fragmentados e indicios de fogatas recientes, pero nada de valor."
+                        }
+                    ]
+                }
+            ],
+            "connections": [
+                {
+                    "targetId": "excavacion-patio",
+                    "type": "direct",
+                    "direction": "este",
+                    "description": "Avanzar hacia el patio y la fachada del templo.",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "excavacion-canon",
+                    "type": "direct",
+                    "direction": "suroeste",
+                    "description": "Volver a la entrada del cañón.",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "excavacion-patio",
+            "title": "Excavación - Patio del Templo (E3)",
+            "description": "Un muro parcialmente derrumbado de 10 pies de alto separa este patio del asentamiento a su oeste. Tres altos montones de escombros se apilan en esta zona. La fachada del templo, de 30 pies de altura y tallada en la pared posterior del cañón, cuenta con escalones que suben hasta una plataforma de piedra. Cortada en la fachada hay una puerta abierta de 10 pies de altura, flanqueada por ruinosas estatuas de granito a escala real que representan a enanos con capa. Los elementos han desdibujado los rasgos de sus rostros, pero todavía se aprecian sonrisas malvadas.",
+            "regionId": "excavacion-de-los-enanos",
+            "explorationMode": "wilderness",
+            "entitiesPresent": [
+                "dazlyn-esquirlagris",
+                "norbus-runaferrea"
+            ],
+            "connections": [
+                {
+                    "targetId": "templo-abbathor-vestibulo",
+                    "type": "direct",
+                    "direction": "este",
+                    "description": "Entrar en el templo.",
+                    "visibility": "restricted"
+                },
+                {
+                    "targetId": "excavacion-ruinas",
+                    "type": "direct",
+                    "direction": "oeste",
+                    "description": "Volver a las ruinas del asentamiento.",
+                    "visibility": "open"
+                }
+            ],
+            "dmNotes": "Dazlyn y Norbus están comiendo raciones detrás de una pila de escombros. Están agradecidos por la advertencia sobre el dragón y ofrecen una misión secundaria: limpiar el templo de monstruos a cambio de un par de piedras mensajeras. Cuando los personajes terminen, un grupo de orcos atacará."
+        },
+        {
+            "id": "templo-abbathor-vestibulo",
+            "title": "Templo de Abbathor - Vestíbulo (E4)",
+            "description": "Un vestíbulo polvoriento y oscuro. Unas puertas clavadas en el suelo mantienen abiertos los juegos de puertas dobles de la entrada. Una puerta en el muro norte, que parece haber estado oculta antaño, está ahora abierta y revela una pequeña sala vacía llena de escombros. Al este, un pasillo se adentra en la oscuridad.",
+            "regionId": "excavacion-de-los-enanos",
+            "explorationMode": "dungeon",
+            "lightLevel": "dark",
+            "connections": [
+                {
+                    "targetId": "excavacion-patio",
+                    "type": "direct",
+                    "direction": "oeste",
+                    "description": "Salir al patio exterior.",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "templo-abbathor-santuario",
+                    "type": "direct",
+                    "direction": "este",
+                    "description": "Avanzar hacia el interior del templo.",
+                    "visibility": "restricted"
+                }
+            ]
+        },
+        {
+            "id": "templo-abbathor-santuario",
+            "title": "Templo de Abbathor - Santuario (E5)",
+            "description": "Una gran sala sostenida por pilares de piedra. Al fondo, sobre una plataforma elevada, hay un altar de piedra caliza manchado de sangre seca. El aire es frío y viciado. Hay varias puertas secretas en las paredes, difíciles de ver a simple vista.",
+            "regionId": "excavacion-de-los-enanos",
+            "explorationMode": "dungeon",
+            "lightLevel": "dark",
+            "hazards": [
+                {
+                    "id": "gelatina-ocre-ambush",
+                    "type": "ambush",
+                    "detectionDC": 15,
+                    "description": "Notas un brillo húmedo y extraño en el techo oscuro, justo encima del altar.",
+                    "triggerDescription": "¡Una masa gelatinosa y amarillenta se desprende del techo intentando engulliros!",
+                    "effect": "Iniciativa Sorpresa"
+                }
+            ],
+            "connections": [
+                {
+                    "targetId": "templo-abbathor-vestibulo",
+                    "type": "direct",
+                    "direction": "oeste",
+                    "description": "Volver al vestíbulo.",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "templo-camaras-ocultas",
+                    "type": "direct",
+                    "direction": "sur",
+                    "description": "Un pasadizo secreto que se abre tras una sección del muro.",
+                    "visibility": "restricted",
+                    "isLocked": true,
+                    "requiredKeyId": "mecanismo-secreto-pared"
+                }
+            ]
+        },
+        {
+            "id": "templo-camaras-ocultas",
+            "title": "Templo - Cámaras Ocultas (E6-E11)",
+            "description": "Una red de túneles estrechos y polvorientos conecta varias cámaras antiguas: dependencias de sacerdotes con armazones de cama podridos, una sacristía saqueada y túneles a medio terminar. El silencio es absoluto aquí.",
+            "regionId": "excavacion-de-los-enanos",
+            "explorationMode": "dungeon",
+            "lightLevel": "dark",
+            "hazards": [
+                {
+                    "id": "gelatina-ocre-tunel",
+                    "type": "ambush",
+                    "detectionDC": 15,
+                    "description": "Una mancha oscura en el suelo del túnel parece moverse ligeramente.",
+                    "triggerDescription": "¡La mancha se alza! ¡Es otra gelatina ocre que bloqueaba el paso!",
+                    "effect": "Iniciativa Sorpresa"
+                }
+            ],
+            "connections": [
+                {
+                    "targetId": "templo-abbathor-santuario",
+                    "type": "direct",
+                    "direction": "norte",
+                    "description": "Volver al santuario principal.",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "terragnoma-entrada-cascada",
+            "title": "Terragnoma - Entrada",
+            "description": "Una cascada atronadora oculta la entrada a las cuevas de los gnomos.",
+            "explorationMode": "wilderness",
+            "connections": [
+                {
+                    "targetId": "terragnoma-taller-inventores",
+                    "type": "direct",
+                    "description": "Entrar en las cuevas.",
+                    "visibility": "restricted"
+                },
+                {
+                    "targetId": "camino-a-las-afueras-de-phandalin",
+                    "type": "overland",
+                    "direction": "noroeste",
+                    "description": "Volver al camino principal.",
+                    "travelTime": "3 horas",
+                    "visibility": "open"
+                }
+            ]
+        },
+        {
+            "id": "terragnoma-taller-inventores",
+            "title": "Terragnoma - Taller",
+            "description": "Un taller lleno de inventos locos. Dos gnomos discuten.",
+            "explorationMode": "dungeon",
+            "lightLevel": "dim",
+            "entitiesPresent": [
+                "fibblestib",
+                "dabbledob"
+            ],
+            "connections": [
+                {
+                    "targetId": "terragnoma-entrada-cascada",
+                    "type": "direct",
+                    "description": "Salir a la cascada.",
+                    "visibility": "open"
+                },
+                {
+                    "targetId": "terragnoma-aposentos-reyes",
+                    "type": "direct",
+                    "description": "Hacia los aposentos reales.",
+                    "visibility": "restricted"
+                }
+            ]
+        },
+        {
+            "id": "terragnoma-aposentos-reyes",
+            "title": "Terragnoma - Aposentos Reales",
+            "description": "El rey Korboz ha atado al rey Gnerkli a una silla. Está paranoico.",
+            "explorationMode": "dungeon",
+            "lightLevel": "dim",
+            "hazards": [
+                {
+                    "id": "mimeto-ambush",
+                    "type": "ambush",
+                    "detectionDC": 15,
+                    "description": "Notas que uno de los barriles tiene una textura extraña, casi orgánica.",
+                    "triggerDescription": "¡El barril cobra vida, le salen dientes y pseudópodos pegajosos y ataca!",
+                    "effect": "Iniciativa Sorpresa"
+                }
+            ],
+            "entitiesPresent": [
+                "rey-korboz",
+                "rey-gnerkli"
+            ],
+            "connections": [
+                {
+                    "targetId": "terragnoma-taller-inventores",
+                    "type": "direct",
+                    "description": "Volver al taller.",
+                    "visibility": "open"
+                }
+            ]
+        }
+    ],
+    "entities": [
+        {
+            "id": "manticora",
+            "name": "Mantícora",
+            "type": "monster",
+            "description": "Un monstruo con cabeza humana, cuerpo de león y cola de escorpión."
+        },
+        {
+            "id": "adabra-gwynn",
+            "name": "Adabra Gwynn",
+            "type": "npc",
+            "description": "Una boticaria humana."
+        },
+        {
+            "id": "dazlyn-esquirlagris",
+            "name": "Dazlyn Esquirlagrís",
+            "type": "npc",
+            "description": "Un enano explorador."
+        },
+        {
+            "id": "norbus-runaferrea",
+            "name": "Norbus Runaférrea",
+            "type": "npc",
+            "description": "Un enano explorador."
+        },
+        {
+            "id": "gelatina-ocre",
+            "name": "Gelatina Ocre",
+            "type": "monster",
+            "description": "Una masa ácida y amorfa."
+        },
+        {
+            "id": "fibblestib",
+            "name": "Fibblestib",
+            "type": "npc",
+            "description": "Inventor gnomo."
+        },
+        {
+            "id": "dabbledob",
+            "name": "Dabbledob",
+            "type": "npc",
+            "description": "Inventora gnomo."
+        },
+        {
+            "id": "rey-korboz",
+            "name": "Rey Korboz",
+            "type": "npc",
+            "description": "Rey gnomo loco."
+        },
+        {
+            "id": "rey-gnerkli",
+            "name": "Rey Gnerkli",
+            "type": "npc",
+            "description": "Rey gnomo atado."
+        },
+        {
+            "id": "orco",
+            "name": "Orco",
+            "type": "monster",
+            "description": "Un humanoide brutal de piel verdosa, con facciones porcinas y colmillos inferiores prominentes. Viste armadura de pieles y empuña un hacha a dos manos.",
+            "dmNotes": "Los orcos fueron expulsados del Bastión de Agujahelada por Cryovain y ahora aterrorizan las tierras bajas. Son agresivos y luchan hasta la muerte."
+        },
+        {
+            "id": "toblen-rocacolina",
+            "name": "Toblen Rocacolina",
+            "type": "npc",
+            "description": "Un humano bajito y amigable, dueño de la posada Rocacolina."
+        },
+        {
+            "id": "elmar-barthen",
+            "name": "Elmar Barthen",
+            "type": "npc",
+            "description": "Un humano delgado y con entradas de cincuenta años, propietario de Suministros Barthen."
+        },
+        {
+            "id": "linene-vientogris",
+            "name": "Linene Vientogrís",
+            "type": "npc",
+            "description": "Una humana de lengua mordaz de unos treinta y cinco años, dueña del Bazar Escudo de León."
+        },
+        {
+            "id": "halia-thornton",
+            "name": "Halia Thornton",
+            "type": "npc",
+            "description": "Una humana de mente calculadora, maestra del gremio de la Casa de Cambio."
+        },
+        {
+            "id": "harbin-wester",
+            "name": "Harbin Wester",
+            "type": "npc",
+            "description": "La voz nerviosa de un hombre de mediana edad que habla desde detrás de una puerta cerrada."
+        },
+        {
+            "id": "mimeto",
+            "name": "Mimeto",
+            "type": "monster",
+            "description": "Un depredador cambiaformas que puede adoptar la apariencia de objetos inanimados como cofres o barriles.",
+            "dmNotes": "Se ha infiltrado en Terragnoma y se está alimentando de los gnomos."
+        }
+    ],
+    "items": []
+}

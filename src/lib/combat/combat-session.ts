@@ -272,7 +272,8 @@ export class CombatSession {
     locationContext: any,
     conversationHistory: Array<Partial<GameMessage>>,
     playerAction: string,
-    interpretedAction: any
+    interpretedAction: any,
+    surpriseSide?: 'player' | 'enemy'
   ): Promise<void> {
     this.log('info', 'Initializing combat encounter', {
       combatantIds: combatantIds.length,
@@ -313,6 +314,7 @@ export class CombatSession {
       playerAction,
       interpretedAction,
       locationId: this.locationId,
+      surpriseSide, // Pass surprise side to mark surprised combatants
       diceRollerTool: deps.diceRollerTool,
       narrativeExpert: narrativeExpertToUse,
       markdownToHtml: markdownToHtmlToUse,
@@ -390,6 +392,31 @@ export class CombatSession {
         conversationHistory,
         deps
       );
+    } else if (!isFirstTurnAI && firstCombatant) {
+      // First turn is Player - check if player is surprised and should skip turn
+      if (CombatTurnManager.shouldSkipTurn(firstCombatant, this.party, this.enemies)) {
+        this.log('info', 'First turn is Player but player is surprised, skipping', {
+          combatant: firstCombatant.characterName,
+          isSurprised: firstCombatant.isSurprised,
+        });
+
+        // Skip player's surprised turn
+        const shouldContinue = await this.processSkippedPlayerTurn(
+          firstCombatant,
+          undefined,
+          locationContext,
+          conversationHistory,
+          deps
+        );
+
+        // Process next turn(s) if they are AI
+        if (shouldContinue) {
+          const nextCombatant = this.getActiveCombatant();
+          if (nextCombatant && nextCombatant.controlledBy === 'AI') {
+            await this.processTurn(nextCombatant, undefined, undefined, locationContext, conversationHistory, deps);
+          }
+        }
+      }
     }
 
     this.log('info', 'Combat initialization completed', {
@@ -434,6 +461,21 @@ export class CombatSession {
       turnIndex: this.turnIndex,
     });
 
+    // Check if player should skip turn (surprise, unconscious, dead) - BEFORE handling continue_turn
+    if (activeCombatant.controlledBy === 'Player') {
+      if (CombatTurnManager.shouldSkipTurn(activeCombatant, this.party, this.enemies)) {
+        const shouldContinue = await this.processSkippedPlayerTurn(activeCombatant, interpretedAction, locationContext, conversationHistory, deps);
+        if (shouldContinue) {
+          // Process next turn if it's AI (surprise case)
+          const nextCombatant = this.getActiveCombatant();
+          if (nextCombatant && nextCombatant.controlledBy === 'AI') {
+            await this.processTurn(nextCombatant, undefined, undefined, locationContext, conversationHistory, deps);
+          }
+        }
+        return;
+      }
+    }
+
     // Handle "continue_turn" action (step-by-step combat)
     if (interpretedAction && interpretedAction.actionType === 'continue_turn') {
       this.log('debug', 'Continue turn action detected', {
@@ -469,12 +511,8 @@ export class CombatSession {
       }
     }
 
-    // Check if player is unconscious/dead
+    // Check if player can act (legacy check, shouldn't reach here if surprised)
     if (activeCombatant.controlledBy === 'Player') {
-      if (CombatTurnManager.shouldSkipTurn(activeCombatant, this.party, this.enemies)) {
-        await this.processSkippedPlayerTurn(activeCombatant, interpretedAction);
-        return;
-      }
 
       // Process player turn using TurnProcessor
       if (interpretedAction && interpretedAction.actionType !== 'continue_turn') {
@@ -798,28 +836,87 @@ export class CombatSession {
    */
   private async processSkippedPlayerTurn(
     activeCombatant: Combatant,
-    interpretedAction: any
-  ): Promise<void> {
+    interpretedAction: any,
+    locationContext?: any,
+    conversationHistory?: Array<Partial<GameMessage>>,
+    deps?: CombatManagerDependencies
+  ): Promise<boolean> {
     const playerData = this.party.find(p => p.id === activeCombatant.id);
     if (!playerData) {
-      return;
+      return false;
     }
 
-    this.log('info', 'Player turn detected but player is unconscious/dead', {
-      player: activeCombatant.characterName,
-      hp: playerData.hp.current,
-      isDead: playerData.isDead,
-    });
+    // Check if turn was skipped due to surprise
+    const isSurprised = activeCombatant.isSurprised === true;
+    const isDeadOrUnconscious = playerData.isDead === true || (playerData.hp && playerData.hp.current <= 0);
 
-    // Show message about player being unconscious/dead
-    const statusMessage = playerData.isDead === true
-      ? `${activeCombatant.characterName} está muerto y no puede actuar.`
-      : `${activeCombatant.characterName} está inconsciente y no puede actuar.`;
+    if (isSurprised && !isDeadOrUnconscious) {
+      // Turn skipped due to surprise
+      this.log('info', 'Player turn skipped due to surprise', {
+        player: activeCombatant.characterName,
+      });
 
-    this.addMessage({
-      sender: 'DM',
-      content: statusMessage
-    });
+      this.addMessage({
+        sender: 'DM',
+        content: `${activeCombatant.characterName} está sorprendido y pierde su turno.`
+      });
+
+      // Clear surprise flag after first turn
+      const combatantIndex = this.initiativeOrder.findIndex(c => c.id === activeCombatant.id);
+      if (combatantIndex !== -1) {
+        this.initiativeOrder[combatantIndex] = {
+          ...this.initiativeOrder[combatantIndex],
+          isSurprised: false
+        };
+        this.log('debug', 'Cleared surprise flag for player', {
+          player: activeCombatant.characterName,
+          combatantIndex,
+          isSurprised: this.initiativeOrder[combatantIndex].isSurprised
+        });
+      } else {
+        this.log('warn', 'Could not find combatant in initiative order to clear surprise flag', {
+          player: activeCombatant.characterName,
+          playerId: activeCombatant.id
+        });
+      }
+
+      // Advance turn and process next turn automatically (similar to AI surprise)
+      const processedTurnIndex = this.turnIndex;
+      this.advanceTurn();
+
+      const nextCombatant = this.getActiveCombatant();
+      const hasMoreAITurns = CombatTurnManager.hasMoreAITurns(
+        nextCombatant!,
+        this.party,
+        this.enemies,
+        false
+      );
+
+      this.updateState({
+        lastProcessedTurnWasAI: true,
+        lastProcessedTurnIndex: processedTurnIndex,
+      });
+
+      // Return true to indicate that the next turn should be processed
+      return true;
+    } else {
+      // Turn skipped due to death/unconsciousness
+      this.log('info', 'Player turn detected but player is unconscious/dead', {
+        player: activeCombatant.characterName,
+        hp: playerData.hp.current,
+        isDead: playerData.isDead,
+      });
+
+      // Show message about player being unconscious/dead
+      const statusMessage = playerData.isDead === true
+        ? `${activeCombatant.characterName} está muerto y no puede actuar.`
+        : `${activeCombatant.characterName} está inconsciente y no puede actuar.`;
+
+      this.addMessage({
+        sender: 'DM',
+        content: statusMessage
+      });
+    }
 
     // If "continue_turn" action is received, advance the turn to prevent infinite loop
     if (interpretedAction && interpretedAction.actionType === 'continue_turn') {
@@ -851,6 +948,8 @@ export class CombatSession {
         lastProcessedTurnIndex: this.turnIndex,
       });
     }
+
+    return false;
   }
 
   /**
@@ -871,6 +970,36 @@ export class CombatSession {
       return;
     }
 
+    // Check if turn was skipped due to surprise
+    const isSurprised = activeCombatant.isSurprised === true;
+    const isDeadOrUnconscious = isUnconsciousOrDead(activeCombatantData);
+
+    if (isSurprised && !isDeadOrUnconscious) {
+      // Turn skipped due to surprise
+      this.log('info', 'AI turn skipped due to surprise', {
+        combatant: activeCombatant.characterName,
+      });
+
+      this.addMessage({
+        sender: 'DM',
+        content: `${activeCombatant.characterName} está sorprendido y pierde su turno.`
+      });
+
+      // Clear surprise flag after first turn
+      const combatantIndex = this.initiativeOrder.findIndex(c => c.id === activeCombatant.id);
+      if (combatantIndex !== -1) {
+        this.initiativeOrder[combatantIndex] = {
+          ...this.initiativeOrder[combatantIndex],
+          isSurprised: false
+        };
+      }
+
+      // Advance turn after surprise skip
+      this.advanceTurn();
+      return; // Exit early - surprise turn handled
+    }
+
+    // Turn skipped due to death/unconsciousness (not surprise)
     this.log('debug', 'Skipping turn for dead/unconscious combatant', {
       combatant: activeCombatant.characterName,
       hp: activeCombatantData.hp.current,

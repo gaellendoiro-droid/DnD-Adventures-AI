@@ -70,6 +70,18 @@
             "title": "Sala de Guardia",
             "description": "Una sala pequeña con olor a humedad.",
             "regionId": "region-inicio",
+            "explorationMode": "dungeon",
+            "lightLevel": "dim",
+            "hazards": [
+                {
+                    "id": "trap-pit",
+                    "type": "trap",
+                    "detectionDC": 15,
+                    "description": "Una losa del suelo parece suelta.",
+                    "triggerDescription": "El suelo cede bajo tus pies revelando un foso.",
+                    "effect": "1d6 daño caída"
+                }
+            ],
             "entitiesPresent": [
                 "goblin-guard"
             ],

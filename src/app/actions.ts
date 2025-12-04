@@ -26,6 +26,8 @@ export async function processPlayerAction(
       input.playerAction?.toLowerCase().includes('siguiente turno'),
     partySize: input.party?.length,
     enemiesCount: input.enemies?.length,
+    openDoorsCount: input.openDoors ? Object.keys(input.openDoors).length : 0,
+    openDoors: input.openDoors,
   });
 
   try {
@@ -41,6 +43,7 @@ export async function processPlayerAction(
       nextLocationId: result.nextLocationId,
       turnIndex: result.turnIndex,
       hasMoreAITurns: result.hasMoreAITurns,
+      updatedOpenDoors: result.updatedOpenDoors,
     };
 
     // Get combatant names for better debugging

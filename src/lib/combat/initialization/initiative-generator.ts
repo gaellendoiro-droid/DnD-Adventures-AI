@@ -81,11 +81,13 @@ export class InitiativeGenerator {
 
     /**
      * Creates the final initiative order array with visual names.
+     * Marks combatants as surprised based on surpriseSide.
      */
     static createInitiativeOrder(
         initiativeRolls: any[],
         differentiatedNames: Map<string, string>,
-        localLog: (msg: string) => void
+        localLog: (msg: string) => void,
+        surpriseSide?: 'player' | 'enemy'
     ): Combatant[] {
         return initiativeRolls.map(r => {
             // Check if this is an enemy (has uniqueId pattern)
@@ -103,12 +105,28 @@ export class InitiativeGenerator {
                 }
             }
 
+            // Determine if this combatant is surprised
+            let isSurprised = false;
+            if (surpriseSide === 'player') {
+                // Player surprises enemies - enemies are surprised
+                isSurprised = isEnemy;
+            } else if (surpriseSide === 'enemy') {
+                // Enemy surprises players - players are surprised
+                isSurprised = !isEnemy;
+            }
+            
+            // Log surprise status for debugging
+            if (isSurprised) {
+                localLog(`Marking ${displayName} (id=${r.id}, isEnemy=${isEnemy}) as SURPRISED (surpriseSide=${surpriseSide})`);
+            }
+
             return {
                 id: r.id,
                 characterName: displayName,
                 total: r.total,
                 type: r.type as any,
-                controlledBy: r.controlledBy as any
+                controlledBy: r.controlledBy as any,
+                isSurprised: isSurprised || undefined // Only set if true
             };
         });
     }

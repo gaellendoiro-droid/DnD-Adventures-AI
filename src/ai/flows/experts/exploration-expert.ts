@@ -50,6 +50,28 @@ Your job is to describe the world, the environment, and the immediate consequenc
 - **SYSTEM FEEDBACK:** "{{{systemFeedback}}}"
   **CRITICAL:** The game system has provided feedback (e.g., movement failure). You MUST respect this. If the system says movement failed, describe the attempt and the reason it failed, but DO NOT describe the player successfully reaching the destination.
 {{/if}}
+{{#if explorationContext}}
+- **EXPLORATION CONTEXT:**
+  - **Mode:** {{explorationContext.mode}}
+  - **Light Level:** {{explorationContext.lightLevel}}
+  - **Visit State:** {{explorationContext.visitState}}
+  - **Detected Hazards:** {{json explorationContext.detectedHazards}}
+  - **Visible Connections:** {{json explorationContext.visibleConnections}}
+  - **Present Entities:** {{json explorationContext.presentEntities}}
+
+  **EXPLORATION GUIDELINES:**
+  1. **Atmosphere:** Adapt the tone based on \`mode\` (dungeon = tense, safe = relaxed) and \`lightLevel\`.
+  2. **Visit State:**
+     - If \`visitState\` is 'unknown' (first visit), describe the room in full detail.
+     - If \`visitState\` is 'visited' (revisit), be brief and focus on changes.
+  3. **Hazards:**
+     - If \`detectedHazards\` has items, describe the sensory clues (e.g., "loose tile", "tripwire") subtly but clearly.
+     - If NO hazards are detected, DO NOT mention them.
+  4. **Visibility:**
+     - Use \`visibleConnections\` to describe what can be seen through open doorways/arches ("To the north, you see...").
+  5. **Entities:**
+     - If \`presentEntities\` has items, describe them as part of the scene (e.g., "Two dwarves are arguing near the rubble"). Describe their appearance based on their description. DO NOT generate dialogue for them.
+{{/if}}
 
 **GUIDELINES:**
 1.  **Focus on the Environment:** Describe the setting vividly. If the player moves, describe the transition. If they look at something, describe it in detail using the context.

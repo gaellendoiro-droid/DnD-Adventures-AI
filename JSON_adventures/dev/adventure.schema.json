@@ -168,6 +168,30 @@
                     "default": true,
                     "description": "Si es false, impide iniciar viajes largos desde esta ubicación (ej: celdas, combate)."
                 },
+                "explorationMode": {
+                    "type": "string",
+                    "enum": [
+                        "safe",
+                        "dungeon",
+                        "wilderness"
+                    ],
+                    "default": "safe"
+                },
+                "lightLevel": {
+                    "type": "string",
+                    "enum": [
+                        "bright",
+                        "dim",
+                        "dark"
+                    ],
+                    "default": "bright"
+                },
+                "hazards": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/hazard"
+                    }
+                },
                 "connections": {
                     "type": "array",
                     "items": {
@@ -216,23 +240,6 @@
                     "description": "Tipo de conexión: direct (inmediato), urban (minutos, seguro), overland (horas/días, viaje), special (teletransporte)."
                 },
                 "description": {
-                    "type": "string"
-                },
-                "direction": {
-                    "type": "string",
-                    "enum": [
-                        "norte",
-                        "sur",
-                        "este",
-                        "oeste",
-                        "arriba",
-                        "abajo",
-                        "dentro",
-                        "fuera"
-                    ]
-                },
-                "distance": {
-                    "type": "string",
                     "description": "Distancia física o narrativa (ej: '5 millas', '300 pies')."
                 },
                 "travelTime": {
@@ -256,6 +263,14 @@
                 "blockedReason": {
                     "type": "string",
                     "description": "Texto narrativo que explica por qué está bloqueado."
+                },
+                "visibility": {
+                    "type": "string",
+                    "enum": [
+                        "restricted",
+                        "open"
+                    ],
+                    "default": "restricted"
                 }
             }
         },
@@ -367,6 +382,48 @@
                 },
                 "triggerCondition": {
                     "type": "string"
+                }
+            }
+        },
+        "hazard": {
+            "type": "object",
+            "required": [
+                "id",
+                "type",
+                "detectionDC",
+                "description",
+                "triggerDescription"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "trap",
+                        "ambush",
+                        "environmental"
+                    ]
+                },
+                "detectionDC": {
+                    "type": "integer"
+                },
+                "disarmDC": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "triggerDescription": {
+                    "type": "string"
+                },
+                "effect": {
+                    "type": "string"
+                },
+                "active": {
+                    "type": "boolean",
+                    "default": true
                 }
             }
         },

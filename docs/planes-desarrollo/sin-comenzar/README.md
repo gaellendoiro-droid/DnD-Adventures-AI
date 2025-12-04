@@ -16,7 +16,7 @@ Esta carpeta contiene planes de desarrollo que han sido identificados pero aún 
 
 Consulta el [Roadmap](../../roadmap.md) para obtener ideas de planes futuros, como:
 
-- Sistema de Inicio de Combate Dinámico
+- ✅ Sistema de Inicio de Combate Dinámico - **COMPLETADO (2025-12-03)**
 - Sistema de Progresión y Gestión (XP, niveles, inventario)
 - IA Conversacional Avanzada (streaming)
 - Implementación de RAG (Retrieval-Augmented Generation)

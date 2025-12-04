@@ -23,6 +23,7 @@ interface InitialGameData {
   turnIndex?: number;
   enemies?: any[]; // Deprecated: kept for backward compatibility
   enemiesByLocation?: Record<string, any[]>; // New: enemies by location
+  openDoors?: Record<string, boolean>; // Map of "locationId:direction" -> isOpen
 }
 
 export default function Home() {
@@ -50,6 +51,7 @@ export default function Home() {
     enemies: z.array(z.any()).optional(), // Deprecated: kept for backward compatibility
     enemiesByLocation: z.record(z.string(), z.array(z.any())).optional(), // New: enemies by location
     turnIndex: z.number().optional(),
+    openDoors: z.record(z.string(), z.boolean()).optional(), // Map of "locationId:direction" -> isOpen
   });
 
   // Schema for validating adventure data structure
@@ -257,6 +259,7 @@ export default function Home() {
           diceRolls: validatedSaveData.diceRolls || [],
           locationId: validatedSaveData.locationId,
           inCombat: validatedSaveData.inCombat || false,
+          openDoors: validatedSaveData.openDoors || {},
           initiativeOrder: validatedSaveData.initiativeOrder || [],
           turnIndex: validatedSaveData.turnIndex || 0,
           enemies: validatedSaveData.enemies || [], // Deprecated: kept for backward compatibility

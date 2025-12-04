@@ -38,6 +38,7 @@ export const CombatManagerInputSchema = GameStateSchema.extend({
     interpretedAction: ActionInterpreterOutputSchema.optional(),
     locationContext: z.any().optional(),
     combatantIds: z.array(z.string()).optional(),
+    surpriseSide: z.enum(['player', 'enemy']).optional(), // Which side is surprised (loses first turn)
 });
 
 
@@ -91,7 +92,7 @@ export async function executeCombatManager(
         ...dependencies, // Override with provided dependencies (for testing)
     };
 
-    const { playerAction, inCombat, locationId, interpretedAction, locationContext, conversationHistory, combatantIds } = input;
+    const { playerAction, inCombat, locationId, interpretedAction, locationContext, conversationHistory, combatantIds, surpriseSide } = input;
 
     // Get enemies for current location from enemiesByLocation, fallback to enemies for backward compatibility
     const currentLocationEnemies = input.enemiesByLocation?.[locationId] || input.enemies || [];
@@ -147,7 +148,8 @@ export async function executeCombatManager(
             locationContext,
             conversationHistory || [],
             playerAction || '',
-            interpretedAction
+            interpretedAction,
+            surpriseSide
         );
     }
 

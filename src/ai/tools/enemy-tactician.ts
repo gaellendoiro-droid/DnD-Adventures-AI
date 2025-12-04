@@ -38,8 +38,9 @@ const enemyTacticianPrompt = ai.definePrompt({
   \`\`\`
 
 **Your Task:**
-1.  **Analyze & Decide:** Choose the best tactical action for **{{{activeCombatant}}}**. Usually, this means attacking the most injured or threatening player.
-2.  **Generate JSON Output:** Fill out the following fields based on your decision. The output MUST be a valid JSON object matching the required schema.
+1.  **CRITICAL - You MUST choose a combat action:** You MUST select an action for **{{{activeCombatant}}}**. "No hacer nada" is FORBIDDEN unless the monster is dead or unconscious. You MUST attack, use an ability, or take another combat action. If you don't know the monster's abilities, use the \`dndApiLookupTool\` to look up **{{{activeCombatant}}}** and find its available actions (attacks, special abilities, etc.).
+2.  **Analyze & Decide:** Choose the best tactical action. Usually, this means attacking the most injured or threatening player. For monsters like Mimics, use their Pseudopod attack. For goblins, use their scimitar. Always choose an aggressive action.
+3.  **Generate JSON Output:** Fill out the following fields based on your decision. The output MUST be a valid JSON object matching the required schema.
 
 **JSON Output Fields & Rules:**
 
@@ -62,6 +63,17 @@ Example output for a Goblin attacking with a scimitar:
   "targetId": "player-1",
   "diceRolls": []
 }
+
+Example output for a Mimic using its Pseudopod attack:
+{
+  "actionDescription": "Ataque con Pseudópodo",
+  "targetId": "player-1",
+  "diceRolls": []
+}
+
+**FORBIDDEN OUTPUTS:**
+- "No hacer nada" - This is NEVER a valid action unless the monster is dead/unconscious.
+- Empty or null actionDescription - You MUST provide a combat action.
 
 Return ONLY the JSON object, nothing else.`,
 });

@@ -75,7 +75,7 @@ export class NavigationManager {
 
         for (const step of path) {
             // Validate step
-            const validation = this.validateMovement(step.connection, gameState);
+            const validation = this.validateMovement(step.connection, gameState, currentLocationId, step.connection.direction);
             console.log(`[NavigationManager] Validating step to ${step.toId}: ${JSON.stringify(validation)}`);
             if (!validation.allowed) {
                 // Stop at the last valid location
@@ -265,9 +265,9 @@ export class NavigationManager {
     }
 
     /**
-     * Validates if the movement is allowed based on connection state (locked, blocked).
+     * Validates if the movement is allowed based on connection state (locked, blocked, closed).
      */
-    private static validateMovement(connection: Connection, gameState: GameState): ValidationResult {
+    private static validateMovement(connection: Connection, gameState: GameState, currentLocationId: string, direction?: string): ValidationResult {
         if (connection.isBlocked) {
             return { allowed: false, reason: connection.blockedReason || "El camino está bloqueado." };
         }
@@ -281,6 +281,30 @@ export class NavigationManager {
             if (!hasKey) {
                 return { allowed: false, reason: "La puerta está cerrada con llave." };
             }
+        }
+
+        // Check if door is closed
+        // Priority: 1) Check gameState.openDoors (runtime state), 2) Check connection.isOpen (JSON default), 3) Check visibility
+        const doorKey = direction ? `${currentLocationId}:${direction}` : null;
+        const isOpenInState = doorKey ? gameState.openDoors?.[doorKey] : undefined;
+        
+        // If door state is tracked in gameState.openDoors, use that (takes precedence over connection.isOpen)
+        if (isOpenInState !== undefined) {
+            if (isOpenInState === false) {
+                return { allowed: false, reason: "La puerta está cerrada. Necesitas abrirla primero." };
+            }
+            // isOpenInState === true, door was opened, allow movement
+            return { allowed: true };
+        }
+        
+        // No runtime state, check connection.isOpen from JSON
+        if (connection.isOpen === false) {
+            return { allowed: false, reason: "La puerta está cerrada. Necesitas abrirla primero." };
+        }
+        
+        // If isOpen is undefined but visibility is 'restricted', treat as closed door
+        if (connection.isOpen === undefined && connection.visibility === 'restricted') {
+            return { allowed: false, reason: "La puerta está cerrada. Necesitas abrirla primero." };
         }
 
         return { allowed: true };

@@ -1,0 +1,109 @@
+{
+    "adventureId": "test-exploration",
+    "title": "Prueba de Exploración",
+    "summary": "Aventura técnica para probar niebla de guerra y trampas.",
+    "introductoryNarration": "Inicias tu prueba en el campamento base, listo para adentrarte en lo desconocido.",
+    "locations": [
+        {
+            "id": "campamento-base",
+            "name": "Campamento Base",
+            "description": "Un lugar seguro con una hoguera crepitante. Al norte ves la entrada a una cueva oscura que emana un aire viciado. El viento agita suavemente las llamas.",
+            "explorationMode": "safe",
+            "lightLevel": "bright",
+            "connections": [
+                {
+                    "targetId": "entrada-cueva",
+                    "direction": "norte",
+                    "type": "direct",
+                    "visibility": "open",
+                    "description": "La boca de la cueva se abre como unas fauces oscuras en la ladera de la montaña."
+                }
+            ]
+        },
+        {
+            "id": "entrada-cueva",
+            "name": "Entrada de la Cueva",
+            "description": "El aire es frío y húmedo aquí dentro. Las paredes de roca natural gotean humedad.",
+            "explorationMode": "dungeon",
+            "lightLevel": "dim",
+            "connections": [
+                {
+                    "targetId": "pasillo-trampa",
+                    "direction": "dentro",
+                    "type": "direct",
+                    "visibility": "open",
+                    "description": "Un pasillo largo y recto con suelo de losas antiguas se extiende hacia la oscuridad."
+                },
+                {
+                    "targetId": "campamento-base",
+                    "direction": "sur",
+                    "type": "direct",
+                    "visibility": "open",
+                    "description": "La salida hacia la luz del día y el campamento."
+                }
+            ]
+        },
+        {
+            "id": "pasillo-trampa",
+            "name": "Pasillo de las Losas",
+            "description": "Un pasillo estrecho de manufactura antigua. El suelo está cubierto de polvo, excepto en algunas zonas curiosamente limpias.",
+            "explorationMode": "dungeon",
+            "lightLevel": "dark",
+            "hazards": [
+                {
+                    "id": "trampa-flechas",
+                    "type": "trap",
+                    "detectionDC": 12,
+                    "disarmDC": 15,
+                    "description": "Notas que una de las losas centrales está ligeramente elevada y hay pequeños agujeros sospechosos en las paredes laterales a esa altura.",
+                    "triggerDescription": "¡Click! Sientes la losa hundirse bajo tu peso. Un sonido de resorte liberado precede al silbido de virotes saliendo de las paredes.",
+                    "effect": "Ataque +5, 1d10 daño perforante",
+                    "active": true
+                }
+            ],
+            "connections": [
+                {
+                    "targetId": "sala-emboscada",
+                    "direction": "norte",
+                    "type": "direct",
+                    "visibility": "restricted",
+                    "description": "Una pesada puerta de madera reforzada con bandas de hierro oxidadas bloquea el paso."
+                },
+                {
+                    "targetId": "entrada-cueva",
+                    "direction": "fuera",
+                    "type": "direct",
+                    "visibility": "open",
+                    "description": "El pasillo vuelve hacia la entrada de la cueva."
+                }
+            ]
+        },
+        {
+            "id": "sala-emboscada",
+            "name": "Sala del Tesoro Falso",
+            "description": "Una sala circular con techo abovedado. En el centro, un cofre de madera podrida descansa sobre un pedestal.",
+            "explorationMode": "dungeon",
+            "lightLevel": "dim",
+            "hazards": [
+                {
+                    "id": "emboscada-goblins",
+                    "type": "ambush",
+                    "detectionDC": 20,
+                    "description": "Tus agudos sentidos captan una respiración contenida y el leve roce de cuero contra piedra proveniente de las vigas oscuras del techo.",
+                    "triggerDescription": "¡Gritos agudos rompen el silencio! Varias figuras pequeñas se dejan caer desde las sombras del techo con las armas desenvainadas.",
+                    "effect": "Iniciativa Sorpresa",
+                    "active": true
+                }
+            ],
+            "connections": [
+                {
+                    "targetId": "pasillo-trampa",
+                    "direction": "sur",
+                    "type": "direct",
+                    "visibility": "restricted",
+                    "description": "La puerta de madera reforzada por la que entraste."
+                }
+            ]
+        }
+    ]
+}

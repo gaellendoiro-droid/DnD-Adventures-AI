@@ -121,34 +121,17 @@ El generador de narrativa recibirá un objeto de contexto enriquecido (`Explorat
     *   Calcula Percepción Pasiva del grupo (ej: Pícaro tiene 15).
     *   Compara con Trampa de Foso (CD 14). **¡Éxito!**
 4.  **Sistema (NarrativeManager):** Recibe `detectedHazards: ["Suelo inestable"]`.
-5.  **Respuesta:** "Entráis en una sala húmeda y oscura. El Pícaro levanta la mano de golpe: nota que las baldosas del centro del suelo están ligeramente hundidas y no tienen polvo, sugiriendo un mecanismo reciente. Parece una trampa de foso."
-
----
-
-## 5. Plan de Trabajo
-
-### Fase 2.1: Estructura de Datos y Estado
-1.  Actualizar `GameStateSchema` con `ExplorationState`.
-2.  Actualizar `LocationSchema` con `HazardSchema`.
-3.  Actualizar `adventure.schema.json` y plantillas.
-
-### Fase 2.2: Lógica de Detección (`ExplorationManager`)
-1.  Implementar cálculo de Percepción Pasiva (10 + Mod Sabiduría + Proficiencia si aplica).
-2.  Implementar lógica de chequeo de peligros.
-3.  Implementar actualización de "Niebla de Guerra" (Visited/Seen).
-
-### Fase 2.3: Integración Narrativa
-1.  Modificar `NarrativeManager` para aceptar contexto de exploración.
-2.  Ajustar prompts para variar descripción según estado de visita y detección.
-
-### Fase 2.4: Testing
-1.  Crear escenario de prueba con una trampa oculta y una emboscada.
-2.  Verificar que personajes con baja percepción caen en la trampa.
-3.  Verificar que personajes con alta percepción la detectan.
-4.  Verificar persistencia del estado (volver a una sala ya visitada).
 
 ---
 
 ## 6. Consideraciones Futuras
 *   **Iluminación:** En el futuro, cruzar esto con si los personajes llevan antorchas o tienen visión en la oscuridad.
 *   **Sigilo:** Permitir modo "Sigilo" que reduce la velocidad de movimiento pero permite tirar Sigilo contra la Percepción Pasiva de los enemigos.
+
+## 7. Limitaciones Conocidas y Próximos Pasos
+
+### 7.1. Detección de Combate Dinámico
+Actualmente, si el grupo entra en una sala con una emboscada (`hazard` tipo `ambush`) y **falla** la tirada de Percepción Pasiva, el sistema no detecta el peligro y, por lo tanto, el `ExplorationExpert` no recibe información sobre la emboscada.
+
+*   **Consecuencia:** El DM describe la sala como si estuviera vacía, ignorando a los enemigos ocultos.
+*   **Solución Requerida:** Implementar el **Sistema de Inicio de Combate Dinámico** (Roadmap #3). Este sistema deberá evaluar la hostilidad y la presencia de enemigos ocultos *después* de la fase de exploración. Si hay una emboscada no detectada, el sistema debe forzar el inicio del combate con un asalto de sorpresa, permitiendo al DM narrar la aparición repentina de los enemigos.

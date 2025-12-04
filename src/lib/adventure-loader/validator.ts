@@ -72,7 +72,7 @@ export function validateAdventureStructure(data: any): ValidationResult {
 
         if (Array.isArray(connections)) {
             connections.forEach((conn: any, connIndex: number) => {
-                const connId = typeof conn === 'string' ? conn : conn?.toLocationId;
+                const connId = typeof conn === 'string' ? conn : (conn?.targetId || conn?.toLocationId);
 
                 if (!connId) {
                     errors.push({

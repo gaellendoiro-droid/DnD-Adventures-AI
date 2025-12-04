@@ -98,6 +98,8 @@ graph TD
     3. Filtra contexto (enemigos muertos) antes de pasar a la narración
     4. Genera narración del DM usando `NarrativeManager`
     5. Genera reacciones de compañeros **después** de la narración del DM (reacciones al resultado)
+    6. **Filtrado de Conexiones de Origen:** Al moverse a una nueva ubicación, filtra automáticamente la conexión de regreso de la lista de `visibleConnections` para evitar que el DM describa redundantemente "el camino por el que acabas de venir".
+    7. **Resolución de Entidades en Exploración:** Resuelve los IDs de `entitiesPresent` a objetos completos (nombre, descripción) y los pasa al contexto de exploración para que el DM pueda describir visualmente a los NPCs/Monstruos presentes sin iniciar diálogo.
 -   **Flujo**: `executeNarrativeTurn()` encapsula todo el proceso de un turno narrativo
 -   **Uso**: Invocado por `gameCoordinator` cuando la acción no es de combate
 

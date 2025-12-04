@@ -14,7 +14,7 @@ interface MusicManagerProps {
 }
 
 type AudioType = 'music' | 'ambience' | 'sfx';
-type AudioMode = 'exploration' | 'combat' | 'any';
+type AudioMode = 'exploration' | 'combat';
 type LocationType = 'forest' | 'dungeon' | 'inn' | 'city' | 'mountain' | 'cave' | 'general';
 
 const FADE_DURATION = 4000; // 4 seconds fade
@@ -209,10 +209,6 @@ export function MusicManager({ locationId, inCombat, adventureData, volumeSettin
 
             // 5. General Mode (e.g. "exploration_general")
             `/sound/${type}_${mode}_general_low.mp3`,
-
-            // 6. Fallbacks
-            `/sound/${type}_any_${locationType}_low.mp3`,
-            `/sound/${type}_any_general_low.mp3`,
         ];
 
         let playableSrc: string | null = null;

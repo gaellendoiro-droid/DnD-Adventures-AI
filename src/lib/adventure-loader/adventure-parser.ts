@@ -90,7 +90,7 @@ function sanitizeAdventureData(data: any): any {
             const validConnections: any[] = [];
 
             loc.connections.forEach((conn: any) => {
-                const targetId = typeof conn === 'string' ? conn : conn?.toLocationId;
+                const targetId = typeof conn === 'string' ? conn : (conn?.targetId || conn?.toLocationId);
                 if (targetId && locationIds.has(targetId)) {
                     validConnections.push(conn);
                 } else {

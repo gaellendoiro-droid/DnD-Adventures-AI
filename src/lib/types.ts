@@ -65,6 +65,7 @@ export interface Combatant {
   type: 'player' | 'npc';
   controlledBy: "Player" | "AI";
   status?: 'active' | 'unconscious' | 'dead';
+  isSurprised?: boolean; // If true, this combatant loses their first turn
 }
 
 // We can also infer nested types if we need them separately

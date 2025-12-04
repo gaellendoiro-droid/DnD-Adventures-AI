@@ -63,7 +63,10 @@ export async function initializeGame(
 
         // 4. Obtener la narración inicial
         // Priorizar narración pre-generada del JSON para carga instantánea
-        const preGeneratedIntro = adventureData.introductoryNarration || adventureData.openingScene;
+        // Buscar en múltiples campos para compatibilidad con diferentes formatos de JSON
+        const preGeneratedIntro = adventureData.introductoryNarration || 
+                                  adventureData.openingScene || 
+                                  adventureData.introduction;
 
         let initialMessages: any[];
         let finalLocationId = initialGameState.locationId;
@@ -78,7 +81,7 @@ export async function initializeGame(
                 id: `intro-${Date.now()}`,
                 sender: 'DM',
                 content: preGeneratedIntro,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }];
         } else {
             // Generar con IA (fallback para aventuras sin intro)
@@ -104,9 +107,45 @@ export async function initializeGame(
             finalInCombat = result.inCombat || false;
             finalEnemies = result.enemies || [];
             finalEnemiesByLocation = result.enemiesByLocation || {};
+            finalEnemiesByLocation = result.enemiesByLocation || {};
         }
 
-        // 5. Retornar éxito con los datos iniciales completos
+        // 5. Inicializar estado de exploración (marcar inicio como visitado)
+        const initialExplorationState: any = {
+            knownLocations: {
+                [finalLocationId]: {
+                    status: 'visited',
+                    lastVisited: 0,
+                    discoveredSecrets: [],
+                    clearedHazards: []
+                }
+            }
+        };
+
+        // Revelar conexiones visibles desde el inicio
+        const currentLocationData = adventureData.locations.find((l: any) => l.id === finalLocationId);
+        if (currentLocationData && currentLocationData.connections) {
+            for (const conn of currentLocationData.connections) {
+                if (conn.visibility === 'open') {
+                    initialExplorationState.knownLocations[conn.targetId] = {
+                        status: 'seen',
+                        lastVisited: 0,
+                        discoveredSecrets: [],
+                        clearedHazards: []
+                    };
+                } else {
+                    // Registrar existencia aunque sea desconocida
+                    initialExplorationState.knownLocations[conn.targetId] = {
+                        status: 'unknown',
+                        lastVisited: 0,
+                        discoveredSecrets: [],
+                        clearedHazards: []
+                    };
+                }
+            }
+        }
+
+        // 6. Retornar éxito con los datos iniciales completos
         return {
             success: true,
             initialGameData: {
@@ -116,6 +155,7 @@ export async function initializeGame(
                 inCombat: finalInCombat,
                 enemies: finalEnemies,
                 enemiesByLocation: finalEnemiesByLocation,
+                exploration: initialExplorationState
             }
         };
 

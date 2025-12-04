@@ -35,6 +35,13 @@ export const NarrativeExpertInputSchema = z.object({
   combatContext: z.string().optional().describe("A JSON string with combat-specific information (initiative order, combatants list) for combat_initiation phase."),
   deadEntities: z.string().optional().describe("Comma-separated list of entity names that have been defeated/killed in this location. The location description may mention them as alive, but they should be described as dead bodies."),
   systemFeedback: z.string().optional().describe("Feedback from the game system, such as movement failure reasons."),
+  explorationContext: z.object({
+    mode: z.enum(['safe', 'dungeon', 'wilderness']),
+    lightLevel: z.enum(['bright', 'dim', 'dark']),
+    visitState: z.enum(['unknown', 'seen', 'visited']),
+    detectedHazards: z.array(z.any()), // HazardSchema
+    visibleConnections: z.array(z.string()).describe("Descriptions of what can be seen through open connections")
+  }).optional().describe("Context for dungeon exploration: atmosphere, visibility, and hazards."),
 });
 export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
 
@@ -56,6 +63,17 @@ export const GameCoordinatorInputSchema = z.object({
   turnIndex: z.number().optional().describe('The index of the current combatant in the initiative order.'),
 });
 export type GameCoordinatorInput = z.infer<typeof GameCoordinatorInputSchema>;
+
+// Schema for Exploration State (Phase 2: Dungeon Exploration)
+export const ExplorationStateSchema = z.object({
+  // Mapa de ID de ubicación -> Estado
+  knownLocations: z.record(z.object({
+    status: z.enum(['unknown', 'seen', 'visited']), // Desconocido, Visto (desde fuera), Visitado (entrado)
+    lastVisited: z.number(), // Timestamp del mundo (minutos totales o similar)
+    discoveredSecrets: z.array(z.string()).default([]), // IDs de secretos encontrados
+    clearedHazards: z.array(z.string()).default([]) // IDs de trampas/peligros neutralizados
+  }))
+});
 
 export const GameCoordinatorOutputSchema = z.object({
   messages: z.array(z.any()).optional(), // Omit<GameMessage, 'id' | 'timestamp'>[] - Zod can't handle this
@@ -80,8 +98,12 @@ export const GameCoordinatorOutputSchema = z.object({
     hour: z.number(),
     minute: z.number()
   }).optional(),
+  updatedExplorationState: ExplorationStateSchema.optional(), // ExplorationState
+  updatedOpenDoors: z.record(z.string(), z.boolean()).optional(), // Map of "locationId:direction" -> isOpen
 });
 export type GameCoordinatorOutput = z.infer<typeof GameCoordinatorOutputSchema>;
+
+
 
 // To-Do: This will replace GameCoordinatorInputSchema
 export const GameStateSchema = z.object({
@@ -99,6 +121,8 @@ export const GameStateSchema = z.object({
     hour: z.number().default(8), // 8:00 AM start
     minute: z.number().default(0)
   }).optional(),
+  exploration: ExplorationStateSchema.optional(), // Estado de exploración (Niebla de Guerra)
+  openDoors: z.record(z.string(), z.boolean()).optional(), // Map of "locationId:direction" -> isOpen
 });
 export type GameState = z.infer<typeof GameStateSchema>;
 
@@ -111,6 +135,13 @@ export const ExplorationExpertInputSchema = z.object({
   deadEntities: z.string().optional().describe("Comma-separated list of entity names that have been defeated/killed in this location. The location description may mention them as alive, but they should be described as dead bodies."),
   isKeyMoment: z.boolean().optional().describe("Whether this is a key narrative moment (location change, death, rest)."),
   systemFeedback: z.string().optional().describe("Feedback from the game system, such as movement failure reasons."),
+  explorationContext: z.object({
+    mode: z.enum(['safe', 'dungeon', 'wilderness']),
+    lightLevel: z.enum(['bright', 'dim', 'dark']),
+    visitState: z.enum(['unknown', 'seen', 'visited']),
+    detectedHazards: z.array(z.any()), // HazardSchema
+    visibleConnections: z.array(z.string()).describe("Descriptions of what can be seen through open connections")
+  }).optional().describe("Context for dungeon exploration: atmosphere, visibility, and hazards."),
 });
 export type ExplorationExpertInput = z.infer<typeof ExplorationExpertInputSchema>;
 

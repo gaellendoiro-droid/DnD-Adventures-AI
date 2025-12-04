@@ -33,12 +33,18 @@ const actionInterpreterPrompt = ai.definePrompt({
 1.  **PRIORITY 1: Out-of-Character (OOC) Check:**
     *   If the player's action starts with \`//\`, you MUST classify the action as 'ooc'. The 'targetId' is irrelevant. Stop here.
 
-2.  **PRIORITY 2: Attack:**
-    *   Analyze for a clear intent to attack.
+2.  **PRIORITY 2: Attack / Hostile Intent:**
+    *   Analyze for a clear intent to attack OR initiate violence.
+    *   **IMPORTANT:** This includes BOTH combat attacks AND surprise attacks on neutral/friendly NPCs.
+    *   Examples of hostile intent:
+    *     - Direct attacks: "ataco al guardia", "le disparo", "le clavo la daga"
+    *     - Surprise attacks: "le ataco mientras me da la mano", "saco mi espada y ataco al tabernero"
+    *     - Violent actions: "le corto el cuello", "le golpeo", "matarlo"
     *   If detected, classify as 'attack'.
     *   **IMPORTANT - Target Identification:**
     *     - **Combat State Priority:** If 'updatedEnemies' is provided, look there FIRST. It contains the current state of combatants with unique IDs (e.g., "Goblin 2", "Orc 1"). Match the player's target (e.g., "ataco al goblin 2") to the 'id' or 'name' in 'updatedEnemies'.
     *     - **Contextual References:** Use 'conversationHistory' to resolve relative references like "the one who attacked me", "the one who killed Merryl", "the wounded one". Look for recent events in the history to identify the correct target ID.
+    *     - **NPCs and Entities:** If the target is an NPC from 'entitiesPresent' (e.g., "tabernero", "guardia", "mercader"), use that entity's ID.
     *     - If the player explicitly mentions a specific target (e.g., "ataco al goblin", "ataco a la mantícora"), use that target's ID from 'updatedEnemies' or 'entitiesPresent'.
     *     - If the player's action is generic (e.g., "atacamos", "ataco", "luchamos") without specifying a target, you MAY leave 'targetId' as null or use the first hostile entity ID as a fallback.
     *     - The 'targetId' is just the INITIAL target - other hostile entities in the location will join combat automatically.
@@ -48,9 +54,12 @@ const actionInterpreterPrompt = ai.definePrompt({
     *   Analyze if the action is directed at a companion from the 'Player's Party' list.
     *   If so, classify as 'interact' and use the companion's name as 'targetId'. Stop here.
 
-4.  **PRIORITY 4: Movement - Local Exits:**
-    *   Analyze for movement intent (e.g., "vamos a").
-    *   If the destination matches a local \`exits\` description, classify as 'move' and use the \`toLocationId\`. Stop here.
+4.  **PRIORITY 4: Movement - Local Connections:**
+    *   Analyze for movement intent (e.g., "vamos a", "entramos en", "cruzo", "ir al sur").
+    *   **IMPORTANT:** Actions like "abrir la puerta del [dirección]" or "abrimos la sala del [dirección]" are INTERACTION actions, not movement. The player wants to interact with a door object first.
+    *   If the destination matches a local \`connections\` (or legacy \`exits\`) description, direction, or target name, classify as 'move' and use the \`targetId\` (or \`toLocationId\`). 
+    *   **Direction Matching:** If the player mentions a direction (norte, sur, este, oeste, etc.) WITHOUT mentioning "abrir" or "puerta", match it to a connection with that direction in the current location's connections.
+    *   Stop here.
 
 5.  **PRIORITY 5: Interaction with a Local Object:**
     *   Analyze if the action targets a local object/entity from \`interactables\` or \`entitiesPresent\`.

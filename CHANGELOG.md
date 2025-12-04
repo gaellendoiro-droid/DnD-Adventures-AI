@@ -16,7 +16,70 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ## [Unreleased]
 
 ### Added
-- **🗺️ Sistema de Movimiento y Conciencia Espacial (2025-11-30):**
+- **⚔️ Sistema de Inicio de Combate Dinámico - COMPLETADO (2025-12-03):**
+  - **Mejora:** Sistema completo que permite que el mundo reaccione automáticamente a las acciones del jugador, iniciando combate cuando la narrativa o la lógica lo requieren.
+  - **Fase 1: Emboscadas (2025-12-01):**
+    - ✅ **Emboscadas Automáticas:** Entrar en una ubicación con enemigos ocultos (hazard tipo `ambush`) sin detectarlos inicia combate automáticamente con sorpresa para enemigos.
+    - ✅ **Sistema de Sorpresa Mecánico:** Combatientes sorprendidos pierden su primer turno con mensaje narrativo "X está sorprendido y pierde su turno."
+  - **Fase 1.5: Proximidad, Sigilo y Mímicos (2025-12-01):**
+    - ✅ **Combate por Proximidad:** Enemigos visibles y hostiles inician combate automáticamente al entrar en la sala.
+    - ✅ **Fallo de Sigilo:** Si el jugador intenta moverse sigilosamente pero falla, los enemigos detectan la intrusión e inician combate.
+    - ✅ **Detección de Mímicos:** Interactuar con objetos que son hazards tipo `mimic` inicia combate automáticamente con sorpresa del enemigo.
+    - ✅ **Sistema de Enemigos Ocultos:** Enemigos con `disposition: 'hidden'` no inician combate por proximidad, solo cuando se interactúa específicamente con ellos.
+    - ✅ **Revelación Dinámica:** Solo el enemigo específico que dispara el combate se revela (cambia de `hidden` a `hostile`), manteniendo otros enemigos ocultos intactos.
+    - ✅ **Normalización de Estadísticas:** Conversión automática de `stats.hp` a `hp: { current, max }` para entidades cargadas desde JSON.
+    - ✅ **Mapeo Inteligente:** Sistema que mapea nombres de acciones/interactuables a IDs de hazards para detección precisa.
+    - ✅ **Sistema de Puertas:** Puertas cerradas (`isOpen: false`) detienen el movimiento, requiriendo interacción explícita para abrir.
+  - **Fase 2: Detección de Intención (2025-12-02):**
+    - ✅ **Ataques Sorpresa del Jugador:** Detección automática de ataques a NPCs neutrales/amigables fuera de combate.
+    - ✅ **Sorpresa del Jugador:** NPCs atacados por sorpresa pierden su primer turno.
+    - ✅ **Transición Fluida:** El sistema transiciona automáticamente de exploración/diálogo a combate cuando se detecta intención hostil.
+  - **Fase 3: Orquestación (2025-12-02):**
+    - ✅ **Orquestación Centralizada:** `GameCoordinator` maneja todos los tipos de triggers de combate dinámico de forma unificada.
+    - ✅ **Transiciones Fluidas:** Narraciones de transición coherentes entre exploración y combate.
+  - **Test de Regresión (2025-12-03):**
+    - ✅ Todos los tipos de triggers funcionan correctamente.
+    - ✅ Las transiciones de exploración a combate son fluidas.
+    - ✅ El sistema de sorpresa funciona mecánicamente (turnos saltados).
+    - ✅ No hay errores en consola o estados inconsistentes.
+    - ✅ El juego puede continuar normalmente después de cada combate.
+  - **Archivos modificados:**
+    - `src/ai/flows/managers/combat-trigger-manager.ts` (Nuevo módulo para evaluación de triggers de combate)
+    - `src/ai/flows/managers/narrative-turn-manager.ts` (Integración de triggers en el flujo narrativo)
+    - `src/ai/flows/game-coordinator.ts` (Manejo de triggers dinámicos y revelación de enemigos)
+    - `src/ai/flows/action-interpreter.ts` (Detección de intención hostil)
+    - `src/lib/schemas.ts` (Añadido `'mimic'` al enum `HazardSchema.type`, `isOpen` a `ConnectionSchema`)
+    - `src/lib/types.ts` (Añadido `isSurprised?: boolean` a `Combatant`)
+    - `src/lib/combat/combat-session.ts` (Manejo de turnos sorprendidos)
+    - `src/lib/combat/combat-initializer.ts` (Soporte para `surpriseSide`)
+    - `src/lib/combat/initialization/initiative-generator.ts` (Marcado de combatientes sorprendidos)
+    - `src/lib/combat/turn-manager.ts` (Lógica para saltar turnos sorprendidos)
+    - `src/lib/adventure-loader/game-initializer.ts` (Soporte para campo `introduction` en JSONs)
+    - `src/ai/flows/schemas.ts` (Añadido `openDoors` a `GameStateSchema`)
+    - `src/ai/flows/managers/navigation-manager.ts` (Validación de puertas cerradas)
+    - `tests/unit/combat/combat-trigger-manager.test.ts` (Tests unitarios completos)
+  - **Referencia:** [Plan Completado](../docs/planes-desarrollo/completados/sistema-inicio-combate-dinamico.md)
+
+## [0.5.95] - 2025-12-01
+
+### Added
+- **🗺️ Sistema de Exploración de Mazmorras (Fase 2) (2025-12-01):**
+  - **Mejora:** Implementación de "Niebla de Guerra", percepción pasiva y detección de peligros para aumentar la tensión en la exploración.
+  - **Características:**
+    - ✅ **Niebla de Guerra:** El sistema recuerda qué habitaciones han sido visitadas (`visited`), vistas (`seen`) o son desconocidas (`unknown`).
+    - ✅ **Percepción Pasiva:** Chequeo automático al entrar en una sala contra la CD de trampas y enemigos ocultos.
+    - ✅ **Peligros y Trampas:** Soporte para trampas mecánicas y emboscadas con lógica de activación y detección.
+    - ✅ **Visibilidad en Conexiones:** Diferenciación entre conexiones abiertas (ves lo que hay al otro lado) y restringidas (puertas cerradas).
+    - ✅ **Narrativa Contextual:** El Narrador adapta la descripción según el nivel de luz (`lightLevel`) y si es la primera visita o una revisita.
+  - **Archivos modificados:**
+    - `src/ai/flows/managers/exploration-manager.ts` (Nuevo gestor de lógica de exploración)
+    - `src/ai/flows/managers/narrative-turn-manager.ts` (Integración de exploración en el turno)
+    - `src/ai/flows/experts/exploration-expert.ts` (Prompt actualizado con contexto de exploración)
+    - `src/ai/flows/action-interpreter.ts` (Soporte para `connections` en el prompt)
+    - `src/lib/schemas.ts` (Nuevos esquemas para `Hazard`, `ExplorationState`, `Connection.visibility`)
+  - **Referencia:** [Plan Completado](../docs/planes-desarrollo/completados/sistema-exploracion-mazmorras.md)
+
+- **🗺️ Sistema de Movimiento y Conciencia Espacial (Fase 1) (2025-11-30):**
   - **Mejora:** Implementación de un sistema de navegación robusto que permite movimiento multi-salto, cálculo de tiempos y detección de bloqueos.
   - **Características:**
     - ✅ **Pathfinding BFS:** Calcula automáticamente la ruta más corta entre dos ubicaciones no adyacentes.
@@ -31,6 +94,20 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - `src/lib/adventure-loader/adventure-cache.ts` (Soporte para invalidación por hash)
     - `src/lib/schemas.ts` (Nuevos tipos para conexiones ricas)
   - **Referencia:** [Plan Completado](../docs/planes-desarrollo/completados/sistema-movimiento-conciencia-espacial.md)
+
+
+### Añadido
+- **Direcciones en Conexiones:** Nuevo campo `direction` en el esquema de conexiones. Soporta cardinales (norte, sur, este, oeste), intermedios (noreste, noroeste, sureste, suroeste) y relativos (arriba, abajo, dentro, fuera) para mejorar la orientación espacial en la narración.
+- **Regiones en Ubicaciones:** Nuevo campo `regionId` en el esquema de ubicaciones para agrupar lógicamente salas (ej: `excavacion-de-los-enanos`).
+- **Nuevas Ubicaciones:** Desglose detallado de la "Excavación de los Enanos" en 6 sub-ubicaciones (E1-E11) coincidiendo con el mapa oficial.
+- **Resolución de Entidades:** Nuevo campo `resolvedEntityId` en el esquema de `Location` y `Connection` para permitir que el Narrador se refiera a ubicaciones por nombres alternativos (ej: "Casa de Cambio" -> "Bazar de Phandalin").
+- **Estado Inicial de Exploración:** El `game-initializer.ts` ahora establece el estado de exploración inicial (`ExplorationState`) para la ubicación de inicio, marcándola como `visited` y sus conexiones como `seen`.
+
+### Corregido
+-   **Narración de Primera Visita:** Solucionado un bug en `NarrativeTurnManager` donde las ubicaciones se marcaban como "visitadas" antes de generar la narración. Además, se ha corregido la inicialización del juego (`game-initializer.ts`) para marcar la ubicación de inicio como visitada, evitando descripciones redundantes al regresar al hub inicial.
+-   **Filtrado de Narración Redundante:** Mejorada la lógica de `NarrativeTurnManager` para filtrar la conexión de origen y evitar describir la salida por la que se acaba de entrar.
+-   **Visibilidad de NPCs:** Ahora el `ExplorationExpert` recibe la información de las entidades presentes (`presentEntities`) y las describe visualmente en la escena, solucionando el problema de "NPCs invisibles" hasta que se interactuaba con ellos.
+-   **Estructura JSON:** Reescritura completa de `el-dragon-del-pico-agujahelada_short.json` con correcciones de direcciones (noreste, suroeste) y descripciones actualizadas.
 
 ## [0.5.9] - 2025-11-27
 
@@ -1432,22 +1509,6 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - **Reacciones DESPUÉS del DM** (`after_dm`): Los compañeros reaccionan a lo que acaba de ser narrado
       - Momento: Jugador → DM → Compañeros (opcional)
       - Probabilidad: ~50-60% (más común, reacción natural a eventos)
-      - Contexto: Acción del jugador + narración completa del DM
-      - Ejemplo: DM: "veis un dragón enorme" → Merryl: "¡Por todos los dioses! ¡Es enorme!"
-    - **Control de verbosidad:** Los compañeros pueden permanecer en silencio (devolver `action: ""`), implementado mediante prompt engineering
-  - **Archivos modificados:**
-    - `src/ai/tools/companion-expert.ts`: Añadido campo `reactionTiming` al schema y actualizado prompt con instrucciones específicas para cada momento
-    - `src/ai/flows/game-coordinator.ts`: Implementado flujo de reacciones en dos momentos (líneas 166-205 y 236-271)
-  - **Beneficios:**
-    - Interacciones más naturales y realistas
-    - Los compañeros se sienten como otros jugadores en la mesa
-    - Permite interrupciones y diálogo antes de la narración
-    - Evita saturación mediante control de probabilidad
-- **Issue #16 - Gestión de nombres de múltiples monstruos:** Documentado nuevo issue sobre la necesidad de crear un módulo separado para gestionar y unificar nombres de múltiples monstruos del mismo tipo, reutilizable en narraciones del DM, combat manager y narraciones de compañeros.
-- **Issue #21 - Código duplicado en `combat-manager.ts` (Deuda Técnica):** Documentado que el procesamiento de dice rolls para AI combatants está duplicado en dos lugares (~260 líneas cada uno): turnos normales (líneas 1241-1500) e iniciación de combate (líneas 2081-2340). Esta duplicación dificulta mantenimiento y causó que el fix del Issue #20 tuviera que aplicarse dos veces. Propuesta: extraer función `processAICombatantRolls` como parte del refactoring mayor de `combat-manager.ts`. Prioridad media, estimación 4-6 horas.
-- **Issue #22 - Sistema completo de Saving Throws (Feature Incompleta):** Documentado que los saving throw spells funcionan pero de forma simplificada. El daño se aplica automáticamente sin simular la tirada de salvación del objetivo (1d20+bonus vs Spell Save DC) ni aplicar la regla de mitad de daño si el target acierta. Sistema actual funcional pero no 100% fiel a D&D 5e. Prioridad media, implementar después del refactoring de `combat-manager.ts`. Estimación: 9-12 horas.
-- **Análisis del Sistema de HP:** Creado análisis completo del sistema de gestión de HP y fichas de personajes/enemigos identificando problemas críticos que bloquean el funcionamiento del sistema de combate.
-  - Documento: `docs/planes-desarrollo/planes-en-curso/combate-turnos-analisis-hp.md`
   - Identifica 5 problemas principales: sincronización frontend-backend, inicialización de HP, validación, estandarización de estructura, y sistema centralizado
 
 ### Changed
