@@ -127,7 +127,8 @@ export class CombatInitializer {
                 interpretedAction,
                 narrativeExpert,
                 markdownToHtml,
-                localLog
+                localLog,
+                surpriseSide
             );
 
             messages.push(...narrationMessages);

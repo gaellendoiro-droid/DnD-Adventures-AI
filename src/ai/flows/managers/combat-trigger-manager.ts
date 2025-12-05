@@ -22,7 +22,8 @@ export interface InteractionTriggerInput {
         newAttitude?: string;
         action?: string;
     };
-    locationHazards?: any[]; // HazardSchema[]
+    locationHazards?: any[]; // HazardSchema[] - deprecated for mimic detection
+    locationEntities?: any[]; // Entities in the location (for mimic detection)
 }
 
 export interface PlayerActionTriggerInput {
@@ -54,25 +55,6 @@ export class CombatTriggerManager {
     static evaluateExploration(input: ExplorationTriggerInput): CombatTriggerResult {
         const { location, detectedHazards, visibleEntities, stealthCheckResult } = input;
 
-        // 1. Check for Ambushes (Hazards of type 'ambush' NOT detected)
-        if (location.hazards) {
-            const ambushes = location.hazards.filter(h => h.type === 'ambush' && h.active);
-
-            for (const ambush of ambushes) {
-                // If ambush is NOT in detectedHazards, it triggers!
-                if (!detectedHazards.includes(ambush.id)) {
-                    return {
-                        shouldStartCombat: true,
-                        reason: 'ambush',
-                        surpriseSide: 'enemy', // Enemy surprises player
-                        message: ambush.triggerDescription || "¡Emboscada! Enemigos surgen de las sombras."
-                    };
-                }
-            }
-        }
-
-        // 2. Check for Proximity (Visible Hostile Enemies)
-        // Logic: If there are enemies and we are NOT stealthy (or failed stealth), combat starts.
         // FIX: Ignore hidden enemies (like Mimics) until triggered
         const hostileEntities = visibleEntities.filter(e => 
             (e.type === 'enemy' || e.disposition === 'hostile') &&
@@ -80,6 +62,9 @@ export class CombatTriggerManager {
             e.status !== 'hidden'
         );
 
+        // 1. Check for Proximity (Visible Hostile Enemies)
+        // IMPORTANT: If enemies are visible, there's NO surprise, even if there's an ambush hazard.
+        // Ambushes only work if enemies are hidden/not visible.
         if (hostileEntities.length > 0) {
             // If player tried stealth and failed
             if (stealthCheckResult && !stealthCheckResult.success) {
@@ -96,9 +81,29 @@ export class CombatTriggerManager {
                 return {
                     shouldStartCombat: true,
                     reason: 'proximity',
-                    surpriseSide: undefined, // Normal combat
+                    surpriseSide: undefined, // Normal combat - enemies are visible, no surprise
                     message: "Enemigos visibles en la zona. ¡A las armas!"
                 };
+            }
+        }
+
+        // 2. Check for Ambushes (Hazards of type 'ambush' NOT detected)
+        // IMPORTANT: Ambushes only trigger if enemies are NOT visible (hidden).
+        // If enemies are visible, we already handled it above with 'proximity' (no surprise).
+        if (location.hazards) {
+            const ambushes = location.hazards.filter(h => h.type === 'ambush' && h.active);
+
+            for (const ambush of ambushes) {
+                // If ambush is NOT in detectedHazards, it triggers!
+                // But only if there are NO visible enemies (enemies are hidden)
+                if (!detectedHazards.includes(ambush.id) && hostileEntities.length === 0) {
+                    return {
+                        shouldStartCombat: true,
+                        reason: 'ambush',
+                        surpriseSide: 'enemy', // Enemy surprises player
+                        message: ambush.triggerDescription || "¡Emboscada! Enemigos surgen de las sombras."
+                    };
+                }
             }
         }
 
@@ -109,35 +114,45 @@ export class CombatTriggerManager {
      * Evaluates interaction results (talking to NPCs, touching objects)
      */
     static evaluateInteraction(input: InteractionTriggerInput): CombatTriggerResult {
-        const { interactionResult, targetId, locationHazards } = input;
+        const { interactionResult, targetId, locationEntities } = input;
 
-        // 1. Check for Mimics (Object interaction)
-        if (targetId && locationHazards) {
-            // First, try direct ID match
-            let mimic = locationHazards.find(h => h.id === targetId && h.type === 'mimic' && h.active);
+        // 1. Check for Mimics (Hidden entities that reveal when interacted with)
+        if (targetId && locationEntities) {
+            // A mimic is an entity with:
+            // - disposition: 'hidden' (disguised as object)
+            // - type: 'enemy' 
+            // - name/id containing 'mimic' OR baseType containing 'mimic'
+            const targetLower = targetId.toLowerCase();
             
-            // If not found, try to match by name (ActionInterpreter might return object name instead of ID)
-            if (!mimic) {
-                // Check if targetId matches any hazard's description or if it's a partial match
-                const targetLower = targetId.toLowerCase();
-                mimic = locationHazards.find(h => {
-                    if (h.type !== 'mimic' || !h.active) return false;
-                    // Check if targetId contains hazard ID or vice versa
-                    const hazardIdLower = h.id.toLowerCase();
-                    return targetLower.includes(hazardIdLower) || 
-                           hazardIdLower.includes(targetLower) ||
-                           // Also check if targetId matches common chest/object keywords
-                           (targetLower.includes('cofre') && hazardIdLower.includes('cofre')) ||
-                           (targetLower.includes('chest') && hazardIdLower.includes('chest'));
-                });
-            }
+            const mimic = locationEntities.find(entity => {
+                // Must be a hidden enemy
+                if (entity.disposition !== 'hidden') return false;
+                if (entity.type !== 'enemy') return false;
+                
+                // Check if it's a mimic by name, id, or baseType
+                const isMimic = 
+                    entity.name?.toLowerCase().includes('mímico') ||
+                    entity.name?.toLowerCase().includes('mimic') ||
+                    entity.id?.toLowerCase().includes('mimic') ||
+                    entity.baseType?.toLowerCase().includes('mimic');
+                
+                if (!isMimic) return false;
+                
+                // Check if target matches this entity's id
+                const entityIdLower = entity.id?.toLowerCase() || '';
+                return targetLower.includes(entityIdLower) || 
+                       entityIdLower.includes(targetLower) ||
+                       // Also check if targetId matches common chest/object keywords
+                       (targetLower.includes('cofre') && entityIdLower.includes('cofre')) ||
+                       (targetLower.includes('chest') && entityIdLower.includes('chest'));
+            });
             
             if (mimic) {
                 return {
                     shouldStartCombat: true,
                     reason: 'mimic',
                     surpriseSide: 'enemy', // Mimic surprises player
-                    message: mimic.triggerDescription || "¡El objeto cobra vida! ¡Es un mímico!",
+                    message: mimic.triggerDescription || mimic.description || "¡El objeto cobra vida! ¡Es un mímico!",
                     triggeringEntityId: mimic.id
                 };
             }

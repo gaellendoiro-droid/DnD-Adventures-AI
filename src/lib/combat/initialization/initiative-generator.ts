@@ -8,6 +8,7 @@ import {
     generateDifferentiatedNames,
 } from '@/lib/combat/monster-name-manager';
 import type { EnemyWithStats } from './types';
+import { SurpriseManager } from '@/lib/combat/surprise-manager';
 
 export class InitiativeGenerator {
     /**
@@ -81,7 +82,7 @@ export class InitiativeGenerator {
 
     /**
      * Creates the final initiative order array with visual names.
-     * Marks combatants as surprised based on surpriseSide.
+     * Marks combatants as surprised based on surpriseSide using SurpriseManager.
      */
     static createInitiativeOrder(
         initiativeRolls: any[],
@@ -89,9 +90,10 @@ export class InitiativeGenerator {
         localLog: (msg: string) => void,
         surpriseSide?: 'player' | 'enemy'
     ): Combatant[] {
-        return initiativeRolls.map(r => {
-            // Check if this is an enemy (has uniqueId pattern)
-            const isEnemy = /^[^-]+-\d+$/.test(r.id);
+        // First, create all combatants
+        const combatants = initiativeRolls.map(r => {
+            // Check if this is an enemy by type (enemies have type: 'enemy', players/companions have type: 'ally')
+            const isEnemy = r.type === 'enemy';
             let displayName = r.name;
 
             if (isEnemy) {
@@ -105,29 +107,32 @@ export class InitiativeGenerator {
                 }
             }
 
-            // Determine if this combatant is surprised
-            let isSurprised = false;
-            if (surpriseSide === 'player') {
-                // Player surprises enemies - enemies are surprised
-                isSurprised = isEnemy;
-            } else if (surpriseSide === 'enemy') {
-                // Enemy surprises players - players are surprised
-                isSurprised = !isEnemy;
-            }
-            
-            // Log surprise status for debugging
-            if (isSurprised) {
-                localLog(`Marking ${displayName} (id=${r.id}, isEnemy=${isEnemy}) as SURPRISED (surpriseSide=${surpriseSide})`);
-            }
-
-            return {
+            // Create combatant
+            const combatant: Combatant = {
                 id: r.id,
                 characterName: displayName,
                 total: r.total,
                 type: r.type as any,
                 controlledBy: r.controlledBy as any,
-                isSurprised: isSurprised || undefined // Only set if true
             };
+
+            return combatant;
         });
+
+        // Then, mark combatants as surprised using SurpriseManager
+        if (surpriseSide) {
+            const markedCombatants = SurpriseManager.markCombatantsSurprised(combatants, surpriseSide);
+            
+            // Log surprise status for debugging
+            markedCombatants.forEach(c => {
+                if (c.isSurprised) {
+                    localLog(`Marking ${c.characterName} (id=${c.id}) as SURPRISED (surpriseSide=${surpriseSide})`);
+                }
+            });
+            
+            return markedCombatants;
+        }
+
+        return combatants;
     }
 }

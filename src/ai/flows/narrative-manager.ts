@@ -119,9 +119,15 @@ const combatInitiationPrompt = ai.definePrompt({
    - You can group enemies of the same type naturally: "dos goblins" instead of "Goblin 1 y Goblin 2"
    - You can be descriptive and immersive: "dos goblins pequeños" or "un enorme orco"
    - Use the EXACT base type from the names (if you see "Goblin", use "goblin" in Spanish, NOT "gnomo")
-4. **Initiative:** Mention who acts first based on the initiative order.
-5. **NO attacks/damage:** Combat hasn't started yet (no actions taken).
-6. **Use Combat Context:** \`\`\`{{{combatContext}}}\`\`\`
+4. **SURPRISE RULES (CRITICAL):**
+   - Check the combatContext.surpriseSide field:
+     * If surpriseSide is null or undefined: NO SURPRISE - This is a normal combat encounter. Both sides are aware of each other. DO NOT describe ambushes, surprise attacks, or unexpected encounters. Describe it as a normal confrontation where both sides are ready.
+     * If surpriseSide is "enemy": ENEMIES SURPRISE PLAYERS - The enemies have ambushed/surprised the players. Describe the surprise/ambush naturally (e.g., "saltan de las sombras", "os emboscan", "os toman por sorpresa").
+     * If surpriseSide is "player": PLAYERS SURPRISE ENEMIES - The players have surprised the enemies. Describe how the players catch the enemies off guard.
+   - IMPORTANT: Only mention surprise/ambush if surpriseSide is NOT null/undefined. If there's no surprise, describe a normal combat encounter where both sides are aware and ready.
+5. **Initiative:** Mention who acts first based on the initiative order.
+6. **NO attacks/damage:** Combat hasn't started yet (no actions taken).
+7. **Use Combat Context:** \`\`\`{{{combatContext}}}\`\`\`
 
 **CRITICAL - ENEMY TYPES:**
 - Use the EXACT base type in Spanish (Goblin → goblin, Orc → orco, NOT "gnomo" or invented names)

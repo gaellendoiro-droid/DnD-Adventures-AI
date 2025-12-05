@@ -23,6 +23,7 @@ import { combatManagerTool } from '../tools/combat-manager';
 import { combatInitiationExpertTool } from '../tools/combat-initiation-expert';
 import { CombatTriggerManager } from './managers/combat-trigger-manager';
 import { log } from '@/lib/logger';
+import { EnemyStateManager } from '@/lib/game/enemy-state-manager';
 
 
 
@@ -37,7 +38,11 @@ export const gameCoordinatorFlow = ai.defineFlow(
         let { locationId } = input;
 
         // Get enemies for current location from enemiesByLocation, fallback to enemies for backward compatibility
-        let currentLocationEnemies = input.enemiesByLocation?.[locationId] || input.enemies || [];
+        let currentLocationEnemies = EnemyStateManager.getEnemiesForLocation(
+            locationId,
+            input.enemiesByLocation,
+            input.enemies
+        );
 
         const debugLogs: string[] = [];
         const localLog = (message: string) => {
@@ -375,7 +380,10 @@ export const gameCoordinatorFlow = ai.defineFlow(
             }
             
             // Get enemies ONLY for the combat location (not fallback to all enemies)
-            let combatEnemies = input.enemiesByLocation?.[combatLocationId] || [];
+            let combatEnemies = EnemyStateManager.getEnemiesForLocation(
+                combatLocationId,
+                input.enemiesByLocation
+            );
 
             // Fallback: Load from adventureData if not in state
             if (combatEnemies.length === 0 && combatLocationData.entitiesPresent) {
@@ -386,16 +394,9 @@ export const gameCoordinatorFlow = ai.defineFlow(
             }
 
             // Normalize entities loaded from JSON (convert stats.hp to hp: {current, max})
-            combatEnemies = combatEnemies.map((entity: any) => {
-                if (entity.stats?.hp && !entity.hp) {
-                    return {
-                        ...entity,
-                        hp: { current: entity.stats.hp, max: entity.stats.hp },
-                        ac: entity.stats.ac
-                    };
-                }
-                return entity;
-            });
+            combatEnemies = combatEnemies.map((entity: any) => 
+                EnemyStateManager.normalizeEnemyStats(entity)
+            );
             
             localLog(`Dynamic Combat: Found ${combatEnemies.length} enemies for location ${combatLocationId}`);
             
@@ -408,9 +409,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 if (trigger.triggeringEntityId) {
                     const triggeringEnemy = combatEnemies.find((e: any) => e.id === trigger.triggeringEntityId);
                     if (triggeringEnemy) {
-                        // Reveal the hidden enemy
-                        // Create a copy to modify
-                        const revealedEnemy = { ...triggeringEnemy, disposition: 'hostile', status: 'active' };
+                        // Reveal the hidden enemy using EnemyStateManager
+                        const revealedEnemy = EnemyStateManager.revealHiddenEnemy(triggeringEnemy);
                         filteredCombatEnemies.push(revealedEnemy);
                         localLog(`Dynamic Combat: Revealed hidden enemy ${revealedEnemy.name} (${revealedEnemy.id})`);
                     } else {
@@ -419,14 +419,12 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 }
 
                 // Add other visible/hostile enemies
-                const otherEnemies = combatEnemies.filter((e: any) => {
-                    // Skip if it's the triggering entity (already added)
-                    if (trigger.triggeringEntityId && e.id === trigger.triggeringEntityId) return false;
-                    
-                    // Filter hidden enemies
-                    const isHidden = e.disposition === 'hidden' || e.status === 'hidden';
-                    return !isHidden;
-                });
+                const otherEnemies = EnemyStateManager.filterVisibleEnemies(
+                    combatEnemies.filter((e: any) => {
+                        // Skip if it's the triggering entity (already added)
+                        return !trigger.triggeringEntityId || e.id !== trigger.triggeringEntityId;
+                    })
+                );
                 
                 filteredCombatEnemies = [...filteredCombatEnemies, ...otherEnemies];
                 localLog(`Dynamic Combat: Included ${otherEnemies.length} other visible enemies.`);

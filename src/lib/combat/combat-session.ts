@@ -19,6 +19,7 @@ import type { CombatInitContext } from '@/lib/combat/initialization/types';
 import { TurnProcessor } from '@/lib/combat/turn-processor';
 import { resolveEnemyId } from '@/lib/combat/target-resolver';
 import { getVisualName, replaceOrdinalReferences, escapeRegex } from '@/lib/combat/monster-name-manager';
+import { SurpriseManager } from '@/lib/combat/surprise-manager';
 
 // Re-export types for convenience
 export type CombatManagerInput = z.infer<typeof CombatManagerInputSchema>;
@@ -847,7 +848,7 @@ export class CombatSession {
     }
 
     // Check if turn was skipped due to surprise
-    const isSurprised = activeCombatant.isSurprised === true;
+    const isSurprised = SurpriseManager.isSurprised(activeCombatant);
     const isDeadOrUnconscious = playerData.isDead === true || (playerData.hp && playerData.hp.current <= 0);
 
     if (isSurprised && !isDeadOrUnconscious) {
@@ -861,13 +862,12 @@ export class CombatSession {
         content: `${activeCombatant.characterName} está sorprendido y pierde su turno.`
       });
 
-      // Clear surprise flag after first turn
+      // Clear surprise flag after first turn using SurpriseManager
       const combatantIndex = this.initiativeOrder.findIndex(c => c.id === activeCombatant.id);
       if (combatantIndex !== -1) {
-        this.initiativeOrder[combatantIndex] = {
-          ...this.initiativeOrder[combatantIndex],
-          isSurprised: false
-        };
+        this.initiativeOrder[combatantIndex] = SurpriseManager.clearSurpriseFlag(
+          this.initiativeOrder[combatantIndex]
+        );
         this.log('debug', 'Cleared surprise flag for player', {
           player: activeCombatant.characterName,
           combatantIndex,
@@ -971,7 +971,7 @@ export class CombatSession {
     }
 
     // Check if turn was skipped due to surprise
-    const isSurprised = activeCombatant.isSurprised === true;
+    const isSurprised = SurpriseManager.isSurprised(activeCombatant);
     const isDeadOrUnconscious = isUnconsciousOrDead(activeCombatantData);
 
     if (isSurprised && !isDeadOrUnconscious) {
@@ -985,13 +985,12 @@ export class CombatSession {
         content: `${activeCombatant.characterName} está sorprendido y pierde su turno.`
       });
 
-      // Clear surprise flag after first turn
+      // Clear surprise flag after first turn using SurpriseManager
       const combatantIndex = this.initiativeOrder.findIndex(c => c.id === activeCombatant.id);
       if (combatantIndex !== -1) {
-        this.initiativeOrder[combatantIndex] = {
-          ...this.initiativeOrder[combatantIndex],
-          isSurprised: false
-        };
+        this.initiativeOrder[combatantIndex] = SurpriseManager.clearSurpriseFlag(
+          this.initiativeOrder[combatantIndex]
+        );
       }
 
       // Advance turn after surprise skip

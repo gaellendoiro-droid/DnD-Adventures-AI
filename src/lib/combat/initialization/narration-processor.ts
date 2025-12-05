@@ -27,7 +27,8 @@ export class NarrationProcessor {
         interpretedAction: any,
         narrativeExpert: (input: any) => Promise<any>,
         markdownToHtml: (input: { markdown: string }) => Promise<{ html: string }>,
-        localLog: (msg: string) => void
+        localLog: (msg: string) => void,
+        surpriseSide?: 'player' | 'enemy'
     ): Promise<Array<{ sender: string; content: string; originalContent?: string }>> {
         const messages: Array<{ sender: string; content: string; originalContent?: string }> = [];
         const debugLogs: string[] = [];
@@ -49,7 +50,8 @@ export class NarrationProcessor {
                 position: idx + 1,
                 name: c.characterName,
                 controlledBy: c.controlledBy,
-                type: c.type
+                type: c.type,
+                isSurprised: c.isSurprised || false
             })),
             allies: updatedParty.map(p => ({
                 name: p.name,
@@ -63,7 +65,9 @@ export class NarrationProcessor {
                     hp: `${e.hp.current}/${e.hp.max}`,
                     controlledBy: 'AI'
                 };
-            })
+            }),
+            surpriseSide: surpriseSide || null, // null = no surprise, 'player' = players surprise enemies, 'enemy' = enemies surprise players
+            hasSurprise: surpriseSide !== undefined && surpriseSide !== null
         };
 
         const narrativeResult = await narrativeExpert({

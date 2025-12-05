@@ -94,16 +94,6 @@
             "title": "Sala del Tesoro",
             "description": "Una pequeña cámara con un cofre de madera en el centro. El cofre parece antiguo pero en buen estado.",
             "type": "room",
-            "hazards": [
-                {
-                    "id": "cofre-mimico",
-                    "type": "mimic",
-                    "active": true,
-                    "detectionDC": 20,
-                    "description": "El cofre parece normal, pero algo te dice que no deberías tocarlo.",
-                    "triggerDescription": "¡Cuando tocas la tapa del cofre, la madera se vuelve pegajosa y una boca llena de dientes afilados se abre para morderte! ¡Es un mímico!"
-                }
-            ],
             "entitiesPresent": [
                 "cofre-mimico"
             ],
@@ -137,6 +127,16 @@
             "title": "Sala del Guardián",
             "description": "Una pequeña habitación con un goblin visible que patrulla cerca de la puerta cerrada. El goblin te mira con desconfianza.",
             "type": "room",
+            "hazards": [
+                {
+                    "id": "emboscada-guardian",
+                    "type": "ambush",
+                    "active": true,
+                    "detectionDC": 15,
+                    "description": "Algo te dice que hay peligro al entrar en esta sala.",
+                    "triggerDescription": "¡De repente, un goblin guardián salta desde las sombras para emboscarte!"
+                }
+            ],
             "entitiesPresent": [
                 "goblin-3"
             ],
@@ -215,6 +215,7 @@
             "type": "enemy",
             "disposition": "hidden",
             "description": "Un mímico disfrazado de cofre. Sus dientes afilados brillan con hambre.",
+            "triggerDescription": "¡Cuando tocas la tapa del cofre, la madera se vuelve pegajosa y una boca llena de dientes afilados se abre para morderte! ¡Es un mímico!",
             "stats": {
                 "hp": 58,
                 "ac": 12

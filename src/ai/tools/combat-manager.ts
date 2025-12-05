@@ -16,6 +16,7 @@ import { updateRollNotationWithModifiers } from '@/lib/combat/roll-notation-util
 // Note: processAICombatantRolls is deprecated - TurnProcessor now uses CombatActionExecutor
 import { combatNarrationExpertTool } from './combat/combat-narration-expert';
 import { CombatSession } from '@/lib/combat/combat-session';
+import { EnemyStateManager } from '@/lib/game/enemy-state-manager';
 
 /**
  * Dependencies interface for Dependency Injection in combatManagerTool.
@@ -95,7 +96,11 @@ export async function executeCombatManager(
     const { playerAction, inCombat, locationId, interpretedAction, locationContext, conversationHistory, combatantIds, surpriseSide } = input;
 
     // Get enemies for current location from enemiesByLocation, fallback to enemies for backward compatibility
-    const currentLocationEnemies = input.enemiesByLocation?.[locationId] || input.enemies || [];
+    const currentLocationEnemies = EnemyStateManager.getEnemiesForLocation(
+        locationId,
+        input.enemiesByLocation,
+        input.enemies
+    );
 
     // Create or hydrate CombatSession from input
     const session = CombatSession.fromInput({

@@ -757,7 +757,90 @@ export interface TacticalMovementResult {
 
 ---
 
-## 9. Notas de Implementación
+## 9. Mejoras Arquitecturales Futuras
+
+### 9.1 Manejo de Estado en el Servidor (GameSessionService)
+
+**Problema Actual:**
+
+El estado del juego (incluyendo `openDoors`, `enemiesByLocation`, `explorationState`, etc.) se mantiene principalmente en el cliente y se pasa de ida y vuelta en cada petición. Esto tiene varias desventajas:
+
+1. **Duplicación de estado**: El estado se replica entre cliente y servidor
+2. **Sincronización frágil**: Si hay errores de red, el estado puede desincronizarse
+3. **Complejidad de propagación**: Hay que recordar pasar todos los estados en cada petición
+4. **Escalabilidad limitada**: No permite múltiples clientes o sesiones compartidas
+
+**Solución Propuesta:**
+
+Crear un `GameSessionService` en el servidor que mantenga el estado de la sesión de juego de forma centralizada:
+
+```typescript
+// src/lib/game/game-session-service.ts
+
+export interface GameSession {
+    sessionId: string;
+    party: Character[];
+    locationId: string;
+    inCombat: boolean;
+    openDoors: Record<string, boolean>; // "locationId:direction" -> isOpen
+    enemiesByLocation: Record<string, Enemy[]>;
+    explorationState: ExplorationState;
+    worldTime: WorldTime;
+    // ... otros estados
+}
+
+export class GameSessionService {
+    /**
+     * Obtiene o crea una sesión de juego
+     */
+    static getSession(sessionId: string): GameSession;
+    
+    /**
+     * Actualiza el estado de una puerta
+     */
+    static openDoor(sessionId: string, locationId: string, direction: string): void;
+    
+    /**
+     * Actualiza enemigos en una ubicación
+     */
+    static updateEnemies(sessionId: string, locationId: string, enemies: Enemy[]): void;
+    
+    /**
+     * Persiste el estado de la sesión
+     */
+    static saveSession(sessionId: string): Promise<void>;
+    
+    /**
+     * Carga el estado de la sesión
+     */
+    static loadSession(sessionId: string): Promise<GameSession | null>;
+}
+```
+
+**Beneficios:**
+
+- ✅ **Fuente única de verdad**: El servidor es la autoridad del estado
+- ✅ **Sincronización garantizada**: El cliente solo envía comandos, no estado
+- ✅ **Persistencia natural**: El estado puede guardarse automáticamente
+- ✅ **Escalabilidad**: Permite múltiples clientes, sesiones compartidas, etc.
+- ✅ **Simplificación del cliente**: El cliente solo necesita enviar acciones, no mantener estado complejo
+
+**Implementación Requerida:**
+
+1. **Sistema de sesiones**: Redis, base de datos, o memoria del servidor (con WebSockets para tiempo real)
+2. **API de comandos**: Cambiar de "enviar estado completo" a "enviar comandos" (`openDoor`, `move`, `attack`, etc.)
+3. **Migración gradual**: Mantener compatibilidad con el sistema actual durante la transición
+
+**Cuándo Implementar:**
+
+- **Fase 5** (futura): Después de completar las fases 1-4 de esta refactorización
+- **Prioridad**: Media-Alta (mejora significativa de arquitectura, pero no bloquea funcionalidad actual)
+
+**Nota:** Esta mejora es independiente de la refactorización actual. El sistema actual funciona correctamente, pero esta mejora haría el código más robusto y escalable.
+
+---
+
+## 10. Notas de Implementación
 
 ### Principios a Seguir
 1. **No cambiar comportamiento** - Esta es una refactorización pura
@@ -774,7 +857,7 @@ export interface TacticalMovementResult {
 
 ---
 
-## 10. Resumen de Tests Automáticos
+## 11. Resumen de Tests Automáticos
 
 ### Tests Nuevos a Crear (6 archivos)
 
@@ -815,7 +898,7 @@ npm run test && npm run build
 
 ---
 
-## 11. Próximos Pasos
+## 12. Próximos Pasos
 
 1. [ ] Revisar y aprobar este plan
 2. [ ] Crear rama `refactor/combat-modularity`
@@ -828,5 +911,5 @@ npm run test && npm run build
 
 ---
 
-**Última actualización:** 2025-12-03
+**Última actualización:** 2025-12-04
 

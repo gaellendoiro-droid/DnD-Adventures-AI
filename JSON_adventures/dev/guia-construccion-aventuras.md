@@ -673,13 +673,17 @@ Las entidades representan NPCs, monstruos y otras criaturas presentes en la aven
 ```
 
 #### Mímico (Hidden)
+
+Los mímicos son entidades con `disposition: "hidden"` que se revelan cuando el jugador interactúa con el objeto que imitan. **NO son hazards** - el sistema los detecta automáticamente al interactuar.
+
 ```json
 {
   "id": "cofre-mimico",
   "name": "Mímico",
-  "type": "monster",
+  "type": "enemy",
   "disposition": "hidden",
   "description": "Un mímico disfrazado de cofre. Sus dientes afilados brillan con hambre.",
+  "triggerDescription": "¡Cuando tocas el cofre, la madera se vuelve pegajosa y una boca llena de dientes se abre! ¡Es un mímico!",
   "baseType": "mimic",
   "stats": {
     "hp": 58,
@@ -1017,13 +1021,18 @@ Los eventos permiten crear lógica simple de scripting para automatizar acciones
 ```
 
 #### Generar Enemigos al Abrir Cofre
+
+> **NOTA:** Para mímicos, NO se necesita evento. El sistema detecta automáticamente 
+> entidades con `disposition: "hidden"` y nombre/id conteniendo "mimic" cuando 
+> se interactúa con ellas. Ver sección "Mímico (Hidden)" en Entidades.
+
 ```json
 {
-  "id": "event-mimic-spawn",
+  "id": "event-spawn-guards",
   "trigger": "interact",
-  "interactableId": "cofre-mimico",
+  "interactableId": "cofre-alarma",
   "action": "spawn_enemies",
-  "target": ["cofre-mimico"]
+  "target": ["guardia-1", "guardia-2"]
 }
 ```
 
@@ -1257,19 +1266,12 @@ Los peligros representan trampas, emboscadas y peligros ambientales en las ubica
   "interactables": [{
     "id": "cofre-mimico",
     "name": "Cofre de Madera",
-    ...
+    "description": "Un cofre de madera antiguo...",
+    "interactions": [{ "action": "Abrir cofre" }]
   }],
-  "hazards": [{
-    "type": "mimic",  // Nota: puede requerir soporte especial
-    ...
-  }],
-  "entitiesPresent": ["cofre-mimico"],  // Entidad con disposition: "hidden"
-  "events": [{
-    "trigger": "interact",
-    "interactableId": "cofre-mimico",
-    "action": "spawn_enemies",
-    "target": ["cofre-mimico"]
-  }]
+  // NOTA: Los mímicos NO son hazards, son entidades con disposition: "hidden"
+  // El sistema detecta automáticamente cuando se interactúa con un mímico
+  "entitiesPresent": ["cofre-mimico"]  // Entidad mimic con disposition: "hidden"
 }
 ```
 

@@ -24,6 +24,7 @@ import { NavigationManager } from './navigation-manager';
 import { GameState } from '@/ai/flows/schemas';
 import { ExplorationManager } from './exploration-manager';
 import { CombatTriggerManager, CombatTriggerResult } from './combat-trigger-manager';
+import { EnemyStateManager } from '@/lib/game/enemy-state-manager';
 
 /**
  * Input para procesar un turno narrativo
@@ -94,7 +95,11 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
     let locationId = currentLocationId;
     let newLocationId: string | null = null;
     let finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
-    let currentLocationEnemies = enemiesByLocation?.[locationId] || enemies || [];
+    let currentLocationEnemies = EnemyStateManager.getEnemiesForLocation(
+        locationId,
+        enemiesByLocation,
+        enemies
+    );
     let updatedWorldTime = undefined;
     let systemFeedback: string | undefined = undefined;
     let movementNarration: string | undefined = undefined; // Store movement narration to add after companion reactions
@@ -145,7 +150,11 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
                 throw new Error(`Could not find data for location: ${locationId}.`);
             }
             // Update currentLocationEnemies for the new location
-            currentLocationEnemies = enemiesByLocation?.[locationId] || enemies || [];
+            currentLocationEnemies = EnemyStateManager.getEnemiesForLocation(
+                locationId,
+                enemiesByLocation,
+                enemies
+            );
         } else {
             // Movement failed
             localLog(`Movement failed: ${movementResult.error}`);
@@ -201,6 +210,22 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
     // Filter out dead enemies from entitiesPresent before passing to narrative expert
     const filteredLocationData = { ...finalLocationData };
     const deadEntities: string[] = []; // Track defeated enemies for context
+
+    // Update connections to reflect open doors state
+    if (filteredLocationData.connections && input.openDoors) {
+        filteredLocationData.connections = filteredLocationData.connections.map((conn: any) => {
+            const doorKey = `${locationId}:${conn.direction}`;
+            const isOpen = input.openDoors[doorKey] === true;
+            
+            if (isOpen) {
+                return {
+                    ...conn,
+                    isOpen: true
+                };
+            }
+            return conn;
+        });
+    }
 
     if (filteredLocationData.entitiesPresent && currentLocationEnemies.length > 0) {
         filteredLocationData.entitiesPresent = filteredLocationData.entitiesPresent.filter((entityId: string) => {
@@ -284,10 +309,15 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         ? currentLocationId // The location we started the turn at
         : null;
 
-    if (finalLocationData.connections) {
+    if (filteredLocationData.connections) {
         const knownLocs = currentGameState.exploration?.knownLocations || {};
-        for (const conn of finalLocationData.connections) {
-            if (conn.visibility === 'open') {
+        for (const conn of filteredLocationData.connections) {
+            // Check if connection is visible/open (either visibility === 'open' OR door is open)
+            const doorKey = `${locationId}:${conn.direction}`;
+            const isDoorOpen = input.openDoors?.[doorKey] === true;
+            const isVisible = conn.visibility === 'open' || isDoorOpen || conn.isOpen === true;
+            
+            if (isVisible) {
                 // Skip the connection we just came from to focus narration on new paths
                 if (cameFromLocationId && conn.targetId === cameFromLocationId) {
                     continue;
@@ -378,10 +408,29 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
                            (connTarget && doorId.includes(connTarget));
                 });
                 
+                let openedDoorKey: string | null = null;
+                
                 if (matchingConnection && matchingConnection.direction) {
                     const doorKey = `${currentLocationId}:${matchingConnection.direction}`;
                     updatedOpenDoors[doorKey] = true;
+                    openedDoorKey = doorKey;
                     localLog(`Door opened: ${doorKey}`);
+                    
+                    // Update the connection in filteredLocationData to reflect that the door is now open
+                    if (filteredLocationData.connections) {
+                        const connectionIndex = filteredLocationData.connections.findIndex((conn: any) => 
+                            conn.direction === matchingConnection.direction && conn.targetId === matchingConnection.targetId
+                        );
+                        if (connectionIndex !== -1) {
+                            filteredLocationData.connections[connectionIndex] = {
+                                ...filteredLocationData.connections[connectionIndex],
+                                isOpen: true
+                            };
+                        }
+                    }
+                    
+                    // Set systemFeedback to indicate successful door opening
+                    systemFeedback = `Door opened successfully: ${matchingConnection.direction}`;
                 } else {
                     // Try to match by checking if interactable name/ID contains direction
                     const directions = ['norte', 'sur', 'este', 'oeste', 'noreste', 'noroeste', 'sureste', 'suroeste', 'arriba', 'abajo'];
@@ -389,7 +438,24 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
                         if (doorId.includes(dir)) {
                             const doorKey = `${currentLocationId}:${dir}`;
                             updatedOpenDoors[doorKey] = true;
+                            openedDoorKey = doorKey;
                             localLog(`Door opened (by direction match): ${doorKey}`);
+                            
+                            // Update the connection in filteredLocationData
+                            if (filteredLocationData.connections) {
+                                const connectionIndex = filteredLocationData.connections.findIndex((conn: any) => 
+                                    conn.direction?.toLowerCase() === dir
+                                );
+                                if (connectionIndex !== -1) {
+                                    filteredLocationData.connections[connectionIndex] = {
+                                        ...filteredLocationData.connections[connectionIndex],
+                                        isOpen: true
+                                    };
+                                }
+                            }
+                            
+                            // Set systemFeedback to indicate successful door opening
+                            systemFeedback = `Door opened successfully: ${dir}`;
                             break;
                         }
                     }
@@ -399,7 +465,8 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         
         const interactionTrigger = CombatTriggerManager.evaluateInteraction({
             targetId: actualTargetId,
-            locationHazards: finalLocationData.hazards
+            locationHazards: finalLocationData.hazards,
+            locationEntities: resolvedEntities
         });
 
         if (interactionTrigger.shouldStartCombat) {
