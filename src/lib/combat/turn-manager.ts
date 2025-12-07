@@ -1,7 +1,6 @@
 
 import { Combatant } from '@/lib/types';
 import { isUnconsciousOrDead } from './rules-engine';
-import { SurpriseManager } from './surprise-manager';
 
 /**
  * Manages the flow of combat turns, including initiative order navigation
@@ -27,11 +26,6 @@ export class CombatTurnManager {
         party: any[],
         enemies: any[]
     ): boolean {
-        // 0. Check if combatant is surprised (loses first turn) using SurpriseManager
-        if (SurpriseManager.isSurprised(combatant)) {
-            return true;
-        }
-
         // 1. Use status field if available (Unified Logic)
         if (combatant.status) {
             return combatant.status === 'dead' || combatant.status === 'unconscious';

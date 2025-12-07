@@ -1,6 +1,6 @@
 # Flujo de Datos Detallado
 
-**Última actualización:** 2025-01-23 (v0.5.6)  
+**Última actualización:** 2025-12-06 (FSM + Modularización narrativa Fase 3)  
 **Estado:** ✅ Actualizado
 
 ---
@@ -110,11 +110,13 @@ export async function processPlayerAction(state: GameState) {
       - Para cada compañero: llama a companionExpertTool
       - Recibe reacciones a la intención del jugador
    c. Filtra enemigos muertos del contexto
-   d. Llama a narrativeExpert (wrapper de NarrativeManager):
+   d. Construye contexto de exploración con `ExplorationContextBuilder` (niebla de guerra, hazards, conexiones visibles, entidades presentes)
+   e. Resuelve interacciones con objetos/puertas con `InteractionHandler` (mapeo de interactables, apertura de puertas, triggers de mímic/combate)
+   f. Llama a narrativeExpert (wrapper de NarrativeManager):
       - NarrativeManager clasifica acción (EXPLORATION/INTERACTION/HYBRID)
       - Llama a ExplorationExpert o InteractionExpert según corresponda
       - Recibe narración del DM
-   e. Llama a processCompanionReactions(timing: 'after_dm')
+   g. Llama a processCompanionReactions(timing: 'after_dm')
       - Para cada compañero: llama a companionExpertTool
       - Recibe reacciones al resultado
 3. Ensambla mensajes: [reacciones pre-DM..., narración DM, reacciones post-DM]
@@ -232,6 +234,32 @@ while (turnIndex < initiativeOrder.length) {
    - Retorna resultados estructurados
 4. **Narración de Resolución**: Llama a `combatNarrationExpertTool` (tipo: 'resolution')
 
+### 6.1 FSM de Combate (CombatPhase)
+
+El bucle de combate está gobernado por una FSM explícita (`CombatPhase`) para eliminar flags dispersos y garantizar pausas/confirmaciones:
+
+```mermaid
+stateDiagram-v2
+    [*] --> SETUP
+    SETUP --> TURN_START
+    TURN_START --> WAITING_FOR_ACTION : turno jugador
+    TURN_START --> PROCESSING_ACTION : turno IA
+    WAITING_FOR_ACTION --> PROCESSING_ACTION : jugador actúa
+    PROCESSING_ACTION --> ACTION_RESOLVED
+    ACTION_RESOLVED --> TURN_END : tras narración/confirmación
+    TURN_END --> TURN_START : siguiente combatiente
+    TURN_END --> COMBAT_END : sin combatientes vivos
+    COMBAT_END --> [*]
+```
+
+Puntos clave:
+- `phase` viaja en GameState/outputs; el frontend reacciona a este valor (no a flags legacy).
+- `checkEndOfCombat()` siempre devuelve `{ combatEnded: boolean }` y protege cuando `enemies` aún no está inicializado.
+- `processCurrentTurn` sincroniza `party`/`enemies` con el resultado de `TurnProcessor` para coherencia de estado.
+- Los mocks/tests deben incluir `attackType` en `diceRolls` y `skills/savingThrows` con `modifier` y tildes (ej: `constitución`).
+- Al cerrar combate se añade una tirada sintética `outcome: 'victory'` (pastilla verde en panel de tiradas) y se transiciona a `COMBAT_END` sin requerir “continuar turno”.
+- `EnemyValidator` prioriza `stats.hp`/`stats.ac` del archivo de aventura y solo rellena campos faltantes con la D&D API (no sobreescribe AC definidas).
+
 ### 7. Turno del Jugador
 
 ```typescript
@@ -264,6 +292,20 @@ Usuario: "Ataco con mi espada"
 ```
 
 **Nota**: Tanto el turno del jugador como el de la IA usan el mismo flujo unificado a través de `TurnProcessor` y `CombatActionResolver`, garantizando consistencia matemática y visual.
+
+## Flujo de Movimiento y Exploración (actualización)
+
+- `NavigationManager.resolveMovement` devuelve `status` estructurado:
+  - `ok`: movimiento exitoso
+  - `already_here`: ya estás en la ubicación destino (no hay desplazamiento)
+  - `blocked`: no hay ruta o el paso está bloqueado
+  - `not_found`: la ubicación no existe
+- Si `status === 'already_here'`:
+  - No se cambia `locationId`
+  - No se añade narración de viaje
+  - Se pasa `systemFeedback` al DM para que describa que el jugador ya está en la sala
+- `ExplorationContextBuilder` prioriza `enemiesByLocation` para resolver enemigos presentes (hp actualizado, muertos) antes de usar el JSON, evitando combates fantasma.
+- El prompt del Exploration Expert da prioridad absoluta a `systemFeedback`: si el sistema indica “Ya estás en…”, el DM describe el estado actual y no narra desplazamiento.
 
 ## Flujo de Guardado y Carga
 

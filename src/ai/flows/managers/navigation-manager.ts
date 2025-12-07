@@ -7,6 +7,8 @@ type AdventureData = z.infer<typeof AdventureDataSchema>;
 
 export interface MovementResult {
     success: boolean;
+    /** Estado del resultado de movimiento */
+    status?: 'ok' | 'already_here' | 'blocked' | 'not_found';
     newLocationId?: string;
     narration?: string;
     timePassed?: {
@@ -44,13 +46,24 @@ export class NavigationManager {
         const targetLocation = adventureData.locations.find(l => l.id === targetId);
 
         if (!currentLocation || !targetLocation) {
-            return { success: false, error: "Ubicación no encontrada." };
+            return { success: false, status: 'not_found', error: "Ubicación no encontrada." };
+        }
+
+        // CRITICAL: Check if player is already at the target location
+        if (currentLocationId === targetId) {
+            return {
+                success: false,
+                status: 'already_here',
+                error: `Ya estás en ${targetLocation.name || targetLocation.title}.`,
+                // Don't set newLocationId - we're staying in the same place
+            };
         }
 
         // 1. Check for Implicit Hub Movement (Same Region)
         if (currentLocation.regionId && targetLocation.regionId && currentLocation.regionId === targetLocation.regionId) {
             return {
                 success: true,
+                status: 'ok',
                 newLocationId: targetId,
                 narration: `Te diriges hacia ${targetLocation.name || targetLocation.title}.`,
                 timePassed: { days: 0, hours: 0, minutes: 5 } // Arbitrary short time for hub movement
@@ -61,7 +74,7 @@ export class NavigationManager {
         const path = this.findPath(currentLocationId, targetId, adventureData, gameState);
 
         if (!path || path.length === 0) {
-            return { success: false, error: "No hay un camino conocido hacia allí." };
+            return { success: false, status: 'blocked', error: "No hay un camino conocido hacia allí." };
         }
 
         console.log(`[NavigationManager] Path found: ${JSON.stringify(path.map(p => ({ to: p.toId, blocked: p.connection.isBlocked })))}`);
@@ -81,6 +94,7 @@ export class NavigationManager {
                 // Stop at the last valid location
                 return {
                     success: false, // Overall failure to reach target
+                    status: 'blocked',
                     newLocationId: finalLocationId !== currentLocationId ? finalLocationId : undefined,
                     error: `No puedes continuar: ${validation.reason}`,
                     // Return partial time passed? For simplicity, we might just say "you get stuck here"
@@ -128,6 +142,7 @@ export class NavigationManager {
 
         return {
             success: true,
+            status: 'ok',
             newLocationId: targetId,
             narration: finalNarration,
             timePassed: { days: totalDays, hours: totalHours, minutes: totalMinutes }

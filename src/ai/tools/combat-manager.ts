@@ -6,7 +6,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { enemyTacticianTool } from './enemy-tactician';
 import { companionTacticianTool } from './companion-tactician';
-import type { GameMessage, DiceRoll, Combatant } from '@/lib/types';
+import { type GameMessage, type DiceRoll, type Combatant, CombatPhase } from '@/lib/types';
 import { diceRollerTool } from './dice-roller';
 
 import { GameStateSchema, ActionInterpreterOutputSchema } from '@/ai/flows/schemas';
@@ -40,6 +40,7 @@ export const CombatManagerInputSchema = GameStateSchema.extend({
     locationContext: z.any().optional(),
     combatantIds: z.array(z.string()).optional(),
     surpriseSide: z.enum(['player', 'enemy']).optional(), // Which side is surprised (loses first turn)
+    phase: z.nativeEnum(CombatPhase).optional(),
 });
 
 
@@ -62,6 +63,7 @@ export const CombatManagerOutputSchema = z.object({
     // debugLogs removed - UI DebugLog panel is being deprecated
     turnIndex: z.number().optional(),
     hasMoreAITurns: z.boolean().optional(),
+    phase: z.nativeEnum(CombatPhase).optional(),
     // Nuevos campos para comunicación explícita de qué turno se procesó
     lastProcessedTurnWasAI: z.boolean().optional(), // true si el último turno procesado fue de IA/Enemy
     lastProcessedTurnIndex: z.number().optional(),  // índice del turno que se acaba de procesar
@@ -108,6 +110,7 @@ export async function executeCombatManager(
         enemies: currentLocationEnemies, // Use location-specific enemies
         initiativeOrder: input.initiativeOrder || [],
         turnIndex: input.turnIndex ?? 0,
+        phase: input.phase,
         inCombat: inCombat || false,
         locationId: locationId || '',
         messages: input.messages || [],

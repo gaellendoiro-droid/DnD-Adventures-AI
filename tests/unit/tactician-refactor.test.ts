@@ -1,9 +1,14 @@
 
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { EnemyTacticianOutputSchema, EnemyTacticianInputSchema } from '@/ai/tools/enemy-tactician';
-import { CompanionTacticianOutputSchema, CompanionTacticianInputSchema } from '@/ai/tools/companion-tactician';
-import { CombatNarrationExpertInputSchema, CombatNarrationExpertOutputSchema } from '@/ai/tools/combat/combat-narration-expert';
+import {
+    EnemyTacticianOutputSchema,
+    EnemyTacticianInputSchema,
+    CompanionTacticianOutputSchema,
+    CompanionTacticianInputSchema,
+    CombatNarrationExpertInputSchema,
+    CombatNarrationExpertOutputSchema,
+} from '@/ai/tools/combat/tactician-schemas';
 
 describe('Tactician Refactor Schemas', () => {
     describe('EnemyTacticianOutputSchema', () => {

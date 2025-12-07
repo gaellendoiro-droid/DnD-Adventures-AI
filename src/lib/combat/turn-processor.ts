@@ -340,38 +340,68 @@ export class TurnProcessor {
                     };
                 }
 
-                // Validate spells and items if mentioned in the action
-                const spellQuery = extractSpellName(playerAction);
-                if (spellQuery) {
-                    const spellValidation = CombatActionResolver.validateSpell(playerChar, spellQuery);
-                    if (!spellValidation.success) {
-                        return {
-                            success: false,
-                            messages: [{ sender: 'DM', content: spellValidation.errorMessage || 'No conoces ese hechizo.' }],
-                            diceRolls: [],
-                            updatedParty: initialParty,
-                            updatedEnemies: initialEnemies,
-                            combatResult: {},
-                            combatEnded: false,
-                            error: spellValidation.error || 'SPELL_NOT_KNOWN',
-                        };
+                // Check for consumable/items first (before spell validation)
+                // This handles cases like "uso mi pergamino de fuego" where it's an item, not a spell
+                const consumableKeywords = ['pergamino', 'scroll', 'poción', 'pocion', 'objeto'];
+                const hasConsumableKeyword = consumableKeywords.some(k => playerAction.toLowerCase().includes(k));
+                
+                if (hasConsumableKeyword) {
+                    const itemQuery = extractItemName(playerAction) || extractWeaponName(playerAction);
+                    if (itemQuery) {
+                        const itemValidation = CombatActionResolver.validateItem(playerChar, itemQuery);
+                        if (!itemValidation.success) {
+                            return {
+                                success: false,
+                                messages: [{ sender: 'DM', content: itemValidation.errorMessage || 'No tienes el objeto en tu inventario.' }],
+                                diceRolls: [],
+                                updatedParty: initialParty,
+                                updatedEnemies: initialEnemies,
+                                combatResult: {},
+                                combatEnded: false,
+                                error: itemValidation.error || 'ITEM_NOT_IN_INVENTORY',
+                            };
+                        }
                     }
                 }
 
-                const itemQuery = extractItemName(playerAction);
-                if (itemQuery) {
-                    const itemValidation = CombatActionResolver.validateItem(playerChar, itemQuery);
-                    if (!itemValidation.success) {
-                        return {
-                            success: false,
-                            messages: [{ sender: 'DM', content: itemValidation.errorMessage || 'No tienes ese objeto.' }],
-                            diceRolls: [],
-                            updatedParty: initialParty,
-                            updatedEnemies: initialEnemies,
-                            combatResult: {},
-                            combatEnded: false,
-                            error: itemValidation.error || 'ITEM_NOT_IN_INVENTORY',
-                        };
+                // Validate spells if mentioned in the action (but not if it's a consumable item)
+                if (!hasConsumableKeyword) {
+                    const spellQuery = extractSpellName(playerAction);
+                    if (spellQuery) {
+                        const spellValidation = CombatActionResolver.validateSpell(playerChar, spellQuery);
+                        if (!spellValidation.success) {
+                            return {
+                                success: false,
+                                messages: [{ sender: 'DM', content: spellValidation.errorMessage || 'No conoces ese hechizo.' }],
+                                diceRolls: [],
+                                updatedParty: initialParty,
+                                updatedEnemies: initialEnemies,
+                                combatResult: {},
+                                combatEnded: false,
+                                error: spellValidation.error || 'SPELL_NOT_KNOWN',
+                            };
+                        }
+                    }
+                }
+
+                // Only validate items when the action is not a direct attack.
+                // Weapon handling below will surface WEAPON_NOT_IN_INVENTORY when appropriate.
+                if (interpretedAction.actionType !== 'attack' && !hasConsumableKeyword) {
+                    const itemQuery = extractItemName(playerAction);
+                    if (itemQuery) {
+                        const itemValidation = CombatActionResolver.validateItem(playerChar, itemQuery);
+                        if (!itemValidation.success) {
+                            return {
+                                success: false,
+                                messages: [{ sender: 'DM', content: itemValidation.errorMessage || 'No tienes ese objeto.' }],
+                                diceRolls: [],
+                                updatedParty: initialParty,
+                                updatedEnemies: initialEnemies,
+                                combatResult: {},
+                                combatEnded: false,
+                                error: itemValidation.error || 'ITEM_NOT_IN_INVENTORY',
+                            };
+                        }
                     }
                 }
 
@@ -380,6 +410,8 @@ export class TurnProcessor {
                 const targetName = getVisualName(resolvedTargetId, initiativeOrder, initialEnemies);
                 // Extract weapon name from player action using helper function
                 const weaponQuery = extractWeaponName(playerAction) || 'ataque';
+
+                // Note: Consumable validation is now done earlier in the function (before spell validation)
 
                 const resolution = CombatActionResolver.resolveAttack(playerChar, weaponQuery, targetName);
 

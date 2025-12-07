@@ -8,4 +8,9 @@
  * Tests for getCriticalDamageNotation are now in critical-damage.test.ts.
  */
 
-// This file intentionally left empty - module has been deprecated and removed
+import { describe, it } from 'vitest';
+
+// Deprecated module placeholder; skip to avoid "no test suite found" errors
+describe.skip('dice-roll-processor (deprecated placeholder)', () => {
+  it('skipped', () => {});
+});

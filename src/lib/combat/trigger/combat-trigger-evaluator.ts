@@ -1,8 +1,7 @@
-
-import { z } from 'zod';
 import { Character, Location, GameMessage } from '@/lib/types';
+import { isEntityOutOfCombat } from '@/lib/game/entity-status-utils';
 
-// Input types for the manager
+// Input types for the evaluator
 export interface ExplorationTriggerInput {
     location: Location;
     detectedHazards: string[]; // IDs of detected hazards
@@ -42,12 +41,12 @@ export interface CombatTriggerResult {
 }
 
 /**
- * CombatTriggerManager
- * 
+ * CombatTriggerEvaluator
+ *
  * Evaluates game events to determine if combat should start automatically.
  * Acts as a central arbiter for combat initiation logic.
  */
-export class CombatTriggerManager {
+export class CombatTriggerEvaluator {
 
     /**
      * Evaluates exploration results (entering a room)
@@ -56,10 +55,12 @@ export class CombatTriggerManager {
         const { location, detectedHazards, visibleEntities, stealthCheckResult } = input;
 
         // FIX: Ignore hidden enemies (like Mimics) until triggered
-        const hostileEntities = visibleEntities.filter(e => 
+        const hostileEntities = visibleEntities.filter(e =>
             (e.type === 'enemy' || e.disposition === 'hostile') &&
             e.disposition !== 'hidden' &&
-            e.status !== 'hidden'
+            e.status !== 'hidden' &&
+            // Exclude dead/unconscious enemies to avoid phantom combats using centralized logic
+            !isEntityOutOfCombat(e)
         );
 
         // 1. Check for Proximity (Visible Hostile Enemies)
@@ -120,33 +121,33 @@ export class CombatTriggerManager {
         if (targetId && locationEntities) {
             // A mimic is an entity with:
             // - disposition: 'hidden' (disguised as object)
-            // - type: 'enemy' 
+            // - type: 'enemy'
             // - name/id containing 'mimic' OR baseType containing 'mimic'
             const targetLower = targetId.toLowerCase();
-            
+
             const mimic = locationEntities.find(entity => {
                 // Must be a hidden enemy
                 if (entity.disposition !== 'hidden') return false;
                 if (entity.type !== 'enemy') return false;
-                
+
                 // Check if it's a mimic by name, id, or baseType
-                const isMimic = 
+                const isMimic =
                     entity.name?.toLowerCase().includes('mímico') ||
                     entity.name?.toLowerCase().includes('mimic') ||
                     entity.id?.toLowerCase().includes('mimic') ||
                     entity.baseType?.toLowerCase().includes('mimic');
-                
+
                 if (!isMimic) return false;
-                
+
                 // Check if target matches this entity's id
                 const entityIdLower = entity.id?.toLowerCase() || '';
-                return targetLower.includes(entityIdLower) || 
+                return targetLower.includes(entityIdLower) ||
                        entityIdLower.includes(targetLower) ||
                        // Also check if targetId matches common chest/object keywords
                        (targetLower.includes('cofre') && entityIdLower.includes('cofre')) ||
                        (targetLower.includes('chest') && entityIdLower.includes('chest'));
             });
-            
+
             if (mimic) {
                 return {
                     shouldStartCombat: true,
@@ -190,3 +191,4 @@ export class CombatTriggerManager {
         return { shouldStartCombat: false };
     }
 }
+

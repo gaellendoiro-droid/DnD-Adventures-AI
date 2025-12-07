@@ -75,7 +75,9 @@ export const CombatNarrationExpertInputSchema = z.object({
     // Core action info
     attackerName: z.string().describe("Name of the character performing the action (e.g., 'Galador', 'Goblin 1')."),
     targetName: z.string().describe("Name of the target character (e.g., 'Orco 1', 'Merryl')."),
-    actionDescription: z.string().describe("Brief description of the action (e.g., 'Ataque con Maza', 'Lanzar Rayo de Escarcha')."),
+    actionDescription: z.string().optional().describe("Brief description of the action (e.g., 'Ataque con Maza', 'Lanzar Rayo de Escarcha'). Optional for intention narrations."),
+    // Type of narration (intention vs resolution). Optional for backward compatibility.
+    narrationType: z.enum(['intention', 'resolution']).optional(),
 
     // Optional context
     playerAction: z.string().optional().describe("The original action text from the player (e.g., 'Ataco al orco con mi espada'). Optional for AI turns."),
@@ -83,7 +85,8 @@ export const CombatNarrationExpertInputSchema = z.object({
     spellName: z.string().optional().describe("Name of the spell cast, if any."),
 
     // Combat results
-    attackResult: z.enum(['hit', 'miss', 'critical', 'fumble']).describe("Result of the attack roll."),
+    // Optional to allow intention narrations (pre-resolution); required at runtime for resolution narrations
+    attackResult: z.enum(['hit', 'miss', 'critical', 'fumble']).optional().describe("Result of the attack roll. Required for resolution narrations."),
     damageDealt: z.number().optional().describe("Amount of damage dealt (only if attack hit). 0 or undefined if attack missed."),
     targetPreviousHP: z.number().optional().describe("Target's HP before the attack."),
     targetNewHP: z.number().optional().describe("Target's HP after the attack."),

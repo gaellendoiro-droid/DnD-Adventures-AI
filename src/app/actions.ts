@@ -16,10 +16,11 @@ export async function processPlayerAction(
   input: GameState
 ): Promise<GameCoordinatorOutput> {
 
-  log.serverAction('Processing player action', {
+    log.serverAction('Processing player action', {
     action: input.playerAction,
     inCombat: input.inCombat,
     turnIndex: input.turnIndex,
+    phase: input.phase, // Log phase to verify it's being received
     locationId: input.locationId,
     isContinueTurn: input.playerAction?.toLowerCase().includes('continuar turno') ||
       input.playerAction?.toLowerCase().includes('pasar turno') ||

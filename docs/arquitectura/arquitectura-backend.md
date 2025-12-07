@@ -1,6 +1,6 @@
 # Arquitectura del Backend (Sistema de IA)
 
-**Última actualización:** 2025-01-23 (v0.5.6 - Sistema Data-Driven)  
+**Última actualización:** 2025-12-06 (FSM + Modularización Fase 3)  
 **Estado:** ✅ Actualizado
 
 ---
@@ -21,7 +21,8 @@ La arquitectura se basa en cuatro principios fundamentales:
 
 3.  **Flujo de Datos Explícito (Arquitectura "Stateless"):** Este es el principio más importante. **No existe un estado global en el backend.** Todos los datos que una herramienta o flujo necesita (como el contexto de la ubicación o los datos de los personajes) se le pasan explícitamente como parámetros en cada llamada. Esto elimina las dependencias ocultas y hace que el sistema sea robusto, predecible y fácil de depurar.
 
-4.  **Abstracción con Herramientas:** Las IAs no interactúan directamente con el mundo del juego. Usan "herramientas" (funciones de TypeScript) para obtener información (ej: `locationLookupTool`) o realizar acciones (ej: `diceRollerTool`).
+4.  **Abstracción con Herramientas:** Las IAs no interactúan directamente con el mundo del juego. Usan "herramientas" (funciones de TypeScript) para obtener información (ej: `locationLookupTool`) o realizar acciones (ej: `diceRollerTool`).  
+5.  **FSM en Combate:** El subsistema de combate usa una máquina de estados finita explícita (`CombatPhase`) para eliminar flags dispersos y garantizar transiciones controladas (`SETUP`, `TURN_START`, `WAITING_FOR_ACTION`, `PROCESSING_ACTION`, `ACTION_RESOLVED`, `TURN_END`, `COMBAT_END`).
 
 ---
 
@@ -32,6 +33,7 @@ Para mantener la modularidad y evitar dependencias circulares, se establecen las
 -   **Fuente Única de la Verdad para Esquemas:** Todos los esquemas de Zod que definen las estructuras de datos compartidas entre flujos y herramientas **DEBEN** residir en `src/ai/flows/schemas.ts`.
 -   **Prohibición de Exportar Esquemas desde Archivos de Implementación:** Un archivo que contiene la lógica de un flujo (como `action-interpreter.ts`) **NO DEBE** exportar esquemas. Debe importar los esquemas que necesite desde el archivo central `schemas.ts`.
 -   **Directiva de Verificación (Para el Asistente de IA):** Cada vez que un esquema cambie, se deben verificar todas sus implementaciones y puntos de llamada (`game-coordinator.ts`, `combat-manager.ts`, `game-view.tsx`, etc.) para asegurar que el "contrato" de datos no se ha roto.
+-   **Cambios recientes de esquema (2025-12-05/06):** `CombatPhase` añadido a todos los flujos de combate/narrativa; `attackType` exigido en `diceRolls` de tacticians; `narrationType` añadido al input del narrador de combate; fixtures actualizados con `skills/savingThrows` con tildes y `modifier`.
 
 **Razón:** Esta separación y verificación previene errores de importación y fallos de validación silenciosos, asegurando que la definición de los "contratos" de datos está desacoplada de su implementación, pero sincronizada con su uso.
 
@@ -98,8 +100,9 @@ graph TD
     3. Filtra contexto (enemigos muertos) antes de pasar a la narración
     4. Genera narración del DM usando `NarrativeManager`
     5. Genera reacciones de compañeros **después** de la narración del DM (reacciones al resultado)
-    6. **Filtrado de Conexiones de Origen:** Al moverse a una nueva ubicación, filtra automáticamente la conexión de regreso de la lista de `visibleConnections` para evitar que el DM describa redundantemente "el camino por el que acabas de venir".
-    7. **Resolución de Entidades en Exploración:** Resuelve los IDs de `entitiesPresent` a objetos completos (nombre, descripción) y los pasa al contexto de exploración para que el DM pueda describir visualmente a los NPCs/Monstruos presentes sin iniciar diálogo.
+-    6. **Filtrado de Conexiones de Origen:** Al moverse a una nueva ubicación, filtra automáticamente la conexión de regreso de la lista de `visibleConnections` para evitar que el DM describa redundantemente "el camino por el que acabas de venir".
+-    7. **Resolución de Entidades en Exploración:** Resuelve los IDs de `entitiesPresent` a objetos completos (nombre, descripción) y los pasa al contexto de exploración para que el DM pueda describir visualmente a los NPCs/Monstruos presentes sin iniciar diálogo.
+-    8. **Modularización Fase 3:** La lógica de interacciones y exploración se extrajo a módulos dedicados (`InteractionHandler`, `ExplorationContextBuilder`) para simplificar este manager y hacerlos testeables.
 -   **Flujo**: `executeNarrativeTurn()` encapsula todo el proceso de un turno narrativo
 -   **Uso**: Invocado por `gameCoordinator` cuando la acción no es de combate
 
@@ -127,6 +130,13 @@ graph TD
 ### 4. El Subsistema de Combate
 
 El subsistema de combate ha sido simplificado significativamente (Issue #117) para unificar el procesamiento de turnos de jugador e IA, eliminando duplicación y mejorando la consistencia.
+
+> **Cambios recientes (2025-12-05/06):**
+> - `CombatSession` ahora opera con `CombatPhase` explícito (FSM); `checkEndOfCombat()` nunca retorna `undefined` y protege cuando `enemies` aún no está cargado.
+> - `CombatSession.processCurrentTurn` actualiza `party` y `enemies` con el resultado de `TurnProcessor` para mantener estado coherente.
+> - `initialize()` respeta `firstTurnData` del `CombatInitializer` y evita errores en combates recién creados.
+> - `TurnProcessor` prioriza consumibles (ej. "pergamino") como ítems antes de intentar validarlos como hechizos/armas, corrigiendo códigos de error en tests.
+> - Los tacticians y narración de combate usan `executePromptWithRetry`/`retryWithExponentialBackoff` para robustez ante fallos transitorios.
 
 #### `combatInitiationExpertTool`
 -   **Archivo**: `src/ai/tools/combat-initiation-expert.ts`

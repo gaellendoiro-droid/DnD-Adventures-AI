@@ -33,13 +33,16 @@ export class EnemyValidator {
             let found = party.find(p => p.id === id);
             if (found) {
                 // Check HP before including in combat
-                if (found.hp && found.hp.current > 0) {
+                const hpCurrent = typeof (found as any).hp === 'number'
+                    ? (found as any).hp
+                    : (found as any).hp?.current;
+                if (hpCurrent !== undefined && hpCurrent > 0) {
                     combatantData.push({ ...found, entityType: 'player', name: found.name, controlledBy: found.controlledBy });
                 } else {
                     log.debug('Skipping dead party member in combat initiation', {
                         module: 'CombatInitializer',
                         characterName: found.name,
-                        hp: found.hp?.current || 0,
+                        hp: hpCurrent || 0,
                     });
                 }
                 continue;
@@ -47,9 +50,19 @@ export class EnemyValidator {
 
             found = allEntities.find((e: any) => e.id === id);
             if (found) {
+                const enemyHpCurrent = typeof (found as any).hp === 'number'
+                    ? (found as any).hp
+                    : (found as any).hp?.current;
+
                 // Check if enemy already exists and is dead
                 const existingEnemy = existingEnemies.find((e: any) => e.id === id || (e as any).uniqueId === id);
-                if (!existingEnemy || (existingEnemy.hp && existingEnemy.hp.current > 0)) {
+                if (enemyHpCurrent !== undefined && enemyHpCurrent <= 0) {
+                    log.debug('Skipping dead enemy from adventure data', {
+                        module: 'CombatInitializer',
+                        enemyId: id,
+                        hp: enemyHpCurrent,
+                    });
+                } else if (!existingEnemy || (existingEnemy.hp && existingEnemy.hp.current > 0)) {
                     combatantData.push({ ...found, entityType: 'monster', name: found.name, controlledBy: 'AI' });
                 } else {
                     log.debug('Skipping dead enemy in combat initiation', {
@@ -96,9 +109,19 @@ export class EnemyValidator {
         const updatedEnemies: EnemyWithStats[] = [];
 
         for (const enemy of initialEnemies) {
-            let hpValue: number | undefined;
-            let hpMax: number | undefined;
-            let ac = enemy.ac;
+            // Prefer explicit adventure stats (stats.hp / stats.ac) over any defaults
+            const statsBlock = (enemy as any).stats || {};
+            let hpValue: number | undefined =
+                enemy.hp?.current ??
+                (typeof enemy.hp === 'number' ? enemy.hp : undefined) ??
+                (typeof statsBlock.hp === 'number' ? statsBlock.hp : undefined);
+            let hpMax: number | undefined =
+                enemy.hp?.max ??
+                (typeof enemy.hp === 'number' ? enemy.hp : undefined) ??
+                (typeof statsBlock.hp === 'number' ? statsBlock.hp : undefined);
+            let ac =
+                enemy.ac ??
+                (typeof statsBlock.ac === 'number' ? statsBlock.ac : undefined);
 
             // Handle hp: can be a number or an object { current: number, max: number }
             if (enemy.hp !== undefined && enemy.hp !== null) {
@@ -120,6 +143,7 @@ export class EnemyValidator {
                 const stats = await getMonsterStatsFromDndApi(enemy.name);
 
                 if (stats) {
+                    // Only fill missing fields; never override explicit adventure stats
                     hpValue = hpValue !== undefined ? hpValue : stats.hp;
                     hpMax = hpMax !== undefined ? hpMax : stats.hp;
                     ac = ac !== undefined && ac !== null ? ac : stats.ac;

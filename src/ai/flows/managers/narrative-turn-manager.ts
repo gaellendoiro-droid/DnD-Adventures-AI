@@ -22,9 +22,10 @@ import { isEntityOutOfCombat } from '@/lib/game/entity-status-utils';
 import { formatMessageForTranscript } from '@/lib/utils/transcript-formatter';
 import { NavigationManager } from './navigation-manager';
 import { GameState } from '@/ai/flows/schemas';
-import { ExplorationManager } from './exploration-manager';
-import { CombatTriggerManager, CombatTriggerResult } from './combat-trigger-manager';
+import { CombatTriggerEvaluator, CombatTriggerResult } from '@/lib/combat/trigger/combat-trigger-evaluator';
 import { EnemyStateManager } from '@/lib/game/enemy-state-manager';
+import { InteractionHandler, InteractionResult } from './interaction-handler';
+import { ExplorationContextBuilder, ExplorationContextResult } from './exploration-context-builder';
 
 /**
  * Input para procesar un turno narrativo
@@ -155,6 +156,12 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
                 enemiesByLocation,
                 enemies
             );
+        } else if (movementResult.status === 'already_here' || (movementResult.error && movementResult.error.includes('Ya estás en'))) {
+            // Player tried to move to current location - just describe current location
+            // Don't add movement narration, just continue with normal narration
+            systemFeedback = movementResult.error;
+            localLog(`Movement skipped: Player already at location.`);
+            // Keep interpretation.actionType as-is; rely on systemFeedback and prompt to avoid false travel narration
         } else {
             // Movement failed
             localLog(`Movement failed: ${movementResult.error}`);
@@ -211,21 +218,8 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
     const filteredLocationData = { ...finalLocationData };
     const deadEntities: string[] = []; // Track defeated enemies for context
 
-    // Update connections to reflect open doors state
-    if (filteredLocationData.connections && input.openDoors) {
-        filteredLocationData.connections = filteredLocationData.connections.map((conn: any) => {
-            const doorKey = `${locationId}:${conn.direction}`;
-            const isOpen = input.openDoors[doorKey] === true;
-            
-            if (isOpen) {
-                return {
-                    ...conn,
-                    isOpen: true
-                };
-            }
-            return conn;
-        });
-    }
+    // Initialize updatedOpenDoors early so we can use it for connection updates
+    let updatedOpenDoors = input.openDoors ? { ...input.openDoors } : {};
 
     if (filteredLocationData.entitiesPresent && currentLocationEnemies.length > 0) {
         filteredLocationData.entitiesPresent = filteredLocationData.entitiesPresent.filter((entityId: string) => {
@@ -274,84 +268,39 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         exploration: input.explorationState
     };
 
-    // Capture previous visit state BEFORE updating it
-    const previousVisitState = currentGameState.exploration?.knownLocations[locationId]?.status || 'unknown';
-
-    // 1. Update Fog of War
-    // Calculate total minutes for timestamp
-    const currentTotalMinutes = updatedWorldTime
-        ? (updatedWorldTime.day * 1440 + updatedWorldTime.hour * 60 + updatedWorldTime.minute)
-        : (adventureData.settings?.initialWorldTime?.day || 1) * 1440 + 480; // Default 8:00 AM
-
-    currentGameState = ExplorationManager.updateExplorationState(
-        currentGameState,
-        finalLocationData,
-        currentTotalMinutes
-    );
-
-    // 2. Passive Perception Check
-    const detectedHazards = ExplorationManager.checkPassivePerception(currentGameState, finalLocationData, party);
-
-    // 3. Active Search (To-Do: Infer from playerAction if it's a search)
-    // For now, we rely on passive.
-
-    // 4. Mark discovered hazards
-    if (detectedHazards.length > 0) {
-        currentGameState = ExplorationManager.markHazardsAsDiscovered(currentGameState, locationId, detectedHazards);
-        localLog(`Hazards detected: ${detectedHazards.map(h => h.id).join(', ')}`);
-    }
-
-    // 5. Calculate Visible Connections for Context
-    const visibleConnections: string[] = [];
-
     // Determine previous location if we just moved to avoid describing the path we came from
     const cameFromLocationId = (interpretation.actionType === 'move' && newLocationId)
         ? currentLocationId // The location we started the turn at
         : null;
 
-    if (filteredLocationData.connections) {
-        const knownLocs = currentGameState.exploration?.knownLocations || {};
-        for (const conn of filteredLocationData.connections) {
-            // Check if connection is visible/open (either visibility === 'open' OR door is open)
-            const doorKey = `${locationId}:${conn.direction}`;
-            const isDoorOpen = input.openDoors?.[doorKey] === true;
-            const isVisible = conn.visibility === 'open' || isDoorOpen || conn.isOpen === true;
-            
-            if (isVisible) {
-                // Skip the connection we just came from to focus narration on new paths
-                if (cameFromLocationId && conn.targetId === cameFromLocationId) {
-                    continue;
-                }
+    // Build exploration context using ExplorationContextBuilder
+    const explorationContextResult: ExplorationContextResult = ExplorationContextBuilder.build({
+        gameState: currentGameState,
+        locationData: finalLocationData,
+        party,
+        worldTime: updatedWorldTime,
+        initialWorldTime: adventureData.settings?.initialWorldTime,
+        adventureData,
+        cameFromLocationId,
+        openDoors: input.openDoors,
+        enemiesByLocation: input.enemiesByLocation,
+        enemies: input.enemies,
+    });
 
-                const targetLoc = adventureData.locations.find((l: any) => l.id === conn.targetId);
-                if (targetLoc) {
-                    visibleConnections.push(`To ${conn.direction || 'unknown'}: ${targetLoc.description.substring(0, 100)}...`);
-                }
-            }
-        }
+    // Update currentGameState with the updated exploration state
+    currentGameState = explorationContextResult.updatedGameState;
+    const detectedHazards = explorationContextResult.detectedHazards;
+    const explorationContext = explorationContextResult.context;
+    const resolvedEntities = explorationContext.presentEntities;
+
+    // Log detected hazards
+    if (detectedHazards.length > 0) {
+        localLog(`Hazards detected: ${detectedHazards.map(h => h.id).join(', ')}`);
     }
-
-    // Resolve entities for context
-    const resolvedEntities = (filteredLocationData.entitiesPresent || [])
-        .map((entityId: string) => {
-            const entity = adventureData.entities?.find((e: any) => e.id === entityId);
-            // FIX: Pass full entity properties (including disposition/status) so CombatTriggerManager can filter hidden ones
-            return entity ? { ...entity } : null;
-        })
-        .filter((e: any) => e !== null);
-
-    const explorationContext = {
-        mode: finalLocationData.explorationMode || 'safe',
-        lightLevel: finalLocationData.lightLevel || 'bright',
-        visitState: previousVisitState,
-        detectedHazards: detectedHazards,
-        visibleConnections: visibleConnections,
-        presentEntities: resolvedEntities
-    };
 
     // --- COMBAT TRIGGER CHECK ---
     // Check if the new situation triggers combat (Ambush, Proximity, etc.)
-    let combatTrigger = CombatTriggerManager.evaluateExploration({
+    let combatTrigger = CombatTriggerEvaluator.evaluateExploration({
         location: finalLocationData,
         detectedHazards: detectedHazards.map(h => h.id),
         visibleEntities: resolvedEntities,
@@ -359,121 +308,43 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
     });
 
     // Check for Interaction Triggers (Mimics) and Door Opening
-    let updatedOpenDoors = input.openDoors ? { ...input.openDoors } : {};
-    
     if (!combatTrigger.shouldStartCombat && interpretation.actionType === 'interact' && interpretation.targetId) {
         localLog(`Checking interaction trigger for targetId: "${interpretation.targetId}"`);
         
-        // Also check interactables to map name/action to ID
-        let actualTargetId = interpretation.targetId;
-        let matchedInteractable: any = null;
-        if (finalLocationData.interactables) {
-            matchedInteractable = finalLocationData.interactables.find((i: any) => {
-                const targetLower = interpretation.targetId?.toLowerCase() || '';
-                const interactableName = i.name?.toLowerCase() || '';
-                const interactableId = i.id?.toLowerCase() || '';
-                
-                // Check if targetId matches interactable name, id, or any interaction action
-                return targetLower.includes(interactableId) ||
-                       interactableId.includes(targetLower) ||
-                       targetLower.includes(interactableName) ||
-                       interactableName.includes(targetLower) ||
-                       i.interactions?.some((ia: any) => 
-                           targetLower.includes(ia.action?.toLowerCase() || '')
-                       );
-            });
-            
-            if (matchedInteractable) {
-                actualTargetId = matchedInteractable.id;
-                localLog(`Mapped interaction target "${interpretation.targetId}" to interactable ID: "${actualTargetId}"`);
-            }
-        }
-        
-        // Check if this is a door interaction that should open it
-        if (matchedInteractable) {
-            const actionLower = playerAction.toLowerCase();
-            const openActions = ['abrir', 'open', 'abre', 'abrimos', 'abro'];
-            const isOpenAction = openActions.some(action => actionLower.includes(action));
-            
-            if (isOpenAction) {
-                // Find the connection that matches this door
-                // Door interactables should have an ID that matches a connection direction or targetId
-                const doorId = matchedInteractable.id.toLowerCase();
-                const matchingConnection = finalLocationData.connections?.find((conn: any) => {
-                    const connDirection = conn.direction?.toLowerCase();
-                    const connTarget = conn.targetId?.toLowerCase();
-                    return doorId.includes(connDirection || '') || 
-                           doorId.includes(connTarget || '') ||
-                           (connDirection && doorId.includes(connDirection)) ||
-                           (connTarget && doorId.includes(connTarget));
-                });
-                
-                let openedDoorKey: string | null = null;
-                
-                if (matchingConnection && matchingConnection.direction) {
-                    const doorKey = `${currentLocationId}:${matchingConnection.direction}`;
-                    updatedOpenDoors[doorKey] = true;
-                    openedDoorKey = doorKey;
-                    localLog(`Door opened: ${doorKey}`);
-                    
-                    // Update the connection in filteredLocationData to reflect that the door is now open
-                    if (filteredLocationData.connections) {
-                        const connectionIndex = filteredLocationData.connections.findIndex((conn: any) => 
-                            conn.direction === matchingConnection.direction && conn.targetId === matchingConnection.targetId
-                        );
-                        if (connectionIndex !== -1) {
-                            filteredLocationData.connections[connectionIndex] = {
-                                ...filteredLocationData.connections[connectionIndex],
-                                isOpen: true
-                            };
-                        }
-                    }
-                    
-                    // Set systemFeedback to indicate successful door opening
-                    systemFeedback = `Door opened successfully: ${matchingConnection.direction}`;
-                } else {
-                    // Try to match by checking if interactable name/ID contains direction
-                    const directions = ['norte', 'sur', 'este', 'oeste', 'noreste', 'noroeste', 'sureste', 'suroeste', 'arriba', 'abajo'];
-                    for (const dir of directions) {
-                        if (doorId.includes(dir)) {
-                            const doorKey = `${currentLocationId}:${dir}`;
-                            updatedOpenDoors[doorKey] = true;
-                            openedDoorKey = doorKey;
-                            localLog(`Door opened (by direction match): ${doorKey}`);
-                            
-                            // Update the connection in filteredLocationData
-                            if (filteredLocationData.connections) {
-                                const connectionIndex = filteredLocationData.connections.findIndex((conn: any) => 
-                                    conn.direction?.toLowerCase() === dir
-                                );
-                                if (connectionIndex !== -1) {
-                                    filteredLocationData.connections[connectionIndex] = {
-                                        ...filteredLocationData.connections[connectionIndex],
-                                        isOpen: true
-                                    };
-                                }
-                            }
-                            
-                            // Set systemFeedback to indicate successful door opening
-                            systemFeedback = `Door opened successfully: ${dir}`;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        
-        const interactionTrigger = CombatTriggerManager.evaluateInteraction({
-            targetId: actualTargetId,
-            locationHazards: finalLocationData.hazards,
-            locationEntities: resolvedEntities
+        // Process interaction using InteractionHandler
+        const interactionResult: InteractionResult = await InteractionHandler.processInteraction({
+            playerAction,
+            targetId: interpretation.targetId,
+            actionType: interpretation.actionType,
+            locationData: finalLocationData,
+            currentLocationId: locationId,
+            currentOpenDoors: updatedOpenDoors,
+            resolvedEntities,
         });
 
-        if (interactionTrigger.shouldStartCombat) {
-            localLog(`Interaction Combat Triggered: ${interactionTrigger.reason} - ${interactionTrigger.message}`);
-            combatTrigger = interactionTrigger;
+        // Update door states
+        updatedOpenDoors = interactionResult.updatedOpenDoors;
+
+        // Update connections in filteredLocationData if a door was opened
+        if (interactionResult.systemFeedback?.includes('Door opened successfully')) {
+            InteractionHandler.updateConnectionsForOpenDoors(
+                filteredLocationData,
+                locationId,
+                updatedOpenDoors
+            );
+        }
+
+        // Use system feedback from interaction handler
+        if (interactionResult.systemFeedback) {
+            systemFeedback = interactionResult.systemFeedback;
+        }
+
+        // Check if interaction triggered combat
+        if (interactionResult.combatTrigger?.shouldStartCombat) {
+            localLog(`Interaction Combat Triggered: ${interactionResult.combatTrigger.reason} - ${interactionResult.combatTrigger.message}`);
+            combatTrigger = interactionResult.combatTrigger;
         } else {
-            localLog(`No combat trigger for interaction with "${actualTargetId}"`);
+            localLog(`No combat trigger for interaction with "${interactionResult.actualTargetId}"`);
         }
     }
 
@@ -488,6 +359,62 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         }
     }
     // --- EXPLORATION LOGIC END ---
+
+    // If movement ocurrió y se llegó a una nueva sala, marca la puerta usada como abierta (ida y vuelta)
+    if (cameFromLocationId && locationId && cameFromLocationId !== locationId) {
+        const dirs = ['norte','sur','este','oeste','noreste','noroeste','sureste','suroeste','arriba','abajo'];
+        const reverseMap: Record<string, string> = {
+            norte: 'sur',
+            sur: 'norte',
+            este: 'oeste',
+            oeste: 'este',
+            noreste: 'suroeste',
+            noroeste: 'sureste',
+            sureste: 'noroeste',
+            suroeste: 'noreste',
+            arriba: 'abajo',
+            abajo: 'arriba',
+        };
+        // Find direction used from previous location to this one
+        const fromLocation = adventureData.locations.find((l: any) => l.id === cameFromLocationId);
+        const conn = fromLocation?.connections?.find((c: any) => c.targetId === locationId);
+        if (conn?.direction) {
+            const forwardKey = `${cameFromLocationId}:${conn.direction}`;
+            updatedOpenDoors[forwardKey] = true;
+            const reverseDir = reverseMap[conn.direction];
+            if (reverseDir) {
+                const backKey = `${locationId}:${reverseDir}`;
+                updatedOpenDoors[backKey] = true;
+            }
+        }
+    }
+
+    // Reflejar openDoors en el locationContext filtrado para que la narración describa puertas abiertas
+    // Esto debe hacerse DESPUÉS de todas las actualizaciones de updatedOpenDoors (movimiento, interacciones)
+    if (filteredLocationData.connections) {
+        filteredLocationData.connections = filteredLocationData.connections.map((conn: any) => {
+            const doorKey = `${locationId}:${conn.direction}`;
+            const isDoorOpen = updatedOpenDoors[doorKey] === true;
+            if (isDoorOpen) {
+                // Si la puerta está abierta, forzar isOpen: true y visibility: 'open' para que el DM la describa como abierta
+                return { 
+                    ...conn, 
+                    isOpen: true, 
+                    visibility: 'open' // Forzar visibility a 'open' para que sea visible en la narración
+                };
+            }
+            // Si no está abierta, mantener el estado original (puede ser isOpen: false o undefined)
+            return conn;
+        });
+        
+        // Log para debugging
+        const openDoorsCount = Object.keys(updatedOpenDoors).filter(k => updatedOpenDoors[k] === true).length;
+        const updatedConnections = filteredLocationData.connections.filter((c: any) => c.isOpen === true);
+        localLog(`Updated connections: ${openDoorsCount} open doors in state, ${updatedConnections.length} connections marked as isOpen:true for location ${locationId}`);
+        if (updatedConnections.length > 0) {
+            localLog(`Open connections: ${updatedConnections.map((c: any) => `${c.direction}->${c.targetId}`).join(', ')}`);
+        }
+    }
 
     const narrativeInput = {
         phase: (isAdventureStart ? 'combat_initiation' : 'normal') as 'combat_initiation' | 'normal', // Legacy support

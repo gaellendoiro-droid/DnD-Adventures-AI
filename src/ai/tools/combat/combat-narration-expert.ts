@@ -1,4 +1,4 @@
-'use server';
+// server-side tool (no client)
 /**
  * @fileOverview Combat Narration Expert - Generates descriptive narrations for combat actions.
  * 
@@ -16,8 +16,6 @@ import { retryWithExponentialBackoff } from '@/ai/flows/retry-utils';
 import {
   CombatNarrationExpertInputSchema,
   CombatNarrationExpertOutputSchema,
-  type CombatNarrationExpertInput,
-  type CombatNarrationExpertOutput,
 } from './tactician-schemas';
 
 /**

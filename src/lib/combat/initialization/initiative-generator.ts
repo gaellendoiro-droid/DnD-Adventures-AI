@@ -64,7 +64,8 @@ export class InitiativeGenerator {
             const roll = await diceRollerTool({ roller: rollerName, rollNotation, description: 'Iniciativa' });
             initiativeDiceRolls.push(roll);
 
-            const combatantType = combatant.entityType === 'player' ? 'ally' : 'enemy';
+            // Use 'player' for player-side combatants, 'npc' for enemies (matches Combatant interface)
+            const combatantType = combatant.entityType === 'player' ? 'player' : 'npc';
             initiativeRolls.push({
                 id: combatant.id, // This is uniqueId for enemies
                 name: combatant.name,
@@ -92,8 +93,8 @@ export class InitiativeGenerator {
     ): Combatant[] {
         // First, create all combatants
         const combatants = initiativeRolls.map(r => {
-            // Check if this is an enemy by type (enemies have type: 'enemy', players/companions have type: 'ally')
-            const isEnemy = r.type === 'enemy';
+            // Check if this is an enemy by type (enemies have type: 'npc', players/companions have type: 'player')
+            const isEnemy = r.type === 'npc';
             let displayName = r.name;
 
             if (isEnemy) {

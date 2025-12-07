@@ -10,8 +10,6 @@ import { executePromptWithRetry } from '../flows/retry-utils';
 import {
   EnemyTacticianInputSchema,
   EnemyTacticianOutputSchema,
-  type EnemyTacticianInput,
-  type EnemyTacticianOutput,
 } from './combat/tactician-schemas';
 
 const enemyTacticianPrompt = ai.definePrompt({

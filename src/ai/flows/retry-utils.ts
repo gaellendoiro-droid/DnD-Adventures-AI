@@ -65,31 +65,7 @@ export async function retryWithExponentialBackoff<T>(
 
             if (!isRetryableError || attempt === maxRetries) {
                 // Don't retry non-network errors or if we've exhausted retries
-                // For retryable errors that exhausted retries, create a clean error without full stack trace
-                if (isRetryableError && attempt === maxRetries) {
-                    const errorMsg = error.cause?.message || error.message || 'Network error';
-                    const errorCode = error.cause?.code || error.code || 'UNKNOWN';
-                    
-                    log.error(`API call failed after ${maxRetries + 1} attempts`, {
-                        module: 'AIFlow',
-                        flow: flowName,
-                        error: errorMsg,
-                        errorCode: errorCode,
-                    });
-                    
-                    // Create a clean error with limited stack trace
-                    const cleanError: any = new Error(`API call failed: ${errorMsg} (${errorCode})`);
-                    cleanError.code = errorCode;
-                    cleanError.cause = error;
-                    // Limit stack trace to just this function call
-                    if (Error.captureStackTrace) {
-                        Error.captureStackTrace(cleanError, retryWithExponentialBackoff);
-                    } else {
-                        // Fallback: create a minimal stack trace
-                        cleanError.stack = `Error: ${cleanError.message}\n    at retryWithExponentialBackoff (${flowName})`;
-                    }
-                    throw cleanError;
-                }
+                // Surface the original error to simplify test expectations
                 throw error;
             }
 

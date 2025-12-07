@@ -5,7 +5,7 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 **Nota:** Para ver las mejoras ya implementadas, consulta el [CHANGELOG.md](../CHANGELOG.md).  
 **Histórico de roadmap:** Las iniciativas finalizadas viven ahora en [`docs/roadmap-historico.md`](./roadmap-historico.md).
 
-**Última actualización:** 2025-11-27  
+**Última actualización:** 2025-01-24  
 **Estado:** Enfocado solo en iniciativas activas. Los elementos completados se movieron al histórico para simplificar la planificación.
 
 ---
@@ -14,13 +14,14 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 
 ### 🔴 Prioridad Muy Alta
 - [1. Sistema de Movimiento y Conciencia Espacial](#roadmap-1) - **COMPLETADO (2025-11-30)**
+- [1.2. Sistema de Conexiones Persistentes para APIs](#roadmap-1-2)
 
 ### 🔴 Prioridad Alta
 - [2. Sistema de Progresión y Gestión](#roadmap-2)
 - [3. Sistema de Inicio de Combate Dinámico](#roadmap-3) - ✅ **COMPLETADO (2025-12-03)**
 - [4. Mejora de Estructura de Fichas de Personajes en la UI](#roadmap-4)
 - [5. Sistema de Modos de Juego Diferenciados](#roadmap-5)
-- [6. Revisiones de Sistema de Combate](#roadmap-6)
+- [6. Revisiones de Sistema de Combate](#roadmap-6) - ✅ **COMPLETADO (2025-12-07)**
 - [7. Integración de Google File Search (RAG Automatizado)](#roadmap-7)
 
 ### 🟡 Prioridad Media
@@ -36,6 +37,7 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 - [19. Convertidor de PDF a JSON - Aplicación Auxiliar](#roadmap-19-convertidor)
 - [20. Música y Sonido Dinámicos](#roadmap-20-musica)
 - [21. Mejoras del Sistema de Inicio de Combate Dinámico](#roadmap-21-combate-dinamico)
+- [22. Persistencia general de mutaciones de localización](#roadmap-22-persistencia-localizaciones)
 
 ### 🟢 Prioridad Baja
 - [18. Mejoras de Interfaz de Usuario](#roadmap-18-ui)
@@ -81,6 +83,37 @@ Mejoras críticas que mejoran significativamente la arquitectura, mantenibilidad
 *   **Mejora Implementada:** Un sistema completo de gestión de conocimiento del mapa y peligros que añade profundidad táctica y tensión narrativa.
 *   **Impacto:** Aumenta significativamente la inmersión y el realismo de la exploración de mazmorras.
 *   **Plan Detallado:** ✅ [Plan Completado](../docs/planes-desarrollo/completados/sistema-exploracion-mazmorras.md)
+
+<a id="roadmap-1-2"></a>
+### 1.2. Sistema de Conexiones Persistentes para APIs
+*   **Problema Actual:** En cada llamada que necesita usar la IA se está estableciendo una nueva conexión HTTP que muchas veces falla a la primera y hay que volver a intentar. El sistema actual usa `fetch` nativo de Node.js que no mantiene conexiones persistentes entre llamadas, causando:
+    *   **Timeouts frecuentes:** Cada llamada debe establecer una nueva conexión TCP/TLS, lo que añade latencia significativa (10+ segundos en algunos casos)
+    *   **Fallos en el primer intento:** Las conexiones nuevas tienen mayor probabilidad de fallar, requiriendo múltiples reintentos
+    *   **Overhead innecesario:** El handshake TLS y la negociación HTTP se repiten en cada llamada
+    *   **Impacto en rendimiento:** Los tiempos de respuesta son más lentos de lo necesario, especialmente en llamadas frecuentes a APIs (Gemini, Eleven Labs, D&D API)
+*   **Mejora Propuesta:**
+    *   **Cliente HTTP con Pool de Conexiones:** Implementar un cliente HTTP centralizado que use `undici` (incluido en Node.js 18+) con agentes HTTP que mantengan pools de conexiones persistentes (keep-alive) para cada dominio de API
+    *   **Reutilización de Conexiones:** Cada dominio (Gemini, Eleven Labs, D&D API) tendría su propio pool de conexiones que se reutilizan entre llamadas, evitando el overhead de establecer nuevas conexiones
+    *   **Configuración Optimizada:** Configurar timeouts de keep-alive apropiados (10-60 segundos) para mantener conexiones abiertas durante períodos de inactividad razonables
+    *   **Compatibilidad con Fetch API:** El cliente debe ser compatible con la API estándar de `fetch` para facilitar la migración del código existente
+    *   **Gestión Automática:** El sistema debe gestionar automáticamente el ciclo de vida de las conexiones (creación, reutilización, cierre después de inactividad)
+*   **APIs Afectadas:**
+    *   **Google Gemini API:** Llamadas frecuentes desde Genkit para generación de contenido
+    *   **Eleven Labs API:** Llamadas para generación de audio TTS
+    *   **D&D 5e API:** Llamadas para búsqueda de información de monstruos, hechizos y reglas
+*   **Beneficios Esperados:**
+    *   **Reducción de Latencia:** Eliminación del overhead de establecer conexiones nuevas (reducción estimada de 50-80% en tiempo de conexión)
+    *   **Menos Fallos:** Las conexiones persistentes son más estables y tienen menor probabilidad de fallar en el primer intento
+    *   **Mejor Rendimiento:** Tiempos de respuesta más rápidos, especialmente en secuencias de múltiples llamadas
+    *   **Menos Reintentos:** Al reducir los fallos iniciales, se necesitarán menos reintentos, ahorrando tokens y tiempo
+    *   **Mejor Experiencia de Usuario:** Respuestas más rápidas y consistentes del sistema
+*   **Consideraciones Técnicas:**
+    *   **undici como Base:** Node.js 18+ incluye `undici` como dependencia, que soporta HTTP/1.1 keep-alive y HTTP/2 nativamente
+    *   **Pool por Dominio:** Cada dominio de API debe tener su propio pool de conexiones para evitar conflictos
+    *   **Limpieza Automática:** Las conexiones deben cerrarse automáticamente después de períodos de inactividad para liberar recursos
+    *   **Compatibilidad:** El sistema debe mantener compatibilidad con el código existente que usa `fetch` o `retryWithExponentialBackoff`
+*   **Impacto:** Crítico para mejorar la estabilidad y rendimiento del sistema. Reduce significativamente los tiempos de respuesta y los fallos de conexión, mejorando la experiencia general del usuario y reduciendo costos de reintentos.
+*   **Plan Detallado:** ❌ No creado
 
 ## 🔴 Prioridad Alta
 
@@ -150,7 +183,8 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
     *   **Comprobar Sistema de Tiradas de Dados y Notación en Panel Tiradas:** Verificar que las notaciones de tiradas se muestran correctamente y que el desglose de modificadores es preciso. Asegurar que la información mostrada en el panel de tiradas es clara y consistente con los cálculos reales.
     *   **Verificar Datos Conocidos por Enemigos al Decidir Acciones:** Comprobar que los tacticians de enemigos tienen acceso a toda la información necesaria (HP, AC, habilidades, estado de los aventureros) para tomar decisiones tácticas adecuadas. Asegurar que la información proporcionada a la IA es completa y precisa.
 *   **Impacto:** Mejora el flujo de combate, reduce ruido visual y mejora la experiencia del jugador.
-*   **Plan Detallado:** ❌ No creado
+*   **Plan Detallado:** ✅ Completado ([Refactorización: Modularidad del Sistema de Combate](planes-desarrollo/completados/refactorizacion-modularidad-sistema-combate.md))
+*   **Estado:** FSM estabilizada, modularización completa (InteractionHandler, ExplorationContextBuilder, CombatInitiationService, CombatTriggerEvaluator), fin automático de combate con pill de victoria y uso preferente de AC/HP del JSON.
 *   **Referencia:** [Notas de Gael - #102, #104, #109, #122, #123](../notas/Notas%20de%20Gael.md)
 
 <a id="roadmap-7"></a>
@@ -518,6 +552,17 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Relacionado con:** 
     *   [Sistema de Inicio de Combate Dinámico](../planes-desarrollo/completados/sistema-inicio-combate-dinamico.md) - Plan completado, mejoras futuras documentadas
 *   **Plan Detallado:** ❌ No creado
+
+<a id="roadmap-22-persistencia-localizaciones"></a>
+### 22. Persistencia general de mutaciones de localización
+* **Estado Actual:** Solo se persisten puertas (`openDoors`). Cambios ambientales (ventanas abiertas, árboles caídos, cofres movidos) no se guardan ni se reinyectan en la narración tras abandonar y volver.
+* **Mejora Propuesta:**
+  * Definir un estado genérico por localización (`locationState[locationId]`) para mutaciones (aperturas/cierres, objetos movidos o destruidos).
+  * Integrar ese estado en `gameCoordinator` / `ExplorationContextBuilder`, aplicándolo al `locationContext` antes de narrar.
+  * Añadir herramientas de mutación desde interacciones (similar a `openDoors`) y tests de regresión para persistencia de cambios ambientales.
+* **Impacto:** Coherencia del mundo y narraciones consistentes al volver a zonas alteradas por el jugador.
+* **Prioridad:** Media
+* **Plan Detallado:** ❌ No creado
 
 ---
 

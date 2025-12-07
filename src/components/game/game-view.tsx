@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { Character, GameMessage, DiceRoll, InitiativeRoll, Combatant, VolumeSettings } from "@/lib/types";
+import { type Character, type GameMessage, type DiceRoll, type InitiativeRoll, type Combatant, type VolumeSettings, CombatPhase } from "@/lib/types";
 import { GameLayout } from "@/components/game/game-layout";
 import { LeftPanel } from "@/components/layout/left-panel";
 import { CharacterSheet } from "@/components/game/character-sheet";
@@ -78,14 +78,20 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
   // debugMessages removed
   const [turnIndex, setTurnIndex] = useState(initialData.turnIndex || 0);
   const [hasMoreAITurns, setHasMoreAITurns] = useState(false);
-  const [justProcessedAITurn, setJustProcessedAITurn] = useState(false); // Track if we just processed an AI turn (even if next is player)
+  const [combatPhase, setCombatPhase] = useState<CombatPhase>((initialData as any).phase || (initialData.inCombat ? CombatPhase.WAITING_FOR_ACTION : CombatPhase.SETUP));
   const [autoAdvancing, setAutoAdvancing] = useState(false);
-  const [playerActionCompleted, setPlayerActionCompleted] = useState(false); // Track if player has already acted this turn
   const [isPartyPanelCollapsed, setIsPartyPanelCollapsed] = useState(false); // Track if party panel is collapsed
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
   const [openDoors, setOpenDoors] = useState<Record<string, boolean>>(initialData.openDoors || {});
+  
+  // Derived state for UI logic based purely on Combat Phase (FSM)
+  // This simplifies logic and avoids synchronization issues with backend flags
+  const showPassTurnButtons = combatPhase === CombatPhase.ACTION_RESOLVED;
+  const playerActionCompleted = combatPhase === CombatPhase.ACTION_RESOLVED && initiativeOrder[turnIndex]?.controlledBy === 'Player';
+  const justProcessedAITurn = combatPhase === CombatPhase.ACTION_RESOLVED && initiativeOrder[turnIndex]?.controlledBy !== 'Player';
   const autoAdvancingRef = useRef(false); // Use ref for synchronous access
+  const combatPhaseRef = useRef<CombatPhase>((initialData as any).phase || (initialData.inCombat ? CombatPhase.WAITING_FOR_ACTION : CombatPhase.SETUP));
   const turnIndexRef = useRef(initialData.turnIndex || 0); // Use ref for synchronous access
   const initiativeOrderRef = useRef<Combatant[]>(initialData.initiativeOrder || []); // Use ref for synchronous access
   const enemiesRef = useRef<any[]>(initialData.enemies || []); // Deprecated: kept for backward compatibility
@@ -114,7 +120,8 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     inCombatRef.current = inCombat;
     messagesRef.current = messages;
     selectedCharacterRef.current = selectedCharacter;
-  }, [initiativeOrder, enemies, enemiesByLocation, openDoors, party, locationId, inCombat, messages, selectedCharacter]);
+    combatPhaseRef.current = combatPhase;
+  }, [initiativeOrder, enemies, enemiesByLocation, openDoors, party, locationId, inCombat, messages, selectedCharacter, combatPhase]);
 
   // addDebugMessages removed
 
@@ -147,6 +154,8 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     setEnemies(initialData.enemies || []); // Deprecated: kept for backward compatibility
     setEnemiesByLocation(initialData.enemiesByLocation || {});
     setOpenDoors(initialData.openDoors || {});
+    setCombatPhase((initialData as any).phase || (initialData.inCombat ? CombatPhase.WAITING_FOR_ACTION : CombatPhase.SETUP));
+    combatPhaseRef.current = (initialData as any).phase || (initialData.inCombat ? CombatPhase.WAITING_FOR_ACTION : CombatPhase.SETUP);
     // setDebugMessages([]);
     // Sync refs with initial data
     turnIndexRef.current = initialData.turnIndex || 0;
@@ -349,6 +358,7 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
         inCombat: inCombatRef.current,
         conversationHistory,
         turnIndex: turnIndexRef.current,
+        phase: combatPhaseRef.current, // Send current combat phase to backend
         initiativeOrder: initiativeOrderRef.current,
         enemies: enemiesRef.current,
         enemiesByLocation: enemiesByLocationRef.current,
@@ -627,104 +637,44 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
         }
       }
 
-      // Step-by-step combat: Update hasMoreAITurns state
-      if (result.hasMoreAITurns !== undefined) {
-        logClient.uiEvent('GameView', 'Updating hasMoreAITurns', {
-          previousHasMoreAITurns: hasMoreAITurns,
-          newHasMoreAITurns: result.hasMoreAITurns,
-          lastProcessedTurnWasAI: result.lastProcessedTurnWasAI,
-          playerActionCompleted: result.playerActionCompleted,
-          inCombat: inCombatRef.current,
-          turnIndex: result.turnIndex,
-        });
-
-        setHasMoreAITurns(result.hasMoreAITurns);
-
-        // NEW SIMPLE LOGIC: Use the explicit flag from backend
-        // If an AI turn was just processed, we need to pause and show the "Pasar 1 Turno" button.
-        if (result.lastProcessedTurnWasAI && inCombatRef.current) {
-          logClient.uiEvent('GameView', 'Setting justProcessedAITurn=true', {
-            reason: 'Backend explicitly reported AI turn was processed',
-            lastProcessedTurnIndex: result.lastProcessedTurnIndex,
-          });
-          setJustProcessedAITurn(true);
-        } else {
-          logClient.uiEvent('GameView', 'Setting justProcessedAITurn=false', {
-            reason: 'Backend reported no AI turn was processed',
-          });
-          setJustProcessedAITurn(false);
-        }
-
-        // Issue #80: Track if player has completed their action
-        if (result.playerActionCompleted !== undefined) {
-          setPlayerActionCompleted(result.playerActionCompleted);
-          logClient.uiEvent('GameView', 'Player action completed flag', {
-            playerActionCompleted: result.playerActionCompleted,
-          });
-        }
-
-        // If in auto-advance mode and there are more AI turns, continue automatically
-        // Use ref for synchronous access to autoAdvancing state
-        if (result.hasMoreAITurns && autoAdvancingRef.current) {
-          // addDebugMessages([`Auto-advancing to next AI turn in 1.5 seconds...`]);
-          logClient.uiEvent('GameView', 'Step-by-step combat: Auto-advancing', {
-            currentTurnIndex: result.turnIndex,
-            hasMoreAITurns: result.hasMoreAITurns,
-            autoAdvancing: autoAdvancingRef.current,
-          });
-
-          // Store the hasMoreAITurns value from this result
-          const shouldContinue = result.hasMoreAITurns;
-
-          setTimeout(() => {
-            // Check again before continuing (in case user cancelled or combat ended)
-            if (autoAdvancingRef.current && shouldContinue) {
-              // addDebugMessages([`Auto-continuing to next AI turn...`]);
-              handleSendMessage('continuar turno', { isContinuation: true });
-            } else {
-              // addDebugMessages([`Auto-advance cancelled or no more turns.`]);
-              autoAdvancingRef.current = false;
-              setAutoAdvancing(false);
-            }
-          }, 1500);
-        } else if (!result.hasMoreAITurns) {
-          const shouldSnapToPlayerTurn = autoAdvancingRef.current && inCombatRef.current && turnIndexRef.current !== undefined;
-
-          // Combat reached player's turn or ended, exit auto-advance mode
-          autoAdvancingRef.current = false;
-          setAutoAdvancing(false);
-
-          if (shouldSnapToPlayerTurn) {
-            const playerTurnIndex = turnIndexRef.current!;
-            const playerCombatant = initiativeOrderRef.current[playerTurnIndex];
-
-            logClient.uiEvent('GameView', 'Auto-advance finished on player turn', {
-              playerTurnIndex,
-              playerCombatant: playerCombatant?.characterName || 'Unknown',
-              lastProcessedTurnWasAI: result.lastProcessedTurnWasAI,
-              hasMoreAITurns: result.hasMoreAITurns,
-            });
-
-            // addDebugMessages([`Auto-avance completado. Turno del jugador: ${playerCombatant?.characterName ?? 'Desconocido'}.`]);
-            setTurnIndex(playerTurnIndex);
-            setJustProcessedAITurn(false);
-          }
-        } else {
-          // There are more AI turns
-          // The turnIndex visual should already be updated if isContinuation is true
-          // (handled in the earlier turnIndex update logic)
-        }
-      } else {
-        // No hasMoreAITurns field, assume no more AI turns
-        setHasMoreAITurns(false);
-        setJustProcessedAITurn(false);
-        autoAdvancingRef.current = false;
-        setAutoAdvancing(false);
-        // NOTE: We do NOT update turnIndex here.
-        // The turnIndex was already set earlier based on whether an AI turn was processed.
-        // Updating it here would overwrite that carefully calculated value.
+      // Step-by-step combat: Update Combat Phase from FSM
+      if (result.phase) {
+        logClient.uiEvent('GameView', 'Updating Combat Phase', { phase: result.phase });
+        setCombatPhase(result.phase);
       }
 
+      // Handle Auto-Advance logic based on FSM state
+      if (autoAdvancingRef.current) {
+        // If we are in ACTION_RESOLVED and not player turn (or player turn auto-skip?), continue
+        // Actually, auto-advance usually applies to AI turns.
+        // If phase is ACTION_RESOLVED and current turn is NOT player, we continue.
+        
+        // We need to look at the turn that JUST completed. 
+        // If result.lastProcessedTurnWasAI is true, it means we just finished an AI turn.
+        // OR if the current phase is ACTION_RESOLVED and the active combatant (before advance) was AI.
+        
+        // Simplified Logic: If backend says "lastProcessedTurnWasAI", we auto-advance.
+        // This is safe because backend controls the flow.
+        
+        if (result.lastProcessedTurnWasAI) {
+             logClient.uiEvent('GameView', 'Auto-advancing AI turn', {
+                turnIndex: result.turnIndex,
+             });
+             
+             setTimeout(() => {
+                if (autoAdvancingRef.current) {
+                  handleSendMessage('continuar turno', { isContinuation: true });
+                }
+             }, 1500);
+        } else {
+             // Stop auto-advance if it wasn't an AI turn (e.g. Player turn reached or Combat End)
+             logClient.uiEvent('GameView', 'Stopping auto-advance (Not AI turn)', {
+                turnIndex: result.turnIndex,
+             });
+             autoAdvancingRef.current = false;
+             setAutoAdvancing(false);
+        }
+      }
     } catch (error: any) {
       logClient.uiError('GameView', 'Error processing action', error, {
         action: content,
@@ -740,7 +690,6 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
       // Reset auto-advance mode on error
       autoAdvancingRef.current = false;
       setAutoAdvancing(false);
-      setHasMoreAITurns(false);
     } finally {
       setIsDMThinking(false);
     }
@@ -759,64 +708,49 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
 
   const handlePassTurn = useCallback(() => {
     const currentCombatant = initiativeOrderRef.current[turnIndex]?.characterName || 'Unknown';
-    const nextCombatant = turnIndexRef.current !== undefined
-      ? initiativeOrderRef.current[turnIndexRef.current]?.characterName || 'Unknown'
-      : 'Unknown';
+    const nextIndexVisual = initiativeOrderRef.current.length > 0
+      ? (turnIndexRef.current + 1) % initiativeOrderRef.current.length
+      : turnIndexRef.current;
+    const nextCombatant = initiativeOrderRef.current[nextIndexVisual]?.characterName || 'Unknown';
 
     logClient.uiEvent('GameView', 'Pasar 1 Turno clicked', {
       currentTurnIndex: turnIndex,
       currentCombatant,
-      nextTurnIndex: turnIndexRef.current,
+      nextTurnIndex: nextIndexVisual,
       nextCombatant,
-      hasMoreAITurns,
-      justProcessedAITurn,
+      phase: combatPhase,
+      showPassTurnButtons,
       inCombat: inCombatRef.current,
-      initiativeOrderLength: initiativeOrderRef.current.length,
-      initiativeOrder: initiativeOrderRef.current.map((c, i) => ({
-        index: i,
-        name: c.characterName,
-        controlledBy: c.controlledBy,
-        isCurrent: i === turnIndex,
-        isNext: i === turnIndexRef.current,
-      })),
     });
 
-    // 1. Visually advance the turn indicator to the character whose turn is *next*.
-    if (turnIndexRef.current !== undefined) {
-      logClient.uiEvent('GameView', 'Updating visual turnIndex', {
-        from: turnIndex,
-        to: turnIndexRef.current,
-        combatant: nextCombatant,
-      });
-      setTurnIndex(turnIndexRef.current);
-    }
+    // 1. Visually advance the turn indicator immediately to the next combatant.
+    logClient.uiEvent('GameView', 'Updating visual turnIndex', {
+      from: turnIndex,
+      to: nextIndexVisual,
+      combatant: nextCombatant,
+    });
+    setTurnIndex(nextIndexVisual);
 
-    // 2. Hide the "Pasar 1 Turno" button.
-    setJustProcessedAITurn(false);
-
-    // 3. Reset player action flag when advancing turn
-    setPlayerActionCompleted(false);
-
-    // 4. If there are still more AI turns to process OR if player has completed their action,
-    //    send a request to the backend to advance the turn.
-    if (hasMoreAITurns || playerActionCompleted) {
+    // 2. If we are in ACTION_RESOLVED, send continue_turn to advance FSM
+    if (combatPhase === CombatPhase.ACTION_RESOLVED) {
       logClient.uiEvent('GameView', 'Sending continuar turno request', {
-        reason: hasMoreAITurns ? 'hasMoreAITurns is true' : 'playerActionCompleted is true',
+        reason: 'Phase is ACTION_RESOLVED',
+        phase: combatPhase,
         nextTurnIndex: turnIndexRef.current,
         nextCombatant,
       });
       handleSendMessage('continuar turno', { isContinuation: true });
     } else {
       logClient.uiEvent('GameView', 'NOT sending continuar turno request', {
-        reason: 'hasMoreAITurns and playerActionCompleted are both false',
+        reason: 'Phase is not ACTION_RESOLVED',
+        phase: combatPhase
       });
     }
-  }, [turnIndex, hasMoreAITurns, justProcessedAITurn, playerActionCompleted, handleSendMessage]);
+  }, [turnIndex, combatPhase, showPassTurnButtons, handleSendMessage]);
 
   const handleAdvanceAll = useCallback(() => {
     logClient.uiEvent('GameView', 'Avance automático clicked', {
       turnIndex,
-      hasMoreAITurns,
     });
 
     // Enable auto-advance mode
@@ -825,7 +759,7 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
 
     // Execute pass turn logic to start the chain
     handlePassTurn();
-  }, [turnIndex, hasMoreAITurns, handlePassTurn]);
+  }, [turnIndex, handlePassTurn]);
 
   const handleInternalSaveGame = useCallback(() => {
     const saveData = { savedAt: new Date().toISOString(), party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex, openDoors };
@@ -924,8 +858,8 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
           onSendMessage={handleSendMessage}
           isThinking={isDMThinking}
           inCombat={inCombat}
-          hasMoreAITurns={hasMoreAITurns}
-          justProcessedAITurn={justProcessedAITurn}
+          hasMoreAITurns={false} // Deprecated, relying on FSM phase now
+          justProcessedAITurn={showPassTurnButtons} // Unified flag for showing buttons
           autoAdvancing={autoAdvancing}
           playerActionCompleted={playerActionCompleted}
           isPlayerTurn={isPlayerTurn}

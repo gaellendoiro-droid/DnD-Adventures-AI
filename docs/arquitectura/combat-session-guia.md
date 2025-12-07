@@ -1,13 +1,13 @@
 # Guía de Uso: CombatSession
 
-**Última actualización:** 2025-01-20  
+**Última actualización:** 2025-12-06  
 **Estado:** ✅ Actualizado
 
 ---
 
 ## 📋 Resumen
 
-`CombatSession` es la clase central para gestionar el estado del combate en D&D Adventures AI. Implementa el patrón **State Object** para encapsular todo el estado del combate y proporcionar métodos limpios para manipularlo.
+`CombatSession` es la clase central para gestionar el estado del combate en D&D Adventures AI. Implementa el patrón **State Object** y una **FSM (`CombatPhase`)** para encapsular el estado y controlar transiciones de forma explícita.
 
 ---
 
@@ -29,6 +29,7 @@ const input: CombatManagerInput = {
   locationId: 'forest-1',
   messages: [],
   diceRolls: [],
+  phase: 'SETUP', // usar el phase recibido del cliente/FSM
 };
 
 const session = CombatSession.fromInput(input);
@@ -82,6 +83,10 @@ await session.processCurrentTurn(
 const output = session.toJSON();
 // output es compatible con CombatManagerOutputSchema
 ```
+
+> Notas rápidas:
+> - `phase` debe mantenerse alineado con el FSM (`CombatPhase`); el frontend reacciona a este campo.
+> - Los fixtures de test deben incluir `skills`/`savingThrows` con `modifier` y tildes en las claves (ej: `constitución`).
 
 ---
 

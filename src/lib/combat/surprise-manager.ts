@@ -15,7 +15,7 @@ import type { Combatant } from '@/lib/types';
  * Context for determining surprise.
  */
 export interface SurpriseContext {
-    /** Trigger reason from CombatTriggerManager */
+    /** Trigger reason from CombatTriggerEvaluator */
     triggerReason?: 'ambush' | 'proximity' | 'stealth_fail' | 'mimic' | 'provocation' | 'player_surprise';
     /** Whether the player initiated the attack */
     isPlayerInitiatedAttack?: boolean;

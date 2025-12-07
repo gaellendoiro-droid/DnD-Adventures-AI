@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Added / Fixed
+- Movimiento con estado estructurado: `NavigationManager` ahora devuelve `status: 'ok' | 'already_here' | 'blocked' | 'not_found'` para que el flujo narrativo sepa si realmente hubo desplazamiento.
+- Narración coherente con feedback: El Exploration Expert prioriza el `systemFeedback` (“Ya estás en…”) y evita narrar viajes inexistentes cuando el jugador ya está en la sala.
+- Estado real de enemigos en exploración: `ExplorationContextBuilder` usa primero `enemiesByLocation` (hp actualizado, muertos) antes de recurrir al JSON, eliminando combates fantasma con enemigos ya derrotados.
+- Ajuste de ambush en sala visible: Retirado el hazard de emboscada en la sala sur (goblin visible) para que el combate inicie por proximidad sin sorpresa.
+
 **DIRECTIVA DE ALTA PRIORIDAD PARA EL ASISTENTE DE IA:** Al modificar este archivo, DEBES leer primero su contenido completo y asegurarte de que tu operación de escritura sea puramente aditiva a la sección `[Unreleased]`. NUNCA debes borrar, truncar o resumir el historial de versiones existente. La violación de esta directiva se considerará un fallo crítico de funcionamiento.
 
 ---
@@ -16,6 +24,82 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ## [Unreleased]
 
 ### Added
+- Plan de refactorización de modularidad del sistema de combate cerrado (Fases 1, 2/2.5, 3 y 4), documentado en `docs/planes-desarrollo/completados/refactorizacion-modularidad-sistema-combate.md`, con plan maestro y roadmap actualizados.
+- **✅ Estabilización de tests de combate (2025-12-06):**
+  - Tests de integración y unidad alineados con el nuevo FSM (incluye `CombatPhase` en schemas front/back).
+  - Nuevos tests unitarios para `InteractionHandler` y `ExplorationContextBuilder` (Fase 3 del plan de refactorización).
+  - Ajustes de mocks de dados/tactician (`attackType`) para compatibilidad con `TurnProcessor`.
+  - Script `test` usa `vitest run` para evitar watch mode por defecto.
+### Fixed
+- Fin de combate inmediato y pill de victoria restaurada:
+  - La FSM cierra el combate en cuanto cae el último enemigo (sin requerir “continuar turno”).
+  - Se emite una tirada sintética con `outcome: 'victory'` para mostrar la pastilla verde en el panel de tiradas.
+- Estadísticas de enemigos respetan las del JSON:
+  - `EnemyValidator` ahora prioriza `stats.hp`/`stats.ac` del adventure file y solo rellena campos faltantes desde la D&D API (evita que AC vuelva a 15 si el JSON la fija en 10).
+- Puertas y triggers tras combate:
+  - Puertas abiertas marcan también la dirección recíproca en `openDoors` para permitir el regreso.
+  - Las transiciones de sala marcan las puertas usadas como abiertas (ida y vuelta).
+  - Los triggers de combate por proximidad ignoran enemigos muertos/inconscientes para evitar combates fantasma y descripciones erróneas.
+- **📦 División de `narrative-turn-manager.ts` - COMPLETADO (2025-12-05):**
+  - **Mejora:** Refactorización de `narrative-turn-manager.ts` extrayendo lógica de interacciones y exploración a módulos especializados.
+  - **Características:**
+    - ✅ **InteractionHandler:** Módulo dedicado para manejar interacciones con objetos/puertas (~200 líneas)
+      - Mapeo de interactables (nombres/acciones a IDs)
+      - Apertura de puertas con detección inteligente de dirección
+      - Detección de triggers de combate por interacción (mimics)
+      - Actualización de estados de puertas abiertas
+    - ✅ **ExplorationContextBuilder:** Módulo dedicado para construir contexto de exploración (~240 líneas)
+      - Actualización del estado de exploración (Fog of War)
+      - Detección de hazards mediante percepción pasiva
+      - Cálculo de conexiones visibles
+      - Resolución de entidades presentes
+    - ✅ **Tipos Mejorados:** `mode` y `lightLevel` ahora tienen tipos específicos (`'safe' | 'dungeon' | 'wilderness'` y `'bright' | 'dim' | 'dark'`)
+  - **Resultados:**
+    - ✅ `narrative-turn-manager.ts` reducido de ~549 líneas a ~418 líneas (~130 líneas eliminadas)
+    - ✅ Separación clara de responsabilidades
+    - ✅ Código más testeable y mantenible
+    - ✅ Reutilización de código facilitada
+  - **Archivos creados:**
+    - `src/ai/flows/managers/interaction-handler.ts` (~250 líneas)
+    - `src/ai/flows/managers/exploration-context-builder.ts` (~240 líneas)
+    - `tests/unit/managers/interaction-handler.test.ts` (18 tests, ~400 líneas)
+    - `tests/unit/managers/exploration-context-builder.test.ts` (múltiples tests, ~500 líneas)
+  - **Archivos modificados:**
+    - `src/ai/flows/managers/narrative-turn-manager.ts` (refactorizado para usar los nuevos módulos)
+  - **Tests:**
+    - ✅ 18 tests para `InteractionHandler` (todos pasando)
+    - ✅ Tests completos para `ExplorationContextBuilder` (mapeo de interactables, apertura de puertas, detección de mimics, actualización de conexiones, estado de exploración, detección de hazards, conexiones visibles, resolución de entidades)
+  - **Referencia:** Plan de Refactorización - Fase 3 (Modularidad del Sistema de Combate)
+
+- **🔄 Máquina de Estados Finita (FSM) para Sistema de Combate - COMPLETADO (2025-12-05):**
+  - **Mejora:** Refactorización completa del sistema de combate implementando una Máquina de Estados Finita (FSM) explícita para eliminar problemas de sincronización, bucles infinitos y acciones fuera de turno.
+  - **Características:**
+    - ✅ **Estados Explícitos:** Sistema de fases claramente definidas (`SETUP`, `TURN_START`, `WAITING_FOR_ACTION`, `PROCESSING_ACTION`, `ACTION_RESOLVED`, `TURN_END`, `COMBAT_END`)
+    - ✅ **Transiciones Controladas:** Método centralizado `transitionTo()` que maneja todas las transiciones de estado con validación y efectos secundarios
+    - ✅ **Pausa Obligatoria:** Cada acción (AI o Player) termina en `ACTION_RESOLVED`, requiriendo confirmación explícita del usuario antes de avanzar
+    - ✅ **Manejo Unificado de Sorpresa:** La sorpresa se maneja explícitamente en `TURN_START`, mostrando mensaje y saltando directamente a `ACTION_RESOLVED`
+    - ✅ **Eliminación de Flags Redundantes:** Reemplazo de `turnCompleted`, `playerActionCompleted`, `waitingForPlayerConfirmation` por el estado `phase` único
+    - ✅ **Frontend Simplificado:** El frontend ahora reacciona a `combatPhase` en lugar de múltiples flags booleanos
+    - ✅ **Eliminación de Lógica Compleja:** Removidas ~100 líneas de lógica condicional compleja en favor de derivación simple de estado
+    - ✅ **Robustez Mejorada:** Sistema funciona incluso si la fase se pierde durante serialización (medidas de seguridad)
+  - **Problemas Resueltos:**
+    - ✅ Eliminados bucles infinitos en turnos de AI
+    - ✅ Eliminados saltos automáticos de turnos sin confirmación
+    - ✅ Eliminada confusión entre turnos de AI y Player
+    - ✅ Eliminada lógica de "predicción" del siguiente turno
+    - ✅ Eliminada desincronización de fase entre cliente/servidor
+    - ✅ Eliminada re-entrada en `handleTurnStart` causando bucles
+    - ✅ Eliminada pérdida de fase durante serialización (añadido `phase` a todos los schemas)
+  - **Archivos modificados:**
+    - `src/lib/types.ts` (Añadido enum `CombatPhase`)
+    - `src/ai/tools/combat-manager.ts` (Añadido `phase` a schemas de input/output)
+    - `src/ai/flows/schemas.ts` (Añadido `phase` a `GameStateSchema` y `GameCoordinatorOutputSchema`)
+    - `src/lib/combat/combat-session.ts` (Refactorización completa a FSM, eliminación de métodos ad-hoc, ~200 líneas modificadas)
+    - `src/lib/combat/turn-manager.ts` (Eliminada lógica de sorpresa redundante)
+    - `src/components/game/game-view.tsx` (Simplificación completa, eliminación de flags redundantes, ~150 líneas simplificadas)
+    - `src/app/actions.ts` (Añadido logging de `phase` para debugging)
+  - **Referencia:** Plan de Refactorización - Fase 2.5 (Modularidad del Sistema de Combate)
+
 - **⚔️ Sistema de Inicio de Combate Dinámico - COMPLETADO (2025-12-03):**
   - **Mejora:** Sistema completo que permite que el mundo reaccione automáticamente a las acciones del jugador, iniciando combate cuando la narrativa o la lógica lo requieren.
   - **Fase 1: Emboscadas (2025-12-01):**
@@ -59,6 +143,28 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
     - `src/ai/flows/managers/navigation-manager.ts` (Validación de puertas cerradas)
     - `tests/unit/combat/combat-trigger-manager.test.ts` (Tests unitarios completos)
   - **Referencia:** [Plan Completado](../docs/planes-desarrollo/completados/sistema-inicio-combate-dinamico.md)
+
+### Changed
+- **🧪 Suite de tests de combate e integración actualizada (2025-12-06):**
+  - Tests de integración (`combat-manager`, `combat-initializer`) mockean dependencias externas (Gemini) y se sincronizan con el FSM.
+  - Aserciones relajadas en flujos de DI para evitar falsos negativos cuando el FSM mantiene `inCombat`.
+  - Añadidos `attackType` y normalización de skills/saving throws en fixtures para cumplir esquemas.
+- **📝 Mejoras en el Formato de Logs (2025-12-05):**
+  - **Mejora:** Refactorización del formato de logs para mejorar la legibilidad y consistencia.
+  - **Cambios en el formato:**
+    - ✅ **Reordenamiento:** El módulo `[ModuleName]` ahora aparece después del nivel de log (INFO/WARN/ERROR) y antes del mensaje, en lugar de al final.
+    - ✅ **Separador visual:** Los campos de contexto ahora están separados del mensaje con un guion (`-`) para mejor legibilidad.
+    - ✅ **Formato de valores mejorado:** Manejo explícito de `null`, `undefined` y booleanos con representación clara.
+    - ✅ **Truncado inteligente:** Strings largos se truncan a 100 caracteres y objetos JSON a 200 caracteres para evitar líneas excesivamente largas.
+    - ✅ **Formato de objetos:** Objetos y arrays se serializan en JSON compacto pero legible.
+    - ✅ **Colores sutiles:** Los campos de contexto usan color tenue en terminales con soporte de colores para diferenciarlos visualmente del mensaje principal.
+    - ✅ **Orden alfabético:** Los campos de contexto se ordenan alfabéticamente para consistencia y fácil búsqueda.
+  - **Ejemplo del cambio:**
+    - **Antes:** `2025-12-05 19:59:23.923 INFO  Adventure data cache updated and persisted [GameState] adventureId=test-ambush locationsCount=5 entitiesCount=5`
+    - **Después:** `2025-12-05 19:59:23.923 INFO [GameState] Adventure data cache updated and persisted - adventureId=test-ambush entitiesCount=5 locationsCount=5`
+  - **Archivos modificados:**
+    - `src/lib/logger.ts` (Refactorización de `formatOtherFields` y nuevo método `formatValue`)
+    - `src/lib/logger-client.ts` (Mismas mejoras aplicadas al logger del cliente)
 
 ## [0.5.95] - 2025-12-01
 

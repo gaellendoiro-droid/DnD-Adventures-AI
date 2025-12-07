@@ -58,6 +58,16 @@ export interface InitiativeRoll {
   type: 'player' | 'npc';
 }
 
+export enum CombatPhase {
+  SETUP = 'SETUP',                    // Combat starts
+  TURN_START = 'TURN_START',          // Turn starts (evaluate conditions)
+  WAITING_FOR_ACTION = 'WAITING_FOR_ACTION', // Waiting for input (Player or AI)
+  PROCESSING_ACTION = 'PROCESSING_ACTION',   // Executing action
+  ACTION_RESOLVED = 'ACTION_RESOLVED',       // Action finished, showing results (Pause)
+  TURN_END = 'TURN_END',              // Turn ends (cleanup)
+  COMBAT_END = 'COMBAT_END'           // Combat ends
+}
+
 export interface Combatant {
   id: string;
   characterName: string;

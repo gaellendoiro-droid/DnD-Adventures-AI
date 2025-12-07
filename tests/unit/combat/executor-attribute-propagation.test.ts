@@ -54,13 +54,21 @@ describe('CombatActionExecutor - Attribute Used Propagation', () => {
                 ]
             },
             party: [character],
-            enemies: [{ id: 'target-id', name: 'Goblin', hp: { current: 10, max: 10 }, ac: 10 }] as any[],
+            enemies: [{ id: 'target-id', uniqueId: 'target-id', name: 'Goblin', hp: { current: 10, max: 10 }, ac: 10 }] as any[],
             initiativeOrder: [],
             diceRollerTool: diceRollerMock,
             updateRollNotationWithModifiers: updateNotationMock
         };
 
-        await CombatActionExecutor.execute(input);
+        const result = await CombatActionExecutor.execute(input);
+
+        // First verify the action executed successfully
+        if (!result.success) {
+            console.error('Action execution failed:', result.error);
+            console.error('Result:', JSON.stringify(result, null, 2));
+        }
+        expect(result.success).toBe(true);
+        expect(result.error).toBeUndefined();
 
         // Verify diceRollerTool was called with attributeUsed
         expect(diceRollerMock).toHaveBeenCalledWith(expect.objectContaining({

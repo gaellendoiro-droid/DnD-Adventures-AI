@@ -335,7 +335,7 @@ export const initialParty: Character[] = [
     },
     proficiencyBonus: 2, // Nivel 1: BC +2
     hp: { current: 20, max: 20 }, // Corregido: Clériga nivel 1 (8) + CON mod (2) = 10
-    ac: 13, // Corregido: Armadura de escamas (14) + DES mod (-1) = 13
+    ac: 16, // Armadura de escamas (14) + Escudo (2) = 16
     speed: 30, // Semielfa base
     initiative: -1, // Modificador de Destreza
     savingThrows: {

@@ -4,7 +4,7 @@
 import type { Combatant } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CardHeader, CardTitle } from "@/components/ui/card";
-import { Swords, User, Users, Skull, Activity } from "lucide-react";
+import { Swords, User, Users, Skull, Activity, AlertTriangle } from "lucide-react";
 import { Badge } from "../ui/badge";
 
 interface InitiativeTrackerProps {
@@ -38,6 +38,7 @@ export function InitiativeTracker({
                 const isActive = index === currentTurnIndex;
                 const isDead = combatant.status === 'dead';
                 const isUnconscious = combatant.status === 'unconscious';
+                const isSurprised = combatant.isSurprised;
 
                 return (
                   <li
@@ -58,6 +59,9 @@ export function InitiativeTracker({
                         )}
                         {isUnconscious && (
                           <Activity className="h-3.5 w-3.5 text-orange-500" />
+                        )}
+                        {isSurprised && !isDead && !isUnconscious && (
+                          <AlertTriangle className="h-3.5 w-3.5 text-yellow-500" title="Sorprendido" />
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">

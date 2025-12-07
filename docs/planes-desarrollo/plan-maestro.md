@@ -11,7 +11,7 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 ## 📋 Índice de Planes
 
 - [🚧 Planes en Curso](#-planes-en-curso) (0 planes activos)
-- [✅ Planes Completados](#-planes-completados) (21 planes)
+- [✅ Planes Completados](#-planes-completados) (24 planes)
 - [💡 Planes Sin Comenzar](#-planes-sin-comenzar-priorizados) (11 planes)
 - [🎯 Prioridades Estratégicas](#-prioridades-estratégicas)
 - [📊 Resumen Ejecutivo](#-resumen-ejecutivo)
@@ -28,9 +28,21 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 23 planes
+**Estado:** Finalizados | **Cantidad:** 24 planes
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Refactorización: Modularidad del Sistema de Combate](completados/refactorizacion-modularidad-sistema-combate.md) ✅ **COMPLETADO**
+- **Estado:** Implementado y documentado (Fases 1, 2/2.5, 3 y 4)
+- **Objetivo:** Modularizar el sistema de combate con FSM, gestión centralizada de enemigos y triggers, y separación de responsabilidades (InteractionHandler, ExplorationContextBuilder, CombatInitiationService).
+- **Prioridad:** Muy Alta
+- **Resultados:**
+  - ✅ FSM estabilizada con fin automático de combate y pill de victoria.
+  - ✅ AC/HP respetan el JSON de aventura; se evita sobrescritura por la D&D API.
+  - ✅ Puertas y exploración coherentes con `openDoors` bidireccional y `enemiesByLocation` (sin combates fantasma).
+  - ✅ Reorganización final: `CombatTriggerEvaluator` en `lib/combat/trigger`, barrel `lib/combat/index.ts`, imports actualizados.
+- **Fecha de finalización:** 2025-12-07
+- **Referencia:** [Plan Detallado](completados/refactorizacion-modularidad-sistema-combate.md)
 
 ### [Sistema de Exploración de Mazmorras (Fase 2)](completados/sistema-exploracion-mazmorras.md) ✅ **COMPLETADO**
 - **Estado:** Implementado y Documentado

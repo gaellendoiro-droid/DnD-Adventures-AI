@@ -5,7 +5,7 @@
 
 import { z } from 'zod';
 import { CharacterSchema, CharacterSummarySchema } from '@/lib/schemas';
-import type { GameMessage, Combatant } from '@/lib/types';
+import { type GameMessage, type Combatant, CombatPhase } from '@/lib/types';
 
 // Schema for the action interpreter
 export const ActionInterpreterInputSchema = z.object({
@@ -40,7 +40,9 @@ export const NarrativeExpertInputSchema = z.object({
     lightLevel: z.enum(['bright', 'dim', 'dark']),
     visitState: z.enum(['unknown', 'seen', 'visited']),
     detectedHazards: z.array(z.any()), // HazardSchema
-    visibleConnections: z.array(z.string()).describe("Descriptions of what can be seen through open connections")
+    visibleConnections: z.array(z.string()).describe("Descriptions of what can be seen through open connections"),
+    presentEntities: z.array(z.any()).optional(), // EntitySchema
+    deadEntitiesInConnectedLocations: z.record(z.string(), z.array(z.string())).optional().describe("Map of locationId -> array of dead entity names in connected locations")
   }).optional().describe("Context for dungeon exploration: atmosphere, visibility, and hazards."),
 });
 export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
@@ -89,6 +91,7 @@ export const GameCoordinatorOutputSchema = z.object({
   enemiesByLocation: z.record(z.string(), z.array(z.any())).optional(), // Map of locationId -> enemies array
   error: z.string().optional(),
   turnIndex: z.number().optional(), // Added turnIndex to the output
+  phase: z.nativeEnum(CombatPhase).optional(),
   hasMoreAITurns: z.boolean().optional(), // Step-by-step combat: indicates if more AI turns are pending
   lastProcessedTurnWasAI: z.boolean().optional(), // true if the last processed turn was AI/Enemy
   lastProcessedTurnIndex: z.number().optional(),  // index of the turn that was just processed
@@ -113,6 +116,7 @@ export const GameStateSchema = z.object({
   inCombat: z.boolean(),
   conversationHistory: z.array(z.any()), // This is an array of GameMessage objects
   turnIndex: z.number().optional(),
+  phase: z.nativeEnum(CombatPhase).optional(),
   initiativeOrder: z.array(z.any()).optional(), // This represents Combatant[]
   enemies: z.array(z.any()).optional(), // Deprecated: Use enemiesByLocation instead
   enemiesByLocation: z.record(z.string(), z.array(z.any())).optional(), // Map of locationId -> enemies array
@@ -140,7 +144,9 @@ export const ExplorationExpertInputSchema = z.object({
     lightLevel: z.enum(['bright', 'dim', 'dark']),
     visitState: z.enum(['unknown', 'seen', 'visited']),
     detectedHazards: z.array(z.any()), // HazardSchema
-    visibleConnections: z.array(z.string()).describe("Descriptions of what can be seen through open connections")
+    visibleConnections: z.array(z.string()).describe("Descriptions of what can be seen through open connections"),
+    presentEntities: z.array(z.any()).optional(), // EntitySchema
+    deadEntitiesInConnectedLocations: z.record(z.string(), z.array(z.string())).optional().describe("Map of locationId -> array of dead entity names in connected locations")
   }).optional().describe("Context for dungeon exploration: atmosphere, visibility, and hazards."),
 });
 export type ExplorationExpertInput = z.infer<typeof ExplorationExpertInputSchema>;

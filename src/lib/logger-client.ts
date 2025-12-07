@@ -31,35 +31,66 @@ class ClientLogger {
     return now.toISOString().replace('T', ' ').substring(0, 23);
   }
 
-  private formatContext(context?: LogContext): string {
-    if (!context || Object.keys(context).length === 0) return '';
+  /**
+   * Formatea un valor individual para mostrarlo en el log
+   */
+  private formatValue(value: any): string {
+    // Manejar null y undefined
+    if (value === null) return 'null';
+    if (value === undefined) return 'undefined';
     
-    const parts: string[] = [];
-    if (context.component) parts.push(`[${context.component}]`);
-    if (context.action) parts.push(`<${context.action}>`);
+    // Manejar booleanos
+    if (typeof value === 'boolean') return value.toString();
     
-    // Añadir otros campos del contexto
-    const otherFields = Object.entries(context)
-      .filter(([key]) => key !== 'component' && key !== 'action')
-      .map(([key, value]) => {
-        if (typeof value === 'object') {
-          try {
-            return `${key}=${JSON.stringify(value)}`;
-          } catch {
-            return `${key}=[object]`;
-          }
-        }
-        return `${key}=${value}`;
-      });
-    
-    if (otherFields.length > 0) {
-      parts.push(otherFields.join(' '));
+    // Manejar strings - truncar si son muy largos
+    if (typeof value === 'string') {
+      const maxLength = 100;
+      if (value.length > maxLength) {
+        return `${value.substring(0, maxLength)}...`;
+      }
+      return value;
     }
     
-    return parts.length > 0 ? ` ${parts.join(' ')}` : '';
+    // Manejar números
+    if (typeof value === 'number') return value.toString();
+    
+    // Manejar objetos y arrays
+    if (typeof value === 'object') {
+      try {
+        // Formato compacto pero legible
+        const json = JSON.stringify(value);
+        const maxLength = 200;
+        if (json.length > maxLength) {
+          return `${json.substring(0, maxLength)}...`;
+        }
+        return json;
+      } catch {
+        return '[object]';
+      }
+    }
+    
+    return String(value);
   }
 
-  private colorize(level: LogLevel, message: string): string {
+  /**
+   * Formatea los campos de contexto con orden alfabético
+   */
+  private formatOtherFields(context?: LogContext): string {
+    if (!context || Object.keys(context).length === 0) return '';
+    
+    // Obtener campos excluyendo component y action, y ordenarlos alfabéticamente
+    const otherFields = Object.entries(context)
+      .filter(([key]) => key !== 'component' && key !== 'action')
+      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+      .map(([key, value]) => {
+        const formattedValue = this.formatValue(value);
+        return `${key}=${formattedValue}`;
+      });
+    
+    return otherFields.length > 0 ? ` - ${otherFields.join(' ')}` : '';
+  }
+
+  private colorize(level: LogLevel): string {
     // En el navegador, usar estilos de consola
     const levelNames = {
       [LogLevel.DEBUG]: 'DEBUG',
@@ -68,7 +99,7 @@ class ClientLogger {
       [LogLevel.ERROR]: 'ERROR',
     };
     
-    return `${levelNames[level]} ${message}`;
+    return levelNames[level];
   }
 
   /**
@@ -106,8 +137,10 @@ class ClientLogger {
     if (level < this.minLevel) return;
 
     const timestamp = this.formatTimestamp();
-    const contextStr = this.formatContext(context);
-    const fullMessage = `${timestamp} ${this.colorize(level, message)}${contextStr}`;
+    const componentStr = context?.component ? `[${context.component}]` : '';
+    const otherFieldsStr = this.formatOtherFields(context);
+    const levelStr = this.colorize(level);
+    const fullMessage = `${timestamp} ${levelStr}${componentStr ? ` ${componentStr}` : ''} ${message}${otherFieldsStr}`;
 
     if (error) {
       const errorDetails = error.stack || error.message;

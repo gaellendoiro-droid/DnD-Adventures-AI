@@ -1,5 +1,5 @@
 
-import { CombatTriggerManager, ExplorationTriggerInput } from '@/ai/flows/managers/combat-trigger-manager';
+import { CombatTriggerEvaluator as CombatTriggerManager, ExplorationTriggerInput } from '@/lib/combat/trigger/combat-trigger-evaluator';
 import { Location } from '@/lib/types';
 
 describe('CombatTriggerManager', () => {
@@ -100,7 +100,7 @@ describe('CombatTriggerManager', () => {
             const input: ExplorationTriggerInput = {
                 location: mockLocation,
                 detectedHazards: [],
-                visibleEntities: [{ type: 'enemy', name: 'Goblin' }]
+                visibleEntities: [{ type: 'enemy', name: 'Goblin', hp: { current: 5, max: 5 }, disposition: 'hostile' }]
             };
 
             const result = CombatTriggerManager.evaluateExploration(input);
@@ -113,7 +113,7 @@ describe('CombatTriggerManager', () => {
             const input: ExplorationTriggerInput = {
                 location: mockLocation,
                 detectedHazards: [],
-                visibleEntities: [{ type: 'enemy', name: 'Goblin' }],
+                visibleEntities: [{ type: 'enemy', name: 'Goblin', hp: { current: 5, max: 5 }, disposition: 'hostile' }],
                 stealthCheckResult: { success: false, roll: 5 }
             };
 
@@ -138,47 +138,49 @@ describe('CombatTriggerManager', () => {
     });
 
     describe('evaluateInteraction - Mimics', () => {
-        const mockHazards = [
+        // Mimics are now entities, not hazards
+        const mockEntities = [
             {
-                id: 'chest-mimic',
-                type: 'mimic',
+                id: 'cofre-mimico',
+                name: 'Mímico',
+                type: 'enemy',
+                disposition: 'hidden',
                 triggerDescription: 'The chest bites you!',
-                active: true
             },
             {
-                id: 'normal-trap',
-                type: 'trap',
-                active: true
+                id: 'friendly-npc',
+                type: 'npc',
+                disposition: 'friendly',
             }
         ] as any[];
 
         it('should trigger combat if interacting with a mimic', () => {
             const result = CombatTriggerManager.evaluateInteraction({
-                targetId: 'chest-mimic',
-                locationHazards: mockHazards,
+                targetId: 'cofre-mimico',
+                locationEntities: mockEntities,
                 interactionResult: {} // Empty interaction result
             });
 
             expect(result.shouldStartCombat).toBe(true);
             expect(result.reason).toBe('mimic');
             expect(result.surpriseSide).toBe('enemy');
+            expect(result.triggeringEntityId).toBe('cofre-mimico');
         });
 
-        it('should NOT trigger combat if interacting with a normal trap (via this method)', () => {
-            // Traps might trigger damage, but not "Combat Mode" directly via this check currently
+        it('should NOT trigger combat if interacting with a friendly NPC', () => {
             const result = CombatTriggerManager.evaluateInteraction({
-                targetId: 'normal-trap',
-                locationHazards: mockHazards,
+                targetId: 'friendly-npc',
+                locationEntities: mockEntities,
                 interactionResult: {}
             });
 
             expect(result.shouldStartCombat).toBe(false);
         });
 
-        it('should NOT trigger combat if interacting with safe object', () => {
+        it('should NOT trigger combat if interacting with unknown object', () => {
             const result = CombatTriggerManager.evaluateInteraction({
                 targetId: 'safe-chest',
-                locationHazards: mockHazards,
+                locationEntities: mockEntities,
                 interactionResult: {}
             });
 

@@ -6,4 +6,9 @@
  * are now covered by the integration tests in unified-combat-flow.test.ts.
  */
 
-// This file intentionally left empty - module has been deprecated and removed
+import { describe, it } from 'vitest';
+
+// Deprecated module placeholder; skip to avoid "no test suite found"
+describe.skip('first-turn-handler (deprecated placeholder)', () => {
+  it('skipped', () => {});
+});

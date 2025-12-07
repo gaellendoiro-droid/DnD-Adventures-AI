@@ -127,16 +127,6 @@
             "title": "Sala del Guardián",
             "description": "Una pequeña habitación con un goblin visible que patrulla cerca de la puerta cerrada. El goblin te mira con desconfianza.",
             "type": "room",
-            "hazards": [
-                {
-                    "id": "emboscada-guardian",
-                    "type": "ambush",
-                    "active": true,
-                    "detectionDC": 15,
-                    "description": "Algo te dice que hay peligro al entrar en esta sala.",
-                    "triggerDescription": "¡De repente, un goblin guardián salta desde las sombras para emboscarte!"
-                }
-            ],
             "entitiesPresent": [
                 "goblin-3"
             ],
@@ -183,10 +173,11 @@
             "id": "goblin-1",
             "name": "Goblin Acechador",
             "type": "enemy",
-            "description": "Un goblin pequeño y malicioso.",
+            "disposition": "hidden",
+            "description": "Un goblin pequeño y malicioso escondido en las sombras.",
             "stats": {
                 "hp": 7,
-                "ac": 15
+                "ac": 10
             },
             "equipment": {
                 "weapons": [
@@ -198,10 +189,11 @@
             "id": "goblin-2",
             "name": "Goblin Arquero",
             "type": "enemy",
-            "description": "Un goblin con un arco corto.",
+            "disposition": "hidden",
+            "description": "Un goblin con un arco corto oculto entre las rocas.",
             "stats": {
                 "hp": 7,
-                "ac": 15
+                "ac": 10
             },
             "equipment": {
                 "weapons": [
@@ -217,7 +209,7 @@
             "description": "Un mímico disfrazado de cofre. Sus dientes afilados brillan con hambre.",
             "triggerDescription": "¡Cuando tocas la tapa del cofre, la madera se vuelve pegajosa y una boca llena de dientes afilados se abre para morderte! ¡Es un mímico!",
             "stats": {
-                "hp": 58,
+                "hp": 28,
                 "ac": 12
             },
             "equipment": {
@@ -233,7 +225,7 @@
             "description": "Un goblin que vigila la puerta cerrada. Tiene una expresión hostil y una espada corta en la mano.",
             "stats": {
                 "hp": 7,
-                "ac": 15
+                "ac": 10
             },
             "equipment": {
                 "weapons": [
