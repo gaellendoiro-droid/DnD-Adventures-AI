@@ -11,6 +11,8 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+## [0.5.97] - 2025-12-08
+
 ### Added
 - **🎲 Sistema de Skill Checks (2025-12-08):**
   - **Mejora:** Implementación completa del sistema de pruebas de habilidad con soporte para ventaja/desventaja y resolución narrativa.
