@@ -22,15 +22,36 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 **Estado:** 0 planes activos | **Última implementación:** Sistema de Conexiones Persistentes para APIs (2025-12-08) - COMPLETADO
 
-*No hay planes en curso actualmente.*
+**Estado:** 1 planes activos | **Última implementación:** Sistema de Conexiones Persistentes para APIs (2025-12-08) - COMPLETADO
+
+### [Compendio de D&D Local](en-curso/compendio-dnd-local.md) 🚧 **EN CURSO**
+- **Estado:** Iniciado
+- **Objetivo:** Implementar un sistema de base de datos local y providers para reducir dependencia de APIs externas y habilitar uso offline/rápido.
+- **Prioridad:** Alta
+- **Fase Actual:** Diseño de Esquema
+- **Fecha de inicio:** 2025-12-08
+- **Referencia:** [Plan Detallado](en-curso/compendio-dnd-local.md)
 
 ---
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 27 planes (26 completos + 1 parcial)
+**Estado:** Finalizados | **Cantidad:** 28 planes (27 completos + 1 parcial)
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Sistema de Skill Checks Avanzado](completados/sistema-skill-checks.md) ✅ **COMPLETADO**
+- **Estado:** Implementado, Testeado y Documentado (Todas las fases completadas)
+- **Objetivo:** Implementar un sistema de pruebas de habilidad robusto que combine interpretación de IA ("qué tirar") con resolución determinista ("qué resultado") y soporte nativo para Ventaja/Desventaja.
+- **Prioridad:** Alta
+- **Resultados:**
+  - ✅ **DiceEngine:** Soporte base para tiradas 2d20kh1 (Ventaja) y 2d20kl1 (Desventaja).
+  - ✅ **Interpretación IA:** `SkillCheckExpert` detecta acción, skill y dificultad (DC) por contexto.
+  - ✅ **Resolución Determinista:** `SkillCheckResolver` aplica stats de la ficha (atributos + proficiencias).
+  - ✅ **UI Visual:** Componente `VisualDicePair` y `DiceRollResult` actualizado para mostrar tiradas complejas.
+  - ✅ **Flujo Completo:** Integrado en `NarrativeTurnManager` con narración del DM coherente.
+- **Fecha de finalización:** 2025-12-08
+- **Referencia:** [Plan Detallado](completados/sistema-skill-checks.md)
 
 ### [Refactorización y Persistencia del Estado del Mundo](completados/refactorizacion-persistencia-mundo.md) ✅ **COMPLETADO**
 - **Estado:** Implementado y documentado
@@ -445,10 +466,7 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 
 ### Prioridad Alta
 
-#### [Sistema de Compendio de D&D Local](sin-comenzar/compendio-dnd-local.md)
-- **Estado:** Sin comenzar
-- **Prioridad:** Alta
-- **Referencia:** [Plan Detallado](sin-comenzar/compendio-dnd-local.md) | [Roadmap - Sección 8](../roadmap.md#8-compendio-de-dd-local---base-de-datos-local-prioridad-media)
+
 
 #### [Issue #115 - Validación de Inventario](sin-comenzar/issue-115-validacion-inventario.md)
 - **Estado:** Sin comenzar (pospuesto)

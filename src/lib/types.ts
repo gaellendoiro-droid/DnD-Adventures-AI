@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { CharacterSchema, PartySchema, LocationSchema, ConnectionSchema, GameStateSchema, WorldStateSchema } from './schemas';
+import { CharacterSchema, PartySchema, LocationSchema, ConnectionSchema, GameStateSchema, WorldStateSchema, SkillNameSchema, RollModeSchema, SkillCheckResultSchema } from './schemas';
+import { D20RollResult } from './dice/dice-engine';
 
 // Infer the TypeScript types from the Zod schemas
 export type Character = z.infer<typeof CharacterSchema>;
@@ -8,6 +9,9 @@ export type Location = z.infer<typeof LocationSchema>;
 export type Connection = z.infer<typeof ConnectionSchema>;
 export type WorldState = z.infer<typeof WorldStateSchema>;
 export type GameState = z.infer<typeof GameStateSchema>;
+export type SkillName = z.infer<typeof SkillNameSchema>;
+export type RollMode = z.infer<typeof RollModeSchema>;
+export type SkillCheckResult = z.infer<typeof SkillCheckResultSchema>;
 
 // We can still define types that don't have a direct schema equivalent if needed
 export interface GameMessage {
@@ -33,6 +37,13 @@ export interface DiceRoll {
   roller: string; // Character name or "DM"
   rollNotation: string; // e.g. "1d20", "2d6"
   individualRolls: number[];
+
+  // New Mechanics Support
+  type?: 'attack' | 'damage' | 'healing' | 'saving_throw' | 'skill_check' | 'ability_check';
+  rollMode?: RollMode;
+  diceResults?: D20RollResult; // Detailed breakdown for Advantage/Disadvantage
+  skillCheckDetails?: SkillCheckResult; // Specifics for skill checks
+
   modifier?: number;
   modifiers?: DiceRollModifier[]; // Breakdown of individual modifiers (e.g., [{value: 3, label: "INT"}, {value: 2, label: "BC"}])
   totalResult: number;

@@ -1,0 +1,86 @@
+{
+    "adventureId": "skill-check-test",
+    "title": "Campo de Pruebas de Habilidades",
+    "summary": "Escenario diseñado para validar el sistema de Skill Checks.",
+    "introductoryNarration": "Bienvenido al Campo de Pruebas. Ante ti se abre un patio central con tres desafíos distintos diseñados para poner a prueba tus capacidades y las del nuevo sistema de juego. Tómate tu tiempo en cada estación para probar diferentes habilidades.",
+    "locations": [
+        {
+            "id": "patio-central",
+            "name": "Patio Central",
+            "description": "Un patio adoquinado bajo un cielo nublado. Frente a ti (Norte) hay un muro de piedra alto y resbaladizo cubierto de musgo húmedo. A tu derecha (Este), una puerta entreabierta de la que emanan susurros inquietantes. A tu izquierda (Oeste), un cofre robusto encadenado al suelo.",
+            "explorationMode": "safe",
+            "lightLevel": "bright",
+            "connections": [
+                {
+                    "targetId": "muro-escalada",
+                    "direction": "norte",
+                    "visibility": "open",
+                    "description": "Un muro de 15 pies de altura, cubierto de musgo y humedad.",
+                    "type": "direct"
+                },
+                {
+                    "targetId": "sala-susurros",
+                    "direction": "este",
+                    "visibility": "restricted",
+                    "description": "Una puerta de madera vieja entreabierta.",
+                    "type": "direct"
+                },
+                {
+                    "targetId": "zona-cofre",
+                    "direction": "oeste",
+                    "visibility": "open",
+                    "description": "Un área con un cofre solitario.",
+                    "type": "direct"
+                }
+            ]
+        },
+        {
+            "id": "muro-escalada",
+            "name": "Muro Resbaladizo",
+            "description": "Estás al pie del muro. El musgo lo cubre casi por completo y la humedad lo hace traicionero. Parece difícil de escalar a pulso (Atletismo CD 15). Quizás con equipo o buscando apoyo en las grietas secas sea más fácil.",
+            "explorationMode": "safe",
+            "lightLevel": "bright",
+            "connections": [
+                {
+                    "targetId": "patio-central",
+                    "direction": "sur",
+                    "type": "direct",
+                    "visibility": "open",
+                    "description": "Volver al patio."
+                }
+            ]
+        },
+        {
+            "id": "sala-susurros",
+            "name": "Sala de los Susurros",
+            "description": "Una habitación en penumbra llena de estanterías polvorientas. El silencio es pesado, pero jurarías que algo se mueve en las sombras de las esquinas superiores (Percepción CD 13) o quizás deberías entrar sin hacer ruido (Sigilo CD 12).",
+            "explorationMode": "dungeon",
+            "lightLevel": "dim",
+            "connections": [
+                {
+                    "targetId": "patio-central",
+                    "direction": "oeste",
+                    "type": "direct",
+                    "visibility": "open",
+                    "description": "Salida al patio."
+                }
+            ]
+        },
+        {
+            "id": "zona-cofre",
+            "name": "El Cofre del Desafío",
+            "description": "Un cofre de hierro reforzado descansa aquí. No tiene cerradura visible, pero sí un mecanismo complejo de engranajes en la tapa (Investigación CD 13) y una pequeña ranura que parece requerir manipulación fina (Juego de Manos CD 14). O siempre puedes intentar forzarlo (Atletismo/Fuerza CD 18).",
+            "explorationMode": "safe",
+            "lightLevel": "bright",
+            "connections": [
+                {
+                    "targetId": "patio-central",
+                    "direction": "este",
+                    "type": "direct",
+                    "visibility": "open",
+                    "description": "Volver al centro."
+                }
+            ]
+        }
+    ]
+}

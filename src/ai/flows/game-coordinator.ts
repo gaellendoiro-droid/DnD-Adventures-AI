@@ -335,9 +335,9 @@ export const gameCoordinatorFlow = ai.defineFlow(
             );
 
             if (playerActionTrigger.surpriseSide === 'player') {
-                log.gameCoordinator('Player Surprise Attack detected', { 
+                log.gameCoordinator('Player Surprise Attack detected', {
                     targetId: interpretation.targetId,
-                    reason: playerActionTrigger.reason 
+                    reason: playerActionTrigger.reason
                 });
                 localLog(`GameCoordinator: Player surprise attack! Target: ${interpretation.targetId}`);
             } else {
@@ -398,7 +398,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
             // Determine if we moved to a new location
             let newLocationId: string | undefined;
             let newLocationData: any | undefined;
-            
+
             if (narrativeResult.nextLocationId && narrativeResult.nextLocationId !== locationId) {
                 newLocationId = narrativeResult.nextLocationId;
                 newLocationData = adventureData.locations.find((l: any) => l.id === newLocationId) || currentLocationData;
@@ -426,6 +426,24 @@ export const gameCoordinatorFlow = ai.defineFlow(
 
             // Add trigger message to narrative
             narrativeResult.messages.push(...combatInitiation.narrativeMessages);
+
+            // If combat should NOT start (e.g. no enemies alive), return with messages and state
+            if (!combatInitiation.shouldStartCombat) {
+                localLog('Combat initiation aborted (no viable enemies). Returning narrative result.');
+                return {
+                    messages: narrativeResult.messages,
+                    debugLogs: [...debugLogs, ...narrativeResult.debugLogs],
+                    updatedParty: party, // Party didn't change in combat initiation
+                    nextLocationId: combatInitiation.combatLocationId || narrativeResult.nextLocationId,
+                    inCombat: false,
+                    turnIndex: 0,
+                    updatedWorldTime: narrativeResult.updatedWorldTime,
+                    updatedExplorationState: narrativeResult.updatedExplorationState,
+                    updatedOpenDoors: narrativeResult.updatedOpenDoors,
+                    diceRolls: narrativeResult.diceRolls,
+                    updatedEnemiesByLocation: combatInitiation.updatedEnemiesByLocation
+                };
+            }
 
             // Initialize Combat with prepared data
             const combatResult = await combatManagerTool({
@@ -460,7 +478,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
             turnIndex: 0,
             updatedWorldTime: narrativeResult.updatedWorldTime,
             updatedExplorationState: narrativeResult.updatedExplorationState, // Return updated state
-            updatedOpenDoors: narrativeResult.updatedOpenDoors // Return updated door states
+            updatedOpenDoors: narrativeResult.updatedOpenDoors, // Return updated door states
+            diceRolls: narrativeResult.diceRolls // Propagate dice rolls from narrative turn
         };
     }
 );

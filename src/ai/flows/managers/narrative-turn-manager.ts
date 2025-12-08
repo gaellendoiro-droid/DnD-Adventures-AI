@@ -26,6 +26,9 @@ import { CombatTriggerEvaluator, CombatTriggerResult } from '@/lib/combat/trigge
 import { EnemyStateManager } from '@/lib/game/enemy-state-manager';
 import { InteractionHandler, InteractionResult } from './interaction-handler';
 import { ExplorationContextBuilder, ExplorationContextResult } from './exploration-context-builder';
+import { skillCheckExpert } from '../experts/skill-check-expert';
+import { resolveSkillCheck } from '@/lib/skills/skill-check-resolver';
+import { DiceRoll } from '@/lib/types';
 
 /**
  * Input para procesar un turno narrativo
@@ -62,6 +65,7 @@ export interface NarrativeTurnOutput {
     updatedExplorationState?: any; // ExplorationState
     combatTriggerResult?: CombatTriggerResult;
     updatedOpenDoors?: Record<string, boolean>; // Updated door states
+    diceRolls?: DiceRoll[]; // New: Rolls generated during the turn
 }
 
 /**
@@ -204,6 +208,62 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         });
     }
 
+    // 3.5 Handle Skill Checks
+    const generatedDiceRolls: DiceRoll[] = [];
+    let skillCheckNarration: string | undefined = undefined;
+
+    if (interpretation.actionType === 'skill_check') {
+        try {
+            localLog(`Processing Skill Check for action: "${playerAction}"`);
+
+            // a. Consult Expert
+            // Find active character (default to first party member or specific actor if identified)
+            // For now, single player focus: use party[0] as main actor if logic isn't granular
+            // ToDo: Identify specific actor if needed. Assuming party[0] is user character for MVP.
+            const actor = party[0];
+
+            const aiDecision = await skillCheckExpert({
+                playerAction,
+                characterName: actor.name,
+                locationContext: JSON.stringify(finalLocationData), // Basic context
+                targetEntity: interpretation.targetId || undefined
+            });
+
+            localLog(`SkillCheckExpert Decision: ${aiDecision.selectedSkill} DC ${aiDecision.difficultyClass} (${aiDecision.suggestedMode})`);
+
+            // b. Resolve Mechanics
+            const resultDiceRoll = resolveSkillCheck(
+                actor,
+                aiDecision.selectedSkill,
+                aiDecision.difficultyClass,
+                aiDecision.suggestedMode
+            );
+
+            generatedDiceRolls.push(resultDiceRoll);
+
+            // c. Select Narration based on Outcome
+            const isCritical = resultDiceRoll.skillCheckDetails?.isCriticalSuccess || resultDiceRoll.skillCheckDetails?.isCriticalFailure;
+
+            if (resultDiceRoll.skillCheckDetails?.isCriticalSuccess && aiDecision.narrations.criticalSuccess) {
+                skillCheckNarration = aiDecision.narrations.criticalSuccess;
+            } else if (resultDiceRoll.skillCheckDetails?.isCriticalFailure && aiDecision.narrations.criticalFailure) {
+                skillCheckNarration = aiDecision.narrations.criticalFailure;
+            } else if (resultDiceRoll.skillCheckDetails?.isSuccess) {
+                skillCheckNarration = aiDecision.narrations.success;
+            } else {
+                skillCheckNarration = aiDecision.narrations.failure;
+            }
+
+            // Prepend Attempt? "Intentas X..." -> "Lo consigues."
+            // Concatenating attempt + result makes a nice flow.
+            skillCheckNarration = `${aiDecision.narrations.attempt}\n\n${skillCheckNarration}`;
+
+        } catch (error: any) {
+            localLog(`Skill Check Failed: ${error.message}`);
+            // Fallback to normal narrative
+        }
+    }
+
     // 4. Generate DM narration
     log.gameCoordinator('Generating DM narration', {
         actionType: interpretation.actionType,
@@ -310,7 +370,7 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
     // Check for Interaction Triggers (Mimics) and Door Opening
     if (!combatTrigger.shouldStartCombat && interpretation.actionType === 'interact' && interpretation.targetId) {
         localLog(`Checking interaction trigger for targetId: "${interpretation.targetId}"`);
-        
+
         // Process interaction using InteractionHandler
         const interactionResult: InteractionResult = await InteractionHandler.processInteraction({
             playerAction,
@@ -376,7 +436,7 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
 
     // If movement ocurrió y se llegó a una nueva sala, marca la puerta usada como abierta (ida y vuelta)
     if (cameFromLocationId && locationId && cameFromLocationId !== locationId) {
-        const dirs = ['norte','sur','este','oeste','noreste','noroeste','sureste','suroeste','arriba','abajo'];
+        const dirs = ['norte', 'sur', 'este', 'oeste', 'noreste', 'noroeste', 'sureste', 'suroeste', 'arriba', 'abajo'];
         const reverseMap: Record<string, string> = {
             norte: 'sur',
             sur: 'norte',
@@ -411,16 +471,16 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
             const isDoorOpen = updatedOpenDoors[doorKey] === true;
             if (isDoorOpen) {
                 // Si la puerta está abierta, forzar isOpen: true y visibility: 'open' para que el DM la describa como abierta
-                return { 
-                    ...conn, 
-                    isOpen: true, 
+                return {
+                    ...conn,
+                    isOpen: true,
                     visibility: 'open' // Forzar visibility a 'open' para que sea visible en la narración
                 };
             }
             // Si no está abierta, mantener el estado original (puede ser isOpen: false o undefined)
             return conn;
         });
-        
+
         // Log para debugging
         const openDoorsCount = Object.keys(updatedOpenDoors).filter(k => updatedOpenDoors[k] === true).length;
         const updatedConnections = filteredLocationData.connections.filter((c: any) => c.isOpen === true);
@@ -444,7 +504,20 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         explorationContext: explorationContext // Pass the new context
     };
 
-    const narrativeResult = await narrativeExpert(narrativeInput);
+
+
+    let narrativeResult: any = { dmNarration: "", debugLogs: [] };
+
+    // If we already have a specialized narration from Skill Check, use it directly 
+    // AND skip the generic NarrativeExpert unless there is a critical reason not to (like location change).
+    if (skillCheckNarration && !isLocationChange) {
+        localLog("Using Skill Check Narration override.");
+        narrativeResult.dmNarration = skillCheckNarration;
+    } else {
+        // Normal path: Ask DM Expert
+        narrativeResult = await narrativeExpert(narrativeInput);
+    }
+
     (narrativeResult.debugLogs || []).forEach(localLog);
 
     if (narrativeResult.dmNarration) {
@@ -484,6 +557,7 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         updatedWorldTime: updatedWorldTime,
         updatedExplorationState: currentGameState.exploration, // Return updated state
         combatTriggerResult: combatTrigger.shouldStartCombat ? combatTrigger : undefined,
-        updatedOpenDoors: Object.keys(updatedOpenDoors).length > 0 ? updatedOpenDoors : undefined
+        updatedOpenDoors: Object.keys(updatedOpenDoors).length > 0 ? updatedOpenDoors : undefined,
+        diceRolls: generatedDiceRolls.length > 0 ? generatedDiceRolls : undefined
     };
 }

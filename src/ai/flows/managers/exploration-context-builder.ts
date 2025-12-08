@@ -240,20 +240,20 @@ export class ExplorationContextBuilder {
             if (cameFromLocationId && conn.targetId === cameFromLocationId) {
                 continue;
             }
-            
+
             // Verificar si la conexión es visible/abierta
             const doorKey = `${locationId}:${conn.direction}`;
             const isDoorOpen = openDoors?.[doorKey] === true;
             // Visible si: visibility='open' (arco/abertura) O puerta está abierta O isOpen=true en JSON
             const isVisible = conn.visibility === 'open' || isDoorOpen || conn.isOpen === true;
-            
+
             if (isVisible) {
                 const targetLoc = adventureData.locations.find((l: any) => l.id === conn.targetId);
                 if (targetLoc) {
                     // Simple format: direction, room name (only if visited), door state, entities
                     const targetVisitState = explorationState?.knownLocations?.[conn.targetId]?.status;
                     const isVisited = targetVisitState === 'visited';
-                    
+
                     // Get visible entities (only from this specific location)
                     const entitiesVisible = this.getEntitiesInLocationStrict(
                         conn.targetId,
@@ -264,22 +264,22 @@ export class ExplorationContextBuilder {
 
                     // Build simple description
                     let parts: string[] = [];
-                    
+
                     // Direction
                     parts.push(conn.direction || 'unknown');
-                    
+
                     // Room name (only if visited to avoid spoilers)
                     if (isVisited) {
                         parts.push(targetLoc.title || conn.targetId);
                     }
-                    
+
                     // Door state
                     if (isDoorOpen) {
                         parts.push('(open door)');
                     } else if (conn.visibility === 'open') {
                         parts.push('(archway)');
                     }
-                    
+
                     // Entities
                     if (entitiesVisible.length > 0) {
                         const entityNames = entitiesVisible.map(e => {
@@ -287,6 +287,12 @@ export class ExplorationContextBuilder {
                             return isEntityOutOfCombat(e) ? `corpse: ${name}` : name;
                         });
                         parts.push(`entities: ${entityNames.join(', ')}`);
+                    }
+
+                    // Interactables (New: Show visible interactables like Chests, Altars, etc.)
+                    if (targetLoc.interactables && targetLoc.interactables.length > 0) {
+                        const interactableNames = targetLoc.interactables.map((i: any) => i.name).join(', ');
+                        parts.push(`objects: ${interactableNames}`);
                     }
 
                     visibleConnections.push(parts.join(' '));
@@ -341,7 +347,7 @@ export class ExplorationContextBuilder {
                 if (jsonEntity.disposition === 'hidden') {
                     continue;
                 }
-                
+
                 // Para ENEMIGOS: 
                 // - Si están en enemiesByLocation, ya los procesamos arriba
                 // - Si NO están en enemiesByLocation, significa que no han sido revelados/combatidos
@@ -354,9 +360,9 @@ export class ExplorationContextBuilder {
                     // IMPORTANTE: Normalizar HP para que tenga formato { current, max }
                     const normalizedNpc = {
                         ...jsonEntity,
-                        hp: jsonEntity.hp || (jsonEntity.stats?.hp ? { 
-                            current: jsonEntity.stats.hp, 
-                            max: jsonEntity.stats.hp 
+                        hp: jsonEntity.hp || (jsonEntity.stats?.hp ? {
+                            current: jsonEntity.stats.hp,
+                            max: jsonEntity.stats.hp
                         } : undefined)
                     };
                     resolved.push(normalizedNpc);
@@ -421,12 +427,12 @@ export class ExplorationContextBuilder {
                 if (entity.disposition === 'hidden') {
                     return null;
                 }
-                
+
                 // Normalizar stats si es un enemigo
-                const normalizedEntity = entity.type === 'enemy' 
+                const normalizedEntity = entity.type === 'enemy'
                     ? EnemyStateManager.normalizeEnemyStats(entity)
                     : entity;
-                
+
                 return normalizedEntity;
             })
             .filter((e: any) => e !== null);

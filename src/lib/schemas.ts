@@ -360,6 +360,34 @@ export const WorldStateSchema = z.object({
     globalFlags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])).default({})
 });
 
+// --- Skill & Dice Mechanics Schemas (New Phase) ---
+
+export const SkillNameSchema = z.enum([
+    "athletics",
+    "acrobatics", "sleight_of_hand", "stealth",
+    "arcana", "history", "investigation", "nature", "religion",
+    "animal_handling", "insight", "medicine", "perception", "survival",
+    "deception", "intimidation", "performance", "persuasion"
+]);
+
+export const RollModeSchema = z.enum(['normal', 'advantage', 'disadvantage']);
+
+export const SkillCheckResultSchema = z.object({
+    skillName: SkillNameSchema,
+    rollTotal: z.number(),
+    difficultyClass: z.number(),
+    isSuccess: z.boolean(),
+    isCriticalSuccess: z.boolean().optional(),
+    isCriticalFailure: z.boolean().optional(),
+    rollMode: RollModeSchema,
+    rollBreakdown: z.object({
+        die1: z.number(),
+        die2: z.number().optional(),
+        kept: z.number(),
+        modifier: z.number(),
+    })
+});
+
 /**
  * Main Game State Schema (Save Data)
  */

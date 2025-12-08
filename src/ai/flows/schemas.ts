@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { CharacterSchema, CharacterSummarySchema } from '@/lib/schemas';
+import { CharacterSchema, CharacterSummarySchema, SkillNameSchema, RollModeSchema } from '@/lib/schemas';
 import { type GameMessage, type Combatant, CombatPhase } from '@/lib/types';
 
 // Schema for the action interpreter
@@ -18,7 +18,7 @@ export const ActionInterpreterInputSchema = z.object({
 export type ActionInterpreterInput = z.infer<typeof ActionInterpreterInputSchema>;
 
 export const ActionInterpreterOutputSchema = z.object({
-  actionType: z.enum(['move', 'interact', 'attack', 'narrate', 'ooc', 'continue_turn']).describe("The interpreted type of the player's action. 'continue_turn' is used for step-by-step combat to advance to the next AI turn."),
+  actionType: z.enum(['move', 'interact', 'attack', 'narrate', 'ooc', 'continue_turn', 'skill_check']).describe("The interpreted type of the player's action. 'continue_turn' is used for step-by-step combat to advance to the next AI turn. 'skill_check' is for actions requiring a dice roll (climbing, persuading, hiding)."),
   targetId: z.string().optional().nullable().describe("The ID of the target for the action. For 'move', it's the destination ID. For 'attack', the entity ID. For 'interact', it's the specific interaction action name (e.g., 'Leer Misión de la Colina del Resentimiento') or the character name (e.g., 'Elara')."),
 });
 export type ActionInterpreterOutput = z.infer<typeof ActionInterpreterOutputSchema>;
@@ -172,3 +172,28 @@ export const InteractionExpertOutputSchema = z.object({
   debugLogs: z.array(z.string()).optional(),
 });
 export type InteractionExpertOutput = z.infer<typeof InteractionExpertOutputSchema>;
+
+// Schema for Skill Check Expert
+export const SkillCheckExpertInputSchema = z.object({
+  playerAction: z.string().describe('The action taken by the player.'),
+  characterName: z.string().describe('The name of the character attempting the action.'),
+  locationContext: z.string().describe('Brief description of the environment/situation.'),
+  targetEntity: z.string().optional().describe('Name of entity being targeted (if any).'),
+});
+export type SkillCheckExpertInput = z.infer<typeof SkillCheckExpertInputSchema>;
+
+export const SkillCheckExpertOutputSchema = z.object({
+  selectedSkill: SkillNameSchema.describe("The most appropriate D&D 5e skill for the action."),
+  difficultyClass: z.number().min(5).max(30).describe("The DC for the check (5=Very Easy, 10=Easy, 15=Med, 20=Hard, 25=Very Hard, 30=Impossible)."),
+  suggestedMode: RollModeSchema.describe("Whether the check has Advantage (favorable conditions), Disadvantage (unfavorable), or is Normal."),
+  reasoning: z.string().describe("Brief explanation of why this skill/DC/Mode was chosen."),
+  narrations: z.object({
+    attempt: z.string().describe("Narration of the character STARTING the attempt (before rolling)."),
+    success: z.string().describe("Narration of what happens if they SUCCEED."),
+    failure: z.string().describe("Narration of what happens if they FAIL."),
+    criticalSuccess: z.string().optional().describe("Narration for a Nat 20 (exceptional success)."),
+    criticalFailure: z.string().optional().describe("Narration for a Nat 1 (catastrophic failure)."),
+  }),
+  debugLogs: z.array(z.string()).optional(),
+});
+export type SkillCheckExpertOutput = z.infer<typeof SkillCheckExpertOutputSchema>;

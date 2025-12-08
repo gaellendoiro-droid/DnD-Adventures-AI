@@ -16,6 +16,7 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 - [1. Sistema de Movimiento y Conciencia Espacial](#roadmap-1) - **COMPLETADO (2025-11-30)**
 - [1.2. Sistema de Conexiones Persistentes para APIs](#roadmap-1-2) - **COMPLETADO (2025-12-08)**
 - [1.3. Refactorización de Persistencia de Mundo](#roadmap-1-3) - **COMPLETADO (2025-12-08)**
+- [1.4. Sistema de Skill Checks Avanzado](#roadmap-1-4) - **COMPLETADO (2025-12-08)**
 
 ### 🔴 Prioridad Alta
 - [2. Sistema de Progresión y Gestión](#roadmap-2)
@@ -24,6 +25,7 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 - [5. Sistema de Modos de Juego Diferenciados](#roadmap-5)
 - [6. Revisiones de Sistema de Combate](#roadmap-6) - ✅ **COMPLETADO (2025-12-07)**
 - [7. Integración de Google File Search (RAG Automatizado)](#roadmap-7)
+- [8. Mejoras del Sistema de Skill Checks](#roadmap-8-skill-improvements)
 
 ### 🟡 Prioridad Media
 - [10. Sistema de Mundo Persistente](#roadmap-10)
@@ -111,6 +113,18 @@ Mejoras críticas que mejoran significativamente la arquitectura, mantenibilidad
     *   ✅ **Fix de Narración:** Corrección de problemas donde se inventaban nombres de enemigos (ej: "Trasgo").
 *   **Impacto:** Crítico. Es la base necesaria para cualquier sistema de progresión o campaña larga. Sin esto, la "memoria" del mundo es volátil y defectuosa.
 *   **Plan Detallado:** ✅ [Plan Completado](../planes-desarrollo/completados/refactorizacion-persistencia-mundo.md)
+
+<a id="roadmap-1-4"></a>
+### 1.4. Sistema de Skill Checks Avanzado - ✅ COMPLETADO (2025-12-08)
+*   **Problema Resuelto:** Las tiradas de habilidad (Atletismo, Sigilo, etc.) eran puramente narrativas o inexistentes fuera de combate, sin mecánicas reales ni soporte para Ventaja/Desventaja.
+*   **Solución Implementada:**
+    *   ✅ **DiceEngine Mejorado:** Soporte nativo para `rollD20` con modos `advantage` y `disadvantage`.
+    *   ✅ **SkillCheckExpert:** IA especializada que analiza la intención del jugador y decide la Skill y DC (Dificultad).
+    *   ✅ **SkillCheckResolver:** Lógica determinista que cruza la tirada con los stats de la ficha (proficiencias).
+    *   ✅ **UI Visual:** Componente `VisualDicePair` para mostrar tiradas complejas de forma clara.
+    *   ✅ **Narración Integrada:** El DM narra consecuencias basadas en éxito/fallo matemático real.
+*   **Impacto:** Fundamental. Introduce mecánicas de rol reales fuera de combate, dando valor a las habilidades de la ficha.
+*   **Plan Detallado:** ✅ [Plan Completado](../planes-desarrollo/completados/sistema-skill-checks.md)
 
 ## 🔴 Prioridad Alta
 
@@ -231,7 +245,7 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
         });
         // File Search automáticamente encuentra contexto relevante
         ```
-*   **Áreas de la Aplicación que se Beneficiarían:**
+    *   **Áreas de la Aplicación que se Beneficiarían:**
     *   **1. Búsqueda Semántica en Aventuras JSON:**
         *   **Problema Actual:** El sistema busca ubicaciones, entidades y NPCs por ID exacto. No puede encontrar información basándose en descripciones o contexto.
         *   **Beneficio:** La IA podría hacer preguntas como "¿Qué ubicaciones hay cerca de Phandalin?" o "¿Qué NPCs conocen información sobre el dragón?" y File Search encontraría la información relevante automáticamente.
@@ -296,6 +310,17 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
     - [Google File Search Documentation](https://ai.google.dev/gemini-api/docs/file-search)
     - [Google Blog - File Search Announcement](https://blog.google/technology/developers/file-search-gemini-api/)
     - Relacionado con Roadmap #10 (Calidad y Profundidad de la IA - RAG)
+
+<a id="roadmap-8-skill-improvements"></a>
+### 8. Mejoras del Sistema de Skill Checks
+*   **Problema Actual:** El sistema de skill checks está implementado y funciona bien, pero carece de protecciones contra abusos ("spamming" de tiradas) y no valida mecánicamente la posesión de herramientas requeridas.
+*   **Mejoras Propuestas:**
+    *   **Validación de Inventario:** Integrar la validación de inventario en el `SkillCheckResolver`. Si la acción requiere herramientas (ej: *Thieves' Tools*), verificar que el personaje las posee antes de permitir la tirada o imponer desventaja.
+    *   **Prevención de "Skill Spamming":** Implementar un "cooldown semántico" o memoria de intentos fallidos. Si el jugador intenta repetir la misma acción (mismo skill, mismo objetivo) inmediatamente después de fallar sin cambiar el enfoque, el sistema debería impedirlo narrativamente o aumentar drásticamente la CD.
+    *   **Unificación Total con Combate:** Llevar la mecánica de Ventaja/Desventaja visual (`VisualDicePair`) también a las tiradas de ataque en combate para una experiencia UX unificada.
+*   **Impacto:** Aumenta el realismo, evita abusos del sistema y pule la consistencia visual del juego.
+*   **Plan Detallado:** ❌ No creado
+
 
 ---
 

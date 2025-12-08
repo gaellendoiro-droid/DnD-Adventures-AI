@@ -101,7 +101,7 @@ export interface CombatInitiationResponse {
 // ============================================================================
 
 export class CombatInitiationService {
-    
+
     /**
      * Prepares combat initiation based on the request type.
      * This is the main entry point for all combat initiation logic.
@@ -143,7 +143,7 @@ export class CombatInitiationService {
         });
 
         const surpriseSide = playerActionTrigger.surpriseSide;
-        
+
         if (surpriseSide === 'player') {
             localLog(`Player Surprise Attack detected. Target: ${interpretedAction.targetId}`);
         } else {
@@ -157,6 +157,28 @@ export class CombatInitiationService {
             locationData,
             localLog
         );
+
+        // If no viable enemies, do not start combat
+        if (enemies.length === 0) {
+            localLog('No viable enemies found for player attack. Aborting combat initiation.');
+            return {
+                shouldStartCombat: false,
+                combatantIds: party.map(p => p.id),
+                surpriseSide,
+                reason: surpriseSide === 'player' ? 'player_surprise' : 'player_attack',
+                preparedEnemies: [],
+                narrativeMessages: [{
+                    id: `msg-${Date.now()}`,
+                    timestamp: new Date().toISOString(),
+                    sender: 'DM',
+                    content: `No encuentras ningún enemigo válido al que atacar.`
+                }],
+                updatedEnemiesByLocation,
+                combatLocationId: locationId,
+                combatLocationData: locationData,
+                debugLogs
+            };
+        }
 
         // Build combatant IDs
         const partyIds = party.map(p => p.id);
@@ -200,9 +222,20 @@ export class CombatInitiationService {
         // Determine combat location (could be new location if player moved)
         const combatLocationId = newLocationId || locationId;
         const combatLocationData = newLocationData || locationData;
-        
+
         if (newLocationId && newLocationId !== locationId) {
             localLog(`Combat location switched to new location: ${combatLocationId}`);
+        }
+
+        // Initialize narrativeMessages early
+        const narrativeMessages: GameMessage[] = [];
+        if (triggerResult.message) {
+            narrativeMessages.push({
+                id: `msg-trigger-${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                sender: 'DM',
+                content: `**${triggerResult.message}**`
+            });
         }
 
         // Get and prepare enemies for combat location
@@ -217,19 +250,38 @@ export class CombatInitiationService {
             isAmbush
         );
 
+        if (enemies.length === 0) {
+            localLog('No viable enemies found for dynamic trigger. Aborting combat initiation.');
+
+            // Still return updated state (e.g. revealed enemies) but don't start combat
+            const noCombatMessages = [...narrativeMessages];
+            if (narrativeMessages.length > 0) { // e.g. "Ambush!"
+                noCombatMessages.push({
+                    id: `msg-safe-${Date.now()}`,
+                    timestamp: new Date().toISOString(),
+                    sender: 'DM',
+                    content: "Parece que no queda ninguna amenaza activa aquí."
+                });
+            }
+
+            return {
+                shouldStartCombat: false,
+                combatantIds: [],
+                preparedEnemies: [],
+                narrativeMessages: noCombatMessages,
+                updatedEnemiesByLocation,
+                combatLocationId,
+                combatLocationData,
+                debugLogs,
+                surpriseSide: triggerResult.surpriseSide,
+                reason: triggerResult.reason as CombatInitiationResponse['reason']
+            };
+        }
+
         // Build combatant IDs
         const partyIds = party.map(p => p.id);
         const enemyIds = enemies.map(e => e.id || e.uniqueId);
         const combatantIds = [...partyIds, ...enemyIds];
-
-        // Build narrative messages
-        const narrativeMessages: GameMessage[] = [];
-        if (triggerResult.message) {
-            narrativeMessages.push({
-                sender: 'DM',
-                content: `**${triggerResult.message}**`
-            });
-        }
 
         localLog(`Combat participants: ${combatantIds.length} (${partyIds.length} party, ${enemyIds.length} enemies)`);
 
@@ -298,11 +350,11 @@ export class CombatInitiationService {
         // If this is an AMBUSH, reveal ALL hidden enemies
         if (isAmbush) {
             localLog(`Ambush triggered! Revealing all hidden enemies.`);
-            filteredCombatEnemies = combatEnemies.map((e: any) => 
+            filteredCombatEnemies = combatEnemies.map((e: any) =>
                 EnemyStateManager.revealHiddenEnemy(e)
             );
             localLog(`Revealed ${filteredCombatEnemies.length} enemies from ambush.`);
-        } 
+        }
         // If there's a specific triggering entity (e.g. mimic), reveal only that one
         else if (triggeringEntityId) {
             const triggeringEnemy = combatEnemies.find((e: any) => e.id === triggeringEntityId);
@@ -324,7 +376,7 @@ export class CombatInitiationService {
         else {
             filteredCombatEnemies = EnemyStateManager.filterVisibleEnemies(combatEnemies);
         }
-        
+
         localLog(`Total combat enemies after filtering: ${filteredCombatEnemies.length}`);
 
         // Filter out dead enemies (only for combat participation, not for state preservation)

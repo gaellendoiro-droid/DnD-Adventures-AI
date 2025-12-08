@@ -11,6 +11,25 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+### Added
+- **🎲 Sistema de Skill Checks (2025-12-08):**
+  - **Mejora:** Implementación completa del sistema de pruebas de habilidad con soporte para ventaja/desventaja y resolución narrativa.
+  - **Características:**
+    - ✅ **Nuevo DiceEngine:** Soporte nativo para tiradas con Ventaja y Desventaja, retornando resultados detallados de ambos dados.
+    - ✅ **SkillCheckExpert (AI):** Nuevo experto que analiza la acción narrativa para determinar la Skill (ej: Atletismo), la Dificultad (DC) y modificadores circunstanciales.
+    - ✅ **Resolución Determinista:** `SkillCheckResolver` calcula el resultado final usando modificadores de personaje (bono de competencia + atributo), con fallback seguro a stats base.
+    - ✅ **Integración en Game Loop:** El `NarrativeTurnManager` ahora intercepta acciones de habilidad, ejecuta la tirada y genera una narración coherente con el resultado (éxito/fallo/crítico).
+    - ✅ **UI Visual:** Nuevo componente `VisualDicePair` para mostrar tiradas de ventaja/desventaja con dados visuales destacando el mantenido y tachando el descartado. Integrado en `DiceRollResult` con estilos específicos para skill checks.
+    - ✅ **Testing Integral:** Cobertura con tests unitarios para el motor y tests de integración para el flujo narrativo completo.
+  - **Archivos modificados:**
+    - `src/lib/dice/dice-engine.ts`
+    - `src/ai/flows/experts/skill-check-expert.ts`
+    - `src/lib/skills/skill-check-resolver.ts`
+    - `src/ai/flows/managers/narrative-turn-manager.ts`
+    - `src/components/game/visual-dice-pair.tsx` (Nuevo)
+    - `src/components/game/dice-roll-result.tsx` (Actualizado)
+  - **Referencia:** [Plan de Desarrollo](../docs/planes-desarrollo/en-curso/sistema-skill-checks.md)
+
 ### Fixed
 - **🔇 Corrección de Audio de Ambientación Persistente (2025-12-08):**
   - **Problema:** Al salir de una ubicación con audio mapeado (ej: Posada) a una sin audio específico/válido (ej: Plaza, si faltan archivos), la ambientación anterior seguía sonando indefinidamente debido a un retorno temprano en la lógica.
@@ -280,6 +299,8 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 - **Estado Inicial de Exploración:** El `game-initializer.ts` ahora establece el estado de exploración inicial (`ExplorationState`) para la ubicación de inicio, marcándola como `visited` y sus conexiones como `seen`.
 
 ### Corregido
+- **Sistema de Combate**: Solucionado un error crítico donde el combate se reiniciaba sin enemigos (loops infinitos) al volver a una zona de emboscada con enemigos ya derrotados. El `CombatInitiationService` ahora aborta correctamente la iniciación si no hay enemigos vivos.
+- **Narración de Exploración**: Corregido un problema donde objetos interactuables visibles (como cofres) en habitaciones adyacentes no se mencionaban en la descripción de las conexiones visibles. Ahora el `ExplorationExpert` recibe información sobre objetos visibles a través de puertas abiertas o arcos.
 -   **Narración de Primera Visita:** Solucionado un bug en `NarrativeTurnManager` donde las ubicaciones se marcaban como "visitadas" antes de generar la narración. Además, se ha corregido la inicialización del juego (`game-initializer.ts`) para marcar la ubicación de inicio como visitada, evitando descripciones redundantes al regresar al hub inicial.
 -   **Filtrado de Narración Redundante:** Mejorada la lógica de `NarrativeTurnManager` para filtrar la conexión de origen y evitar describir la salida por la que se acaba de entrar.
 -   **Visibilidad de NPCs:** Ahora el `ExplorationExpert` recibe la información de las entidades presentes (`presentEntities`) y las describe visualmente en la escena, solucionando el problema de "NPCs invisibles" hasta que se interactuaba con ellos.

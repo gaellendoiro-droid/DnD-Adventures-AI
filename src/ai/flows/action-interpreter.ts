@@ -50,27 +50,35 @@ const actionInterpreterPrompt = ai.definePrompt({
     *     - The 'targetId' is just the INITIAL target - other hostile entities in the location will join combat automatically.
     *   Stop here.
 
-3.  **PRIORITY 3: Interaction with a Companion:**
+3.  **PRIORITY 3: Skill Check / Risky Action:**
+    *   Analyze if the action implies a challenge, risk, or use of a specific ability that is NOT a direct attack.
+    *   Keywords: "intento", "trato de", "escalo", "me escondo", "investigo", "busco", "persuado", "engaño", "salto", "fuerzo".
+    *   Examples: "intento abrir la cerradura", "investigo la habitación", "me escondo en las sombras", "trato de convencer al guardia", "intento derribar la puerta".
+    *   If detected, classify as 'skill_check'.
+    *   Set 'targetId' to the target entity name or object if specified (e.g. "guardia", "cerradura").
+    *   Stop here.
+
+4.  **PRIORITY 4: Interaction with a Companion:**
     *   Analyze if the action is directed at a companion from the 'Player's Party' list.
     *   If so, classify as 'interact' and use the companion's name as 'targetId'. Stop here.
 
-4.  **PRIORITY 4: Movement - Local Connections:**
+5.  **PRIORITY 5: Movement - Local Connections:**
     *   Analyze for movement intent (e.g., "vamos a", "entramos en", "cruzo", "ir al sur").
     *   **IMPORTANT:** Actions like "abrir la puerta del [dirección]" or "abrimos la sala del [dirección]" are INTERACTION actions, not movement. The player wants to interact with a door object first.
     *   If the destination matches a local \`connections\` (or legacy \`exits\`) description, direction, or target name, classify as 'move' and use the \`targetId\` (or \`toLocationId\`). 
     *   **Direction Matching:** If the player mentions a direction (norte, sur, este, oeste, etc.) WITHOUT mentioning "abrir" or "puerta", match it to a connection with that direction in the current location's connections.
     *   Stop here.
 
-5.  **PRIORITY 5: Interaction with a Local Object:**
+6.  **PRIORITY 6: Interaction with a Local Object:**
     *   Analyze if the action targets a local object/entity from \`interactables\` or \`entitiesPresent\`.
     *   If so, classify as 'interact' and find the most specific 'interactionResults.action' string for 'targetId'. Stop here.
 
-6.  **PRIORITY 6: Movement - Global Search (Fuzzy Match):**
+7.  **PRIORITY 7: Movement - Global Search (Fuzzy Match):**
     *   If movement intent was detected but didn't match a local exit, compare the player's destination to the provided 'allLocationNames' list.
     *   Find the best fuzzy match from the list. For example, if the player says "vamos a la colina", and the list has "Colina del Resentimiento", you should match it.
     *   If you find a strong match, classify as 'move' and use the matched name from the list as the 'targetId'. Stop here.
 
-7.  **PRIORITY 7: Default to Narration:**
+8.  **PRIORITY 8: Default to Narration:**
     *   If none of the above apply, classify as 'narrate' and leave 'targetId' null.
 
 **CONTEXT:**
