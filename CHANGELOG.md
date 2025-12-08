@@ -2,9 +2,57 @@
 
 ## [Unreleased]
 
+### Fixed
+- **🔧 Correcciones críticas del sistema de exploración y contexto narrativo (2025-12-08):**
+  - **Problema:** El DM narraba incorrectamente entidades muertas en ubicaciones equivocadas, puertas cerradas como abiertas, NPCs como muertos, y revelaba spoilers de salas no visitadas.
+  - **Correcciones implementadas:**
+    - ✅ **Aislamiento estricto de entidades por ubicación:** `ExplorationContextBuilder.getEntitiesInLocationStrict` ahora solo usa `enemiesByLocation[locationId]` específico, evitando mezclar enemigos muertos de diferentes salas. Esto corrige el problema donde el goblin muerto en la sala sur aparecía en la descripción de la sala norte.
+    - ✅ **Campo `doorStates` añadido al ExplorationContext:** Estado autoritativo de puertas (dirección → 'open' | 'closed') para que el DM no confíe en descripciones estáticas del JSON que pueden estar desactualizadas. El DM ahora usa `explorationContext.doorStates` como fuente de verdad.
+    - ✅ **NPCs no marcados como muertos incorrectamente:** Mejora en `isEntityOutOfCombat` para manejar múltiples formatos de HP (`hp: { current, max }` y `stats: { hp }`). Si no hay información de HP, se asume que la entidad está viva para evitar falsos positivos. Esto corrige el problema donde Boris el Mercader aparecía como muerto sin haber sido atacado.
+    - ✅ **Títulos de salas no visitadas ocultos:** Solo se revela el título de salas ya visitadas (`visitState === 'visited'` o `'seen'`). Para salas no visitadas, se muestra `(unexplored area)` en lugar del título literal, evitando spoilers como "Sala de la Emboscada".
+    - ✅ **Prompt del ExplorationExpert reforzado:** `explorationContext` es ahora la fuente de verdad primaria, con instrucciones explícitas sobre puertas y entidades. El prompt incluye jerarquía clara: `explorationContext` > `locationContext` para evitar confiar en descripciones estáticas desactualizadas.
+  - **Archivos modificados:**
+    - `src/ai/flows/managers/exploration-context-builder.ts` - Aislamiento de entidades, `doorStates`, ocultación de títulos, normalización de NPCs
+    - `src/ai/flows/experts/exploration-expert.ts` - Prompt reforzado con jerarquía de fuentes y prohibición de inventar muertes
+    - `src/lib/game/entity-status-utils.ts` - Mejora en `isEntityOutOfCombat` para múltiples formatos de HP
+  - **Impacto:** El DM ahora describe correctamente el estado de puertas, entidades y salas, sin mezclar información entre ubicaciones ni inventar muertes de NPCs.
+
+- **🔧 Simplificación y mejoras del sistema de exploración (2025-12-08):**
+  - **Simplificación del formato de `visibleConnections`:** Cambio de formato estructurado complejo (ej: `Room: "Sala del Tesoro"`, `[VISIBLE ENTITIES: ...]`) a formato natural simple (ej: `"norte Sala del Tesoro (archway) entities: Boris"`). Esto evita que el DM interprete literalmente etiquetas estructuradas y produce narraciones más naturales.
+  - **Restauración de exclusión de conexión de origen:** La lógica para excluir la conexión por la que el jugador acaba de llegar (`cameFromLocationId`) ha sido restaurada en `calculateVisibleConnections`, evitando narraciones redundantes sobre la sala de la que acabas de salir.
+  - **Mejora del prompt del ExplorationExpert:** Instrucciones explícitas añadidas para interpretar correctamente `(archway)` vs `(open door)` en `visibleConnections`. El DM ahora sabe que `(archway)` debe describirse como pasaje abierto o arco, NO como puerta, evitando confusiones cuando solo hay arcos en el mapa.
+  - **Reducción de longitud de narración:** Ajuste de límites de longitud para hacer las narraciones más concisas:
+    - Momentos clave: de 3-4 frases a **2-3 frases**
+    - Narración estándar: de 2-3 frases a **1-2 frases**
+  - **Archivos modificados:**
+    - `src/ai/flows/managers/exploration-context-builder.ts` - Formato simplificado de `visibleConnections`, restauración de exclusión de conexión de origen
+    - `src/ai/flows/experts/exploration-expert.ts` - Instrucciones explícitas sobre interpretación de `(archway)` vs `(open door)`, reducción de longitud de narración
+    - `tests/unit/managers/exploration-context-builder.test.ts` - Actualización de tests para reflejar nuevo formato
+  - **Impacto:** Narraciones más naturales y concisas, sin confusión entre puertas y arcos, y sin redundancias sobre salas ya visitadas.
+
 ### Added / Fixed
+- **🎮 Selector de Aventuras con Estructura de Carpetas (2025-12-08):**
+  - **Mejora:** El botón "Nueva Partida" ahora muestra un selector interactivo con todas las aventuras disponibles en `/JSON_adventures`.
+  - **Características:**
+    - Estructura de árbol jerárquica con carpetas colapsables
+    - Las carpetas aparecen colapsadas por defecto y se expanden al hacer clic
+    - Iconos visuales diferenciados para carpetas y archivos JSON
+    - Indentación visual para mostrar la jerarquía de carpetas
+    - Filtrado automático: ignora carpetas `dev` y `backup`
+  - **Backend:**
+    - Nueva API `/api/adventures/list` que devuelve estructura de árbol de aventuras
+    - API `/api/load-adventure` actualizada para aceptar parámetro `filename` opcional
+  - **Frontend:**
+    - Componente `MainMenu` actualizado con diálogo de selección de aventuras
+    - Reutiliza el mismo sistema robusto de carga que "Cargar Aventura (JSON)"
+    - Muestra barra de progreso de carga con los mismos pasos de validación
+  - **Archivos modificados:**
+    - `src/app/api/adventures/list/route.ts` (nuevo)
+    - `src/app/api/load-adventure/route.ts` (actualizado)
+    - `src/components/game/main-menu.tsx` (actualizado)
+    - `src/app/page.tsx` (actualizado)
 - Movimiento con estado estructurado: `NavigationManager` ahora devuelve `status: 'ok' | 'already_here' | 'blocked' | 'not_found'` para que el flujo narrativo sepa si realmente hubo desplazamiento.
-- Narración coherente con feedback: El Exploration Expert prioriza el `systemFeedback` (“Ya estás en…”) y evita narrar viajes inexistentes cuando el jugador ya está en la sala.
+- Narración coherente con feedback: El Exploration Expert prioriza el `systemFeedback` ("Ya estás en…") y evita narrar viajes inexistentes cuando el jugador ya está en la sala.
 - Estado real de enemigos en exploración: `ExplorationContextBuilder` usa primero `enemiesByLocation` (hp actualizado, muertos) antes de recurrir al JSON, eliminando combates fantasma con enemigos ya derrotados.
 - Ajuste de ambush en sala visible: Retirado el hazard de emboscada en la sala sur (goblin visible) para que el combate inicie por proximidad sin sorpresa.
 

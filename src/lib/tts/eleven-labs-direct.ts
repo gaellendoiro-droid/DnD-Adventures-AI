@@ -1,5 +1,6 @@
 import { log } from '@/lib/logger';
-import { prewarmConnection, retryWithExponentialBackoff } from '@/ai/flows/retry-utils';
+import { retryWithExponentialBackoff } from '@/ai/flows/retry-utils';
+import { persistentFetch } from '@/lib/http/persistent-client';
 import { ttsCache } from '@/lib/tts/tts-cache';
 
 export interface ElevenLabsDirectConfig {
@@ -67,21 +68,13 @@ export async function generateAudioDirect(
         voiceId: config.voiceId
     });
 
-    // Pre-warm de la conexión
-    await prewarmConnection(
-        'https://api.elevenlabs.io',
-        '/v1/voices',
-        { 'xi-api-key': apiKey.trim() },
-        5000
-    );
-
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 segundos
 
     const url = `https://api.elevenlabs.io/v1/text-to-speech/${config.voiceId}`;
 
     try {
-        const response = await fetch(url, {
+        const response = await persistentFetch(url, {
             method: 'POST',
             headers: {
                 'Accept': 'audio/mpeg',

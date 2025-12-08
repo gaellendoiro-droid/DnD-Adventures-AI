@@ -19,6 +19,7 @@ vi.mock('@/ai/flows/managers/exploration-manager', () => ({
 vi.mock('@/lib/logger', () => ({
     log: {
         gameCoordinator: vi.fn(),
+        debug: vi.fn(),
     },
 }));
 
@@ -314,7 +315,8 @@ describe('ExplorationContextBuilder', () => {
 
                 expect(result.context.visibleConnections).toHaveLength(1);
                 expect(result.context.visibleConnections[0]).toContain('norte');
-                expect(result.context.visibleConnections[0]).toContain('North location');
+                // Room name only shows if visited, so we check for archway indicator
+                expect(result.context.visibleConnections[0]).toContain('(archway)');
             });
 
             it('should exclude connection we came from', () => {

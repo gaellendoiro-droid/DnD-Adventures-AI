@@ -57,6 +57,7 @@ const narrativeRouterPrompt = ai.definePrompt({
         })
     },
     output: { schema: RouterOutputSchema },
+    // Nota: No se establece generationConfig aquí porque el endpoint rechaza ese campo.
     prompt: `Analyze the player's action and classify it into one of three categories:
 
 1. **EXPLORATION**: The player is moving, looking, searching, or interacting with inanimate objects/environment. (e.g., "I look at the wall", "I go north", "I search the chest").
@@ -167,6 +168,17 @@ export const narrativeManagerFlow = ai.defineFlow(
 
             // 2. Routing (Normal Mode)
             localLog("NarrativeManager: Routing action...");
+            let classification: 'EXPLORATION' | 'INTERACTION' | 'HYBRID' = 'EXPLORATION';
+            // Heurística rápida: si la interpretación es claramente exploración (move/interact con objeto) y no hay señal social, saltar router
+            const interpreted = (input.interpretedAction || '').toLowerCase();
+            const isObviousExploration = interpreted.includes('"actiontype":"move"') ||
+                interpreted.includes('"actiontype":"interact"');
+            const looksSocial = interpreted.includes('npc') || interpreted.includes('say') || interpreted.includes('hablar') || interpreted.includes('decir');
+
+            if (isObviousExploration && !looksSocial) {
+                localLog('NarrativeManager: Skipping router (obvious exploration).');
+                classification = 'EXPLORATION';
+            } else {
             const routerResponse = await executePromptWithRetry(
                 narrativeRouterPrompt,
                 {
@@ -176,8 +188,9 @@ export const narrativeManagerFlow = ai.defineFlow(
                 },
                 { flowName: 'narrativeRouter' }
             );
-            const classification = routerResponse.output?.classification || 'EXPLORATION'; // Default to exploration
+                classification = routerResponse.output?.classification || 'EXPLORATION'; // Default to exploration
             localLog(`NarrativeManager: Classification = ${classification}`);
+            }
 
             let finalNarration = "";
             let updatedStats = null; // Placeholder for future use

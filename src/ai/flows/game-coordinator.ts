@@ -34,8 +34,24 @@ export const gameCoordinatorFlow = ai.defineFlow(
         outputSchema: GameCoordinatorOutputSchema,
     },
     async (input) => {
-        const { playerAction, inCombat, conversationHistory, party, turnIndex = 0 } = input;
+        const { playerAction, inCombat, conversationHistory = [], party, turnIndex = 0 } = input;
         let { locationId } = input;
+
+        const trimConversationHistory = (
+            history: GameMessage[],
+            maxMessages = 6,
+            truncateFromOldest = 4,
+            maxCharsOld = 400
+        ) => {
+            const sliced = history.slice(-maxMessages);
+            const keepLast = Math.max(0, sliced.length - truncateFromOldest);
+            return sliced.map((m, idx) => {
+                const isRecent = idx >= keepLast; // últimos mensajes sin truncar
+                if (isRecent || typeof m.content !== 'string') return m;
+                return { ...m, content: (m.content as string).slice(0, maxCharsOld) };
+            });
+        };
+        const trimmedHistory = trimConversationHistory(conversationHistory);
 
         // Get enemies for current location from enemiesByLocation, fallback to enemies for backward compatibility
         let currentLocationEnemies = EnemyStateManager.getEnemiesForLocation(
@@ -156,9 +172,11 @@ export const gameCoordinatorFlow = ai.defineFlow(
             localLog("GameCoordinator: Interpreting player action...");
 
             // Generate transcript for context
-            const historyTranscript = conversationHistory.map(formatMessageForTranscript).join('\n');
+            const historyTranscript = trimmedHistory.map(formatMessageForTranscript).join('\n');
 
             // Context Enrichment: Add implicit destinations for Hubs
+            // Send full location context - actionInterpreter needs complete information
+            // Only trim very large fields if needed (like huge inventories)
             const enrichedLocationData = { ...currentLocationData };
             if (currentLocationData.regionId) {
                 const implicitDestinations = adventureData.locations
@@ -175,10 +193,20 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 }
             }
 
+            const slimParty = party.map((p) => ({
+                name: p.name,
+                id: (p as any).id,
+                hp: p.hp,
+                isDead: (p as any).isDead,
+                class: (p as any).class,
+                role: (p as any).role,
+                status: (p as any).status,
+            }));
+
             const result = await actionInterpreter({
                 playerAction,
                 locationContext: JSON.stringify(enrichedLocationData),
-                party: party,
+                party: slimParty,
                 updatedEnemies: currentLocationEnemies, // Issue #27: Pass enemies to filter dead ones
                 conversationHistory: historyTranscript,
             });
@@ -198,6 +226,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 ...input,
                 interpretedAction: interpretation,
                 locationContext: currentLocationData,
+                conversationHistory: trimmedHistory,
             });
 
             // Log combat result details
@@ -291,7 +320,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
             }
         }
 
-        const historyTranscript = conversationHistory.map(formatMessageForTranscript).join('\n');
+        const historyTranscript = trimmedHistory.map(formatMessageForTranscript).join('\n');
 
         if (interpretation.actionType === 'ooc') {
             const oocResult = await oocAssistant({ playerQuery: playerAction.substring(2).trim(), conversationHistory: historyTranscript });
@@ -343,14 +372,14 @@ export const gameCoordinatorFlow = ai.defineFlow(
             return { ...combatResult, debugLogs: debugLogs };
         }
 
-        // Execute narrative turn (outside of combat)
+        // Execute narrative turn (outside of combat) with trimmed history
         const narrativeResult = await executeNarrativeTurn({
             playerAction,
             interpretation,
             party,
             currentLocationId: locationId,
             adventureData,
-            conversationHistory,
+            conversationHistory: trimmedHistory,
             enemiesByLocation: input.enemiesByLocation,
             enemies: input.enemies,
             explorationState: input.exploration, // Pass current exploration state

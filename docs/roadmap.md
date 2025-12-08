@@ -38,6 +38,8 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 - [20. Música y Sonido Dinámicos](#roadmap-20-musica)
 - [21. Mejoras del Sistema de Inicio de Combate Dinámico](#roadmap-21-combate-dinamico)
 - [22. Persistencia general de mutaciones de localización](#roadmap-22-persistencia-localizaciones)
+- [23. Sistema de Memoria de Eventos Recientes](#roadmap-23-memoria-eventos)
+- [23. Sistema de Memoria de Eventos Recientes](#roadmap-23-memoria-eventos)
 
 ### 🟢 Prioridad Baja
 - [18. Mejoras de Interfaz de Usuario](#roadmap-18-ui)
@@ -564,6 +566,30 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 * **Prioridad:** Media
 * **Plan Detallado:** ❌ No creado
 
+<a id="roadmap-23-memoria-eventos"></a>
+### 23. Sistema de Memoria de Eventos Recientes
+*   **Problema Actual:** Los compañeros AI y el DM dependen exclusivamente del historial de chat (`conversationHistory`) para tener contexto de eventos importantes. Si hay muchos mensajes entre un evento importante (ej: combate) y la pregunta del jugador, el evento puede no estar en los últimos 6 mensajes, causando que los compañeros no recuerden eventos recientes.
+*   **Caso Específico:** Un jugador mata a un goblin en la "Sala Sur" durante un combate. Después de varios mensajes (narración del DM, reacciones de compañeros), el jugador se mueve a otra sala y pregunta "¿Qué vemos en la sala sur?". Merryl (compañero) reacciona pero no recuerda que acabaron de matar al goblin allí, diciendo algo sin sentido como si fuera la primera vez que ve el goblin.
+*   **Mejora Propuesta:**
+    *   **Sistema de Memoria Estructurada:** Implementar un sistema de memoria de eventos recientes que capture eventos importantes (combates, descubrimientos) independientemente del historial de chat.
+    *   **Eventos con TTL:** Los eventos se almacenan con metadatos (tipo, ubicación, descripción, turnNumber) y expiran automáticamente después de un período de tiempo (10 turnos por defecto).
+    *   **Inyección de Contexto:** Los eventos relevantes se inyectan automáticamente en el contexto de los compañeros AI, permitiéndoles recordar eventos recientes aunque no estén en los últimos mensajes del chat.
+    *   **MVP Simplificado:** Inicialmente solo capturar eventos de fin de combate (`combat_end`), con posibilidad de expandir a más tipos de eventos después de validar que funciona.
+*   **Componentes Técnicos:**
+    *   **`GameEventSchema`:** Schema para eventos con tipo, descripción, ubicación, turnNumber y metadata
+    *   **`EventManager`:** Clase con métodos para registrar eventos, obtener eventos relevantes (con expiración automática) y formatear para prompts
+    *   **Integración en `GameState`:** Añadir campo `recentEvents` al estado del juego
+    *   **Captura en Combate:** Registrar eventos cuando termina un combate
+    *   **Inyección en Compañeros:** Añadir eventos relevantes al contexto de los compañeros en `companion-reaction-manager.ts`
+*   **Beneficios:**
+    *   ✅ **Memoria Persistente:** Los compañeros recordarán eventos importantes durante un período de tiempo definido
+    *   ✅ **Independencia del Chat:** La memoria no depende del volumen de mensajes en el historial
+    *   ✅ **Contexto Semántico:** Los eventos se almacenan con significado, no como texto plano
+    *   ✅ **Mejor Coherencia Narrativa:** Los compañeros reaccionan apropiadamente a eventos recientes que conocen
+*   **Impacto:** Mejora significativa de la coherencia narrativa y la capacidad de los compañeros AI para recordar eventos importantes, resolviendo el problema de respuestas sin sentido cuando se pregunta sobre eventos recientes.
+*   **Plan Detallado:** ✅ [Sistema de Memoria de Eventos Recientes (Simplificado)](../planes-desarrollo/sin-comenzar/sistema-memoria-eventos-recientes-simplificado.md)
+*   **Estimación:** 7-11 horas (versión simplificada vs 18-26 horas del plan original)
+
 ---
 
 ## 🟢 Prioridad Baja
@@ -578,7 +604,7 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
 | --- | --- | --- |
 | Input del jugador muestra “Es tu turno…” | ✅ | `src/components/game/player-input.tsx` renderiza el mensaje contextual (líneas 64-68). |
 | Mostrar nombre de la aventura en el header | ✅ | `AppHeader` recibe `adventureName` y lo pinta en `game-view.tsx` (líneas 802-809). |
-| Menú para seleccionar aventuras JSON disponibles | ⏳ Pendiente | Actualmente solo hay carga manual vía `<input type="file">` en `main-menu.tsx`. |
+| Menú para seleccionar aventuras JSON disponibles | ✅ | Implementado selector con estructura de carpetas colapsables en `main-menu.tsx` (2025-12-08). |
 | Reestructurar / eliminar DebugLog UI | ✅ | DebugLog fue retirado junto con dependencias (`debug-panel.tsx` ya no existe; comentario en `combat-manager.ts`). |
 | Historial de comandos en el input (flechas arriba/abajo) | ⏳ Pendiente | El input no mantiene buffer de comandos. |
 | Botones de avance integrados en el panel de orden de combate | ⏳ Pendiente | Botones siguen en `chat-panel.tsx`, no en `initiative-tracker.tsx`. |

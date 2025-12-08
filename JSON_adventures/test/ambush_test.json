@@ -1,6 +1,6 @@
 {
     "adventureId": "test-ambush",
-    "title": "Prueba de Emboscada",
+    "title": "Pruebas de Emboscada",
     "summary": "Aventura de prueba para el sistema de inicio de combate dinámico.",
     "introduction": "Estás en una zona de pruebas. Al norte hay una sala sospechosa, al este una sala con un cofre, al sur hay una puerta cerrada, y al oeste hay un mercader.",
     "startingLocationId": "sala-segura",

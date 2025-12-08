@@ -10,8 +10,8 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 📋 Índice de Planes
 
-- [🚧 Planes en Curso](#-planes-en-curso) (0 planes activos)
-- [✅ Planes Completados](#-planes-completados) (24 planes)
+- [🚧 Planes en Curso](#-planes-en-curso) (1 plan activo)
+- [✅ Planes Completados](#-planes-completados) (25 planes)
 - [💡 Planes Sin Comenzar](#-planes-sin-comenzar-priorizados) (11 planes)
 - [🎯 Prioridades Estratégicas](#-prioridades-estratégicas)
 - [📊 Resumen Ejecutivo](#-resumen-ejecutivo)
@@ -20,17 +20,39 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** 0 planes activos | **Última implementación:** Sistema de Exploración de Mazmorras (Fase 2) (2025-12-01) - COMPLETADO
+**Estado:** 1 plan activo | **Última implementación:** Sistema de Conexiones Persistentes para APIs (2025-12-08) - COMPLETADO
 
-> Actualmente no hay planes en curso.
+### [Sistema de Memoria de Eventos Recientes](en-curso/sistema-memoria-eventos-recientes.md) 🚧 **EN CURSO**
+- **Estado:** Plan creado, pendiente de implementación
+- **Objetivo:** Implementar un sistema de memoria estructurada de eventos recientes que permita a los compañeros AI y al DM tener contexto de acciones importantes ocurridas en el juego, independientemente del historial de chat.
+- **Prioridad:** Alta
+- **Problema a resolver:** Compañeros no recuerdan eventos recientes (ej: combates, descubrimientos) cuando hay muchos mensajes entre el evento y la pregunta del jugador.
+- **Solución propuesta:** Sistema de eventos estructurados con TTL, captura automática de eventos importantes, e inyección de contexto en prompts de compañeros y DM.
+- **Fecha de creación:** 2025-12-08
+- **Referencia:** [Plan Detallado](en-curso/sistema-memoria-eventos-recientes.md)
 
 ---
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 24 planes
+**Estado:** Finalizados | **Cantidad:** 25 planes
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Sistema de Conexiones Persistentes para APIs](completados/sistema-conexiones-persistentes-apis.md) ✅ **COMPLETADO**
+- **Estado:** Implementado y documentado (Todas las fases completadas)
+- **Objetivo:** Implementar un sistema de conexiones HTTP persistentes (keep-alive) para todas las llamadas a APIs externas, eliminando el overhead de establecer nuevas conexiones y mejorando significativamente la estabilidad y rendimiento del sistema.
+- **Prioridad:** Crítica (PMA)
+- **Resultados:**
+  - ✅ Infraestructura base con `AgentManager` y `PersistentClient` usando `undici`
+  - ✅ Integración completa con D&D API, Eleven Labs API y Genkit/Gemini
+  - ✅ Sistema de retries simplificado y más efectivo
+  - ✅ Reducción significativa de latencia, timeouts y reintentos
+  - ✅ Optimizaciones de contexto y reducción de llamadas a Gemini (Fase 7)
+  - ✅ Correcciones críticas del sistema de exploración y contexto narrativo
+  - ✅ Simplificaciones y mejoras del formato de `visibleConnections`
+- **Fecha de finalización:** 2025-12-08
+- **Referencia:** [Plan Detallado](completados/sistema-conexiones-persistentes-apis.md)
 
 ### [Refactorización: Modularidad del Sistema de Combate](completados/refactorizacion-modularidad-sistema-combate.md) ✅ **COMPLETADO**
 - **Estado:** Implementado y documentado (Fases 1, 2/2.5, 3 y 4)

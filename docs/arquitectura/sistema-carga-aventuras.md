@@ -46,7 +46,24 @@ El sistema se divide en cinco módulos principales, ubicados en `src/lib/adventu
 
 ## Flujo de Datos
 
-1.  **Usuario** selecciona archivo en `page.tsx`.
+### Carga desde Selector (Nueva Partida)
+
+1.  **Usuario** hace clic en "Nueva Partida" en el menú principal.
+2.  **Frontend** muestra diálogo con selector de aventuras (`MainMenu`).
+3.  **API `/api/adventures/list`** escanea recursivamente `/JSON_adventures` y devuelve estructura de árbol (ignora carpetas `dev` y `backup`).
+4.  **Usuario** selecciona una aventura del árbol (carpetas colapsables).
+5.  **API `/api/load-adventure?filename=...`** carga el archivo seleccionado.
+6.  **Frontend** muestra `AdventureLoadProgress`.
+7.  **Parser** procesa el archivo (Fast Path o IA) -> `ParsedAdventure`.
+8.  **Validator** verifica `ParsedAdventure.adventureData`. Si falla, muestra errores.
+9.  **Cache** guarda el resultado exitoso.
+10. **Health Check** verifica disponibilidad del servidor (`/api/health`).
+11. **Initializer** prepara el juego y obtiene la narración inicial.
+12. **Frontend** recibe el estado inicial y cambia a `GameView`.
+
+### Carga Manual (Cargar Aventura JSON)
+
+1.  **Usuario** selecciona archivo manualmente en `page.tsx`.
 2.  **Frontend** muestra `AdventureLoadProgress`.
 3.  **Parser** procesa el archivo (Fast Path o IA) -> `ParsedAdventure`.
 4.  **Validator** verifica `ParsedAdventure.adventureData`. Si falla, muestra errores.
@@ -55,9 +72,35 @@ El sistema se divide en cinco módulos principales, ubicados en `src/lib/adventu
 7.  **Initializer** prepara el juego y obtiene la narración inicial.
 8.  **Frontend** recibe el estado inicial y cambia a `GameView`.
 
+## Selector de Aventuras
+
+El sistema incluye un selector visual de aventuras integrado en el menú principal que permite elegir entre todas las aventuras disponibles en `/JSON_adventures`:
+
+### Características
+
+*   **Estructura de Árbol Jerárquica**: Las aventuras se organizan en una estructura de árbol que respeta la jerarquía de carpetas del sistema de archivos.
+*   **Carpetas Colapsables**: Las carpetas aparecen colapsadas por defecto y se expanden al hacer clic, mostrando su contenido (subcarpetas y archivos JSON).
+*   **Filtrado Automático**: El sistema ignora automáticamente las carpetas `dev` y `backup` para evitar mostrar archivos de desarrollo o respaldos.
+*   **Iconos Visuales**: Diferencia visualmente entre carpetas (icono de carpeta) y archivos JSON (icono de archivo).
+*   **Indentación Visual**: Muestra la jerarquía mediante indentación progresiva según el nivel de anidación.
+
+### Componentes
+
+*   **API `/api/adventures/list`**: Endpoint que escanea recursivamente `/JSON_adventures` y devuelve una estructura de árbol con nodos de tipo `folder` o `file`.
+*   **API `/api/load-adventure`**: Actualizada para aceptar un parámetro opcional `filename` que permite cargar aventuras específicas desde el selector.
+*   **Componente `MainMenu`**: Incluye un diálogo modal con el selector de aventuras que se activa al hacer clic en "Nueva Partida".
+
+### Flujo de Selección
+
+1. Usuario hace clic en "Nueva Partida".
+2. Se abre un diálogo con la lista de aventuras disponibles.
+3. El usuario navega por la estructura de carpetas (expandir/colapsar).
+4. Al seleccionar un archivo JSON, se inicia el proceso de carga con el mismo sistema robusto de validación que la carga manual.
+
 ## Decisiones de Diseño Clave
 
 *   **Validación Estricta, Ejecución Flexible**: Somos estrictos al cargar para evitar errores en tiempo de ejecución, pero el sistema de juego puede manejar situaciones imprevistas.
 *   **Feedback Visual Granular**: El usuario siempre sabe qué está pasando (Parseando, Validando, Conectando, etc.) gracias al componente de progreso.
 *   **Persistencia**: El caché en disco permite recargar la página o reiniciar el servidor de desarrollo sin perder el contexto de las aventuras cargadas recientemente.
 *   **Silencio Inicial**: Forzamos programáticamente que los compañeros no hablen en la introducción para dar protagonismo al jugador y establecer el tono correcto.
+*   **Unificación de Flujos**: Tanto la carga desde selector como la carga manual utilizan exactamente el mismo sistema de validación y procesamiento, garantizando consistencia.

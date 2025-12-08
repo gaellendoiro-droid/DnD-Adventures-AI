@@ -106,12 +106,13 @@ describe('retryWithExponentialBackoff', () => {
     const fn = vi.fn().mockRejectedValue(error);
 
     const promise = retryWithExponentialBackoff(fn, 2, 1000, 'test');
+    const assertion = expect(promise).rejects.toThrow('timeout');
 
-    // Fast-forward through all delays
-    await vi.advanceTimersByTimeAsync(1000 + 2000);
+    // Fast-forward through todos los delays y pendientes
+    await vi.runAllTimersAsync();
 
-    // Wait for the promise to settle and verify it throws
-    await expect(promise).rejects.toThrow('timeout');
+    // Esperar a que la aserción se resuelva con el handler ya registrado
+    await assertion;
     expect(fn).toHaveBeenCalledTimes(3); // Initial + 2 retries
   });
 

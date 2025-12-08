@@ -4,6 +4,7 @@
  */
 
 import { log } from '@/lib/logger';
+import { persistentFetch } from '@/lib/http/persistent-client';
 
 /**
  * Retry a function with exponential backoff
@@ -118,25 +119,7 @@ export async function retryWithExponentialBackoff<T>(
 
 /**
  * Pre-warms a connection to an API by making a lightweight request.
- * This establishes the TCP/TLS connection, avoiding the 10-second connection timeout
- * that undici (Node.js HTTP client) has by default on the first request.
- * 
- * @param baseUrl The base URL of the API (e.g., 'https://api.elevenlabs.io')
- * @param warmupPath Optional path for the warmup request (default: '/')
- * @param headers Optional headers to include in the warmup request
- * @param timeoutMs Timeout for the warmup request in milliseconds (default: 5000)
- * @returns Promise that resolves when warmup completes (or fails silently)
- * 
- * @example
- * ```typescript
- * // Pre-warm Eleven Labs
- * await prewarmConnection('https://api.elevenlabs.io', '/v1/voices', {
- *   'xi-api-key': apiKey
- * });
- * 
- * // Pre-warm D&D API
- * await prewarmConnection('https://www.dnd5eapi.co', '/api');
- * ```
+ * Ahora usa persistentFetch para aprovechar el pool/keep-alive.
  */
 export async function prewarmConnection(
     baseUrl: string,
@@ -146,7 +129,7 @@ export async function prewarmConnection(
 ): Promise<void> {
     try {
         const url = `${baseUrl}${warmupPath}`;
-        await fetch(url, {
+        await persistentFetch(url, {
             method: 'HEAD',
             headers: headers || {},
             signal: AbortSignal.timeout(timeoutMs),
@@ -168,9 +151,6 @@ let geminiPrewarmed = false;
  * 
  * Centralizes the common pattern of executing Genkit prompts with retry logic.
  * This helper encapsulates the retry pattern used across multiple flows and tools.
- * 
- * Automatically pre-warms the Gemini API connection on first use to avoid
- * connection timeout errors on the first request.
  * 
  * @param prompt The Genkit prompt to execute
  * @param input The input for the prompt
@@ -200,18 +180,15 @@ export async function executePromptWithRetry<TInput, TOutput>(
         flowName?: string;
     }
 ): Promise<{ output: TOutput }> {
-    // Pre-warm Gemini API en el primer uso
+    // Pre-warm Gemini API en el primer uso para reducir timeouts iniciales
     if (!geminiPrewarmed) {
-        // Pre-warm a la API de Gemini (Google Generative Language API)
-        // Usamos un endpoint simple que no requiere autenticación especial
-        // Genkit maneja la autenticación internamente, pero el pre-warm establece la conexión TCP/TLS
         await prewarmConnection(
             'https://generativelanguage.googleapis.com',
             '/v1beta/models',
             undefined,
             5000
         ).catch(() => {
-            // Ignorar errores - el pre-warm es opcional y no crítico si falla
+            // Ignorar errores - el pre-warm es best-effort
         });
         geminiPrewarmed = true;
     }

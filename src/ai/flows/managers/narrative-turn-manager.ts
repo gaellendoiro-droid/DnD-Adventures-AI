@@ -180,8 +180,8 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         }
     }
 
-    // Prepare chat history for companions (last 10 messages)
-    const recentHistory = conversationHistory.slice(-10).map(formatMessageForTranscript).join('\n');
+    // Prepare chat history for companions (last 6 messages, same trimming as coordinator)
+    const recentHistory = conversationHistory.slice(-6).map(formatMessageForTranscript).join('\n');
 
     // 3. Generate companion reactions BEFORE DM narration
     const beforeDmReactions = await processCompanionReactions({
@@ -332,6 +332,20 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
                 locationId,
                 updatedOpenDoors
             );
+
+            // RE-CALCULATE Visible Connections if a door was opened
+            // This ensures the DM narrates what is seen through the newly opened door
+            explorationContext.visibleConnections = ExplorationContextBuilder.calculateVisibleConnections({
+                locationData: filteredLocationData,
+                locationId,
+                cameFromLocationId,
+                openDoors: updatedOpenDoors,
+                adventureData,
+                explorationState: currentGameState.exploration,
+                enemiesByLocation: input.enemiesByLocation,
+                enemies: input.enemies,
+            });
+            localLog(`Recalculated visible connections after door opening: ${explorationContext.visibleConnections.length} connections.`);
         }
 
         // Use system feedback from interaction handler

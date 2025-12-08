@@ -72,16 +72,39 @@ export function isEntityUnconscious(entity: Character | any): boolean {
 /**
  * Verifica si una entidad está fuera de combate (muerta o inconsciente).
  * 
+ * IMPORTANTE: Esta función debe manejar múltiples formatos de HP:
+ * - hp: { current: number, max: number } (normalizado)
+ * - stats: { hp: number } (formato JSON original)
+ * 
+ * Si no hay información de HP, se asume que la entidad está VIVA para evitar
+ * falsos positivos (marcar NPCs como muertos incorrectamente).
+ * 
  * @param entity - Personaje o enemigo a verificar
  * @returns true si la entidad no puede actuar
  */
 export function isEntityOutOfCombat(entity: Character | any): boolean {
-    if (!entity || !entity.hp) {
+    if (!entity) {
         return true;
     }
 
-    // LÓGICA EXACTA MOVIDA DESDE game-coordinator.ts (línea 60)
-    return entity.hp.current <= 0 || entity.isDead === true;
+    // Si está explícitamente marcado como muerto
+    if (entity.isDead === true) {
+        return true;
+    }
+
+    // Formato normalizado: hp: { current, max }
+    if (entity.hp && typeof entity.hp.current === 'number') {
+        return entity.hp.current <= 0;
+    }
+
+    // Formato JSON original: stats.hp (número)
+    if (entity.stats && typeof entity.stats.hp === 'number') {
+        return entity.stats.hp <= 0;
+    }
+
+    // Sin información de HP: asumir VIVO para evitar falsos positivos
+    // Esto es especialmente importante para NPCs que no tienen stats de combate
+    return false;
 }
 
 /**

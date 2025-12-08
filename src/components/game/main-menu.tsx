@@ -1,14 +1,25 @@
 
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Upload, Gamepad2, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Play, Upload, Gamepad2, Loader2, FileJson, Folder, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
+
+interface AdventureNode {
+  name: string;
+  path: string;
+  type: 'file' | 'folder';
+  children?: AdventureNode[];
+}
 
 interface MainMenuProps {
-  onNewGame: () => void;
+  onNewGame: (adventurePath?: string) => void;
   onContinueGame: () => void;
   onLoadAdventure: (file: File) => void;
   onLoadGame: (file: File) => void;
@@ -20,6 +31,11 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGam
   const adventureInputRef = useRef<HTMLInputElement>(null);
   const saveGameInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  
+  const [showAdventureSelector, setShowAdventureSelector] = useState(false);
+  const [adventureTree, setAdventureTree] = useState<AdventureNode[]>([]);
+  const [loadingAdventures, setLoadingAdventures] = useState(false);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
   const handleLoadAdventureClick = () => {
     adventureInputRef.current?.click();
@@ -27,6 +43,46 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGam
   
   const handleLoadGameClick = () => {
     saveGameInputRef.current?.click();
+  };
+
+  const handleNewGameClick = async () => {
+    setShowAdventureSelector(true);
+    setLoadingAdventures(true);
+    try {
+      const res = await fetch('/api/adventures/list');
+      const data = await res.json();
+      if (data.tree) {
+        setAdventureTree(data.tree);
+      } else {
+        throw new Error('No adventures found');
+      }
+    } catch (error) {
+      console.error('Error loading adventures:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudieron cargar las aventuras disponibles.',
+      });
+    } finally {
+      setLoadingAdventures(false);
+    }
+  };
+
+  const toggleFolder = (folderPath: string) => {
+    setExpandedFolders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(folderPath)) {
+        newSet.delete(folderPath);
+      } else {
+        newSet.add(folderPath);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAdventure = (adventure: string) => {
+    setShowAdventureSelector(false);
+    onNewGame(adventure);
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, handler: (file: File) => void) => {
@@ -45,6 +101,55 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGam
     // Reset file input to allow uploading the same file again
     if(event.target) {
         event.target.value = '';
+    }
+  };
+
+  const renderAdventureNode = (node: AdventureNode, level: number = 0) => {
+    const isExpanded = expandedFolders.has(node.path);
+    
+    if (node.type === 'folder') {
+      return (
+        <div key={node.path} className="w-full">
+          <Collapsible open={isExpanded} onOpenChange={() => toggleFolder(node.path)}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start text-left h-auto py-2 px-3",
+                  level > 0 && "ml-4"
+                )}
+              >
+                <ChevronRight className={cn(
+                  "mr-2 h-4 w-4 shrink-0 transition-transform",
+                  isExpanded && "rotate-90"
+                )} />
+                <Folder className="mr-2 h-4 w-4 shrink-0" />
+                <span className="truncate">{node.name}</span>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pl-2">
+              <div className="flex flex-col">
+                {node.children?.map(child => renderAdventureNode(child, level + 1))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+      );
+    } else {
+      return (
+        <Button
+          key={node.path}
+          variant="outline"
+          className={cn(
+            "justify-start text-left h-auto py-2 px-3",
+            level > 0 && "ml-4"
+          )}
+          onClick={() => selectAdventure(node.path)}
+        >
+          <FileJson className="mr-2 h-4 w-4 shrink-0" />
+          <span className="truncate">{node.name}</span>
+        </Button>
+      );
     }
   };
 
@@ -68,10 +173,37 @@ export function MainMenu({ onNewGame, onContinueGame, onLoadAdventure, onLoadGam
                 Continuar Partida
               </Button>
             )}
-            <Button size="lg" variant={gameInProgress ? 'secondary' : 'default'} onClick={onNewGame} disabled={isAnyLoading}>
+            <Button size="lg" variant={gameInProgress ? 'secondary' : 'default'} onClick={handleNewGameClick} disabled={isAnyLoading}>
               <Play className="mr-2 h-5 w-5" />
               Nueva Partida
             </Button>
+            
+            <Dialog open={showAdventureSelector} onOpenChange={setShowAdventureSelector}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Selecciona una Aventura</DialogTitle>
+                  <DialogDescription>
+                    Elige una de las aventuras disponibles para comenzar.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col space-y-2 mt-4">
+                  {loadingAdventures ? (
+                    <div className="flex justify-center p-4">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                  ) : adventureTree.length > 0 ? (
+                    <ScrollArea className="h-[400px] pr-4">
+                      <div className="flex flex-col space-y-1">
+                        {adventureTree.map((node) => renderAdventureNode(node))}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <p className="text-center text-muted-foreground p-4">No se encontraron aventuras.</p>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+
             <input
               type="file"
               id="adventure-file-input"

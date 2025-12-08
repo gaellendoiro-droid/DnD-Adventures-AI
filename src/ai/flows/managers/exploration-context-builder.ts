@@ -32,6 +32,8 @@ export interface ExplorationContext {
     visibleConnections: string[];
     /** Entidades presentes resueltas */
     presentEntities: any[];
+    /** Estado de todas las puertas en la ubicación actual (dirección -> abierta/cerrada) */
+    doorStates: Record<string, 'open' | 'closed'>;
     /** Entidades muertas en salas conectadas (para que el DM no las narre como vivas) */
     deadEntitiesInConnectedLocations?: Record<string, string[]>; // locationId -> array of dead entity names
 }
@@ -166,7 +168,26 @@ export class ExplorationContextBuilder {
             enemies,
         });
 
-        // 8. Construir contexto final
+        // 8. Calcular estado de puertas para TODAS las conexiones
+        const doorStates: Record<string, 'open' | 'closed'> = {};
+        if (locationData.connections) {
+            for (const conn of locationData.connections) {
+                const doorKey = `${locationId}:${conn.direction}`;
+                const isDoorOpen = openDoors?.[doorKey] === true;
+                // Una puerta está abierta si: está en openDoors, o visibility='open', o isOpen=true en JSON
+                const isOpen = isDoorOpen || conn.visibility === 'open' || conn.isOpen === true;
+                doorStates[conn.direction] = isOpen ? 'open' : 'closed';
+            }
+        }
+
+        log.debug('Door states calculated', {
+            module: 'ExplorationContextBuilder',
+            locationId,
+            doorStates,
+            openDoorsFromState: openDoors,
+        });
+
+        // 9. Construir contexto final
         const context: ExplorationContext = {
             mode: locationData.explorationMode || 'safe',
             lightLevel: locationData.lightLevel || 'bright',
@@ -174,6 +195,7 @@ export class ExplorationContextBuilder {
             detectedHazards: detectedHazards,
             visibleConnections: visibleConnections,
             presentEntities: presentEntities,
+            doorStates: doorStates,
         };
 
         return {
@@ -185,12 +207,18 @@ export class ExplorationContextBuilder {
 
     /**
      * Calcula las conexiones visibles desde la ubicación actual.
-     * Genera descripciones enriquecidas con estado de puertas y entidades visibles (vivas o muertas).
+     * 
+     * PRINCIPIOS CLAVE:
+     * 1. NO usa descripciones estáticas del JSON (pueden estar desactualizadas)
+     * 2. Solo incluye entidades de la ubicación ESPECÍFICA (no mezcla con otras)
+     * 3. Incluye TODAS las conexiones visibles (incluyendo de donde venimos)
+     * 4. NO revela títulos de salas no visitadas (evita spoilers como "Sala de la Emboscada")
+     * 5. Marca claramente el estado de puertas y entidades
      * 
      * @param input - Datos para calcular conexiones
-     * @returns Array de descripciones de conexiones visibles enriquecidas
+     * @returns Array de descripciones de conexiones visibles
      */
-    private static calculateVisibleConnections(input: {
+    public static calculateVisibleConnections(input: {
         locationData: any;
         locationId: string;
         cameFromLocationId?: string | null;
@@ -200,7 +228,7 @@ export class ExplorationContextBuilder {
         enemiesByLocation?: Record<string, any[]>;
         enemies?: any[];
     }): string[] {
-        const { locationData, locationId, cameFromLocationId, openDoors, adventureData, enemiesByLocation, enemies } = input;
+        const { locationData, locationId, cameFromLocationId, openDoors, adventureData, explorationState, enemiesByLocation } = input;
         const visibleConnections: string[] = [];
 
         if (!locationData.connections) {
@@ -208,6 +236,11 @@ export class ExplorationContextBuilder {
         }
 
         for (const conn of locationData.connections) {
+            // Skip the connection we came from (avoid redundant "you see the room behind you")
+            if (cameFromLocationId && conn.targetId === cameFromLocationId) {
+                continue;
+            }
+            
             // Verificar si la conexión es visible/abierta
             const doorKey = `${locationId}:${conn.direction}`;
             const isDoorOpen = openDoors?.[doorKey] === true;
@@ -215,36 +248,48 @@ export class ExplorationContextBuilder {
             const isVisible = conn.visibility === 'open' || isDoorOpen || conn.isOpen === true;
             
             if (isVisible) {
-                // Omitir la conexión desde la que venimos para enfocar la narración en nuevos caminos
-                if (cameFromLocationId && conn.targetId === cameFromLocationId) {
-                    continue;
-                }
-
                 const targetLoc = adventureData.locations.find((l: any) => l.id === conn.targetId);
                 if (targetLoc) {
-                    let description = `To ${conn.direction || 'unknown'}: ${targetLoc.description.substring(0, 150)}...`;
+                    // Simple format: direction, room name (only if visited), door state, entities
+                    const targetVisitState = explorationState?.knownLocations?.[conn.targetId]?.status;
+                    const isVisited = targetVisitState === 'visited';
                     
-                    // 1. Enriquecer con estado de puerta
-                    if (isDoorOpen) {
-                        description += " (Through OPEN door)";
-                    } else if (conn.visibility === 'open') {
-                        description += " (Through open archway/passage)";
-                    }
-
-                    // 2. Enriquecer con entidades muertas visibles
-                    const deadEntities = this.getDeadEntitiesInLocation(
+                    // Get visible entities (only from this specific location)
+                    const entitiesVisible = this.getEntitiesInLocationStrict(
                         conn.targetId,
                         targetLoc,
                         enemiesByLocation,
-                        enemies
+                        adventureData
                     );
 
-                    if (deadEntities.length > 0) {
-                        const deadNames = deadEntities.join(', ');
-                        description += ` [VISIBLE CORPSES: ${deadNames}]`;
+                    // Build simple description
+                    let parts: string[] = [];
+                    
+                    // Direction
+                    parts.push(conn.direction || 'unknown');
+                    
+                    // Room name (only if visited to avoid spoilers)
+                    if (isVisited) {
+                        parts.push(targetLoc.title || conn.targetId);
+                    }
+                    
+                    // Door state
+                    if (isDoorOpen) {
+                        parts.push('(open door)');
+                    } else if (conn.visibility === 'open') {
+                        parts.push('(archway)');
+                    }
+                    
+                    // Entities
+                    if (entitiesVisible.length > 0) {
+                        const entityNames = entitiesVisible.map(e => {
+                            const name = e.name || e.id || 'Unknown';
+                            return isEntityOutOfCombat(e) ? `corpse: ${name}` : name;
+                        });
+                        parts.push(`entities: ${entityNames.join(', ')}`);
                     }
 
-                    visibleConnections.push(description);
+                    visibleConnections.push(parts.join(' '));
                 }
             }
         }
@@ -253,46 +298,86 @@ export class ExplorationContextBuilder {
     }
 
     /**
-     * Helper para obtener nombres de entidades muertas en una ubicación.
+     * Obtiene entidades visibles para una ubicación ESPECÍFICA.
+     * 
+     * PRINCIPIOS CRÍTICOS:
+     * 1. Solo usa enemiesByLocation[locationId], NO el array global
+     * 2. NPCs siempre se obtienen del JSON (no están en enemiesByLocation)
+     * 3. Solo incluir entidades si tienen estado válido (no inventar muertes)
      */
-    private static getDeadEntitiesInLocation(
+    private static getEntitiesInLocationStrict(
         locationId: string,
         locationData: any,
         enemiesByLocation?: Record<string, any[]>,
-        enemies?: any[]
-    ): string[] {
+        adventureData?: any
+    ): any[] {
         if (!locationData.entitiesPresent) return [];
 
-        const locationEnemies = EnemyStateManager.getEnemiesForLocation(
-            locationId,
-            enemiesByLocation,
-            enemies
-        );
+        // CRÍTICO: Solo obtener enemigos de ESTA ubicación específica
+        const locationSpecificEnemies = enemiesByLocation?.[locationId] || [];
 
-        const deadNames: string[] = [];
-        
+        const resolved: any[] = [];
+
         for (const entityId of locationData.entitiesPresent) {
-            const enemy = locationEnemies.find((e: any) =>
+            // 1. Buscar en el estado actualizado de esta ubicación ESPECÍFICA
+            const stateEnemy = locationSpecificEnemies.find((e: any) =>
                 e.id === entityId ||
                 (e as any).uniqueId === entityId ||
                 (e as any).adventureId === entityId
             );
 
-            if (enemy && isEntityOutOfCombat(enemy)) {
-                deadNames.push(enemy.name || enemy.id || 'Unknown enemy');
+            if (stateEnemy) {
+                // Tenemos estado actualizado - usar este (tiene HP correcto)
+                if (stateEnemy.disposition !== 'hidden') {
+                    resolved.push(stateEnemy);
+                }
+                continue;
+            }
+
+            // 2. Buscar en el JSON de la aventura
+            const jsonEntity = adventureData?.entities?.find((e: any) => e.id === entityId);
+            if (jsonEntity) {
+                // Filtrar entidades ocultas
+                if (jsonEntity.disposition === 'hidden') {
+                    continue;
+                }
+                
+                // Para ENEMIGOS: 
+                // - Si están en enemiesByLocation, ya los procesamos arriba
+                // - Si NO están en enemiesByLocation, significa que no han sido revelados/combatidos
+                // - En este caso, incluirlos como "vivos" del JSON
+                if (jsonEntity.type === 'enemy') {
+                    resolved.push(EnemyStateManager.normalizeEnemyStats(jsonEntity));
+                } else if (jsonEntity.type === 'npc') {
+                    // NPCs: SIEMPRE vivos a menos que estén explícitamente en el estado
+                    // Los NPCs NO se almacenan en enemiesByLocation, así que solo tienen el JSON
+                    // IMPORTANTE: Normalizar HP para que tenga formato { current, max }
+                    const normalizedNpc = {
+                        ...jsonEntity,
+                        hp: jsonEntity.hp || (jsonEntity.stats?.hp ? { 
+                            current: jsonEntity.stats.hp, 
+                            max: jsonEntity.stats.hp 
+                        } : undefined)
+                    };
+                    resolved.push(normalizedNpc);
+                } else {
+                    // Otros tipos de entidad
+                    resolved.push(jsonEntity);
+                }
             }
         }
 
-        return deadNames;
+        return resolved;
     }
 
     /**
-     * Resuelve las entidades presentes en la ubicación.
-     * Usa el estado actualizado del juego (enemiesByLocation) si está disponible,
-     * de lo contrario usa los datos del JSON y los normaliza.
+     * Resuelve las entidades presentes en la ubicación ACTUAL.
+     * 
+     * PRINCIPIO CRÍTICO: Solo usa enemiesByLocation[locationId], NO el array global.
+     * Esto previene confundir enemigos de diferentes ubicaciones.
      * 
      * @param input - Datos de la ubicación, aventura y estado del juego
-     * @returns Array de entidades resueltas con todas sus propiedades (estado actualizado si está disponible)
+     * @returns Array de entidades resueltas con todas sus propiedades
      */
     private static resolvePresentEntities(input: {
         locationData: any;
@@ -301,51 +386,61 @@ export class ExplorationContextBuilder {
         enemiesByLocation?: Record<string, any[]>;
         enemies?: any[];
     }): any[] {
-        const { locationData, adventureData, locationId, enemiesByLocation, enemies } = input;
+        const { locationData, adventureData, locationId, enemiesByLocation } = input;
 
         if (!locationData.entitiesPresent) {
             return [];
         }
 
-        // Obtener enemigos del estado actualizado (si están disponibles)
-        const currentLocationEnemies = EnemyStateManager.getEnemiesForLocation(
-            locationId,
-            enemiesByLocation,
-            enemies
-        );
+        // CRÍTICO: Solo obtener enemigos de ESTA ubicación específica
+        // NO usar el parámetro 'enemies' global que puede mezclar ubicaciones
+        const locationSpecificEnemies = enemiesByLocation?.[locationId] || [];
 
-        return locationData.entitiesPresent
+        const result = locationData.entitiesPresent
             .map((entityId: string) => {
-                // CRITICAL: Primero intentar obtener del estado actualizado (tiene HP actualizado)
-                // Esto es esencial para detectar enemigos muertos correctamente
-                const stateEnemy = currentLocationEnemies.find((e: any) =>
+                // 1. Buscar en el estado actualizado de ESTA ubicación específica
+                const stateEnemy = locationSpecificEnemies.find((e: any) =>
                     e.id === entityId ||
                     (e as any).uniqueId === entityId ||
                     (e as any).adventureId === entityId
                 );
 
                 if (stateEnemy) {
-                    // Usar el estado actualizado (ya tiene HP normalizado y actualizado)
+                    // Tenemos estado actualizado - usar este (tiene HP correcto)
+                    if (stateEnemy.disposition === 'hidden') {
+                        return null;
+                    }
                     return stateEnemy;
                 }
 
-                // Fallback: obtener del JSON y normalizar
+                // 2. Fallback: obtener del JSON de la aventura
                 const entity = adventureData.entities?.find((e: any) => e.id === entityId);
                 if (!entity) return null;
+
+                // Filtrar entidades ocultas
+                if (entity.disposition === 'hidden') {
+                    return null;
+                }
                 
-                // CRITICAL: Normalize enemy stats (stats.hp → hp: { current, max })
-                // This ensures CombatTriggerManager can correctly detect if enemies are alive
-                // Without this, isEntityOutOfCombat will return true for enemies with stats.hp
-                // instead of hp: { current, max }, causing them to be filtered out incorrectly
+                // Normalizar stats si es un enemigo
                 const normalizedEntity = entity.type === 'enemy' 
                     ? EnemyStateManager.normalizeEnemyStats(entity)
                     : entity;
                 
-                // Pasar todas las propiedades de la entidad (incluyendo disposition/status)
-                // para que CombatTriggerManager pueda filtrar enemigos ocultos
                 return normalizedEntity;
             })
             .filter((e: any) => e !== null);
+
+        log.debug('Resolved present entities', {
+            module: 'ExplorationContextBuilder',
+            locationId,
+            entitiesInJson: locationData.entitiesPresent?.length || 0,
+            entitiesInState: locationSpecificEnemies.length,
+            resolvedCount: result.length,
+            resolvedIds: result.map((e: any) => e.id),
+        });
+
+        return result;
     }
 }
 

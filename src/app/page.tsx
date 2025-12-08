@@ -61,51 +61,135 @@ export default function Home() {
     })).min(1, "La aventura debe tener al menos una ubicación"),
   });
 
-  const handleNewGame = async () => {
+  const handleNewGame = async (adventurePath?: string) => {
     try {
-      setLoading('newGame');
+      setLoading('loadAdventure'); // Reuse the loading UI
+      setLoadStep('parsing');
+      setLoadError(null);
+
       toast({ title: "Creando nueva aventura...", description: "Cargando el módulo de la aventura..." });
 
-      const response = await fetch('/api/load-adventure');
+      let url = '/api/load-adventure';
+      if (adventurePath) {
+        url += `?filename=${encodeURIComponent(adventurePath)}`;
+      }
+
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to load adventure: ${response.statusText}`);
       }
       const defaultAdventure = await response.json();
+      const jsonContent = JSON.stringify(defaultAdventure);
 
-      // Validate adventure data structure
-      AdventureDataSchema.parse(defaultAdventure);
+      // 1. Parse Adventure (Fast Parser -> Cache -> AI Fallback)
+      const { parseAdventureFromJson } = await import('@/ai/flows/parse-adventure-from-json');
+      const parsedAdventure = await parseAdventureFromJson({ adventureJson: jsonContent });
 
-      // Initialize Game using the shared logic (Cache + First Action/Intro)
+      if (!parsedAdventure.adventureData) {
+        throw new Error("No se pudieron extraer los datos de la aventura.");
+      }
+
+      setLoadStep('validating');
+
+      // 2. Validate Structure (Robust Validation)
+      const { validateAdventureStructure, formatValidationErrors } = await import('@/lib/adventure-loader/validator');
+      const validationResult = validateAdventureStructure(parsedAdventure.adventureData);
+
+      if (!validationResult.valid) {
+        logClient.error('Validation failed', {
+          errors: validationResult.errors,
+          adventureDataKeys: Object.keys(parsedAdventure.adventureData),
+          hasLocations: !!parsedAdventure.adventureData.locations,
+          locationCount: parsedAdventure.adventureData.locations?.length
+        });
+
+        const { AdventureLoadError, AdventureLoadErrorType } = await import('@/lib/adventure-loader/error-handler');
+        throw new AdventureLoadError(
+          AdventureLoadErrorType.VALIDATION_ERROR,
+          'Error de validación en la aventura',
+          'El archivo de aventura tiene errores estructurales.',
+          { errors: formatValidationErrors(validationResult.errors) }
+        );
+      }
+
+      if (validationResult.warnings.length > 0) {
+        logClient.warn('Adventure loaded with warnings', { warnings: validationResult.warnings });
+      }
+
+      setLoadStep('connecting');
+
+      // 3. Ensure Server is Ready
+      const retryClient = async (fn: () => Promise<void>, maxRetries = 3, initialDelayMs = 100) => {
+        let lastError: any;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            await fn();
+            return;
+          } catch (err) {
+            lastError = err;
+            if (attempt === maxRetries) break;
+            const delay = initialDelayMs * Math.pow(2, attempt);
+            await new Promise(res => setTimeout(res, delay));
+          }
+        }
+        throw lastError;
+      };
+
+      await retryClient(async () => {
+        const res = await fetch('/api/health');
+        if (!res.ok) throw new Error('Server not ready');
+      }, 3, 100);
+
+      setLoadStep('initializing');
+
+      // 4. Initialize Game (Cache + First Action)
       const { initializeGame } = await import('@/lib/adventure-loader/game-initializer');
 
+      setLoadStep('narrating');
+
       const initResult = await initializeGame(
-        defaultAdventure,
+        parsedAdventure.adventureData,
         initialParty,
-        defaultAdventure.title || "Aventura Predeterminada"
+        parsedAdventure.adventureTitle || "Aventura Predeterminada"
       );
 
       if (!initResult.success) {
         throw initResult.error;
       }
 
-      setAdventureData(defaultAdventure);
-      setAdventureName(defaultAdventure.title || "Aventura Predeterminada");
+      setLoadStep('complete');
+
+      setAdventureData(parsedAdventure.adventureData);
+      setAdventureName(parsedAdventure.adventureTitle || "Aventura Predeterminada");
       setInitialGameData(initResult.initialGameData);
 
       setGameInProgress(true);
       setGameStarted(true);
 
-      toast({ title: "¡Aventura lista!", description: "Tu nueva aventura está lista para empezar." });
+      toast({ title: "¡Aventura lista!", description: `Has comenzado "${parsedAdventure.adventureTitle}".` });
 
     } catch (error: any) {
       logClient.uiError('Page', 'Error starting new game', error);
+      
+      const { classifyError, getUserFriendlyMessage } = await import('@/lib/adventure-loader/error-handler');
+      const classifiedError = classifyError(error);
+      const userMessage = getUserFriendlyMessage(classifiedError);
+
+      setLoadError({
+        title: userMessage.title,
+        message: userMessage.message
+      });
+      setLoadStep('error');
+
       toast({
         variant: 'destructive',
-        title: "Error al crear la partida",
-        description: "No se pudo iniciar la nueva aventura.",
+        title: userMessage.title || "Error al crear la partida",
+        description: userMessage.message,
       });
     } finally {
-      setLoading(null);
+      if (loadStep !== 'error') {
+        setLoading(null);
+      }
     }
   };
 
@@ -169,15 +253,27 @@ export default function Home() {
 
         setLoadStep('connecting');
 
-        // 3. Ensure Server is Ready
-        const { retryWithExponentialBackoff } = await import('@/ai/flows/retry-utils');
-        await retryWithExponentialBackoff(
-          async () => {
-            const res = await fetch('/api/health');
-            if (!res.ok) throw new Error('Server not ready');
-          },
-          3, 100, 'checkServerHealth'
-        );
+        // 3. Ensure Server is Ready (retry ligero lado cliente, sin dependencias server-only)
+        const retryClient = async (fn: () => Promise<void>, maxRetries = 3, initialDelayMs = 100) => {
+          let lastError: any;
+          for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+              await fn();
+              return;
+            } catch (err) {
+              lastError = err;
+              if (attempt === maxRetries) break;
+              const delay = initialDelayMs * Math.pow(2, attempt);
+              await new Promise(res => setTimeout(res, delay));
+            }
+          }
+          throw lastError;
+        };
+
+        await retryClient(async () => {
+          const res = await fetch('/api/health');
+          if (!res.ok) throw new Error('Server not ready');
+        }, 3, 100);
 
         setLoadStep('initializing');
 

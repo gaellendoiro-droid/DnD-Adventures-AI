@@ -1,3 +1,4 @@
+import 'server-only';
 /**
  * @fileOverview Unified D&D 5e API Client
  * 
@@ -13,26 +14,33 @@
  */
 
 import { log } from '@/lib/logger';
-import { retryWithExponentialBackoff, prewarmConnection } from '@/ai/flows/retry-utils';
+import { retryWithExponentialBackoff } from '@/ai/flows/retry-utils';
+import { persistentFetch } from '@/lib/http/persistent-client';
 
 const BASE_URL = 'https://www.dnd5eapi.co/api';
 
 /**
- * Cache para rastrear si ya se hizo pre-warm a esta API
+ * Cache para rastrear si ya se hizo pre-warm a esta API.
+ * Aunque usamos conexiones persistentes, algunos entornos siguen fallando en la
+ * primera conexión; un warmup ligero reduce los timeouts iniciales.
  */
 const prewarmedApis = new Set<string>();
 
-/**
- * Pre-warm the D&D API connection if not already done
- */
 async function ensureDndApiPrewarmed(): Promise<void> {
-    if (prewarmedApis.has(BASE_URL)) {
-        return; // Ya se hizo pre-warm
-    }
-    
-    // BASE_URL ya incluye '/api', así que usamos '/' como path
-    await prewarmConnection(BASE_URL, '/');
+    if (prewarmedApis.has(BASE_URL)) return;
+
+    try {
+        // HEAD a la raíz de la API; si falla, no bloqueamos el flujo.
+        await persistentFetch(BASE_URL, {
+            method: 'HEAD',
+            // Timeout de 5s para evitar bloquear.
+            signal: AbortSignal.timeout(5000),
+        });
+    } catch {
+        // Ignorar errores de pre-warm; el retry se encargará si falla luego.
+    } finally {
     prewarmedApis.add(BASE_URL);
+    }
 }
 
 /**
@@ -246,7 +254,7 @@ export async function fetchResource(
         return cached;
     }
     
-    // Pre-warm la conexión antes de la primera llamada real (solo si no está en caché)
+    // Pre-warm antes de la primera llamada real
     await ensureDndApiPrewarmed();
     
     // Check if there's already a pending request for this resource
@@ -278,7 +286,7 @@ export async function fetchResource(
             // Wrap fetch in retry logic for network errors and server errors (5xx)
             const response = await retryWithExponentialBackoff(
                 async () => {
-                    const res = await fetch(url, {
+                    const res = await persistentFetch(url, {
                         headers: { 'Accept': 'application/json' },
                     });
                     
@@ -405,7 +413,7 @@ export async function searchResource(
         return cached;
     }
     
-    // Pre-warm la conexión antes de la primera llamada real (solo si no está en caché)
+    // Pre-warm antes de la primera llamada real
     await ensureDndApiPrewarmed();
     
     // Check if there's already a pending request for this search
@@ -436,7 +444,7 @@ export async function searchResource(
             const directUrl = `${BASE_URL}/${resourceType}/${formattedQuery}`;
             const directResponse = await retryWithExponentialBackoff(
                 async () => {
-                    const res = await fetch(directUrl, {
+                    const res = await persistentFetch(directUrl, {
                         headers: { 'Accept': 'application/json' },
                     });
                     
@@ -474,7 +482,7 @@ export async function searchResource(
             const searchUrl = `${BASE_URL}/${resourceType}/?name=${encodeURIComponent(normalizedQuery)}`;
             const searchResponse = await retryWithExponentialBackoff(
                 async () => {
-                    const res = await fetch(searchUrl, {
+                    const res = await persistentFetch(searchUrl, {
                         headers: { 'Accept': 'application/json' },
                     });
                     
