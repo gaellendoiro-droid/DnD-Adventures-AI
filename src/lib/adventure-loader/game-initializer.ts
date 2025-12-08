@@ -3,6 +3,7 @@ import { processPlayerAction } from '@/app/actions';
 import { AdventureLoadError, AdventureLoadErrorType } from './error-handler';
 import { Party } from '@/lib/types';
 import { logClient } from '@/lib/logger-client';
+import { createInitialWorldState } from '@/lib/game/world-state-types';
 
 export interface InitializationResult {
     success: boolean;
@@ -56,17 +57,18 @@ export async function initializeGame(
             locationId: startingLocation.id,
             playerAction: `El jugador comienza la aventura "${adventureTitle}". Describe la situación inicial y el entorno. Los compañeros permanecen en silencio y expectantes, esperando la primera decisión del jugador.`,
             diceRolls: [],
-            enemies: [],
-            enemiesByLocation: {},
+            enemies: [], // Legacy, maintained for compatibility but should be empty initially
+            enemiesByLocation: {}, // Semi-new, transitioning to WorldState
+            worldState: createInitialWorldState(), // New: The robust persistence layer
             conversationHistory: [],
         };
 
         // 4. Obtener la narración inicial
         // Priorizar narración pre-generada del JSON para carga instantánea
         // Buscar en múltiples campos para compatibilidad con diferentes formatos de JSON
-        const preGeneratedIntro = adventureData.introductoryNarration || 
-                                  adventureData.openingScene || 
-                                  adventureData.introduction;
+        const preGeneratedIntro = adventureData.introductoryNarration ||
+            adventureData.openingScene ||
+            adventureData.introduction;
 
         let initialMessages: any[];
         let finalLocationId = initialGameState.locationId;

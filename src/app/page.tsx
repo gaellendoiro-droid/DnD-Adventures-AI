@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -9,9 +8,11 @@ import { MainMenu } from "@/components/game/main-menu";
 import { GameView } from "@/components/game/game-view";
 import { useToast } from "@/hooks/use-toast";
 import { logClient } from "@/lib/logger-client";
-import { CharacterSchema } from "@/lib/schemas";
+import { CharacterSchema, GameStateSchema, WorldStateSchema } from "@/lib/schemas";
 import { z } from "zod";
 import { AdventureLoadProgress, LoadStep } from "@/components/game/adventure-load-progress";
+import { createInitialWorldState, WorldState } from "@/lib/game/world-state-types";
+import { WorldStateManager } from "@/lib/game/world-state-manager";
 
 interface InitialGameData {
   party: Character[];
@@ -24,6 +25,7 @@ interface InitialGameData {
   enemies?: any[]; // Deprecated: kept for backward compatibility
   enemiesByLocation?: Record<string, any[]>; // New: enemies by location
   openDoors?: Record<string, boolean>; // Map of "locationId:direction" -> isOpen
+  worldState?: WorldState; // New: persisted world state
 }
 
 export default function Home() {
@@ -36,30 +38,9 @@ export default function Home() {
   const [adventureData, setAdventureData] = useState<any | null>(null);
   const [adventureName, setAdventureName] = useState<string | undefined>(undefined);
 
-
   const { toast } = useToast();
 
-  // Schema for validating save game data
-  const SaveGameDataSchema = z.object({
-    savedAt: z.string().optional(),
-    party: z.array(CharacterSchema),
-    messages: z.array(z.any()),
-    diceRolls: z.array(z.any()).optional(),
-    locationId: z.string(),
-    inCombat: z.boolean().optional(),
-    initiativeOrder: z.array(z.any()).optional(),
-    enemies: z.array(z.any()).optional(), // Deprecated: kept for backward compatibility
-    enemiesByLocation: z.record(z.string(), z.array(z.any())).optional(), // New: enemies by location
-    turnIndex: z.number().optional(),
-    openDoors: z.record(z.string(), z.boolean()).optional(), // Map of "locationId:direction" -> isOpen
-  });
 
-  // Schema for validating adventure data structure
-  const AdventureDataSchema = z.object({
-    locations: z.array(z.object({
-      id: z.string(),
-    })).min(1, "La aventura debe tener al menos una ubicación"),
-  });
 
   const handleNewGame = async (adventurePath?: string) => {
     try {
@@ -170,7 +151,7 @@ export default function Home() {
 
     } catch (error: any) {
       logClient.uiError('Page', 'Error starting new game', error);
-      
+
       const { classifyError, getUserFriendlyMessage } = await import('@/lib/adventure-loader/error-handler');
       const classifiedError = classifyError(error);
       const userMessage = getUserFriendlyMessage(classifiedError);
@@ -344,7 +325,7 @@ export default function Home() {
         const saveData = JSON.parse(jsonContent);
 
         // Validate save data structure
-        const validatedSaveData = SaveGameDataSchema.parse(saveData);
+        const validatedSaveData = GameStateSchema.parse(saveData);
 
         // Adventure data is not saved in the save file anymore, it's loaded from source
         fetch('/api/load-adventure').then(res => res.json()).then(setAdventureData);
@@ -360,7 +341,20 @@ export default function Home() {
           turnIndex: validatedSaveData.turnIndex || 0,
           enemies: validatedSaveData.enemies || [], // Deprecated: kept for backward compatibility
           enemiesByLocation: validatedSaveData.enemiesByLocation || {}, // New: enemies by location
+          worldState: validatedSaveData.worldState ||
+            (validatedSaveData.enemiesByLocation
+              ? WorldStateManager.migrateFromLegacy(validatedSaveData.enemiesByLocation)
+              : createInitialWorldState()),
         });
+
+        // Log migration or load
+        if (validatedSaveData.worldState) {
+          logClient.info('Loaded game with WorldState', { component: 'Page' });
+        } else if (validatedSaveData.enemiesByLocation) {
+          logClient.info('Migrated legacy game to WorldState', { component: 'Page' });
+        } else {
+          logClient.info('Initialized new WorldState for legacy save', { component: 'Page' });
+        }
 
         setGameInProgress(true);
         setGameStarted(true);

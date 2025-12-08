@@ -10,7 +10,7 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 📋 Índice de Planes
 
-- [🚧 Planes en Curso](#-planes-en-curso) (1 plan activo)
+- [🚧 Planes en Curso](#-planes-en-curso) (0 planes activos)
 - [✅ Planes Completados](#-planes-completados) (25 planes)
 - [💡 Planes Sin Comenzar](#-planes-sin-comenzar-priorizados) (11 planes)
 - [🎯 Prioridades Estratégicas](#-prioridades-estratégicas)
@@ -20,24 +20,29 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** 1 plan activo | **Última implementación:** Sistema de Conexiones Persistentes para APIs (2025-12-08) - COMPLETADO
+**Estado:** 0 planes activos | **Última implementación:** Sistema de Conexiones Persistentes para APIs (2025-12-08) - COMPLETADO
 
-### [Sistema de Memoria de Eventos Recientes](en-curso/sistema-memoria-eventos-recientes.md) 🚧 **EN CURSO**
-- **Estado:** Plan creado, pendiente de implementación
-- **Objetivo:** Implementar un sistema de memoria estructurada de eventos recientes que permita a los compañeros AI y al DM tener contexto de acciones importantes ocurridas en el juego, independientemente del historial de chat.
-- **Prioridad:** Alta
-- **Problema a resolver:** Compañeros no recuerdan eventos recientes (ej: combates, descubrimientos) cuando hay muchos mensajes entre el evento y la pregunta del jugador.
-- **Solución propuesta:** Sistema de eventos estructurados con TTL, captura automática de eventos importantes, e inyección de contexto en prompts de compañeros y DM.
-- **Fecha de creación:** 2025-12-08
-- **Referencia:** [Plan Detallado](en-curso/sistema-memoria-eventos-recientes.md)
+*No hay planes en curso actualmente.*
 
 ---
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 25 planes
+**Estado:** Finalizados | **Cantidad:** 27 planes (26 completos + 1 parcial)
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Refactorización y Persistencia del Estado del Mundo](completados/refactorizacion-persistencia-mundo.md) ✅ **COMPLETADO**
+- **Estado:** Implementado y documentado
+- **Objetivo:** Garantizar que el estado del mundo (enemigos derrotados, puertas abiertas) persista correctamente entre guardados y cargas, solucionando inconsistencias críticas donde los enemigos "resucitaban".
+- **Prioridad:** Crítica (Bloqueante)
+- **Resultados:**
+  - ✅ **Arquitectura WorldState:** Implementada capa de "deltas" que almacena cambios sobre la aventura base.
+  - ✅ **Persistencia Completa:** `enemiesByLocation` y `openDoors` se guardan y cargan correctamente.
+  - ✅ **Migración Legacy:** Las partidas antiguas se migran automáticamente al nuevo formato al cargar.
+  - ✅ **Fix de Nombres:** Reglas estrictas para evitar que los Goblins se conviertan en "Trasgos" en la narración.
+- **Fecha de finalización:** 2025-12-08
+- **Referencia:** [Plan Detallado](completados/refactorizacion-persistencia-mundo.md)
 
 ### [Sistema de Conexiones Persistentes para APIs](completados/sistema-conexiones-persistentes-apis.md) ✅ **COMPLETADO**
 - **Estado:** Implementado y documentado (Todas las fases completadas)
@@ -434,7 +439,7 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 
 ## 💡 Planes Sin Comenzar (Priorizados)
 
-**Estado:** 12 planes identificados y planificados
+**Estado:** 13 planes identificados y planificados
 
 ---
 
@@ -471,6 +476,15 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 - **Referencia:** Ver detalles completos en [Roadmap - Sección 6](../roadmap.md#6-revisiones-de-sistema-de-combate-prioridad-alta) | [Issue #22](../../tracking/issues/pendientes.md#issue-22-sistema-completo-de-saving-throws-tiradas-de-salvación-del-objetivo-feature-incompleta)
 
 ### Prioridad Media
+
+#### [Sistema de Memoria de Eventos Recientes (Versión Simplificada)](sin-comenzar/sistema-memoria-eventos-recientes-simplificado.md)
+- **Estado:** Sin comenzar
+- **Prioridad:** Media
+- **Objetivo:** Implementar un sistema mínimo viable de memoria de eventos recientes que resuelva el caso principal: los compañeros no recuerdan combates recientes. El sistema será simple, enfocado y fácil de expandir después.
+- **Problema a resolver:** Compañeros no recuerdan eventos recientes (ej: combates, descubrimientos) cuando hay muchos mensajes entre el evento y la pregunta del jugador.
+- **Enfoque:** MVP primero - Solo capturar eventos de combate (`combat_end`), TTL único, solo `turnNumber`, sin persistencia inicial.
+- **Fecha de creación:** 2025-12-08
+- **Referencia:** [Plan Detallado](sin-comenzar/sistema-memoria-eventos-recientes-simplificado.md)
 
 #### [Sistema de Testing - Integración y E2E](sin-comenzar/sistema-testing-integracion-e2e.md)
 - **Estado:** Sin comenzar
@@ -589,14 +603,14 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 ### Estado General del Proyecto
 
 **Progreso Total:**
-- ✅ **22 planes completados** (incluyendo 1 parcialmente completado)
+- ✅ **27 planes completados** (incluyendo 1 parcialmente completado)
 - 🚧 **0 planes en curso** actualmente
-- 📝 **11 planes sin comenzar** identificados y planificados
+- 📝 **13 planes sin comenzar** identificados y planificados
 
 **Distribución por Prioridad:**
-- **Prioridad Muy Alta:** 0 planes en curso (último completado: Issue #126)
+- **Prioridad Muy Alta:** 0 planes en curso (último completado: Refactorización y Persistencia del Estado del Mundo)
 - **Prioridad Alta:** 6 planes pendientes
-- **Prioridad Media:** 7 planes pendientes (incluyendo 1 relacionado con testing)
+- **Prioridad Media:** 8 planes pendientes (incluyendo 1 relacionado con testing y sistema de memoria simplificado)
 - **Prioridad Baja:** 2 planes pendientes
 
 ### Logros Principales

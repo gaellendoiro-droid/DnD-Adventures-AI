@@ -224,20 +224,17 @@ export function MusicManager({ locationId, inCombat, adventureData, volumeSettin
             }
         }
 
-        if (!playableSrc) {
-            return;
-        }
-
         // Check against ref to ensure we have the latest state and avoid race conditions
         if (playableSrc === currentTrackRef.current) return;
 
-        logClient.info(`Switching ${type} to: ${playableSrc}`, { component: 'MusicManager' });
+        logClient.info(`Switching ${type} to: ${playableSrc || 'SILENCE'}`, { component: 'MusicManager' });
         currentTrackRef.current = playableSrc;
 
         const nextRef = activeRef.current === 'A' ? audioRefs.B : audioRefs.A;
         const prevRef = activeRef.current === 'A' ? audioRefs.A : audioRefs.B;
 
-        if (nextRef.current) {
+        // 1. Fade in new track (if exists)
+        if (playableSrc && nextRef.current) {
             nextRef.current.src = playableSrc;
             nextRef.current.volume = 0;
             nextRef.current.play().catch(e => console.error("Audio play error", e));
@@ -257,20 +254,22 @@ export function MusicManager({ locationId, inCombat, adventureData, volumeSettin
                 }
             }, FADE_DURATION / 20);
 
-            if (prevRef.current && !prevRef.current.paused) {
-                const fadeOut = setInterval(() => {
-                    if (!prevRef.current) { clearInterval(fadeOut); return; }
-                    if (prevRef.current.volume > 0.05) {
-                        prevRef.current.volume = Math.max(0, prevRef.current.volume - 0.05);
-                    } else {
-                        prevRef.current.pause();
-                        prevRef.current.volume = 0;
-                        clearInterval(fadeOut);
-                    }
-                }, FADE_DURATION / 20);
-            }
-
+            // Access to nextRef triggers swap of active buffer
             activeRef.current = activeRef.current === 'A' ? 'B' : 'A';
+        }
+
+        // 2. Always fade out previous track (whether we are switching or just stopping)
+        if (prevRef.current && !prevRef.current.paused) {
+            const fadeOut = setInterval(() => {
+                if (!prevRef.current) { clearInterval(fadeOut); return; }
+                if (prevRef.current.volume > 0.05) {
+                    prevRef.current.volume = Math.max(0, prevRef.current.volume - 0.05);
+                } else {
+                    prevRef.current.pause();
+                    prevRef.current.volume = 0;
+                    clearInterval(fadeOut);
+                }
+            }, FADE_DURATION / 20);
         }
 
     }, []); // No dependencies!

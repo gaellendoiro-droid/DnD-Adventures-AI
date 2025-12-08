@@ -5,7 +5,7 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 **Nota:** Para ver las mejoras ya implementadas, consulta el [CHANGELOG.md](../CHANGELOG.md).  
 **Histórico de roadmap:** Las iniciativas finalizadas viven ahora en [`docs/roadmap-historico.md`](./roadmap-historico.md).
 
-**Última actualización:** 2025-01-24  
+**Última actualización:** 2025-12-08  
 **Estado:** Enfocado solo en iniciativas activas. Los elementos completados se movieron al histórico para simplificar la planificación.
 
 ---
@@ -14,7 +14,8 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 
 ### 🔴 Prioridad Muy Alta
 - [1. Sistema de Movimiento y Conciencia Espacial](#roadmap-1) - **COMPLETADO (2025-11-30)**
-- [1.2. Sistema de Conexiones Persistentes para APIs](#roadmap-1-2)
+- [1.2. Sistema de Conexiones Persistentes para APIs](#roadmap-1-2) - **COMPLETADO (2025-12-08)**
+- [1.3. Refactorización de Persistencia de Mundo](#roadmap-1-3) - **COMPLETADO (2025-12-08)**
 
 ### 🔴 Prioridad Alta
 - [2. Sistema de Progresión y Gestión](#roadmap-2)
@@ -38,7 +39,6 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 - [20. Música y Sonido Dinámicos](#roadmap-20-musica)
 - [21. Mejoras del Sistema de Inicio de Combate Dinámico](#roadmap-21-combate-dinamico)
 - [22. Persistencia general de mutaciones de localización](#roadmap-22-persistencia-localizaciones)
-- [23. Sistema de Memoria de Eventos Recientes](#roadmap-23-memoria-eventos)
 - [23. Sistema de Memoria de Eventos Recientes](#roadmap-23-memoria-eventos)
 
 ### 🟢 Prioridad Baja
@@ -87,35 +87,30 @@ Mejoras críticas que mejoran significativamente la arquitectura, mantenibilidad
 *   **Plan Detallado:** ✅ [Plan Completado](../docs/planes-desarrollo/completados/sistema-exploracion-mazmorras.md)
 
 <a id="roadmap-1-2"></a>
-### 1.2. Sistema de Conexiones Persistentes para APIs
-*   **Problema Actual:** En cada llamada que necesita usar la IA se está estableciendo una nueva conexión HTTP que muchas veces falla a la primera y hay que volver a intentar. El sistema actual usa `fetch` nativo de Node.js que no mantiene conexiones persistentes entre llamadas, causando:
-    *   **Timeouts frecuentes:** Cada llamada debe establecer una nueva conexión TCP/TLS, lo que añade latencia significativa (10+ segundos en algunos casos)
-    *   **Fallos en el primer intento:** Las conexiones nuevas tienen mayor probabilidad de fallar, requiriendo múltiples reintentos
-    *   **Overhead innecesario:** El handshake TLS y la negociación HTTP se repiten en cada llamada
-    *   **Impacto en rendimiento:** Los tiempos de respuesta son más lentos de lo necesario, especialmente en llamadas frecuentes a APIs (Gemini, Eleven Labs, D&D API)
-*   **Mejora Propuesta:**
-    *   **Cliente HTTP con Pool de Conexiones:** Implementar un cliente HTTP centralizado que use `undici` (incluido en Node.js 18+) con agentes HTTP que mantengan pools de conexiones persistentes (keep-alive) para cada dominio de API
-    *   **Reutilización de Conexiones:** Cada dominio (Gemini, Eleven Labs, D&D API) tendría su propio pool de conexiones que se reutilizan entre llamadas, evitando el overhead de establecer nuevas conexiones
-    *   **Configuración Optimizada:** Configurar timeouts de keep-alive apropiados (10-60 segundos) para mantener conexiones abiertas durante períodos de inactividad razonables
-    *   **Compatibilidad con Fetch API:** El cliente debe ser compatible con la API estándar de `fetch` para facilitar la migración del código existente
-    *   **Gestión Automática:** El sistema debe gestionar automáticamente el ciclo de vida de las conexiones (creación, reutilización, cierre después de inactividad)
-*   **APIs Afectadas:**
-    *   **Google Gemini API:** Llamadas frecuentes desde Genkit para generación de contenido
-    *   **Eleven Labs API:** Llamadas para generación de audio TTS
-    *   **D&D 5e API:** Llamadas para búsqueda de información de monstruos, hechizos y reglas
-*   **Beneficios Esperados:**
-    *   **Reducción de Latencia:** Eliminación del overhead de establecer conexiones nuevas (reducción estimada de 50-80% en tiempo de conexión)
-    *   **Menos Fallos:** Las conexiones persistentes son más estables y tienen menor probabilidad de fallar en el primer intento
-    *   **Mejor Rendimiento:** Tiempos de respuesta más rápidos, especialmente en secuencias de múltiples llamadas
-    *   **Menos Reintentos:** Al reducir los fallos iniciales, se necesitarán menos reintentos, ahorrando tokens y tiempo
-    *   **Mejor Experiencia de Usuario:** Respuestas más rápidas y consistentes del sistema
-*   **Consideraciones Técnicas:**
-    *   **undici como Base:** Node.js 18+ incluye `undici` como dependencia, que soporta HTTP/1.1 keep-alive y HTTP/2 nativamente
-    *   **Pool por Dominio:** Cada dominio de API debe tener su propio pool de conexiones para evitar conflictos
-    *   **Limpieza Automática:** Las conexiones deben cerrarse automáticamente después de períodos de inactividad para liberar recursos
-    *   **Compatibilidad:** El sistema debe mantener compatibilidad con el código existente que usa `fetch` o `retryWithExponentialBackoff`
-*   **Impacto:** Crítico para mejorar la estabilidad y rendimiento del sistema. Reduce significativamente los tiempos de respuesta y los fallos de conexión, mejorando la experiencia general del usuario y reduciendo costos de reintentos.
-*   **Plan Detallado:** ❌ No creado
+### 1.2. Sistema de Conexiones Persistentes para APIs - ✅ COMPLETADO (2025-12-08)
+*   **Problema Resuelto:** En cada llamada que necesita usar la IA se estaba estableciendo una nueva conexión HTTP, causando latencia y fallos iniciales. El sistema usaba `fetch` nativo que no mantenía conexiones persistentes.
+*   **Solución Implementada:**
+    *   ✅ **Cliente HTTP con Pool de Conexiones:** Implementado cliente centralizado usando `undici` con pools de conexiones persistentes (keep-alive) por dominio.
+    *   ✅ **Reutilización Automática:** Las conexiones se reutilizan automáticamente entre llamadas, eliminando el overhead de handshake TLS.
+    *   ✅ **Integración Transparente:** Compatible con `fetch`, facilitando la migración de D&D API, Eleven Labs y Genkit.
+    *   ✅ **Optimización de Latencia por Tokens:** Incluyó la Fase 7 de optimización de prompts y reducción de llamadas secuenciales a Gemini.
+*   **Resultados:**
+    *   ✅ Reducción drástica de timeouts y fallos en primer intento.
+    *   ✅ Menor latencia percibida en respuestas de IA y generación de audio.
+    *   ✅ Sistema de pre-warm y retries optimizado.
+*   **Impacto:** Crítico para la estabilidad. Elimina una de las fuentes principales de fricción y lentitud en el juego.
+*   **Plan Detallado:** ✅ [Plan Completado](../planes-desarrollo/completados/sistema-conexiones-persistentes-apis.md)
+
+<a id="roadmap-1-3"></a>
+### 1.3. Refactorización de Persistencia de Mundo - ✅ COMPLETADO (2025-12-08)
+*   **Problema Resuelto:** El sistema de guardado era incompleto y no persistía el estado de enemigos en otras salas, causando "resurrecciones" al cargar partida y perdida de estado de puertas.
+*   **Solución Implementada:**
+    *   ✅ **Arquitectura WorldState:** Sistema "Base + Deltas" (`WorldState`) que guarda solo las diferencias con el JSON original.
+    *   ✅ **Persistencia Robusta:** `enemiesByLocation` y `openDoors` se guardan y cargan con integridad total.
+    *   ✅ **WorldStateManager:** Gestor centralizado para inicialización y migración de datos legacy.
+    *   ✅ **Fix de Narración:** Corrección de problemas donde se inventaban nombres de enemigos (ej: "Trasgo").
+*   **Impacto:** Crítico. Es la base necesaria para cualquier sistema de progresión o campaña larga. Sin esto, la "memoria" del mundo es volátil y defectuosa.
+*   **Plan Detallado:** ✅ [Plan Completado](../planes-desarrollo/completados/refactorizacion-persistencia-mundo.md)
 
 ## 🔴 Prioridad Alta
 

@@ -131,8 +131,8 @@ const combatInitiationPrompt = ai.definePrompt({
 7. **Use Combat Context:** \`\`\`{{{combatContext}}}\`\`\`
 
 **CRITICAL - ENEMY TYPES:**
-- Use the EXACT base type in Spanish (Goblin → goblin, Orc → orco, NOT "gnomo" or invented names)
-- Do NOT translate or change enemy type names - use the correct Spanish translation of the exact type
+- Use the EXACT base type. If the data says "Goblin", use "Goblin" or "Goblins" (do NOT translate to "Trasgo"). If it says "Orc", use "Orco".
+- Do NOT translate specific monster names (e.g., Bugbear, Hobgoblin) unless you are certain of the established Spanish term and it is NOT "Trasgo" for Goblin. When in doubt, use the English term found in the context.
 - Be immersive and descriptive while maintaining accuracy about enemy types
 - Example: If combatContext shows "Goblin 1", "Goblin 2", "Orco 1" → narrate as "dos goblins y un orco" (not "Goblin 1, Goblin 2 y Orco 1")
 
@@ -179,17 +179,17 @@ export const narrativeManagerFlow = ai.defineFlow(
                 localLog('NarrativeManager: Skipping router (obvious exploration).');
                 classification = 'EXPLORATION';
             } else {
-            const routerResponse = await executePromptWithRetry(
-                narrativeRouterPrompt,
-                {
-                    playerAction: input.playerAction,
-                    interpretedAction: input.interpretedAction,
-                    conversationHistory: input.conversationHistory
-                },
-                { flowName: 'narrativeRouter' }
-            );
+                const routerResponse = await executePromptWithRetry(
+                    narrativeRouterPrompt,
+                    {
+                        playerAction: input.playerAction,
+                        interpretedAction: input.interpretedAction,
+                        conversationHistory: input.conversationHistory
+                    },
+                    { flowName: 'narrativeRouter' }
+                );
                 classification = routerResponse.output?.classification || 'EXPLORATION'; // Default to exploration
-            localLog(`NarrativeManager: Classification = ${classification}`);
+                localLog(`NarrativeManager: Classification = ${classification}`);
             }
 
             let finalNarration = "";

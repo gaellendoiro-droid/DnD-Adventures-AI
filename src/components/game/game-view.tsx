@@ -20,6 +20,8 @@ import { InitiativeTracker } from "./initiative-tracker";
 import { AppHeader } from "@/components/layout/app-header";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { MusicManager } from "./music-manager";
+import { WorldState } from "@/lib/game/world-state-types";
+import { WorldStateManager } from "@/lib/game/world-state-manager";
 
 interface GameViewProps {
   initialData: {
@@ -33,6 +35,7 @@ interface GameViewProps {
     enemies?: any[]; // Deprecated: kept for backward compatibility
     enemiesByLocation?: Record<string, any[]>; // New: enemies by location
     openDoors?: Record<string, boolean>; // Map of "locationId:direction" -> isOpen
+    worldState?: WorldState; // New: persisted world state
   };
   onSaveGame: (saveData: any) => void;
   onGoToMenu: () => void;
@@ -84,7 +87,7 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
   const [openDoors, setOpenDoors] = useState<Record<string, boolean>>(initialData.openDoors || {});
-  
+
   // Derived state for UI logic based purely on Combat Phase (FSM)
   // This simplifies logic and avoids synchronization issues with backend flags
   const showPassTurnButtons = combatPhase === CombatPhase.ACTION_RESOLVED;
@@ -104,6 +107,9 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
   const selectedCharacterRef = useRef<Character | null>(initialData.party.find(c => c.controlledBy === 'Player') || null); // Use ref for synchronous access
   const prevStateRef = useRef<string | null>(null);
 
+
+  // WorldState Ref
+  const worldStateRef = useRef<WorldState>(initialData.worldState || WorldStateManager.initialize());
 
   const isPlayerTurn = !isDMThinking && initiativeOrder[turnIndex]?.controlledBy === 'Player';
 
@@ -165,6 +171,8 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     openDoorsRef.current = initialData.openDoors || {};
     partyRef.current = initialData.party;
     // addDebugMessages(["Game state initialized from initialData."]);
+    // Sync WorldState
+    worldStateRef.current = initialData.worldState || WorldStateManager.initialize();
   }, [initialData]);
 
   // TEMPORAL: Log de estados para pruebas (Issue #11 y #12)
@@ -456,7 +464,7 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
               return content.includes('no tienes') || content.includes('no conoces') || content.includes('acción no válida');
             })?.content,
           });
-          setPlayerActionCompleted(false);
+          setCombatPhase(CombatPhase.WAITING_FOR_ACTION);
         }
       }
       if (result.diceRolls) addDiceRolls(result.diceRolls);
@@ -648,31 +656,31 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
         // If we are in ACTION_RESOLVED and not player turn (or player turn auto-skip?), continue
         // Actually, auto-advance usually applies to AI turns.
         // If phase is ACTION_RESOLVED and current turn is NOT player, we continue.
-        
+
         // We need to look at the turn that JUST completed. 
         // If result.lastProcessedTurnWasAI is true, it means we just finished an AI turn.
         // OR if the current phase is ACTION_RESOLVED and the active combatant (before advance) was AI.
-        
+
         // Simplified Logic: If backend says "lastProcessedTurnWasAI", we auto-advance.
         // This is safe because backend controls the flow.
-        
+
         if (result.lastProcessedTurnWasAI) {
-             logClient.uiEvent('GameView', 'Auto-advancing AI turn', {
-                turnIndex: result.turnIndex,
-             });
-             
-             setTimeout(() => {
-                if (autoAdvancingRef.current) {
-                  handleSendMessage('continuar turno', { isContinuation: true });
-                }
-             }, 1500);
+          logClient.uiEvent('GameView', 'Auto-advancing AI turn', {
+            turnIndex: result.turnIndex,
+          });
+
+          setTimeout(() => {
+            if (autoAdvancingRef.current) {
+              handleSendMessage('continuar turno', { isContinuation: true });
+            }
+          }, 1500);
         } else {
-             // Stop auto-advance if it wasn't an AI turn (e.g. Player turn reached or Combat End)
-             logClient.uiEvent('GameView', 'Stopping auto-advance (Not AI turn)', {
-                turnIndex: result.turnIndex,
-             });
-             autoAdvancingRef.current = false;
-             setAutoAdvancing(false);
+          // Stop auto-advance if it wasn't an AI turn (e.g. Player turn reached or Combat End)
+          logClient.uiEvent('GameView', 'Stopping auto-advance (Not AI turn)', {
+            turnIndex: result.turnIndex,
+          });
+          autoAdvancingRef.current = false;
+          setAutoAdvancing(false);
         }
       }
     } catch (error: any) {
@@ -762,7 +770,42 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
   }, [turnIndex, handlePassTurn]);
 
   const handleInternalSaveGame = useCallback(() => {
-    const saveData = { savedAt: new Date().toISOString(), party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex, openDoors };
+    // Construct up-to-date WorldState from current tracking state
+    const currentWorldState: WorldState = worldStateRef.current || WorldStateManager.initialize();
+
+    // Sync enemies
+    Object.entries(enemiesByLocation).forEach(([locId, enemies]) => {
+      WorldStateManager.updateEnemies(currentWorldState, locId, enemies);
+    });
+
+    // Sync doors
+    Object.entries(openDoors).forEach(([key, isOpen]) => {
+      // Assuming key format is "locationId:direction"
+      const parts = key.split(':');
+      // Handle case where locationId might contain colons? Assuming simple split for MVP or verifying format.
+      // If locationId has colons, this split is risky.
+      // Standard ID is usually uuid or simple string.
+      if (parts.length >= 2) {
+        const direction = parts.pop()!;
+        const locId = parts.join(':');
+        WorldStateManager.updateConnection(currentWorldState, locId, direction, { isOpen });
+      }
+    });
+
+    const saveData = {
+      savedAt: new Date().toISOString(),
+      party,
+      messages,
+      diceRolls,
+      locationId,
+      inCombat,
+      initiativeOrder,
+      enemies,
+      turnIndex,
+      openDoors,
+      enemiesByLocation,
+      worldState: currentWorldState
+    };
 
     logClient.info('Saving game', {
       component: 'GameView',
@@ -774,10 +817,11 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
       inCombat,
       turnIndex,
       enemiesCount: enemies.length,
+      worldStateLocations: Object.keys(currentWorldState.locations).length
     });
 
     onSaveGame(saveData);
-  }, [party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex, openDoors, onSaveGame]);
+  }, [party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex, openDoors, enemiesByLocation, onSaveGame]);
 
   return (
     <div className="flex flex-col h-full">

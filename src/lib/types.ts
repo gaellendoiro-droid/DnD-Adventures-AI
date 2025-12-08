@@ -1,11 +1,13 @@
 import { z } from 'zod';
-import { CharacterSchema, PartySchema, LocationSchema, ConnectionSchema } from './schemas';
+import { CharacterSchema, PartySchema, LocationSchema, ConnectionSchema, GameStateSchema, WorldStateSchema } from './schemas';
 
 // Infer the TypeScript types from the Zod schemas
 export type Character = z.infer<typeof CharacterSchema>;
 export type Party = z.infer<typeof PartySchema>;
 export type Location = z.infer<typeof LocationSchema>;
 export type Connection = z.infer<typeof ConnectionSchema>;
+export type WorldState = z.infer<typeof WorldStateSchema>;
+export type GameState = z.infer<typeof GameStateSchema>;
 
 // We can still define types that don't have a direct schema equivalent if needed
 export interface GameMessage {

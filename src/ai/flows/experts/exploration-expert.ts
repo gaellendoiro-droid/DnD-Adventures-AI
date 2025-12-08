@@ -75,6 +75,7 @@ Your job is to describe the world, the environment, and the immediate consequenc
 6. Focus on sensory details (sight, sound, smell, temperature).
 7. Do NOT generate dialogue for NPCs - describe appearance/actions only.
 8. Do NOT invent deaths - only describe as dead if in \`deadEntities\` or marked as "corpse:" in visibleConnections.
+9. **ENTITY NAMES:** Respect the terminology used in the context. If the data says 'Goblin', use 'Goblin'. Do not translate specific monster names like 'Goblin' to 'Trasgo' or 'Bugbear' to 'Osgo' if the context uses the English term or a specific variation. Keep it consistent with the provided data.
 
 {{#if isKeyMoment}}
 **NARRATION LENGTH - KEY MOMENT:**

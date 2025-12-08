@@ -295,3 +295,85 @@ export const AdventureDataSchema = z.object({
     }).optional(),
     system: z.string().optional(),
 });
+
+// --- World State Persistence Schemas ---
+
+/**
+ * Representa el estado mutable de un enemigo específico.
+ */
+export const EnemyStateSchema = z.object({
+    id: z.string(),
+    hp: z.object({
+        current: z.number(),
+        max: z.number()
+    }),
+    status: z.enum(['active', 'dead', 'unconscious', 'fled']).default('active'),
+    position: z.string().optional(),
+    conditions: z.array(z.string()).optional(),
+    inventory: z.array(ItemSchema).optional()
+});
+
+/**
+ * Representa el estado de una conexión (puerta, pasillo, etc.)
+ */
+export const ConnectionStateSchema = z.object({
+    direction: z.string(),
+    isOpen: z.boolean().default(true),
+    isLocked: z.boolean().default(false),
+    isBlocked: z.boolean().default(false),
+});
+
+/**
+ * Representa el componente interactivo (cofre, palanca) y su estado
+ */
+export const InteractableStateSchema = z.object({
+    id: z.string(),
+    state: z.string(),
+    usedTimes: z.number().default(0)
+});
+
+/**
+ * Representa el estado mutable completo de una ubicación.
+ */
+export const LocationStateSchema = z.object({
+    visited: z.boolean().default(false),
+    visitedCount: z.number().default(0),
+    firstVisitTurn: z.number().optional(),
+    lastVisitTurn: z.number().optional(),
+    enemies: z.array(EnemyStateSchema).default([]),
+    connections: z.record(z.string(), ConnectionStateSchema).optional(),
+    interactables: z.record(z.string(), InteractableStateSchema).optional(),
+    markers: z.array(z.string()).optional(),
+    temporaryDescriptionOverride: z.string().optional()
+});
+
+/**
+ * EL OBJETO MAESTRO: WorldState
+ */
+export const WorldStateSchema = z.object({
+    worldTime: z.object({
+        day: z.number().default(1),
+        hour: z.number().default(8),
+        minute: z.number().default(0)
+    }).optional(),
+    locations: z.record(z.string(), LocationStateSchema),
+    globalFlags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])).default({})
+});
+
+/**
+ * Main Game State Schema (Save Data)
+ */
+export const GameStateSchema = z.object({
+    savedAt: z.string().optional(),
+    party: z.array(CharacterSchema),
+    messages: z.array(z.any()), // Placeholder
+    diceRolls: z.array(z.any()).optional(), // Placeholder
+    locationId: z.string(),
+    inCombat: z.boolean().optional(),
+    initiativeOrder: z.array(z.any()).optional(), // Placeholder
+    enemies: z.array(z.any()).optional(), // Deprecated
+    enemiesByLocation: z.record(z.string(), z.array(z.any())).optional(), // New: enemies by location
+    turnIndex: z.number().optional(),
+    openDoors: z.record(z.string(), z.boolean()).optional(), // Map of "locationId:direction" -> isOpen
+    worldState: WorldStateSchema.optional(), // New state schema
+});

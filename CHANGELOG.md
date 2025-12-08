@@ -1,6 +1,39 @@
 # Changelog
 
+Todas las novedades y cambios importantes de este proyecto serán documentados en este archivo.
+
+El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+**Nota de procedimiento:** Todos los cambios nuevos deben registrarse en la sección `[Unreleased]`. Cuando se decide versionar, esta sección se renombra con el nuevo número de versión y la fecha. A continuación, se debe crear una nueva sección `[Unreleased]` vacía y actualizar el número de versión correspondiente en el archivo `package.json`.
+
+**DIRECTIVA DE ALTA PRIORIDAD PARA EL ASISTENTE DE IA:** Al modificar este archivo, DEBES leer primero su contenido completo y asegurarte de que tu operación de escritura sea puramente aditiva a la sección `[Unreleased]`. NUNCA debes borrar, truncar o resumir el historial de versiones existente. La violación de esta directiva se considerará un fallo crítico de funcionamiento.
+
 ## [Unreleased]
+
+### Fixed
+- **🔇 Corrección de Audio de Ambientación Persistente (2025-12-08):**
+  - **Problema:** Al salir de una ubicación con audio mapeado (ej: Posada) a una sin audio específico/válido (ej: Plaza, si faltan archivos), la ambientación anterior seguía sonando indefinidamente debido a un retorno temprano en la lógica.
+  - **Solución:** `MusicManager` ahora ejecuta explícitamente un fade-out para silenciar el canal si no encuentra una pista válida, en lugar de ignorar el cambio.
+  - **Archivos modificados:** `src/components/game/music-manager.tsx`
+
+## [0.5.96] - 2025-12-08
+
+### Changed
+- **💾 Refactorización y Persistencia del Estado del Mundo (2025-12-08):**
+  - **Mejora:** Implementación del patrón "WorldState" para garantizar la persistencia de cambios en el mundo (enemigos derrotados, puertas abiertas) entre sesiones de juego.
+  - **Problema Solucionado:** Al cargar una partida, el juego "olvidaba" los enemigos derrotados en otras habitaciones y el estado de puertas, resucitando enemigos y cerrando puertas previamente abiertas.
+  - **Detalles Técnicos:**
+    - Implementación de arquitectura "Base State + Deltas" mediante objeto `WorldState`.
+    - Corrección de `handleInternalSaveGame` para incluir `enemiesByLocation` y `openDoors` sincronizados.
+    - Restauración y mejora de `handleLoadGame` en `page.tsx` con migración automática de saves legacy.
+    - Integración estricta de reglas de nombrado de enemigos en `ExplorationExpert` y `NarrativeManager` para evitar traducciones indeseadas (ej: "Goblin" -> "Trasgo").
+  - **Archivos modificados:**
+    - `src/app/page.tsx`
+    - `src/components/game/game-view.tsx`
+    - `src/ai/flows/narrative-manager.ts`
+    - `src/ai/flows/experts/exploration-expert.ts`
+  - **Referencia:** [Plan Completado](../docs/planes-desarrollo/completados/refactorizacion-persistencia-mundo.md)
 
 ### Fixed
 - **🔧 Correcciones críticas del sistema de exploración y contexto narrativo (2025-12-08):**
@@ -56,18 +89,7 @@
 - Estado real de enemigos en exploración: `ExplorationContextBuilder` usa primero `enemiesByLocation` (hp actualizado, muertos) antes de recurrir al JSON, eliminando combates fantasma con enemigos ya derrotados.
 - Ajuste de ambush en sala visible: Retirado el hazard de emboscada en la sala sur (goblin visible) para que el combate inicie por proximidad sin sorpresa.
 
-**DIRECTIVA DE ALTA PRIORIDAD PARA EL ASISTENTE DE IA:** Al modificar este archivo, DEBES leer primero su contenido completo y asegurarte de que tu operación de escritura sea puramente aditiva a la sección `[Unreleased]`. NUNCA debes borrar, truncar o resumir el historial de versiones existente. La violación de esta directiva se considerará un fallo crítico de funcionamiento.
 
----
-
-Todas las novedades y cambios importantes de este proyecto serán documentados en este archivo.
-
-El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-**Nota de procedimiento:** Todos los cambios nuevos deben registrarse en la sección `[Unreleased]`. Cuando se decide versionar, esta sección se renombra con el nuevo número de versión y la fecha. A continuación, se debe crear una nueva sección `[Unreleased]` vacía y actualizar el número de versión correspondiente en el archivo `package.json`.
-
----
 
 ## [Unreleased]
 
