@@ -10,6 +10,7 @@
 
 import { log } from '@/lib/logger';
 import { fetchResource, normalizeQuery } from '@/lib/dnd-api-client';
+import { DataService } from '@/lib/data-service';
 
 /**
  * Normalizes a Spanish monster name to English for D&D API lookup.
@@ -216,18 +217,57 @@ const DEFAULT_STATS: MonsterStats = {
 };
 
 /**
- * Fetches monster stats (HP, AC, Abilities, Actions) from the D&D 5e API.
- * 
- * Uses the unified D&D API client which provides:
- * - Global shared cache (avoids duplicate calls)
- * - Automatic retries with exponential backoff
- * - Centralized error handling
- * 
- * This function focuses solely on parsing/transforming the API response.
- * All API communication is delegated to the unified client.
- * 
- * @param monsterName Name of the monster to fetch stats for
- * @returns Object with monster stats, or null if not found
+ * Maps local DB monster data to Combat System MonsterStats.
+ */
+function mapLocalMonsterToStats(local: any): MonsterStats {
+    // Map stats (str -> fuerza)
+    const abilityScores = {
+        fuerza: local.stats.str,
+        destreza: local.stats.dex,
+        constitución: local.stats.con,
+        inteligencia: local.stats.int,
+        sabiduría: local.stats.wis,
+        carisma: local.stats.cha
+    };
+
+    // Calculate modifiers
+    const abilityModifiers = {
+        fuerza: getAbilityModifier(abilityScores.fuerza),
+        destreza: getAbilityModifier(abilityScores.destreza),
+        constitución: getAbilityModifier(abilityScores.constitución),
+        inteligencia: getAbilityModifier(abilityScores.inteligencia),
+        sabiduría: getAbilityModifier(abilityScores.sabiduría),
+        carisma: getAbilityModifier(abilityScores.carisma),
+    };
+
+    const proficiencyBonus = parseProficiencyBonus({
+        proficiency_bonus: local.proficiency_bonus,
+        challenge_rating: local.cr
+    });
+
+    // Map actions
+    // Open5e actions format is compatible with our parseActions expectation
+    // or we can pass them directly if they are already structured.
+    // Local DB 'actions' are raw JSON from Open5e.
+    const actions = parseActions({ actions: local.actions });
+
+    return {
+        hp: local.hp,
+        ac: local.ac,
+        abilityScores,
+        abilityModifiers,
+        proficiencyBonus,
+        actions
+    };
+}
+
+
+
+/**
+ * Fetches monster stats (HP, AC, Abilities, Actions).
+ * Priority:
+ * 1. Local SQLite DB (DataService)
+ * 2. External D&D 5e API (dnd-api-client)
  */
 export async function getMonsterStatsFromDndApi(monsterName: string): Promise<MonsterStats | null> {
     try {
@@ -236,6 +276,20 @@ export async function getMonsterStatsFromDndApi(monsterName: string): Promise<Mo
             monsterName,
         });
 
+        // 1. Try Local DB
+        const localMonster = await DataService.getMonster(monsterName);
+        if (localMonster) {
+            log.debug('✅ Monster found in Local SQLite DB', {
+                module: 'MonsterStatsParser',
+                monsterName,
+                source: localMonster.source
+            });
+            return mapLocalMonsterToStats(localMonster);
+        }
+
+        log.debug('Monster not in Local DB, trying External API...', { module: 'MonsterStatsParser', monsterName });
+
+        // 2. Try External API
         // Use unified client to fetch resource (includes cache, retries, error handling)
         const data = await fetchResource('monsters', monsterName);
 
@@ -251,7 +305,7 @@ export async function getMonsterStatsFromDndApi(monsterName: string): Promise<Mo
         // Parse the raw API data into MonsterStats format
         const stats = parseMonsterDataToStats(data);
 
-        log.debug('Monster stats fetched and parsed successfully', {
+        log.debug('Monster stats fetched from API and parsed successfully', {
             module: 'MonsterStatsParser',
             monsterName,
             hp: stats.hp,
@@ -261,7 +315,7 @@ export async function getMonsterStatsFromDndApi(monsterName: string): Promise<Mo
 
         return stats;
     } catch (error) {
-        log.error('Error fetching monster stats from D&D API', {
+        log.error('Error fetching monster stats', {
             module: 'MonsterStatsParser',
             monsterName,
             error: error instanceof Error ? error.message : String(error),

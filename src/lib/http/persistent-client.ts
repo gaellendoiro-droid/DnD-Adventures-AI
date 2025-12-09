@@ -1,4 +1,4 @@
-import 'server-only';
+// import 'server-only';
 import type { Dispatcher } from 'undici';
 import { AgentManager, type AgentManagerOptions } from './agent-manager';
 

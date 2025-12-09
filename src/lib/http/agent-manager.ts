@@ -1,6 +1,6 @@
-import 'server-only';
+// import 'server-only';
 import { Agent } from 'undici';
-import { log } from '@/lib/logger';
+import { log } from '../logger';
 
 export interface AgentManagerOptions {
   keepAliveTimeout?: number;

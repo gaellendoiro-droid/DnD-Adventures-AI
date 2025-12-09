@@ -3,8 +3,8 @@
  * Provides retry logic with exponential backoff for handling transient network errors
  */
 
-import { log } from '@/lib/logger';
-import { persistentFetch } from '@/lib/http/persistent-client';
+import { log } from '../../lib/logger';
+import { persistentFetch } from '../../lib/http/persistent-client';
 
 /**
  * Retry a function with exponential backoff
@@ -74,7 +74,7 @@ export async function retryWithExponentialBackoff<T>(
             // Extract clean error message for logging
             const errorMsg = error.cause?.message || error.message || 'Network error';
             const errorCode = error.cause?.code || error.code;
-            
+
             log.warn(`API call failed, retrying in ${delay}ms...`, {
                 module: 'AIFlow',
                 flow: flowName,
@@ -90,16 +90,16 @@ export async function retryWithExponentialBackoff<T>(
 
     // If we exhausted retries, create a clean error without full stack trace
     if (lastError) {
-        const errorMsg = lastError.cause?.message || lastError.message || 'Network error';
-        const errorCode = lastError.cause?.code || lastError.code || 'UNKNOWN';
-        
+        const errorMsg = (lastError as any).cause?.message || (lastError as any).message || 'Network error';
+        const errorCode = (lastError as any).cause?.code || (lastError as any).code || 'UNKNOWN';
+
         log.error(`API call failed after ${maxRetries + 1} attempts`, {
             module: 'AIFlow',
             flow: flowName,
             error: errorMsg,
             errorCode: errorCode,
         });
-        
+
         // Create a clean error with limited stack trace
         const cleanError: any = new Error(`API call failed: ${errorMsg} (${errorCode})`);
         cleanError.code = errorCode;
@@ -113,7 +113,7 @@ export async function retryWithExponentialBackoff<T>(
         }
         throw cleanError;
     }
-    
+
     throw new Error('Retry failed with unknown error');
 }
 
@@ -192,7 +192,7 @@ export async function executePromptWithRetry<TInput, TOutput>(
         });
         geminiPrewarmed = true;
     }
-    
+
     const maxRetries = options?.maxRetries ?? 3;
     const initialDelayMs = options?.initialDelayMs ?? 1000;
     const flowName = options?.flowName ?? 'unknown';

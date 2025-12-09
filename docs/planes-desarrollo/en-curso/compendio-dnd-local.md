@@ -28,50 +28,59 @@ Para mitigar el riesgo de complejidad y validar la IA, haremos un despliegue inc
 ### Fase 0: Validación de Capacidades (Proof of Concept) 🛑 *Critical Check*
 *Objetivo: Verificar si Gemini realmente puede entender tu PDF complejo (tablas, columnas) antes de construir nada.*
 
-- [ ] **Script de Prueba (`scripts/poc-pdf-parsing.ts`):**
-    - **Modelo:** Usaremos `gemini-3-pro-preview` (Lanzado Nov 2025, optimizado para razonamiento complejo y multimodal).
-    - Subir el PDF a File Search.
-    - Lanzar 3 "retos" de extracción difíciles:
-        1.  **Reto Tabular:** "Extrae la tabla de Armas como JSON, incluyendo daño, peso y propiedades". (Prueba si entiende columnas/filas).
-        2.  **Reto Multicolumna:** "Resume los rasgos de clase del Paladín a nivel 3". (Prueba si mezcla texto de columnas adyacentes).
-        3.  **Reto Disperso:** "Explica las reglas de cobertura y visibilidad". (Prueba si junta info de varias secciones).
-- [ ] **Criterio de Éxito:** Si la IA falla en extraer la tabla correctamente o mezcla columnas, **abortamos la Fase 3** (el puente automático) y nos quedamos solo con la Fase 1 (Base de datos manual/SRD).
+- [x] **Script de Prueba (`scripts/poc-pdf-parsing.ts`):**
+    - **Validación Exitosa (Dic 2025):** `gemini-3-pro-preview` ha demostrado ser capaz de extraer tablas complejas y texto estructurado via inlineData y File API.
+    - **Hallazgo Crítico - Limitaciones de Tamaño:**
+        - **Procesamiento de Contexto:** Aunque la API de Archivos permite subir hasta 2GB, el modelo (Gemini 3 Pro / 1.5 Pro) tiene un límite práctico de procesamiento de contexto de **~50 MB** o **1,000 páginas** por archivo individual.
+        - **Archivos Grandes:** Archivos como el manual completo en alta calidad (>66MB) fallan en la etapa de generación o subida por timeout/contexto.
+        - **Solución:** Se requiere dividir los manuales grandes en capítulos (ej. `PHB_Part1_Reglas.pdf`, `PHB_Part2_Hechizos.pdf`) de <40MB para asegurar estabilidad.
+- [x] **Criterio de Éxito:** La IA ha superado la prueba de extracción con archivos optimizados. Procedemos con la arquitectura asumiendo pre-procesamiento de PDFs.
 
 ### Fase 1: Cimientos de Datos (SQLite + Providers) - *El suelo firme*
 *Objetivo: Migrar la dependencia de API externa a local. Sin IA compleja aún.*
 
-- [ ] **Infraestructura DB:**
+- [x] **Infraestructura DB:**
     - Inicializar `src/lib/db/index.ts` con `better-sqlite3`.
     - Definir esquemas Zod para `Monster`, `Spell`, `Item`.
     - Crear tablas híbridas: `id (PK)`, `name (Index)`, `type (Index)`, `data (JSON)`.
-- [ ] **Provider SRD (Open5e):**
+- [x] **Provider SRD (Open5e):**
     - Implementar script de "Semillado" (`seed-db.ts`) que baje todo el SRD gratuito de Open5e y pueble la DB inicial.
     - Esto nos da el 80% de los datos base gratis y rápido.
-- [ ] **Adaptador de Combate:**
+- [x] **Adaptador de Combate:**
     - Refactorizar `CombatActionResolver` para usar `DataService.getMonster()` en lugar de llamadas HTTP directas.
 
-### Fase 2: Ingesta de Conocimiento (Google File Search) - *Los ojos*
+### Fase 2: Ingesta de Manuales (RAG) - *Los ojos*
 *Objetivo: Darle "ojos" a la IA sobre el manual oficial. Solo lectura.*
 
-- [ ] **Gestión de Corpus:**
-    - Script para subir el PDF del Manual del Jugador a Google AI Studio.
-    - Estrategia de nombrado de archivos para referencia (ej: `PHB_Core_Rules.pdf`).
-- [ ] **Tool `consultRulebook`:**
-    - Tool específica para el `NarrativeManager`: "Consulta el manual si tienes dudas de reglas".
-    - **Optimización de Prompt:** Instruir para que cite página/capítulo si es posible.
+- [x] **Gestión de Corpus:**
+    - Script para subir el PDF del Manual del Jugador a Google AI Studio (`scripts/ingest-manual.ts`).
+    - Estrategia de ingestión y caché de URI en `.env.local` implementada con éxito.
+- [x] **Tool `consultRulebook`:**
+    - Tool específica para el `NarrativeManager`.
+    - Integrada con URI persistente (`manualUri`) y SDK nativo de Google (para soportar `gemini-3-pro-preview`).
+    - Prompt optimizado para navegación por capítulos (RAG básico).
 
-### Fase 3: El Puente de Estructuración (AI-Hydration) 🚀 - *La magia*
-*Objetivo: Convertir texto de PDF en mecánica jugable automáticamente. Solo cuando Fases 1 y 2 sean estables.*
+### Fase 3: Hidratación Bajo Demanda (AI-Hydration) - *La magia*
+*Objetivo: Convertir texto de PDF en mecánica jugable automáticamente cuando falta en local.*
 
-- [ ] **Tool `structureFromLore`:**
-    - Input: Nombre de entidad (ej: "Juramento de Venganza", "Espada Sombría").
-    - Proceso: Búsqueda RAG -> Extracción a JSON -> Validación Zod -> Insert en SQLite.
-- [ ] **Flujo de Fallback Inteligente:**
-    - `DataService.get()`:
-        1.  ¿Existe en SQLite? -> Retornar ✅
-        2.  ¿Existe en API SRD? -> Bajar, Guardar, Retornar ✅
-        3.  ¿Existe en PDF (RAG)? -> Estructurar, Guardar, Retornar ✅
-        4.  Generar sintético (último recurso) -> Retornar ⚠️
+- [x] **Tool `structureEntity`:**
+    - Orquestador que consulta el manual (RAG) y luego estructura el texto a JSON (`MonsterDataSchema`) usando un modelo rápido (`gemini-2.0-flash`).
+- [x] **Flujo de Fallback en `DataService`:**
+    1.  Consulta SQLite Local (`SELECT`).
+    2.  Si falla -> Llama a `structureEntity` (AI-Hydration).
+    3.  Persiste el resultado en SQLite (`INSERT`).
+    4.  Retorna datos al juego.
+- [x] **Validación y Pruebas Unitarias:**
+    - Script `test-hydration.ts` (ahora `poc-hydration.ts`) validó exitosamente el flujo completo con "Diablillo" (Español -> JSON).
+    - Ajuste de prompts para robustez con esquemas flexibles y traducción de valores.
+
+### Fase 4: Integración Completa y UI (Futuro)
+*Objetivo: Hacer que todo esto sea transparente para el usuario final.*
+
+- [ ] **Buscador Universal en UI:**
+    - Panel para que el DM busque monstruos/hechizos (local o RAG).
+- [ ] **Gestión de Manuales:**
+    - UI para subir nuevos PDFs y procesarlos.
 
 ---
 
@@ -85,5 +94,4 @@ Para mitigar el riesgo de complejidad y validar la IA, haremos un despliegue inc
 - **Data-Driven:** Prepara el terreno perfecto para el Sistema de Progresión (XP/Niveles).
 
 ---
-**Estado:** Pendiente de Aprobación
-**Siguiente Paso:** Validar si el usuario tiene el PDF listo para subir y comenzar Fase 1 (SQLite Base).
+**Estado:** Fase 3 Completada (Hidratación validada). Próximo: Fase 4.

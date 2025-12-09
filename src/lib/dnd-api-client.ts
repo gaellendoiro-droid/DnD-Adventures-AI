@@ -1,4 +1,4 @@
-import 'server-only';
+// import 'server-only';
 /**
  * @fileOverview Unified D&D 5e API Client
  * 
@@ -13,9 +13,9 @@ import 'server-only';
  * - dnd-api-lookup.ts
  */
 
-import { log } from '@/lib/logger';
-import { retryWithExponentialBackoff } from '@/ai/flows/retry-utils';
-import { persistentFetch } from '@/lib/http/persistent-client';
+import { log } from './logger';
+import { retryWithExponentialBackoff } from '../ai/flows/retry-utils';
+import { persistentFetch } from './http/persistent-client';
 
 const BASE_URL = 'https://www.dnd5eapi.co/api';
 
@@ -39,7 +39,7 @@ async function ensureDndApiPrewarmed(): Promise<void> {
     } catch {
         // Ignorar errores de pre-warm; el retry se encargará si falla luego.
     } finally {
-    prewarmedApis.add(BASE_URL);
+        prewarmedApis.add(BASE_URL);
     }
 }
 
@@ -114,7 +114,7 @@ const SPANISH_TO_ENGLISH_MAP: Record<string, string> = {
     'fuego fatuo': 'will-o-wisp',
     'will-o-wisp': 'will-o-wisp',
     'acechador invisible': 'invisible stalker',
-    
+
     // Spells
     'bola de fuego': 'fireball',
     'rayo': 'lightning bolt',
@@ -132,7 +132,7 @@ const SPANISH_TO_ENGLISH_MAP: Record<string, string> = {
     'detectar magia': 'detect magic',
     'luz': 'light',
     'llama sagrada': 'sacred flame',
-    
+
     // Equipment
     'espada larga': 'longsword',
     'espada corta': 'shortsword',
@@ -183,19 +183,19 @@ export function normalizeQuery(query: string): string {
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
         .trim();
-    
+
     // Check if we have a direct mapping
     if (SPANISH_TO_ENGLISH_MAP[normalized]) {
         return SPANISH_TO_ENGLISH_MAP[normalized];
     }
-    
+
     // Try to find a partial match (for multi-word queries)
     for (const [spanish, english] of Object.entries(SPANISH_TO_ENGLISH_MAP)) {
         if (normalized.includes(spanish) || spanish.includes(normalized)) {
             return english;
         }
     }
-    
+
     // If no mapping found, return the normalized query (without accents)
     return normalized;
 }
@@ -241,7 +241,7 @@ export async function fetchResource(
 ): Promise<any | null> {
     const normalizedName = normalizeQuery(name);
     const cacheKey = getCacheKey(resourceType, normalizedName);
-    
+
     // Check cache first
     if (responseCache.has(cacheKey)) {
         const cached = responseCache.get(cacheKey);
@@ -253,10 +253,10 @@ export async function fetchResource(
         });
         return cached;
     }
-    
+
     // Pre-warm antes de la primera llamada real
     await ensureDndApiPrewarmed();
-    
+
     // Check if there's already a pending request for this resource
     if (pendingRequests.has(cacheKey)) {
         log.debug('Waiting for pending request for D&D API resource', {
@@ -267,12 +267,12 @@ export async function fetchResource(
         });
         return await pendingRequests.get(cacheKey)!;
     }
-    
+
     // Create a new request and cache the promise
     const requestPromise = (async () => {
         const formattedName = formatQueryForUrl(normalizedName);
         const url = `${BASE_URL}/${resourceType}/${formattedName}`;
-        
+
         try {
             log.debug('Fetching D&D API resource', {
                 module: 'DndApiClient',
@@ -282,14 +282,14 @@ export async function fetchResource(
                 formattedName,
                 url,
             });
-            
+
             // Wrap fetch in retry logic for network errors and server errors (5xx)
             const response = await retryWithExponentialBackoff(
                 async () => {
                     const res = await persistentFetch(url, {
                         headers: { 'Accept': 'application/json' },
                     });
-                    
+
                     // If it's a 5xx server error, throw to trigger retry
                     if (res.status >= 500 && res.status < 600) {
                         const error: any = new Error(`Server error: ${res.status} ${res.statusText}`);
@@ -297,7 +297,7 @@ export async function fetchResource(
                         error.statusCode = res.status;
                         throw error;
                     }
-                    
+
                     // For 404 (Not Found) and other 4xx errors, don't retry - return as-is
                     return res;
                 },
@@ -305,7 +305,7 @@ export async function fetchResource(
                 1000, // initialDelayMs: 1 second
                 'DndApiClient'
             );
-            
+
             // Handle 404 (resource not found) - don't retry, cache null
             if (response.status === 404) {
                 log.warn('D&D API resource not found', {
@@ -315,13 +315,13 @@ export async function fetchResource(
                     normalizedName,
                     statusCode: response.status,
                 });
-                
+
                 // Cache the failure to avoid repeated requests
                 responseCache.set(cacheKey, null);
                 pendingRequests.delete(cacheKey);
                 return null;
             }
-            
+
             // Handle other non-ok responses (shouldn't happen after retries, but just in case)
             if (!response.ok) {
                 log.warn('Unexpected error response from D&D API', {
@@ -331,28 +331,28 @@ export async function fetchResource(
                     normalizedName,
                     statusCode: response.status,
                 });
-                
+
                 // Cache null for unexpected errors
                 responseCache.set(cacheKey, null);
                 pendingRequests.delete(cacheKey);
                 return null;
             }
-            
+
             const data = await response.json();
-            
+
             // Cache the successful response
             responseCache.set(cacheKey, data);
-            
+
             log.debug('D&D API resource fetched successfully', {
                 module: 'DndApiClient',
                 resourceType,
                 originalName: name,
                 normalizedName,
             });
-            
+
             // Clean up pending requests
             pendingRequests.delete(cacheKey);
-            
+
             return data;
         } catch (error) {
             log.error('Error fetching D&D API resource after retries', {
@@ -362,21 +362,21 @@ export async function fetchResource(
                 normalizedName,
                 error: error instanceof Error ? error.message : String(error),
             });
-            
+
             // Cache null only after all retries have failed
             // This prevents caching transient errors
             responseCache.set(cacheKey, null);
-            
+
             // Clean up pending requests
             pendingRequests.delete(cacheKey);
-            
+
             return null;
         }
     })();
-    
+
     // Store the promise in pending requests
     pendingRequests.set(cacheKey, requestPromise);
-    
+
     return await requestPromise;
 }
 
@@ -400,7 +400,7 @@ export async function searchResource(
 ): Promise<any | null> {
     const normalizedQuery = normalizeQuery(query);
     const cacheKey = getCacheKey(resourceType, normalizedQuery);
-    
+
     // Check cache first
     if (responseCache.has(cacheKey)) {
         const cached = responseCache.get(cacheKey);
@@ -412,10 +412,10 @@ export async function searchResource(
         });
         return cached;
     }
-    
+
     // Pre-warm antes de la primera llamada real
     await ensureDndApiPrewarmed();
-    
+
     // Check if there's already a pending request for this search
     if (pendingRequests.has(cacheKey)) {
         log.debug('Waiting for pending request for D&D API search', {
@@ -426,11 +426,11 @@ export async function searchResource(
         });
         return await pendingRequests.get(cacheKey)!;
     }
-    
+
     // Create a new request and cache the promise
     const requestPromise = (async () => {
         const formattedQuery = formatQueryForUrl(normalizedQuery);
-        
+
         try {
             log.debug('Searching D&D API', {
                 module: 'DndApiClient',
@@ -439,7 +439,7 @@ export async function searchResource(
                 normalizedQuery,
                 formattedQuery,
             });
-            
+
             // First, try direct fetch
             const directUrl = `${BASE_URL}/${resourceType}/${formattedQuery}`;
             const directResponse = await retryWithExponentialBackoff(
@@ -447,7 +447,7 @@ export async function searchResource(
                     const res = await persistentFetch(directUrl, {
                         headers: { 'Accept': 'application/json' },
                     });
-                    
+
                     // If it's a 5xx server error, throw to trigger retry
                     if (res.status >= 500 && res.status < 600) {
                         const error: any = new Error(`Server error: ${res.status} ${res.statusText}`);
@@ -455,29 +455,29 @@ export async function searchResource(
                         error.statusCode = res.status;
                         throw error;
                     }
-                    
+
                     return res;
                 },
                 3,
                 1000,
                 'DndApiClient'
             );
-            
+
             if (directResponse.ok) {
                 const data = await directResponse.json();
                 responseCache.set(cacheKey, data);
                 pendingRequests.delete(cacheKey);
-                
+
                 log.debug('D&D API search successful (direct)', {
                     module: 'DndApiClient',
                     resourceType,
                     originalQuery: query,
                     normalizedQuery,
                 });
-                
+
                 return data;
             }
-            
+
             // If direct lookup fails, try search endpoint
             const searchUrl = `${BASE_URL}/${resourceType}/?name=${encodeURIComponent(normalizedQuery)}`;
             const searchResponse = await retryWithExponentialBackoff(
@@ -485,7 +485,7 @@ export async function searchResource(
                     const res = await persistentFetch(searchUrl, {
                         headers: { 'Accept': 'application/json' },
                     });
-                    
+
                     // If it's a 5xx server error, throw to trigger retry
                     if (res.status >= 500 && res.status < 600) {
                         const error: any = new Error(`Server error: ${res.status} ${res.statusText}`);
@@ -493,17 +493,17 @@ export async function searchResource(
                         error.statusCode = res.status;
                         throw error;
                     }
-                    
+
                     return res;
                 },
                 3,
                 1000,
                 'DndApiClient'
             );
-            
+
             if (searchResponse.ok) {
                 const searchData = await searchResponse.json();
-                
+
                 // If we have results, fetch the first one
                 if (searchData.count > 0 && searchData.results?.[0]?.url) {
                     const detailUrl = `https://www.dnd5eapi.co${searchData.results[0].url}`;
@@ -512,7 +512,7 @@ export async function searchResource(
                             const res = await fetch(detailUrl, {
                                 headers: { 'Accept': 'application/json' },
                             });
-                            
+
                             // If it's a 5xx server error, throw to trigger retry
                             if (res.status >= 500 && res.status < 600) {
                                 const error: any = new Error(`Server error: ${res.status} ${res.statusText}`);
@@ -520,31 +520,31 @@ export async function searchResource(
                                 error.statusCode = res.status;
                                 throw error;
                             }
-                            
+
                             return res;
                         },
                         3,
                         1000,
                         'DndApiClient'
                     );
-                    
+
                     if (detailResponse.ok) {
                         const detailData = await detailResponse.json();
                         responseCache.set(cacheKey, detailData);
                         pendingRequests.delete(cacheKey);
-                        
+
                         log.debug('D&D API search successful (search endpoint)', {
                             module: 'DndApiClient',
                             resourceType,
                             originalQuery: query,
                             normalizedQuery,
                         });
-                        
+
                         return detailData;
                     }
                 }
             }
-            
+
             // If both methods fail, cache null and return null
             log.warn('D&D API search: No resource found', {
                 module: 'DndApiClient',
@@ -552,7 +552,7 @@ export async function searchResource(
                 originalQuery: query,
                 normalizedQuery,
             });
-            
+
             responseCache.set(cacheKey, null);
             pendingRequests.delete(cacheKey);
             return null;
@@ -564,18 +564,18 @@ export async function searchResource(
                 normalizedQuery,
                 error: error instanceof Error ? error.message : String(error),
             });
-            
+
             // Cache null only after all retries have failed
             responseCache.set(cacheKey, null);
             pendingRequests.delete(cacheKey);
-            
+
             return null;
         }
     })();
-    
+
     // Store the promise in pending requests
     pendingRequests.set(cacheKey, requestPromise);
-    
+
     return await requestPromise;
 }
 

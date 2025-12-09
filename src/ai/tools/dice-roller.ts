@@ -27,7 +27,7 @@ const DiceRollResultSchema = z.object({
   attributeUsed: z.enum(['FUE', 'DES', 'CON', 'INT', 'SAB', 'CAR']).optional(),
 });
 
-export const diceRollerTool = ai.defineTool(
+export const rollDiceTool = ai.defineTool(
   {
     name: 'diceRollerTool',
     description: 'Rolls dice based on standard D&D notation (e.g., "1d20", "2d6+3") and returns the result.',
