@@ -12,10 +12,12 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
+import { z } from 'genkit';
 import { dndApiLookupTool } from '../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../tools/adventure-lookup';
 import { characterLookupTool } from '../tools/character-lookup';
+import { consultRulebookTool } from '../tools/consult-rulebook';
+import { lookupEntityStatsTool } from '../tools/lookup-entity-stats';
 import { executePromptWithRetry } from './retry-utils';
 import {
     NarrativeExpertInputSchema,
@@ -109,8 +111,11 @@ const combatInitiationPrompt = ai.definePrompt({
     name: 'combatInitiationPrompt',
     input: { schema: NarrativeExpertInputSchema },
     output: { schema: NarrativeExpertOutputSchema },
-    tools: [dndApiLookupTool, adventureLookupTool, characterLookupTool],
+    tools: [dndApiLookupTool, adventureLookupTool, characterLookupTool, consultRulebookTool, lookupEntityStatsTool],
     prompt: `You are a Master Storyteller DM expert in D&D 5e. Your task is to narrate the START of combat.
+    
+    If you are unsure about a specific combat rule (e.g., Surprise, Initiative for specific monsters), use the 'consultRulebook' tool.
+    If you need stats for a monster (e.g. to describe it accurately) use 'lookupEntityStats'.
     
 **Combat Initiation Guidelines:**
 1. **Describe the tension:** Use the location description to set the scene.

@@ -13,6 +13,7 @@
 import { ai } from '@/ai/genkit';
 import { log } from '@/lib/logger';
 import { retryWithExponentialBackoff } from '@/ai/flows/retry-utils';
+import { lookupEntityStatsTool } from '../lookup-entity-stats';
 import {
   CombatNarrationExpertInputSchema,
   CombatNarrationExpertOutputSchema,
@@ -25,6 +26,7 @@ const combatNarrationPrompt = ai.definePrompt({
   name: 'combatNarrationPrompt',
   input: { schema: CombatNarrationExpertInputSchema },
   output: { schema: CombatNarrationExpertOutputSchema },
+  tools: [lookupEntityStatsTool],
   config: {
     safetySettings: [
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
@@ -38,6 +40,9 @@ const combatNarrationPrompt = ai.definePrompt({
 **Generate Complete Combat Narration**
 
 Create a vivid, complete narration of {{{attackerName}}}'s action against {{{targetName}}}.
+
+**TOOLS:**
+- If you don't know what {{{attackerName}}} or {{{targetName}}} looks like or does (e.g. "Nothic", "Beholder"), use \`lookupEntityStats\` to get their description and biology before narrating. This helps you describe their movement and attacks accurately.
 
 **CRITICAL: You MUST use EXACTLY the name "{{{attackerName}}}" when referring to the attacker and "{{{targetName}}}" when referring to the target in your narration. DO NOT translate or change these names (e.g., if it's "Goblin 2", write "Goblin 2", NOT "trasgo 2" or "goblin 2").**
 
@@ -93,7 +98,7 @@ export const combatNarrationExpertTool = ai.defineTool(
 
     try {
       localLog(`CombatNarrationExpert: Generating narration for ${input.attackerName} -> ${input.targetName}`);
-      
+
       log.aiTool('combatNarrationExpertTool', 'Generating combat narration', {
         attacker: input.attackerName,
         target: input.targetName,
@@ -118,7 +123,7 @@ export const combatNarrationExpertTool = ai.defineTool(
           attacker: input.attackerName,
           target: input.targetName,
         });
-        
+
         // Fallback narration - MUST be descriptive, not generic
         let fallbackNarration = '';
         if (input.attackResult === 'hit' || input.attackResult === 'critical') {
@@ -130,7 +135,7 @@ export const combatNarrationExpertTool = ai.defineTool(
         } else {
           fallbackNarration = `${input.attackerName} intenta atacar a ${input.targetName}, pero ${input.targetName} esquiva el golpe en el último momento.`;
         }
-        
+
         return {
           narration: fallbackNarration,
           debugLogs,
@@ -145,9 +150,9 @@ export const combatNarrationExpertTool = ai.defineTool(
 
       // Validate narration is not generic
       const narration = output.narration || '';
-      const isGeneric = narration.match(/^[^.]* (ataca|golpea) a [^.]*\.?$/i) || 
-                        narration.length < 30 ||
-                        (narration.includes('ataca a') && !narration.includes('impacta') && !narration.includes('golpea') && !narration.includes('corta'));
+      const isGeneric = narration.match(/^[^.]* (ataca|golpea) a [^.]*\.?$/i) ||
+        narration.length < 30 ||
+        (narration.includes('ataca a') && !narration.includes('impacta') && !narration.includes('golpea') && !narration.includes('corta'));
 
       if (isGeneric) {
         localLog(`WARNING: Generated narration is too generic: "${narration}". Using enhanced fallback.`);
@@ -158,22 +163,22 @@ export const combatNarrationExpertTool = ai.defineTool(
           target: input.targetName,
           narration,
         });
-        
+
         // Enhanced fallback that is descriptive
         let enhancedFallback = '';
         if (input.attackResult === 'hit' || input.attackResult === 'critical') {
           const weaponDesc = input.weaponName ? ` con ${input.weaponName}` : '';
-          const impactDesc = input.damageDealt && input.damageDealt > 5 
+          const impactDesc = input.damageDealt && input.damageDealt > 5
             ? ` El impacto es contundente y ${input.targetName} se tambalea bajo el golpe.`
             : ` El golpe encuentra su marca y ${input.targetName} retrocede.`;
-          const deathDesc = input.targetKilled 
+          const deathDesc = input.targetKilled
             ? ` ${input.targetName} se desploma sin vida, su cuerpo inerte cayendo al suelo.`
             : '';
           enhancedFallback = `${input.attackerName} golpea a ${input.targetName}${weaponDesc} con fuerza.${impactDesc}${deathDesc}`;
         } else {
           enhancedFallback = `${input.attackerName} intenta atacar a ${input.targetName}, pero ${input.targetName} esquiva el golpe en el último momento.`;
         }
-        
+
         return {
           narration: enhancedFallback,
           debugLogs,
@@ -181,7 +186,7 @@ export const combatNarrationExpertTool = ai.defineTool(
       }
 
       localLog("CombatNarrationExpert: Successfully generated narration.");
-      
+
       log.aiTool('combatNarrationExpertTool', 'Combat narration generated successfully', {
         attacker: input.attackerName,
         target: input.targetName,
@@ -201,7 +206,7 @@ export const combatNarrationExpertTool = ai.defineTool(
         attacker: input.attackerName,
         target: input.targetName,
       }, e);
-      
+
       // Return a descriptive fallback narration instead of throwing
       let fallbackNarration = '';
       if (input.attackResult === 'hit' || input.attackResult === 'critical') {
@@ -209,7 +214,7 @@ export const combatNarrationExpertTool = ai.defineTool(
       } else {
         fallbackNarration = `${input.attackerName} intenta atacar a ${input.targetName}, pero falla.`;
       }
-      
+
       return {
         narration: fallbackNarration,
         debugLogs,

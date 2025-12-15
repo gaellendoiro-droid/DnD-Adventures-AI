@@ -22,6 +22,9 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { MusicManager } from "./music-manager";
 import { WorldState } from "@/lib/game/world-state-types";
 import { WorldStateManager } from "@/lib/game/world-state-manager";
+import { searchCompendium } from "@/app/actions/compendium";
+import { SearchResult } from "@/app/actions/compendium";
+import { formatCompendiumEntry, formatNotFoundMessage } from "@/lib/game/compendium-formatter";
 
 interface GameViewProps {
   initialData: {
@@ -78,7 +81,6 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     initialData.party.find(c => c.controlledBy === 'Player') || null
   );
   const [isDMThinking, setIsDMThinking] = useState(false);
-  // debugMessages removed
   const [turnIndex, setTurnIndex] = useState(initialData.turnIndex || 0);
   const [hasMoreAITurns, setHasMoreAITurns] = useState(false);
   const [combatPhase, setCombatPhase] = useState<CombatPhase>((initialData as any).phase || (initialData.inCombat ? CombatPhase.WAITING_FOR_ACTION : CombatPhase.SETUP));
@@ -129,7 +131,7 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     combatPhaseRef.current = combatPhase;
   }, [initiativeOrder, enemies, enemiesByLocation, openDoors, party, locationId, inCombat, messages, selectedCharacter, combatPhase]);
 
-  // addDebugMessages removed
+
 
   useEffect(() => {
     setParty(initialData.party);
@@ -162,116 +164,12 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     setOpenDoors(initialData.openDoors || {});
     setCombatPhase((initialData as any).phase || (initialData.inCombat ? CombatPhase.WAITING_FOR_ACTION : CombatPhase.SETUP));
     combatPhaseRef.current = (initialData as any).phase || (initialData.inCombat ? CombatPhase.WAITING_FOR_ACTION : CombatPhase.SETUP);
-    // setDebugMessages([]);
-    // Sync refs with initial data
-    turnIndexRef.current = initialData.turnIndex || 0;
-    initiativeOrderRef.current = initialData.initiativeOrder || [];
-    enemiesRef.current = initialData.enemies || []; // Deprecated: kept for backward compatibility
-    enemiesByLocationRef.current = initialData.enemiesByLocation || {};
-    openDoorsRef.current = initialData.openDoors || {};
     partyRef.current = initialData.party;
-    // addDebugMessages(["Game state initialized from initialData."]);
     // Sync WorldState
     worldStateRef.current = initialData.worldState || WorldStateManager.initialize();
   }, [initialData]);
 
-  // TEMPORAL: Log de estados para pruebas (Issue #11 y #12)
-  useEffect(() => {
-    // Crear una representación serializada del estado para comparar
-    const currentState = JSON.stringify({
-      inCombat,
-      initiativeOrderLength: initiativeOrder.length,
-      turnIndex,
-      enemiesLength: enemies.length, // Deprecated
-      enemiesByLocationKeys: Object.keys(enemiesByLocation),
-      locationId,
-      partySize: party.length,
-    });
 
-    // Solo loguear si el estado realmente cambió
-    if (currentState !== prevStateRef.current) {
-      prevStateRef.current = currentState;
-
-      // Log estructurado y expandible
-      console.groupCollapsed('🎮 [GameView] Estado actual');
-
-      // Información básica
-      console.log('📍 Ubicación:', locationId);
-      console.log('⚔️ En combate:', inCombat);
-      console.log('👥 Tamaño del grupo:', party.length);
-      console.log('📊 Turno actual (índice):', turnIndex);
-
-      // Orden de iniciativa - expandido
-      if (initiativeOrder.length > 0) {
-        console.log('🗡️ Orden de iniciativa:', initiativeOrder.length, 'combatientes');
-        initiativeOrder.forEach((combatant, index) => {
-          console.log(`  ${index + 1}. ${combatant.characterName} (ID: ${combatant.id})`, {
-            id: combatant.id,
-            name: combatant.characterName,
-            initiative: combatant.total,
-            isPlayer: combatant.type === 'player',
-            isEnemy: combatant.type === 'npc',
-          });
-        });
-      } else {
-        console.log('🗡️ Orden de iniciativa:', 'Vacío (no hay combate activo)');
-      }
-
-      // Enemigos - expandido (deprecated, usar enemiesByLocation)
-      if (enemies.length > 0) {
-        console.log('👹 Enemigos (deprecated):', enemies.length, 'enemigos');
-        enemies.forEach((enemy: any, index) => {
-          const enemyName = enemy.name || enemy.characterName || enemy.id || 'Unknown';
-          console.log(`  ${index + 1}. ${enemyName}`, {
-            id: enemy.id,
-            name: enemyName,
-            ...(enemy.hp && { hp: enemy.hp }),
-            ...(enemy.ac && { ac: enemy.ac }),
-            fullData: enemy,
-          });
-        });
-      } else {
-        console.log('👹 Enemigos (deprecated):', 'Vacío (no hay enemigos)');
-      }
-
-      // Enemigos por ubicación - expandido
-      const locationKeys = Object.keys(enemiesByLocation);
-      if (locationKeys.length > 0) {
-        console.log('🗺️ Enemigos por Ubicación:', locationKeys.length, 'ubicaciones');
-        locationKeys.forEach(locId => {
-          const locEnemies = enemiesByLocation[locId];
-          console.log(`  📍 ${locId}:`, locEnemies.length, 'enemigos');
-          locEnemies.forEach((enemy: any, index) => {
-            const enemyName = enemy.name || enemy.characterName || enemy.id || 'Unknown';
-            const isDead = enemy.hp && enemy.hp.current <= 0;
-            console.log(`    ${index + 1}. ${enemyName}${isDead ? ' (MUERTO)' : ''}`, {
-              id: enemy.id,
-              name: enemyName,
-              ...(enemy.hp && { hp: enemy.hp }),
-              ...(enemy.ac && { ac: enemy.ac }),
-              isDead,
-            });
-          });
-        });
-      } else {
-        console.log('🗺️ Enemigos por Ubicación:', 'Vacío (no hay enemigos en ninguna ubicación)');
-      }
-
-      // Resumen compacto para referencia rápida
-      console.log('📦 Resumen:', {
-        inCombat,
-        initiativeOrderCount: initiativeOrder.length,
-        turnIndex,
-        enemiesCount: enemies.length, // Deprecated
-        enemiesByLocationCount: Object.keys(enemiesByLocation).length,
-        currentLocationEnemiesCount: enemiesByLocation[locationId]?.length || 0,
-        locationId,
-        partySize: party.length,
-      });
-
-      console.groupEnd();
-    }
-  }, [inCombat, initiativeOrder, turnIndex, enemies, enemiesByLocation, locationId, party.length]);
 
   // Counter to ensure unique IDs even when messages are created in the same millisecond
   const messageIdCounterRef = useRef(0);
@@ -353,6 +251,75 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
       });
     }
 
+    // --- COMPENDIUM COMMAND (Universal Search) ---
+    if (content.startsWith('??')) {
+      const query = content.substring(2).trim();
+      if (query.length < 3) {
+        addMessage({ sender: 'System', content: '❌ La consulta debe tener al menos 3 caracteres.' });
+        return;
+      }
+
+      // Show user query
+      // addMessage({ sender: 'Player', senderName: 'Consulta', content: `🔍 Buscando: "${query}"...`, characterColor: '#888888' });
+      // Actually, better to just show the "Thinking" state and then the result, 
+      // or show the query as a command. Let's show it as a specialized command.
+
+      setIsDMThinking(true);
+      try {
+        // Detectar tipo implícito (heuristicas simples o default monster)
+        // Por defecto buscamos en todo (DataService sabe buscar en local por nombre en todas las tablas)
+        // Pero nuestro server action pide un type. Hagamos que el usuario pueda especificar "??hechizo Bola de fuego"
+        // O más simple: Probamos Monster primero, si no Rule.
+        // Mejor estrategia: Intentar Monster, luego Spell, luego Item, luego Rule (Chain of Responsibility en backend sería ideal, pero simulémoslo o usemos 'rule' como fallback).
+
+        // Versión Simple: Asumimos 'rule' si es texto largo, o 'monster' por defecto.
+        // O mejor: Modificar el backend para que busque en todo. 
+        // DADO que no quiero cambiar el backend ahora mismo (aunque debería), voy a hacer una búsqueda "inteligente" secuencial aquí o asumir Monster/Rule.
+
+        // Estrategia UX: "?? Texto" -> Intenta buscar Regla (RAG es más genérico).
+        // "??m Texto" -> Monster
+        // "??s Texto" -> Spell
+        // "??i Texto" -> Item
+
+        let type: 'monster' | 'spell' | 'item' | 'rule' = 'rule'; // Default to rule (safest RAG)
+        let cleanQuery = query;
+
+        if (content.startsWith('??m ')) { type = 'monster'; cleanQuery = content.substring(4).trim(); }
+        else if (content.startsWith('??s ')) { type = 'spell'; cleanQuery = content.substring(4).trim(); }
+        else if (content.startsWith('??i ')) { type = 'item'; cleanQuery = content.substring(4).trim(); }
+        else if (content.startsWith('??r ')) { type = 'rule'; cleanQuery = content.substring(4).trim(); }
+
+        const result = await searchCompendium(cleanQuery, type);
+
+        if (result.found && result.data) {
+          const displayContent = formatCompendiumEntry(type, result.data, cleanQuery);
+
+          addMessage({
+            sender: 'System',
+            senderName: 'Compendio',
+            content: displayContent,
+            characterColor: '#4a9eff' // Azulito chulo
+          });
+        } else {
+          // Caso NO ENCONTRADO: Mensaje amigable del DM
+          const noFoundMsg = formatNotFoundMessage(cleanQuery);
+
+          addMessage({
+            sender: 'System',
+            senderName: 'DM', // Usamos DM para darle personalidad
+            content: noFoundMsg
+          });
+        }
+
+      } catch (e: any) {
+        addMessage({ sender: 'Error', content: `Error consultando compendio: ${e.message}` });
+      } finally {
+        setIsDMThinking(false);
+      }
+      return; // Stop here, do not send to game backend
+    }
+    // ---------------------------------------------
+
     setIsDMThinking(true);
 
     try {
@@ -373,7 +340,8 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
         openDoors: openDoorsRef.current,
       };
 
-      logClient.uiEvent('GameView', 'Sending action to backend', {
+      logClient.debug('Sending action to backend', {
+        component: 'GameView',
         action: content,
         turnIndex: turnIndexRef.current,
         activeCombatant: turnIndexRef.current !== undefined
@@ -402,7 +370,7 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
       } catch (validationError: any) {
         // Handle validation errors specifically
         if (validationError instanceof ZodError) {
-          const errorMessages = validationError.errors.map(err => {
+          const errorMessages = (validationError as any).errors.map((err: any) => {
             const path = err.path.join('.');
             return `${path}: ${err.message}`;
           }).join('; ');

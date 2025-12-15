@@ -98,6 +98,13 @@ export class CombatTriggerEvaluator {
                 // If ambush is NOT in detectedHazards, it triggers!
                 // But only if there are NO visible enemies (enemies are hidden)
                 if (!detectedHazards.includes(ambush.id) && hostileEntities.length === 0) {
+
+                    // NEW: Check for Stealth Success
+                    // If player stealth succeeded, they avoid triggering the ambush (for now)
+                    if (stealthCheckResult && stealthCheckResult.success) {
+                        continue;
+                    }
+
                     return {
                         shouldStartCombat: true,
                         reason: 'ambush',
@@ -142,10 +149,10 @@ export class CombatTriggerEvaluator {
                 // Check if target matches this entity's id
                 const entityIdLower = entity.id?.toLowerCase() || '';
                 return targetLower.includes(entityIdLower) ||
-                       entityIdLower.includes(targetLower) ||
-                       // Also check if targetId matches common chest/object keywords
-                       (targetLower.includes('cofre') && entityIdLower.includes('cofre')) ||
-                       (targetLower.includes('chest') && entityIdLower.includes('chest'));
+                    entityIdLower.includes(targetLower) ||
+                    // Also check if targetId matches common chest/object keywords
+                    (targetLower.includes('cofre') && entityIdLower.includes('cofre')) ||
+                    (targetLower.includes('chest') && entityIdLower.includes('chest'));
             });
 
             if (mimic) {

@@ -35,34 +35,45 @@ export async function retryWithExponentialBackoff<T>(
         } catch (error: any) {
             lastError = error;
 
-            // Check if it's a timeout/network error, server error, or quota error that we should retry
+            // Enhanced Error Detection Logic
+            const errorStr = (error.toString() || '').toLowerCase();
+            const msg = (error.message || '').toLowerCase();
+            const causeMsg = (error.cause?.message || '').toLowerCase();
+
             const isRetryableError =
-                error.message?.includes('timeout') ||
-                error.message?.includes('fetch failed') ||
-                error.message?.includes('ECONNRESET') ||
-                error.message?.includes('Service Unavailable') ||
-                error.message?.includes('overloaded') ||
-                error.message?.includes('Resource has been exhausted') ||
-                error.message?.includes('Too Many Requests') ||
-                error.message?.includes('429') ||
-                error.message?.includes('503') ||
+                msg.includes('timeout') ||
+                msg.includes('fetch failed') ||
+                msg.includes('network') ||
+                msg.includes('econnreset') ||
+                msg.includes('service unavailable') ||
+                msg.includes('overloaded') ||
+                msg.includes('resource exhausted') ||
+                msg.includes('too many requests') ||
+                msg.includes('429') ||
+                msg.includes('503') ||
+                msg.includes('500') || // Server errors often retryable
+                errorStr.includes('429') ||
+                errorStr.includes('resource exhausted') ||
                 error.code === 'UND_ERR_CONNECT_TIMEOUT' ||
                 error.status === 429 ||
                 error.status === 503 ||
                 error.statusCode === 429 ||
                 error.statusCode === 503 ||
                 (error.cause && (
-                    error.cause.code === 'UND_ERR_CONNECT_TIMEOUT' ||
-                    error.cause.message?.includes('Connect Timeout') ||
-                    error.cause.message?.includes('Service Unavailable') ||
-                    error.cause.message?.includes('overloaded') ||
-                    error.cause.message?.includes('Resource has been exhausted') ||
-                    error.cause.message?.includes('Too Many Requests') ||
+                    causeMsg.includes('connect timeout') ||
+                    causeMsg.includes('service unavailable') ||
+                    causeMsg.includes('overloaded') ||
+                    causeMsg.includes('resource exhausted') ||
+                    causeMsg.includes('too many requests') ||
+                    causeMsg.includes('429') ||
                     error.cause.status === 429 ||
-                    error.cause.status === 503 ||
-                    error.cause.statusCode === 429 ||
-                    error.cause.statusCode === 503
+                    error.cause.status === 503
                 ));
+
+            // Debug log to diagnose why retries might be failing
+            if (!isRetryableError && attempt < maxRetries) {
+                log.debug(`Error not considered retryable: ${msg}`, { module: 'RetryUtils', errorName: error.name, fullError: error });
+            }
 
             if (!isRetryableError || attempt === maxRetries) {
                 // Don't retry non-network errors or if we've exhausted retries

@@ -139,8 +139,11 @@ export function ChatMessage({ message, volume = 1.0 }: ChatMessageProps) {
 
   if (sender === "System") {
     return (
-      <div className="flex justify-center items-center gap-2 my-2">
-        <div className={cn(info.bubbleClassName, "text-center")}>{renderedContent}</div>
+      <div className="flex justify-center items-center gap-2 my-2 w-full">
+        <div
+          className={cn(info.bubbleClassName, "text-center w-full max-w-[95%]")}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(content as string) }}
+        />
       </div>
     );
   }

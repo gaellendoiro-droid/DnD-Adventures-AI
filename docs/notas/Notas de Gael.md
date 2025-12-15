@@ -1,6 +1,6 @@
 # NOTAS DE DESARROLLO - D&D ADVENTURES AI
 
-**Última actualización:** [23/01/2025] - Entradas #1-5 registradas en issues tracker y roadmap
+**Última actualización:** [28/01/2025] - Entradas #1-12 registradas en issues tracker y roadmap (Issues #131-138, Mejoras #30-33)
 
 ## 📝 PROPÓSITO DE ESTE DOCUMENTO
 
@@ -155,33 +155,7 @@ Esta sección es para apuntar ideas rápidas, fallos detectados y notas informal
 
 Al clasificar un item de esta sección, debe moverse a su sección correspondiente y eliminarse de aquí, manteniendo esta sección como un área de trabajo temporal.
 
-1. ISSUE: por algún motivo el DM se refiere a Merryl en femenino cuando en su ficha dice que es varón. (PA)
-
-2. ISSUE: Gestionar los errores de quota exceeded de Eleven Labs y Gemini. (PMA)
-
-3. REVISION: revisar y ajustar los archivos de audio (musica y ambiente) según el nuevo sistema. (PA)
-
-4. FUTURA MEJORA: En las narraciones podemos hacer que los nombres de los PNJs o lugares sean clicables y se muestre una ilustración del personaje o lugar si la hay disponible. (PA)
-
-5. REVISION: revisar el cálculo de las tiradas de dados de daño en críticos. Parece que no se aplicand los dobles dados. Al menos con Merryl. (PMA)
-
-6. REVISION: revisar el sistema de log para que sean algo más claros. Después de la etiqueta INFO o DEBUG o la que sea debería venir el nombre del módulo responsable de log. (PA)
-
-7. REVISION: revisión completa del sistema de combate despues de haber añadido nuevas funcionalidades como: sistema de movimiento (exploración y dungeon, aún falta el tático), sistema de sorpresa al iniciar combates, enemigos ocultos, apertura de puertas, etc. El sistema ahora parece demasiado caótico. (PMA) **[EN PLAN: docs/planes-desarrollo/en-curso/refactorizacion-modularidad-sistema-combate.md]**
-    - ✅ **Fase 1 Completada (2025-12-04):** EnemyStateManager y SurpriseManager implementados
-    - ✅ **Fase 2 Completada (2025-12-04):** CombatInitiationService implementado
-    - ✅ **Fase 2.5 Completada (2025-12-05):** Máquina de Estados Finita (FSM) completa implementada
-      - ✅ Estados explícitos y transiciones controladas
-      - ✅ Frontend simplificado para depender solo de `combatPhase` (eliminados flags redundantes)
-      - ✅ Resueltos problemas de sincronización, bucles infinitos y pérdida de fase
-      - ✅ Sistema robusto que funciona incluso si la fase se pierde durante serialización
-      - ✅ ~100 líneas de código complejo eliminadas del frontend
-    - 🔄 **Fase 3 Pendiente:** División de narrative-turn-manager.ts
-
-8. ISSUE: en un combate he recibido este mensaje de uno de mis compañeros "Merryl @ 19:26 Joder, qué ambientazo... se podría cortar la tensión con un cuchillo. ¿Alguien ha traído pan?". Hay que evitar que se usen este tipo de palabra tanto en los compañeros como con el DM. (PB)
-
-9. REVISION: Las respuestas de DM se siguen sintiendo muy lentas. Estudiar la posibilidad de mantener la comunicación con la API abierta para no tener que abrirla en cada llamada. Sopesar la posibilidad de que el DM escriba en streaming sus mensajes. (PA)
-
+_(Sección limpia - Elementos movidos a Issues/Roadmap el 2025-01-28)_
 
 
 

@@ -13,9 +13,12 @@ export const BaseEntitySchema = z.object({
 // --- MONSTERS ---
 export const MonsterDataSchema = BaseEntitySchema.extend({
     type: z.string(), // bestia, dragón, etc.
+    size: z.string().optional(),
+    alignment: z.string().optional(),
     cr: z.number(),
     ac: z.number(),
     hp: z.number(),
+    speed: z.string().optional(),
     stats: z.object({
         str: z.number(),
         dex: z.number(),
@@ -24,8 +27,25 @@ export const MonsterDataSchema = BaseEntitySchema.extend({
         wis: z.number(),
         cha: z.number(),
     }),
+    modifiers: z.object({
+        str: z.number(),
+        dex: z.number(),
+        con: z.number(),
+        int: z.number(),
+        wis: z.number(),
+        cha: z.number(),
+    }).optional(),
+    skills: z.string().optional(),
+    senses: z.string().optional(),
+    languages: z.string().optional(),
+    damageVulnerabilities: z.string().optional(),
+    damageResistances: z.string().optional(),
+    damageImmunities: z.string().optional(),
+    conditionImmunities: z.string().optional(),
     actions: z.array(z.any()).optional(), // Detalle flexible por ahora
     features: z.array(z.any()).optional(),
+    reactions: z.array(z.any()).optional(),
+    legendaryActions: z.array(z.any()).optional(),
 });
 
 export type MonsterData = z.infer<typeof MonsterDataSchema>;
@@ -48,6 +68,8 @@ export const ItemDataSchema = BaseEntitySchema.extend({
     type: z.string(), // arma, armadura, etc.
     rarity: z.string(),
     description: z.string(),
+    weight: z.string().optional(),
+    price: z.string().optional(),
     mechanics: z.any().optional(), // Daño, AC, propiedades
 });
 

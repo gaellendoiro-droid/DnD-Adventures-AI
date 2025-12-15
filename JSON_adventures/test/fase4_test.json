@@ -1,0 +1,201 @@
+{
+    "adventureId": "fase4_test",
+    "title": "La Torre de Pruebas del DM Omnisciente",
+    "summary": "Escenario de pruebas para validar el Sistema de Conocimiento Híbrido y la hidratación de datos (Fase 4).",
+    "introductoryNarration": "Te encuentras en el centro de una extraña torre de control. Varias puertas numeradas te rodean, cada una prometiendo un desafío diseñado para probar los límites de la realidad... y de tu Dungeon Master. Un cartel en la pared reza: 'Zona de Pruebas Fase 4 - Solo Personal Autorizado'.",
+    "startingLocationId": "hub_central",
+    "settings": {
+        "initialWorldTime": {
+            "day": 1,
+            "hour": 10,
+            "minute": 0
+        }
+    },
+    "locations": [
+        {
+            "id": "hub_central",
+            "title": "Sala Central de Control",
+            "description": "Una sala circular, limpia y aséptica. En el centro hay un pedestal con pociones. Cuatro puertas cardinales llevan a las salas de prueba.",
+            "type": "safe",
+            "connections": [
+                {
+                    "direction": "norte",
+                    "targetId": "sala_foso",
+                    "description": "Puerta 'Prueba 1.1: Físicas'"
+                },
+                {
+                    "direction": "este",
+                    "targetId": "sala_vigilancia",
+                    "description": "Puerta 'Prueba 1.2: Sigilo'"
+                },
+                {
+                    "direction": "sur",
+                    "targetId": "sala_barriles",
+                    "description": "Puerta 'Prueba 2.1: Magia'"
+                },
+                {
+                    "direction": "oeste",
+                    "targetId": "sala_nothic",
+                    "description": "Puerta 'Prueba 3.1: Combate'"
+                }
+            ],
+            "interactables": [
+                {
+                    "id": "cofre_suministros",
+                    "name": "Cofre de Suministros",
+                    "description": "Contiene pociones de curación para las pruebas.",
+                    "type": "container",
+                    "items": [
+                        "puntero_laser",
+                        "pocion_curacion"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "sala_foso",
+            "title": "El Foso del Salto",
+            "description": "Una larga sala rectangular. El suelo termina abruptamente, revelando un foso de 5 metros (15 pies) de ancho lleno de pinchos de gomaespuma (es una prueba, después de todo). Al otro lado hay una palanca.",
+            "type": "dungeon",
+            "connections": [
+                {
+                    "direction": "sur",
+                    "targetId": "hub_central"
+                }
+            ],
+            "hazards": [
+                {
+                    "id": "foso_ancho",
+                    "name": "Foso de 5 Metros",
+                    "description": "Un salto que requiere una Fuerza de al menos 15 para superarlo sin tirar, o una prueba de Atletismo.",
+                    "type": "environmental",
+                    "detectionDC": 10,
+                    "disarmDC": 15,
+                    "triggerDescription": "Al intentar saltar sin impulso suficiente, te das cuenta de que la distancia es mayor de lo que parece."
+                }
+            ]
+        },
+        {
+            "id": "sala_vigilancia",
+            "title": "Sala de Vigilancia",
+            "description": "Una sala pequeña y muy iluminada. No hay sombras, ni muebles grandes, salvo una silla solitaria en el centro.",
+            "type": "dungeon",
+            "connections": [
+                {
+                    "direction": "oeste",
+                    "targetId": "hub_central"
+                }
+            ],
+            "entitiesPresent": [
+                "goblin_vigia"
+            ]
+        },
+        {
+            "id": "sala_barriles",
+            "title": "Almacén de Barriles",
+            "description": "Una sala llena de barriles de madera etiquetados como 'INFLAMABLE'. Están dispuestos en una forma perfecta para ser golpeados por un área de efecto cónica.",
+            "type": "dungeon",
+            "connections": [
+                {
+                    "direction": "norte",
+                    "targetId": "hub_central"
+                }
+            ],
+            "interactables": [
+                {
+                    "id": "barril_inflamable",
+                    "name": "Barril de Aceite",
+                    "description": "Ideal para probar Manos Ardientes.",
+                    "type": "object"
+                }
+            ]
+        },
+        {
+            "id": "sala_nothic",
+            "title": "Guarida del Ojo",
+            "description": "Una sala oscura y húmeda. Sientes una presencia psíquica escrutando tu mente.",
+            "type": "dungeon",
+            "connections": [
+                {
+                    "direction": "este",
+                    "targetId": "hub_central"
+                }
+            ],
+            "entitiesPresent": [
+                "nothic_test"
+            ]
+        }
+    ],
+    "entities": [
+        {
+            "id": "goblin_vigia",
+            "name": "Goblin Vigía",
+            "type": "enemy",
+            "disposition": "hostile",
+            "hp": 7,
+            "ac": 15,
+            "description": "Un goblin con gafas que no parpadea. Te mira fijamente.",
+            "stats": {
+                "str": 8,
+                "dex": 14,
+                "con": 10,
+                "int": 10,
+                "wis": 8,
+                "cha": 8
+            },
+            "actions": [
+                {
+                    "name": "Observar",
+                    "desc": "Te mira muy fuerte.",
+                    "type": "action"
+                }
+            ]
+        },
+        {
+            "id": "nothic_test",
+            "name": "Nothic",
+            "type": "enemy",
+            "disposition": "hostile",
+            "hp": 45,
+            "ac": 15,
+            "description": "Una aberración de un solo ojo que busca secretos.",
+            "stats": {
+                "str": 14,
+                "dex": 16,
+                "con": 16,
+                "int": 13,
+                "wis": 10,
+                "cha": 8
+            },
+            "actions": [
+                {
+                    "name": "Mirada Putrefacta",
+                    "desc": "Necrotic damage.",
+                    "type": "action"
+                }
+            ]
+        }
+    ],
+    "items": [
+        {
+            "id": "pocion_curacion",
+            "name": "Poción de Curación",
+            "type": "consumable",
+            "description": "Un líquido rojo brillante.",
+            "rarity": "common",
+            "mechanics": {
+                "effect": "heal",
+                "dice": "2d4+2"
+            }
+        },
+        {
+            "id": "puntero_laser",
+            "name": "Puntero Laser",
+            "type": "wondrous",
+            "description": "Un pequeño artilugio que emite un punto rojo.",
+            "rarity": "common",
+            "price": "5gp",
+            "weight": "0.1lb"
+        }
+    ]
+}

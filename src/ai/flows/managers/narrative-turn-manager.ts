@@ -38,6 +38,7 @@ export interface NarrativeTurnInput {
     interpretation: {
         actionType?: string;
         targetId?: string | null;
+        stealthIntent?: boolean; // New architectural field
     };
     party: Character[];
     currentLocationId: string;
@@ -108,6 +109,8 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
     let updatedWorldTime = undefined;
     let systemFeedback: string | undefined = undefined;
     let movementNarration: string | undefined = undefined; // Store movement narration to add after companion reactions
+    const generatedDiceRolls: DiceRoll[] = []; // Moved up for scope access
+    let stealthCheckResult: { success: boolean, roll: number } | undefined = undefined; // Store stealth result
 
     if (interpretation.actionType === 'move' && interpretation.targetId) {
         // Construct a temporary GameState for NavigationManager
@@ -182,6 +185,45 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
             */
             // Don't change location
         }
+
+        // --- NEW: Implicit Stealth Check on Movement ---
+        // If the player moved successfully AND expressed stealth intent, we roll for it.
+        if (newLocationId) {
+            // Refactored: Use explicit stealthIntent from ActionInterpreter instead of fragile regex
+            const wantsStealth = interpretation.stealthIntent === true;
+
+            if (wantsStealth) {
+                localLog(`Stealth intent detected during movement.`);
+
+                // 1. Determine Difficulty (Highest Passive Perception in target room)
+                // We have 'currentLocationEnemies' updated to the NEW location above at line 157
+                let maxPassivePerception = 10; // Default baseline
+
+                if (currentLocationEnemies.length > 0) {
+                    maxPassivePerception = Math.max(...currentLocationEnemies.map((e: any) => {
+                        // Check for 'passive_perception' in stats
+                        return e.stats?.passive_perception || e.passivePerception || 10;
+                    }));
+                }
+
+                // 2. Roll Stealth
+                // Defaulting to first party member for simplicity
+                const actor = party[0];
+                const stealthRoll = resolveSkillCheck(actor, 'stealth', maxPassivePerception); // Pass DC
+                generatedDiceRolls.push(stealthRoll);
+
+                // 3. Determine Success
+                const isSuccess = stealthRoll.totalResult >= maxPassivePerception;
+
+                localLog(`Implicit Stealth Check: Rolled ${stealthRoll.totalResult} vs DC ${maxPassivePerception} (Max PP). Success: ${isSuccess}`);
+
+                // 4. Store result for CombatTriggerEvaluator
+                stealthCheckResult = {
+                    success: isSuccess,
+                    roll: stealthRoll.totalResult
+                };
+            }
+        }
     }
 
     // Prepare chat history for companions (last 6 messages, same trimming as coordinator)
@@ -209,7 +251,6 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
     }
 
     // 3.5 Handle Skill Checks
-    const generatedDiceRolls: DiceRoll[] = [];
     let skillCheckNarration: string | undefined = undefined;
 
     if (interpretation.actionType === 'skill_check') {
@@ -364,7 +405,7 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
         location: finalLocationData,
         detectedHazards: detectedHazards.map(h => h.id),
         visibleEntities: resolvedEntities,
-        // TODO: Pass stealth check result from ActionInterpreter if available
+        stealthCheckResult: stealthCheckResult, // Pass the stealth result we calculated
     });
 
     // Check for Interaction Triggers (Mimics) and Door Opening

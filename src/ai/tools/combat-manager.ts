@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { enemyTacticianTool } from './enemy-tactician';
 import { companionTacticianTool } from './companion-tactician';
 import { type GameMessage, type DiceRoll, type Combatant, CombatPhase } from '@/lib/types';
-import { diceRollerTool } from './dice-roller';
+import { rollDiceTool as diceRollerTool } from './dice-roller';
 
 import { GameStateSchema, ActionInterpreterOutputSchema } from '@/ai/flows/schemas';
 // narrativeExpert and markdownToHtml are lazy-loaded when combat starts

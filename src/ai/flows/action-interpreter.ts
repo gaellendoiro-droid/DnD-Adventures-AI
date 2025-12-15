@@ -33,13 +33,14 @@ const actionInterpreterPrompt = ai.definePrompt({
 1.  **PRIORITY 1: Out-of-Character (OOC) Check:**
     *   If the player's action starts with \`//\`, you MUST classify the action as 'ooc'. The 'targetId' is irrelevant. Stop here.
 
-2.  **PRIORITY 2: Attack / Hostile Intent:**
-    *   Analyze for a clear intent to attack OR initiate violence.
-    *   **IMPORTANT:** This includes BOTH combat attacks AND surprise attacks on neutral/friendly NPCs.
+2.  **PRIORITY 2: Attack / Hostile Intent / Offensive Magic:**
+    *   Analyze for a clear intent to attack OR initiate violence, OR cast an OFFENSIVE SPELL.
+    *   **IMPORTANT:** This includes BOTH combat attacks AND surprise attacks on neutral/friendly NPCs or objects.
     *   Examples of hostile intent:
     *     - Direct attacks: "ataco al guardia", "le disparo", "le clavo la daga"
     *     - Surprise attacks: "le ataco mientras me da la mano", "saco mi espada y ataco al tabernero"
     *     - Violent actions: "le corto el cuello", "le golpeo", "matarlo"
+    *     - **Offensive Spells:** "Lanzo 'Manos Ardientes'", "Cast Fireball", "Eldritch Blast", "Magic Missile". Even if targeting objects ("ataco a la puerta", "lanzo fuego a los barriles"), if it uses an attack spell, classify as 'attack'.
     *   If detected, classify as 'attack'.
     *   **IMPORTANT - Target Identification:**
     *     - **Combat State Priority:** If 'updatedEnemies' is provided, look there FIRST. It contains the current state of combatants with unique IDs (e.g., "Goblin 2", "Orc 1"). Match the player's target (e.g., "ataco al goblin 2") to the 'id' or 'name' in 'updatedEnemies'.
@@ -54,6 +55,7 @@ const actionInterpreterPrompt = ai.definePrompt({
     *   Analyze if the action implies a challenge, risk, or use of a specific ability that is NOT a direct attack.
     *   Keywords: "intento", "trato de", "escalo", "me escondo", "investigo", "busco", "persuado", "engaño", "salto", "fuerzo".
     *   Examples: "intento abrir la cerradura", "investigo la habitación", "me escondo en las sombras", "trato de convencer al guardia", "intento derribar la puerta".
+    *   **IMPORTANT EXCEPTION:** Casting a standard spell (like "detectar magia", "luz") is NOT a skill check usually (unless it says "try to cast"). If it's a utility spell, check PRIORITY 6 (Interaction) or 8 (Narrate). Only use 'skill_check' if the player explicitly frames it as a difficult attempt ("try to control the magic").
     *   If detected, classify as 'skill_check'.
     *   Set 'targetId' to the target entity name or object if specified (e.g. "guardia", "cerradura").
     *   Stop here.
@@ -99,6 +101,12 @@ const actionInterpreterPrompt = ai.definePrompt({
 - Player Action: "{{{playerAction}}}"
 
 Determine the player's intent based on the strict priority flow above.
+
+**IMPORTANT - STEALTH INTENT:**
+- If the player's action includes ANY intent to be stealthy, hide, move quietly, or avoid detection (e.g., "I sneak to...", "quietly", "without making noise", "stealthily", "sigilosamente", "con sigilo", "me escondo"), YOU MUST SET \`stealthIntent\` to \`true\`.
+- This applies to ANY action type (Move, Interactions, etc.).
+- Example: "I sneak into the room" -> actionType: 'move', stealthIntent: true.
+- Example: "I quietly open the door" -> actionType: 'interact', stealthIntent: true.
 `,
 });
 

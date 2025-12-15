@@ -115,6 +115,36 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ## [Unreleased]
 
 ### Added
+- **📚 Integración de Google File Search (RAG Automatizado) (2025-12-14):**
+  - **Mejora:** Implementación completa del sistema RAG gestionado por Gemini para consulta de manuales.
+  - **Características:**
+    - ✅ **Script de Gestión:** `scripts/setup-knowledge-base.ts` para subir y gestionar PDFs automáticamente.
+    - ✅ **Persistencia:** Reutilización de URIs de archivos indexados para evitar subidas redundantes.
+    - ✅ **Consultas Semánticas:** `consult-rulebook.ts` y `structure-entity.ts` ahora usan el corpus indexado para responder preguntas de reglas y formatear entidades con precisión canónica.
+  - **Archivos modificados:** `scripts/setup-knowledge-base.ts`, `src/ai/tools/consult-rulebook.ts`, `src/ai/tools/structure-entity.ts`.
+  - **Referencia:** [Roadmap Item #7](../docs/roadmap.md#roadmap-7)
+
+- **🎨 Rediseño Premium del Compendio (2025-12-14):**
+  - **Mejora:** Revisión visual completa de las fichas de Monstruos, Hechizos y Objetos.
+  - **Características:**
+    - ✅ **Diseño Diferenciado:** Estilos únicos por tipo (Rojo/Monstruos, Azul/Hechizos, Oro/Objetos).
+    - ✅ **Traducción Automática:** Los stats de monstruos (AC, HP, Sentidos, Skills) se traducen automáticamente al español en la UI.
+    - ✅ **Layout Optimizado:** Fichas de ancho fijo (650px), centradas, con distribución en 2 columnas para stats defensivos.
+    - ✅ **Tipografía Unificada:** Uso consistente de fuentes Slate y jerarquía visual clara.
+  - **Archivos modificados:** `src/lib/game/compendium-formatter.ts`, `src/components/game/game-view.tsx`.
+
+- **🕵️‍♂️ Refactorización de Arquitectura de Sigilo (2025-12-14):**
+  - **Mejora:** El sistema de sigilo ahora se basa en detección de intención semántica por la IA, eliminando la dependencia de "palabras clave" harcodeadas.
+  - **Características:**
+    - ✅ **Stealth Intent:** Nuevo campo `stealthIntent` en el schema del `ActionInterpreter`.
+    - ✅ **Prompt Inteligente:** La IA detecta intenciones sutiles ("me muevo con cautela", "trato de no hacer ruido") y marca el flag explícitamente.
+    - ✅ **Ejecución Robusta:** `NarrativeTurnManager` consume este flag para realizar tiradas de sigilo implícitas durante el movimiento.
+    - ✅ **Fix de Emboscada:** `CombatTriggerEvaluator` ahora respeta el resultado de la tirada de sigilo para evitar activar emboscadas si el check es exitoso.
+  - **Archivos modificados:** `src/ai/flows/schemas.ts`, `src/ai/flows/action-interpreter.ts`, `src/ai/flows/managers/narrative-turn-manager.ts`, `src/lib/combat/trigger/combat-trigger-evaluator.ts`.
+
+
+
+### Added
 - Plan de refactorización de modularidad del sistema de combate cerrado (Fases 1, 2/2.5, 3 y 4), documentado en `docs/planes-desarrollo/completados/refactorizacion-modularidad-sistema-combate.md`, con plan maestro y roadmap actualizados.
 - **✅ Estabilización de tests de combate (2025-12-06):**
   - Tests de integración y unidad alineados con el nuevo FSM (incluye `CombatPhase` en schemas front/back).

@@ -17,9 +17,87 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
 
 > No hay issues críticos pendientes actualmente.
 
+### Issue #132: Errores de Quota Exceeded (ElevenLabs/Gemini) 🔴 CRÍTICO
+
+- **Fecha de creación:** 2025-01-28
+- **Origen:** Notas de Gael #2
+- **Severidad:** 🔴 **CRÍTICA** (Bloquea el funcionamiento del juego)
+- **Descripción:** El sistema falla cuando se exceden las cuotas de las APIs de Eleven Labs o Gemini, causando interrupciones en la partida.
+- **Problema:**
+  - Falta de manejo robusto de errores de "quota exceeded".
+  - El juego puede quedarse colgado o mostrar errores técnicos al usuario.
+- **Solución propuesta:**
+  - Implementar capturas de error específicas para errores 429/QuotaExceeded.
+  - Implementar fallback automático (ej: texto sin voz si ElevenLabs falla, modelo menor si Gemini pro falla).
+  - Mostrar mensajes de error amigables al usuario ("El narrador está descansando la voz...").
+- **Estado:** 📝 **PENDIENTE**
+
+### Issue #134: Cálculo Incorrecto de Daño Crítico 🔴 CRÍTICO
+
+- **Fecha de creación:** 2025-01-28
+- **Origen:** Notas de Gael #5
+- **Severidad:** 🔴 **CRÍTICA** (Afecta reglas core del juego)
+- **Descripción:** Los golpes críticos no parecen estar duplicando los dados de daño correctamente, al menos notado con Merryl.
+- **Problema:**
+  - El cálculo de daño en críticos debería tirar el doble de dados (o duplicar el resultado de los dados, según regla de casa, pero por defecto es doble dados).
+  - Actualmente parece aplicar daño normal.
+- **Solución propuesta:**
+  - Revisar `DiceEngine` y la lógica de resolución de ataque crítico.
+  - Asegurar que se aplique la regla correcta (doblar número de dados de daño).
+- **Estado:** 📝 **PENDIENTE**
+
+### Issue #136: Refactorización Sistema de Combate - Fase 3 (Narrative Turn Manager) 🔴 DEUDA TÉCNICA
+
+- **Fecha de creación:** 2025-01-28
+- **Origen:** Notas de Gael #7
+- **Severidad:** 🔴 **MUY ALTA** (Mantenibilidad y Estabilidad)
+- **Descripción:** Completar la refactorización del sistema de combate, específicamente la división y limpieza de `narrative-turn-manager.ts` que quedó pendiente tras la modularización de la FSM.
+- **Estado:** 📝 **PENDIENTE**
+
 ## 🟡 Prioridad Alta (PA) - Advertencias
 
 > No hay issues de prioridad alta pendientes actualmente.
+
+### Issue #131: Inconsistencia de Género en Narración del DM (Merryl) 🟡 BUG
+
+- **Fecha de creación:** 2025-01-28
+- **Origen:** Notas de Gael #1
+- **Severidad:** 🟡 **ALTA** (Inmersión)
+- **Descripción:** El DM se refiere a Merryl en femenino cuando su ficha indica que es varón.
+- **Solución propuesta:**
+  - Revisar el prompt de sistema del DM (`narrative-manager.ts` o `game-coordinator.ts`) para asegurar que recibe y respeta el género de los personajes.
+  - Verificar la ficha de Merryl para asegurar que el campo de género es claro.
+- **Estado:** 📝 **PENDIENTE**
+
+### Issue #133: Revisión y Ajuste de Archivos de Audio 🟡 UX
+
+- **Fecha de creación:** 2025-01-28
+- **Origen:** Notas de Gael #3
+- **Severidad:** 🟡 **ALTA** (Calidad de producto)
+- **Descripción:** Revisar y ajustar los archivos de audio (música y ambiente) para asegurar coherencia y calidad con el nuevo sistema de audio dinámico.
+- **Estado:** 📝 **PENDIENTE**
+
+### Issue #135: Revisión de Logs para Claridad 🟡 DX
+
+- **Fecha de creación:** 2025-01-28
+- **Origen:** Notas de Gael #6
+- **Severidad:** 🟡 **ALTA** (Desarrollo/Debugging)
+- **Descripción:** El sistema de logs necesita ser más claro. Las etiquetas (INFO, DEBUG) deberían ir seguidas inmediatamente del nombre del módulo responsable.
+- **Solución propuesta:**
+  - Estandarizar el formato de logs: `[LEVEL] [Module] Message`.
+  - Revisar `logger.ts` o utilidades de log.
+- **Estado:** 📝 **PENDIENTE**
+
+### Issue #138: Optimización de Latencia DM (Streaming/Keep-Alive) 🟡 UX
+
+- **Fecha de creación:** 2025-01-28
+- **Origen:** Notas de Gael #9
+- **Severidad:** 🟡 **ALTA** (Experiencia de Usuario)
+- **Descripción:** Las respuestas del DM se sienten lentas.
+- **Solución propuesta:**
+  - Estudiar mantener conexión abierta con API (si no se hace ya con la mejora 1.2).
+  - Implementar respuesta en streaming para que el usuario lea mientras se genera.
+- **Estado:** 📝 **PENDIENTE**
 
 ---
 
@@ -153,6 +231,17 @@ Issues que aún no han sido resueltos y requieren atención. Ordenados por prior
 ## ⚫ Prioridad Muy Baja (PMB) - Mejoras muy menores
 
 > No hay issues de prioridad muy baja pendientes actualmente.
+
+### Issue #137: Lenguaje Inapropiado/Coloquial en Compañeros y DM ⚪ CALIDAD
+
+- **Fecha de creación:** 2025-01-28
+- **Origen:** Notas de Gael #8
+- **Severidad:** ⚪ **BAJA** (Estilo)
+- **Descripción:** Se han detectado mensajes que rompen la inmersión por ser demasiado coloquiales o meta-referenciales (ej: "Merryl @ 19:26...").
+- **Solución propuesta:**
+  - Refinar prompts para evitar lenguaje técnico o meta-juego en diálogos.
+  - Filtrar cabeceras de mensajes si se están colando en el prompt.
+- **Estado:** 📝 **PENDIENTE**
 
 ---
 

@@ -107,5 +107,118 @@ export class DataService {
         });
     }
 
-    // --- PENDING: SPELLS & ITEMS (To be implemented similarly) ---
+    // --- SPELLS ---
+
+    static async getSpell(query: string): Promise<SpellData | null> {
+        // 1. Local
+        const local = this.getSpellLocal(query);
+        if (local) return local;
+
+        // 2. IA Fallback
+        log.info(`Hechizo '${query}' no encontrado en local. Invocando al Sabio...`, { module: 'DataService' });
+        try {
+            const result = await structureEntityTool({ entityName: query, entityType: 'spell' });
+            if (result.found && result.data) {
+                // Validación Simple (DataService confia en la estrucutra limpia del tool a estas alturas)
+                const spellData = result.data;
+                const fullSpell: SpellData = {
+                    ...spellData,
+                    id: normalizeQuery(spellData.name).replace(/\s+/g, '-'),
+                    source: "manual_jugador_ia"
+                };
+                this.saveSpell(fullSpell.id, fullSpell);
+                return fullSpell;
+            }
+        } catch (error) {
+            log.error("Error hidratando hechizo", { error });
+        }
+        return null;
+    }
+
+    private static getSpellLocal(query: string): SpellData | null {
+        if (!query) return null;
+        const normalizedSlug = normalizeQuery(query).toLowerCase().replace(/\s+/g, '-');
+
+        try {
+            const stmtId = db.prepare('SELECT data FROM spells WHERE id = ?');
+            const rowById = stmtId.get(normalizedSlug) as any;
+            if (rowById) return JSON.parse(rowById.data);
+
+            const stmtName = db.prepare('SELECT data FROM spells WHERE name LIKE ? LIMIT 1');
+            const rowByName = stmtName.get(`%${query}%`) as any;
+            if (rowByName) return JSON.parse(rowByName.data);
+        } catch (e) { }
+        return null;
+    }
+
+    static saveSpell(id: string, data: SpellData): void {
+        const stmt = db.prepare(`INSERT OR REPLACE INTO spells (id, name, level, school, data) VALUES (@id, @name, @level, @school, @data)`);
+        stmt.run({ id, name: data.name, level: data.level, school: data.school, data: JSON.stringify(data) });
+    }
+
+
+    // --- ITEMS ---
+
+    static async getItem(query: string): Promise<ItemData | null> {
+        // 1. Local
+        const local = this.getItemLocal(query);
+        if (local) return local;
+
+        // 2. IA
+        log.info(`Objeto '${query}' no encontrado en local. Invocando al Sabio...`, { module: 'DataService' });
+        try {
+            const result = await structureEntityTool({ entityName: query, entityType: 'item' });
+            if (result.found && result.data) {
+                const itemData = result.data;
+                const fullItem: ItemData = {
+                    ...itemData,
+                    id: normalizeQuery(itemData.name).replace(/\s+/g, '-'),
+                    source: "manual_jugador_ia"
+                };
+                this.saveItem(fullItem.id, fullItem);
+                return fullItem;
+            }
+        } catch (error) { log.error("Error hidratando item", { error }); }
+        return null;
+    }
+
+    private static getItemLocal(query: string): ItemData | null {
+        if (!query) return null;
+        const normalizedSlug = normalizeQuery(query).toLowerCase().replace(/\s+/g, '-');
+        try {
+            const stmtId = db.prepare('SELECT data FROM items WHERE id = ?');
+            const rowById = stmtId.get(normalizedSlug) as any;
+            if (rowById) return JSON.parse(rowById.data);
+
+            const stmtName = db.prepare('SELECT data FROM items WHERE name LIKE ? LIMIT 1');
+            const rowByName = stmtName.get(`%${query}%`) as any;
+            if (rowByName) return JSON.parse(rowByName.data);
+        } catch (e) { }
+        return null;
+    }
+
+    static saveItem(id: string, data: ItemData): void {
+        const stmt = db.prepare(`INSERT OR REPLACE INTO items (id, name, type, rarity, data) VALUES (@id, @name, @type, @rarity, @data)`);
+        stmt.run({ id, name: data.name, type: data.type, rarity: data.rarity, data: JSON.stringify(data) });
+    }
+
+    // --- RULES (RAG ONLY) ---
+
+    /**
+     * Consulta una regla de texto libre (no se guarda en DB estructurada).
+     */
+    static async consultRule(query: string): Promise<string | null> {
+        // Podríamos implementar caché simple en memoria o en tabla 'rules_cache' si quisiéramos
+        // De momento, directo al RAG
+        const { consultRulebookTool } = await import('@/ai/tools/consult-rulebook');
+        const result = await consultRulebookTool({
+            query: query,
+            context: "Consulta rápida de reglas desde UI"
+        });
+
+        if (result && !result.includes("no pude consultar")) {
+            return result;
+        }
+        return null;
+    }
 }

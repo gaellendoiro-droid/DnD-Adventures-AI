@@ -11,7 +11,7 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 ## 📋 Índice de Planes
 
 - [🚧 Planes en Curso](#-planes-en-curso) (0 planes activos)
-- [✅ Planes Completados](#-planes-completados) (25 planes)
+- [✅ Planes Completados](#-planes-completados) (29 planes)
 - [💡 Planes Sin Comenzar](#-planes-sin-comenzar-priorizados) (11 planes)
 - [🎯 Prioridades Estratégicas](#-prioridades-estratégicas)
 - [📊 Resumen Ejecutivo](#-resumen-ejecutivo)
@@ -20,25 +20,29 @@ Este documento es el plan general que coordina todos los planes de desarrollo es
 
 ## 🚧 Planes en Curso
 
-**Estado:** 0 planes activos | **Última implementación:** Sistema de Conexiones Persistentes para APIs (2025-12-08) - COMPLETADO
+**Estado:** 0 planes activos | **Última implementación:** Compendio de D&D Local (2025-12-15) - COMPLETADO
 
-**Estado:** 1 planes activos | **Última implementación:** Sistema de Conexiones Persistentes para APIs (2025-12-08) - COMPLETADO
-
-### [Compendio de D&D Local](en-curso/compendio-dnd-local.md) 🚧 **EN CURSO**
-- **Estado:** Iniciado
-- **Objetivo:** Implementar un sistema de base de datos local y providers para reducir dependencia de APIs externas y habilitar uso offline/rápido.
-- **Prioridad:** Alta
-- **Fase Actual:** Diseño de Esquema
-- **Fecha de inicio:** 2025-12-08
-- **Referencia:** [Plan Detallado](en-curso/compendio-dnd-local.md)
-
+---
 ---
 
 ## ✅ Planes Completados
 
-**Estado:** Finalizados | **Cantidad:** 28 planes (27 completos + 1 parcial)
+**Estado:** Finalizados | **Cantidad:** 29 planes (28 completos + 1 parcial)
 
 Planes que han sido implementados exitosamente (ordenados por fecha de finalización, más recientes primero):
+
+### [Compendio de D&D Local](completados/compendio-dnd-local.md) ✅ **COMPLETADO**
+- **Estado:** Implementado (Fases 0-3 con Fallback Híbrido)
+- **Objetivo:** Implementar un sistema de base de datos local y providers para reducir dependencia de APIs externas y habilitar uso offline/rápido.
+- **Prioridad:** Alta
+- **Resultados:**
+  - ✅ **Infraestructura Híbrida:** Base de datos SQLite (`better-sqlite3`) combinada con Hidratación via IA.
+  - ✅ **Consultas Rápidas:** `DataService` prioriza DB local, reduciendo latencia y dependencia de internet.
+  - ✅ **Hidratación Automática:** Si una entidad falta, `structureEntity` la extrae del Manual (PDF) y la guarda en DB.
+  - ✅ **RAG Especializado:** `consultRulebook` cita reglas directamente de los PDFs oficiales ingestados en Google AI.
+  - ✅ **Robustez:** Sistema tolerante a fallos que aprende y crece con el uso.
+- **Fecha de finalización:** 2025-12-15
+- **Referencia:** [Plan Detallado](completados/compendio-dnd-local.md)
 
 ### [Sistema de Skill Checks Avanzado](completados/sistema-skill-checks.md) ✅ **COMPLETADO**
 - **Estado:** Implementado, Testeado y Documentado (Todas las fases completadas)
@@ -621,9 +625,9 @@ Planes que han sido implementados exitosamente (ordenados por fecha de finalizac
 ### Estado General del Proyecto
 
 **Progreso Total:**
-- ✅ **27 planes completados** (incluyendo 1 parcialmente completado)
+- ✅ **28 planes completados** (incluyendo 1 parcialmente completado)
 - 🚧 **0 planes en curso** actualmente
-- 📝 **13 planes sin comenzar** identificados y planificados
+- 📝 **12 planes sin comenzar** identificados y planificados
 
 **Distribución por Prioridad:**
 - **Prioridad Muy Alta:** 0 planes en curso (último completado: Refactorización y Persistencia del Estado del Mundo)

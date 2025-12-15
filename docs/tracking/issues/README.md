@@ -3,15 +3,15 @@
 Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras identificados durante el desarrollo del proyecto.
 
 **Fecha de inicio:** Durante el saneamiento general de la aplicación (2025-11-10)  
-**Última actualización:** 2025-01-27 (Issue #33 eliminado - ya no relevante)
+**Última actualización:** 2025-01-28 (Añadidos Issues #131-138 desde Notas de Gael)
 
 ---
 
 ## 📊 Resumen Estadístico
 
-- **Total de issues:** 82
-- **Issues corregidos:** 69 (84%)
-- **Issues pendientes:** 9 (11%)
+- **Total de issues:** 90
+- **Issues corregidos:** 69 (76%)
+- **Issues pendientes:** 21 (24%)
 
 ### Por Prioridad
 
@@ -23,10 +23,10 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 - ⚪ PB (Prioridad Baja): 6 issues
 
 **Issues Pendientes:**
-- 🔴 PMA (Prioridad Muy Alta): 0 issues
-- 🟡 PA (Prioridad Alta): 0 issues
+- 🔴 PMA (Prioridad Muy Alta): 3 issues (Issues #132, #134, #136)
+- 🟡 PA (Prioridad Alta): 4 issues (Issues #131, #133, #135, #138)
 - 🟢 PM (Prioridad Media): 5 issues (incluye Issues #16, #22, #28, #38, #65, #80)
-- ⚪ PB (Prioridad Baja): 2 issues (Issues #31, #32)
+- ⚪ PB (Prioridad Baja): 3 issues (Issues #31, #32, #137)
 - ⚫ PMB (Prioridad Muy Baja): 0 issues
 
 ---
@@ -53,10 +53,15 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 ### Issues Pendientes por Prioridad
 
 **🔴 Prioridad Muy Alta (PMA) - CRÍTICOS:**
-> No hay issues críticos pendientes actualmente.
+- [Issue #132: Errores de Quota Exceeded (ElevenLabs/Gemini)](./pendientes.md#issue-132-errores-de-quota-exceeded-elevenlabsgemini-crítico) *[PENDIENTE - Crítico]*
+- [Issue #134: Cálculo Incorrecto de Daño Crítico](./pendientes.md#issue-134-cálculo-incorrecto-de-daño-crítico-crítico) *[PENDIENTE - Crítico]*
+- [Issue #136: Refactorización Sistema de Combate - Fase 3](./pendientes.md#issue-136-refactorización-sistema-de-combate---fase-3-narrative-turn-manager-deuda-técnica) *[PENDIENTE - Deuda Técnica]*
 
 **🟡 Prioridad Alta (PA):**
-> No hay issues de prioridad alta pendientes actualmente.
+- [Issue #131: Inconsistencia de Género en Narración del DM](./pendientes.md#issue-131-inconsistencia-de-género-en-narración-del-dm-merryl-bug) *[PENDIENTE - Bug]*
+- [Issue #133: Revisión y Ajuste de Archivos de Audio](./pendientes.md#issue-133-revisión-y-ajuste-de-archivos-de-audio-ux) *[PENDIENTE - UX]*
+- [Issue #135: Revisión de Logs para Claridad](./pendientes.md#issue-135-revisión-de-logs-para-claridad-dx) *[PENDIENTE - DX]*
+- [Issue #138: Optimización de Latencia DM](./pendientes.md#issue-138-optimización-de-latencia-dm-streamingkeep-alive-ux) *[PENDIENTE - UX]*
 
 **🟢 Prioridad Media (PM):**
 - [Issue #80: Permitir múltiples acciones del jugador en un turno](./pendientes.md#issue-80-permitir-múltiples-acciones-del-jugador-en-un-turno-movimientoacción-adicional-mejora) *[PENDIENTE - Mejora futura]*
@@ -69,6 +74,7 @@ Este directorio contiene el seguimiento de todos los problemas, bugs y mejoras i
 **⚪ Prioridad Baja (PB):**
 - [Issue #31: Gestión de ataques múltiples en combate](./pendientes.md#issue-31-gestión-de-ataques-múltiples-en-combate-mejora) *[PENDIENTE - Funcionalidad incompleta]*
 - [Issue #32: Paneles de combate se limpian de forma inconsistente](./pendientes.md#issue-32-paneles-de-combate-se-limpian-de-forma-inconsistente-mejora) *[PENDIENTE - Inconsistencia de UX]*
+- [Issue #137: Lenguaje Inapropiado/Coloquial en Compañeros y DM](./pendientes.md#issue-137-lenguaje-inapropiadocoloquial-en-compañeros-y-dm-calidad) *[PENDIENTE - Calidad]*
 
 **⚫ Prioridad Muy Baja (PMB):**
 > No hay issues de prioridad muy baja pendientes actualmente.

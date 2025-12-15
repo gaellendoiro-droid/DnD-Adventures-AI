@@ -24,12 +24,15 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 - [4. Mejora de Estructura de Fichas de Personajes en la UI](#roadmap-4)
 - [5. Sistema de Modos de Juego Diferenciados](#roadmap-5)
 - [6. Revisiones de Sistema de Combate](#roadmap-6) - ✅ **COMPLETADO (2025-12-07)**
-- [7. Integración de Google File Search (RAG Automatizado)](#roadmap-7)
+- [7. Integración de Google File Search (RAG Automatizado)](#roadmap-7) - ✅ **COMPLETADO (2025-12-14)**
 - [8. Mejoras del Sistema de Skill Checks](#roadmap-8-skill-improvements)
+- [30. Elementos Interactivos en Narración](#roadmap-30)
+- [32. Tiradas de Habilidad Grupales](#roadmap-32)
+- [33. Visualización de Acciones Disponibles](#roadmap-33)
 
 ### 🟡 Prioridad Media
 - [10. Sistema de Mundo Persistente](#roadmap-10)
-- [12. Compendio de D&D Local - Base de Datos Local](#roadmap-12-compendio)
+- [12. Compendio de D&D Local - Base de Datos Local](#roadmap-12-compendio) - ✅ **COMPLETADO (2025-12-15)**
 - [13. IA Conversacional Avanzada](#roadmap-13-ia)
 - [14. Calidad y Profundidad de la IA](#roadmap-14-calidad)
 - [12. Separación de IDs de Fichas de Personajes](#roadmap-12-separacion)
@@ -42,6 +45,7 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 - [21. Mejoras del Sistema de Inicio de Combate Dinámico](#roadmap-21-combate-dinamico)
 - [22. Persistencia general de mutaciones de localización](#roadmap-22-persistencia-localizaciones)
 - [23. Sistema de Memoria de Eventos Recientes](#roadmap-23-memoria-eventos)
+- [28. Sistema de Herencia de Entidades (Data Hydration)](#roadmap-27-herencia)
 
 ### 🟢 Prioridad Baja
 - [18. Mejoras de Interfaz de Usuario](#roadmap-18-ui)
@@ -50,6 +54,7 @@ Este documento describe posibles mejoras y nuevas funcionalidades que podrían l
 - [24. Mejoras de Calidad y Pulido](#roadmap-24-calidad)
 - [25. Comandos de Voz](#roadmap-25-voz)
 - [26. Automatización del Versionado y Changelog](#roadmap-26-versionado)
+- [31. Control de Avance Temporal](#roadmap-31)
 
 ---
 
@@ -324,6 +329,31 @@ Mejoras críticas que impactan directamente en la experiencia core del juego y s
 
 ---
 
+<a id="roadmap-30"></a>
+### 30. Elementos Interactivos en Narración
+*   **Problema Actual:** Las narraciones son texto plano. El jugador debe buscar manualmente imágenes o información sobre los lugares/PNJs mencionados.
+*   **Mejora Propuesta:** Hacer que los nombres de PNJs, lugares y objetos clave en el texto de narración sean clicables (hyperlinks o tooltips). Al hacer click/hover, mostrar una tarjeta con la imagen y datos básicos (si están disponibles en el compendio/aventura).
+*   **Beneficio:** Mejora inmensamente la inmersión y facilita el acceso a la información visual sin romper el flujo de lectura.
+*   **Prioridad:** Alta (PA)
+*   **Plan Detallado:** ❌ No creado
+
+<a id="roadmap-32"></a>
+### 32. Tiradas de Habilidad Grupales
+*   **Problema Actual:** Actualmente solo el personaje activo ("protagonista") realiza las tiradas de habilidad. Según las reglas, a veces todo el grupo debería tirar (ej: Sigilo grupal) o cualquier miembro capaz debería poder intentar la acción.
+*   **Mejora Propuesta:** Implementar sistema para solicitar tiradas a:
+    *   Todo el grupo (Group Check) -> Éxito si la mitad o más pasan la CD.
+    *   El mejor del grupo (Help action abstracta).
+    *   Cualquier personaje específico seleccionado por el jugador.
+*   **Prioridad:** Alta (PA)
+*   **Plan Detallado:** ❌ No creado
+
+<a id="roadmap-33"></a>
+### 33. Visualización de Acciones Disponibles
+*   **Problema Actual:** El jugador no siempre sabe cuántas acciones le quedan en su turno (Acción, Bonus Action, Movimiento).
+*   **Mejora Propuesta:** Mostrar contadores visuales o indicadores de las acciones disponibles y usadas durante el turno en el panel de combate.
+*   **Prioridad:** Alta (PA)
+*   **Plan Detallado:** ❌ No creado
+
 ## 🟡 Prioridad Media
 
 Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, pero no son críticas para la funcionalidad básica.
@@ -364,31 +394,40 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Impacto:** Alto - Fundamental para crear un mundo coherente y persistente que reaccione a las acciones del jugador. Mejora significativamente la inmersión y la sensación de que las acciones tienen consecuencias.
 *   **Plan Detallado:** ❌ No creado
 <a id="roadmap-12-compendio"></a>
-### 12. Compendio de D&D Local - Base de Datos Local
+### 12. Compendio de D&D Local - Base de Datos Local - ✅ **COMPLETADO (2025-12-15)**
 *   **Problema Actual:** El sistema depende completamente de la API externa de D&D 5e para obtener información sobre monstruos, hechizos, reglas, etc. Esto causa latencia, dependencia de conectividad, y múltiples llamadas redundantes a la API.
-*   **Mejora Propuesta:**
-    *   **Base de Datos Local:** Crear un sistema de base de datos local (SQLite recomendado) que almacene un compendio completo de conocimiento de D&D (fichas de monstruos, reglas, razas, clases, hechizos, equipamiento, etc.).
-    *   **Sistema de File Search:** Implementar un sistema de búsqueda en archivos locales que permita tener un compendio local de reglas y monstruos basados en los libros oficiales de D&D. Esto permitiría búsquedas rápidas y offline de información de D&D sin depender de APIs externas.
-    *   **Sistema de Múltiples Fuentes:** Arquitectura modular de "proveedores" que permite usar múltiples fuentes de datos (D&D 5e API, Open5e API, archivos estáticos, datos personalizados, file search local). El sistema intentará cada fuente según prioridad hasta encontrar los datos.
-    *   **Búsqueda Inteligente:** El sistema buscará primero en la base de datos local y archivos locales. Si no encuentra la información, la obtendrá de las fuentes configuradas y la añadirá automáticamente a la base de datos para futuras consultas.
-    *   **Búsqueda Fuzzy:** Implementar búsqueda tolerante a errores de escritura y por alias/nombres alternativos.
-    *   **Sistema de Fallback:** Si una fuente falla, el sistema intentará con la siguiente fuente configurada. Si todas fallan, funcionará completamente con la base de datos local (modo offline).
-    *   **Sincronización Automática:** Sistema de sincronización periódica para mantener los datos actualizados desde las fuentes configuradas.
-    *   **Extensibilidad:** Fácil añadir nuevas fuentes de datos mediante la arquitectura de proveedores.
-*   **Impacto Estratégico:** 
+*   **Solución Implementada:**
+    *   ✅ **Base de Datos Local Híbrida:** Sistema SQLite (`better-sqlite3`) que actúa como caché persistente y fuente primaria de verdad.
+    *   ✅ **Hidratación por IA:** Si un dato falta en local, `DataService` invoca a la IA para leer el Manual del Jugador (PDF) y estructurar el dato en tiempo real, guardándolo para el futuro.
+    *   ✅ **RAG Automatizado:** `consultRulebook` permite consultas semánticas directas sobre los manuales oficiales de D&D.
+    *   ✅ **Reducción de Latencia:** Consultas <10ms para datos cacheados.
+*   **Impacto Estratégico:**
     *   **Rendimiento:** Consultas locales mucho más rápidas (< 50ms vs 200-500ms de API)
     *   **Disponibilidad:** Funciona incluso si la API está caída o hay problemas de conectividad
     *   **Eficiencia:** Reduce significativamente las llamadas a la API externa (80%+ de reducción esperada)
     *   **Base para RAG:** Esta infraestructura sentará las bases para futuras implementaciones de RAG y búsqueda semántica
-*   **Plan Detallado:** ✅ [Compendio de D&D Local](../planes-desarrollo/sin-comenzar/compendio-dnd-local.md)
+*   **Plan Detallado:** ✅ [Plan Completado](../planes-desarrollo/completados/compendio-dnd-local.md)
 
 <a id="roadmap-13-ia"></a>
-### 13. IA Conversacional Avanzada
-*   **Problema Actual:** Los compañeros de IA reaccionan de forma aislada a la acción del jugador, sin ser conscientes de lo que los otros compañeros han dicho en el mismo turno. El flujo es secuencial y el servidor devuelve todos los mensajes a la vez.
-*   **Mejora Propuesta:**
-    *   **Arquitectura de Streaming:** Reemplazar el modelo actual de "una petición, una respuesta" por una comunicación persistente entre el cliente y el servidor (usando, por ejemplo, WebSockets o Server-Sent Events).
-    *   **Flujo de Turno por Pasos:** El servidor generaría y enviaría los mensajes uno por uno, permitiendo que las reacciones de los compañeros se construyan sobre las reacciones de los demás en tiempo real.
-*   **Impacto:** Lograría una dinámica de grupo mucho más orgánica y creíble, mejorando significativamente la inmersión.
+### 13. IA Conversacional Avanzada (Arquitectura Event-Driven)
+*   **Problema Actual (Blocking IO):**
+    *   Arquitectura monolítica de petición/respuesta: El usuario envía una acción, el servidor procesa TODO (narración del DM, lógica de juego, reacciones de 3-4 compañeros) y devuelve un bloque JSON gigante al final.
+    *   **Latencia Percibida:** El usuario espera 5-10 segundos viendo un "spinner" sin feedback.
+    *   **Artificialidad:** Todos los compañeros reaccionan al mismo evento (la acción del usuario) simultáneamente. Si el Compañero A hace una pregunta, el Compañero B no la "escucha" hasta el siguiente turno, rompiendo la fluidez del diálogo.
+*   **Mejora Propuesta (Streaming & Event-Driven):**
+    *   **Cambio de Paradigma:** Migrar de `Request -> Response` a `Connection -> Events`.
+    *   **Server-Sent Events (SSE) / WebSockets:** Implementar un canal bidireccional donde el servidor empuja "chunks" de contenido en tiempo real.
+    *   **Arquitectura Reactiva en Backend:**
+        *   El DM narra la acción -> *Se envía evento al cliente (texto streaming).*
+        *   Los compañeros "escuchan" este evento en el backend.
+        *   El Compañero A decide hablar -> *Se envía evento al cliente.*
+        *   El Compañero B "escucha" al Compañero A (no solo al jugador) y decide replicarle dinámicamente.
+    *   **UI Optimista:** El frontend muestra el texto letra a letra (efecto máquina de escribir real, no simulado) a medida que se genera.
+*   **Implicaciones Técnicas:**
+    *   Cambio profundo en `game-coordinator.ts`: Dejar de acumular logs y mensajes en un array para devolverlo al final. Necesita un `EventBus` o `StreamWriter` inyectado.
+    *   Nuevo hook en frontend `useGameStream` para gestionar la conexión persistente.
+    *   Refactorización de `InteractionExpert` para aceptar "contexto parcial" (lo que se ha dicho hasta ahora en el turno, no solo el historial previo).
+*   **Impacto:** Transformacional. Convierte la experiencia de "leer un libro por capítulos" a "ver una película en tiempo real". Dinámicas de grupo orgánicas donde los personajes se interrumpen, debaten y reaccionan entre ellos.
 *   **Plan Detallado:** ❌ No creado
 
 <a id="roadmap-14-calidad"></a>
@@ -610,6 +649,31 @@ Mejoras importantes que mejoran la calidad, profundidad y fidelidad del juego, p
 *   **Plan Detallado:** ✅ [Sistema de Memoria de Eventos Recientes (Simplificado)](../planes-desarrollo/sin-comenzar/sistema-memoria-eventos-recientes-simplificado.md)
 *   **Estimación:** 7-11 horas (versión simplificada vs 18-26 horas del plan original)
 
+<a id="roadmap-27-herencia"></a>
+### 28. Sistema de Herencia de Entidades (Data Hydration)
+*   **Problema Actual:** Actualmente, si una aventura define un enemigo (ej: "Goblin"), debe incluir TODOS sus stats (HP, AC, acciones, etc.) en el archivo JSON. Si falta algo, la IA no lo inventa o quedan stats vacíos. Si se quiere un "Goblin Débil", hay que copiar toda la ficha del Goblin y cambiar solo la vida, lo que hace los archivos JSON enormes y redundantes.
+*   **Mejora Propuesta:** Implementar un sistema de "Herencia Explícita" en los archivos de aventura.
+    *   **Campo `base_template`:** Permitir definir un monstruo en el JSON que herede de una plantilla del compendio.
+        ```json
+        {
+          "id": "goblin_enfermizo",
+          "base_template": "goblin", // Hereda stats base del Goblin oficial
+          "hp": 3,                    // Sobreescribe solo la vida
+          "name": "Goblin Tosiendo"   // Sobreescribe el nombre
+        }
+        ```
+    *   **Proceso de Hidratación (Hydration):** Al cargar la aventura, el sistema:
+        1.  Detecta entidades con `base_template`.
+        2.  Consulta el compendio (local o IA) para obtener la "plantilla base".
+        3.  Fusiona los datos: `Template Base + Datos JSON (prioridad) = Entidad Final`.
+        4.  Almacena la entidad completa en memoria para la sesión.
+*   **Gestión de Riesgos:**
+    *   **No Automático:** Debe ser explícito (`base_template`) para evitar "Goblins Diplomáticos" que ataquen por accidente porque se les rellenó una acción de ataque.
+    *   **Carga Inicial:** La hidratación debe ocurrir en la pantalla de carga ("Preparando aventura...") para no ralentizar el combate.
+*   **Impacto:** Reduce drásticamente el tamaño y complejidad de los archivos de aventura (JSON) y facilita la creación de variantes de enemigos.
+*   **Prioridad:** Media
+*   **Plan Detallado:** ❌ No creado
+
 ---
 
 ## 🟢 Prioridad Baja
@@ -686,4 +750,11 @@ Mejoras de calidad de vida y características adicionales que mejoran la experie
 ### 26. Automatización del Versionado y Changelog
 *   **Mejora Propuesta:** Implementar `semantic-release` o similar para automatizar la generación de números de versión y changelogs basados en los commits.
 *   **Impacto:** Profesionalización del flujo de desarrollo.
+*   **Plan Detallado:** ❌ No creado
+
+<a id="roadmap-31"></a>
+### 31. Control de Avance Temporal
+*   **Problema Actual:** El control del tiempo es laxo, excepto en viajes.
+*   **Mejora Propuesta:** Añadir un sistema explícito de avance temporal ("Esperar 1 hora", "Descansar 8 horas") que actualice el estado del mundo, resetee cooldowns y procese eventos programados.
+*   **Prioridad:** Baja (PB)
 *   **Plan Detallado:** ❌ No creado

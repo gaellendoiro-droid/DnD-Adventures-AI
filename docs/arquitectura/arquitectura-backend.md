@@ -100,7 +100,8 @@ graph TD
     3. Filtra contexto (enemigos muertos) antes de pasar a la narración
     4. Genera narración del DM usando `NarrativeManager`
     5. Genera reacciones de compañeros **después** de la narración del DM (reacciones al resultado)
--    6. **Filtrado de Conexiones de Origen:** Al moverse a una nueva ubicación, filtra automáticamente la conexión de regreso de la lista de `visibleConnections` para evitar que el DM describa redundantemente "el camino por el que acabas de venir".
+    6. **Gestión de Sigilo Semántico:** Consume el flag `stealthIntent` del `ActionInterpreter` para realizar tiradas de sigilo implícitas durante el movimiento.
+    7. **Filtrado de Conexiones de Origen:** Al moverse a una nueva ubicación, filtra automáticamente la conexión de regreso de la lista de `visibleConnections` para evitar que el DM describa redundantemente "el camino por el que acabas de venir".
 -    7. **Resolución de Entidades en Exploración:** Resuelve los IDs de `entitiesPresent` a objetos completos (nombre, descripción) y los pasa al contexto de exploración para que el DM pueda describir visualmente a los NPCs/Monstruos presentes sin iniciar diálogo.
 -    8. **Modularización Fase 3:** La lógica de interacciones y exploración se extrajo a módulos dedicados (`InteractionHandler`, `ExplorationContextBuilder`) para simplificar este manager y hacerlos testeables.
 -   **Flujo**: `executeNarrativeTurn()` encapsula todo el proceso de un turno narrativo
@@ -111,6 +112,8 @@ graph TD
 #### `actionInterpreter`
 -   **Archivo**: `src/ai/flows/action-interpreter.ts`
 -   **Rol**: Traduce el lenguaje natural del jugador a un objeto de acción estructurado.
+-   **Responsabilidades Adicionales**:
+    - **Detección de Sigilo Semántico**: Analiza la acción del jugador en busca de intenciones sutiles de sigilo (e.g., "camino con cuidado", "trato de no hacer ruido") y establece el flag `stealthIntent: true` en el output, permitiendo que otros sistemas (como `NarrativeTurnManager`) reaccionen sin depender de palabras clave rígidas.
 
 #### `NarrativeManager` (Reemplaza al antiguo `narrativeExpert`)
 -   **Archivo**: `src/ai/flows/narrative-manager.ts`

@@ -7,9 +7,11 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
+import { z } from 'genkit';
 import { dndApiLookupTool } from '../../tools/dnd-api-lookup';
 import { adventureLookupTool } from '../../tools/adventure-lookup';
+import { consultRulebookTool } from '../../tools/consult-rulebook';
+import { lookupEntityStatsTool } from '../../tools/lookup-entity-stats';
 import { ExplorationExpertInputSchema, ExplorationExpertOutputSchema, type ExplorationExpertInput, type ExplorationExpertOutput } from '../schemas';
 import { log } from '@/lib/logger';
 import { executePromptWithRetry } from '../retry-utils';
@@ -18,7 +20,7 @@ const explorationExpertPrompt = ai.definePrompt({
     name: 'explorationExpertPrompt',
     input: { schema: ExplorationExpertInputSchema },
     output: { schema: ExplorationExpertOutputSchema },
-    tools: [dndApiLookupTool, adventureLookupTool],
+    tools: [dndApiLookupTool, adventureLookupTool, consultRulebookTool, lookupEntityStatsTool],
     config: {
         safetySettings: [
             { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
@@ -34,6 +36,11 @@ You MUST ALWAYS reply in Spanish from Spain.
 
 **YOUR ROLE:**
 Your job is to describe the world, the environment, and the immediate consequences of physical actions (movement, searching, investigating). You focus on **SENSORY DETAILS** (sight, sound, smell, temperature).
+
+**TOOLS:**
+- Use \`consultRulebook\` if the player attempts an action with specific rules (e.g., "I jump the chasm" -> Check jump distance rules; "I fall" -> Check fall damage).
+- Use \`lookupEntityStats\` if the player casts a specific SPELL, uses an ITEM, or interacts with a MONSTER to get its official stats and mechanics (damage, range, effects).
+
 
 **INPUT:**
 - **Action:** "{{{playerAction}}}"
@@ -76,6 +83,7 @@ Your job is to describe the world, the environment, and the immediate consequenc
 7. Do NOT generate dialogue for NPCs - describe appearance/actions only.
 8. Do NOT invent deaths - only describe as dead if in \`deadEntities\` or marked as "corpse:" in visibleConnections.
 9. **ENTITY NAMES:** Respect the terminology used in the context. If the data says 'Goblin', use 'Goblin'. Do not translate specific monster names like 'Goblin' to 'Trasgo' or 'Bugbear' to 'Osgo' if the context uses the English term or a specific variation. Keep it consistent with the provided data.
+10. **SPELL EFFCTS:** If you look up a spell, YOU MUST describe its visual effect based on its mechanics (e.g., "A 15-foot cone of fire erupts...", "Three glowing darts strike..."). Don't just say "You cast the spell". USE the range and shape details.
 
 {{#if isKeyMoment}}
 **NARRATION LENGTH - KEY MOMENT:**

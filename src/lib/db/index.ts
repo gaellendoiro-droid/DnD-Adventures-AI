@@ -12,18 +12,18 @@ const DB_PATH = path.join(process.cwd(), 'knowledge', 'dnd-local.db');
 // Asegurar directorio
 const dbDir = path.dirname(DB_PATH);
 if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
+  fs.mkdirSync(dbDir, { recursive: true });
 }
 
-export const db = new Database(DB_PATH, { verbose: console.log });
+export const db = new Database(DB_PATH); // verbose removido para limpiar terminal
 db.pragma('journal_mode = WAL'); // Mejor rendimiento concurrente
 
 // Inicializar Tablas
 export function initDB() {
-    console.log("🛠️ Inicializando Base de Datos Local...");
+  // console.log("🛠️ Inicializando Base de Datos Local...");
 
-    // Tabla MONSTERS
-    db.exec(`
+  // Tabla MONSTERS
+  db.exec(`
     CREATE TABLE IF NOT EXISTS monsters (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -36,8 +36,8 @@ export function initDB() {
     CREATE INDEX IF NOT EXISTS idx_monsters_cr ON monsters(cr);
   `);
 
-    // Tabla SPELLS
-    db.exec(`
+  // Tabla SPELLS
+  db.exec(`
     CREATE TABLE IF NOT EXISTS spells (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -49,8 +49,8 @@ export function initDB() {
     CREATE INDEX IF NOT EXISTS idx_spells_level ON spells(level);
   `);
 
-    // Tabla ITEMS
-    db.exec(`
+  // Tabla ITEMS
+  db.exec(`
     CREATE TABLE IF NOT EXISTS items (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -62,7 +62,7 @@ export function initDB() {
     CREATE INDEX IF NOT EXISTS idx_items_type ON items(type);
   `);
 
-    console.log("✅ Base de Datos lista en:", DB_PATH);
+  console.log("✅ Base de Datos lista en:", DB_PATH);
 }
 
 // Ejecutar init al cargar por primera vez (o hacerlo manual en el arranque app)

@@ -20,6 +20,7 @@ export type ActionInterpreterInput = z.infer<typeof ActionInterpreterInputSchema
 export const ActionInterpreterOutputSchema = z.object({
   actionType: z.enum(['move', 'interact', 'attack', 'narrate', 'ooc', 'continue_turn', 'skill_check']).describe("The interpreted type of the player's action. 'continue_turn' is used for step-by-step combat to advance to the next AI turn. 'skill_check' is for actions requiring a dice roll (climbing, persuading, hiding)."),
   targetId: z.string().optional().nullable().describe("The ID of the target for the action. For 'move', it's the destination ID. For 'attack', the entity ID. For 'interact', it's the specific interaction action name (e.g., 'Leer Misión de la Colina del Resentimiento') or the character name (e.g., 'Elara')."),
+  stealthIntent: z.boolean().optional().describe("If true, the player explicitly expressed an intent to be stealthy, hide, or move quietly (e.g., 'I sneak to the door', 'Move quietly', 'Me escondo')."),
 });
 export type ActionInterpreterOutput = z.infer<typeof ActionInterpreterOutputSchema>;
 
@@ -39,9 +40,9 @@ export const NarrativeExpertInputSchema = z.object({
     mode: z.enum(['safe', 'dungeon', 'wilderness']),
     lightLevel: z.enum(['bright', 'dim', 'dark']),
     visitState: z.enum(['unknown', 'seen', 'visited']),
-    detectedHazards: z.array(z.any()), // HazardSchema
+    detectedHazards: z.array(z.object({}).passthrough()), // HazardSchema
     visibleConnections: z.array(z.string()).describe("Descriptions of what can be seen through open connections"),
-    presentEntities: z.array(z.any()).optional(), // EntitySchema
+    presentEntities: z.array(z.object({}).passthrough()).optional(), // EntitySchema
     deadEntitiesInConnectedLocations: z.record(z.string(), z.array(z.string())).optional().describe("Map of locationId -> array of dead entity names in connected locations")
   }).optional().describe("Context for dungeon exploration: atmosphere, visibility, and hazards."),
 });
@@ -143,9 +144,9 @@ export const ExplorationExpertInputSchema = z.object({
     mode: z.enum(['safe', 'dungeon', 'wilderness']),
     lightLevel: z.enum(['bright', 'dim', 'dark']),
     visitState: z.enum(['unknown', 'seen', 'visited']),
-    detectedHazards: z.array(z.any()), // HazardSchema
+    detectedHazards: z.array(z.object({}).passthrough()), // HazardSchema (using passthrough for stability)
     visibleConnections: z.array(z.string()).describe("Descriptions of what can be seen through open connections"),
-    presentEntities: z.array(z.any()).optional(), // EntitySchema
+    presentEntities: z.array(z.object({}).passthrough()).optional(), // EntitySchema
     deadEntitiesInConnectedLocations: z.record(z.string(), z.array(z.string())).optional().describe("Map of locationId -> array of dead entity names in connected locations")
   }).optional().describe("Context for dungeon exploration: atmosphere, visibility, and hazards."),
 });

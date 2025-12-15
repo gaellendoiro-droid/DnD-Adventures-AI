@@ -355,21 +355,40 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 updatedEnemies: currentLocationEnemies,
             });
 
-            log.gameCoordinator('Combat initiated', {
-                combatantIds: initiationResult.combatantIds?.length || 0,
-                surpriseSide: playerActionTrigger.surpriseSide,
-            });
+            // Check if we have valid opponents (anyone not in the party)
+            // initiationResult.combatantIds contains IDs of ALL participants (party + enemies)
+            const partyIds = party.map(p => (p as any).id);
+            const combatantIds = initiationResult.combatantIds || [];
 
-            const combatResult = await combatManagerTool({
-                ...input,
-                inCombat: false,
-                turnIndex: 0,
-                combatantIds: initiationResult.combatantIds,
-                interpretedAction: interpretation,
-                locationContext: currentLocationData,
-                surpriseSide: playerActionTrigger.surpriseSide,
-            });
-            return { ...combatResult, debugLogs: debugLogs };
+            // An opponent is anyone in combatantIds who is NOT in partyIds
+            const hasOpponents = combatantIds.some(id => !partyIds.includes(id));
+
+            if (hasOpponents) {
+                log.gameCoordinator('Combat initiated', {
+                    combatantIds: combatantIds.length,
+                    surpriseSide: playerActionTrigger.surpriseSide,
+                });
+
+                const combatResult = await combatManagerTool({
+                    ...input,
+                    inCombat: false,
+                    turnIndex: 0,
+                    combatantIds: combatantIds,
+                    interpretedAction: interpretation,
+                    locationContext: currentLocationData,
+                    surpriseSide: playerActionTrigger.surpriseSide,
+                });
+                return { ...combatResult, debugLogs: debugLogs };
+            } else {
+                // FALLBACK: No opponents found (e.g. attacking a barrel).
+                // Do NOT start combat. Let executeNarrativeTurn handle it as a narrative action.
+                log.gameCoordinator('Attack aborted - No opponents found', {
+                    targetId: interpretation.targetId,
+                    combatants: combatantIds
+                });
+                localLog(`GameCoordinator: Attack targeting non-enemy '${interpretation.targetId}'. No opponents found. Falling back to narrative turn.`);
+                // Continue execution to executeNarrativeTurn...
+            }
         }
 
         // Execute narrative turn (outside of combat) with trimmed history
@@ -466,6 +485,10 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 updatedExplorationState: narrativeResult.updatedExplorationState,
                 updatedOpenDoors: narrativeResult.updatedOpenDoors,
                 nextLocationId: combatInitiation.combatLocationId,
+                diceRolls: [
+                    ...(narrativeResult.diceRolls || []),
+                    ...(combatResult.diceRolls || [])
+                ],
             };
         }
 

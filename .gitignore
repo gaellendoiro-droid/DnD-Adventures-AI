@@ -46,3 +46,12 @@ firestore-debug.log
 
 # audio temp
 /public/sound/
+# debug output
+debug_output*.txt
+
+# agent artifacts
+.agent/
+
+# sqlite temp files
+*.db-shm
+*.db-wal
