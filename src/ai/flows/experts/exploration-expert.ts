@@ -16,10 +16,17 @@ import { ExplorationExpertInputSchema, ExplorationExpertOutputSchema, type Explo
 import { log } from '@/lib/logger';
 import { executePromptWithRetry } from '../retry-utils';
 
-const explorationExpertPrompt = ai.definePrompt({
+// Esquema intermedio tolerante a fallos de ortografía del modelo para el prompt de Genkit
+const ExplorationPromptOutputSchema = z.object({
+    explorationNarration: z.string().optional().describe("La narración de la exploración."),
+    explorationNaration: z.string().optional().describe("Variante con errata tolerada."),
+    debugLogs: z.array(z.string()).optional(),
+});
+
+export const explorationExpertPrompt = ai.definePrompt({
     name: 'explorationExpertPrompt',
     input: { schema: ExplorationExpertInputSchema },
-    output: { schema: ExplorationExpertOutputSchema },
+    output: { schema: ExplorationPromptOutputSchema },
     tools: [dndApiLookupTool, adventureLookupTool, consultRulebookTool, lookupEntityStatsTool],
     config: {
         safetySettings: [
@@ -51,6 +58,16 @@ Your job is to describe the world, the environment, and the immediate consequenc
 - **Interpreted Action:** \`\`\`json
 {{{interpretedAction}}}
 \`\`\`
+{{#if party}}
+- **Party (Personajes e Inventarios):** \`\`\`json
+{{{json party}}}
+\`\`\`
+{{/if}}
+{{#if conversationHistory}}
+- **History:** \`\`\`
+{{{conversationHistory}}}
+\`\`\`
+{{/if}}
 {{#if deadEntities}}
 - **DEFEATED ENEMIES / DEAD BODIES:** {{{deadEntities}}}
   **CRITICAL:** The location description in the context may mention these entities as alive or threatening. You MUST IGNORE those parts. Instead, describe them as DEAD BODIES lying on the ground, defeated, or as corpses. Do NOT describe them as attacking, moving, or alive in any way.
@@ -70,6 +87,27 @@ Your job is to describe the world, the environment, and the immediate consequenc
   - **Visible Connections:** {{json explorationContext.visibleConnections}}
   - **Present Entities:** {{json explorationContext.presentEntities}}
 {{/if}}
+{{#if activeEffects}}
+- **ACTIVE MAGICAL/WORLD EFFECTS:** {{{activeEffects}}}
+{{/if}}
+{{#if adventureLore}}
+- **ADVENTURE LORE (GLOBAL HISTORY, HOOKS & SECRETS):**
+  \`\`\`json
+  {{{adventureLore}}}
+  \`\`\`
+  **CRITICAL:** Use this global context to enrich the atmosphere, environmental details, history, and narrative tone. When the player investigates, searches, or explores, weave relevant hooks, background, or secrets into the description when logical.
+{{/if}}
+{{#if skillCheckResult}}
+- **PRUEBA DE HABILIDAD RESOLVIDA (Mecánica Obligatoria):**
+  - **Habilidad comprobada:** {{skillCheckResult.skill}} (CD {{skillCheckResult.dc}})
+  - **Resultado del dado + bonos:** {{skillCheckResult.rollTotal}} (Resultado final: {{#if skillCheckResult.isCriticalSuccess}}ÉXITO CRÍTICO{{else}}{{#if skillCheckResult.isCriticalFailure}}FALLO CRÍTICO{{else}}{{#if skillCheckResult.isSuccess}}ÉXITO{{else}}FALLO{{/if}}{{/if}}{{/if}})
+  - **Justificación:** {{skillCheckResult.reasoning}}
+  **CRITICAL:** La acción del jugador requirió una prueba mecánica y ya ha sido resuelta. Debes estructurar tu narración describiendo el intento del personaje y la resolución de la tarea en perfecta consonancia con el resultado obtenido (Éxito, Fallo o Crítico).
+  - **RESTRICCIÓN ABSOLUTA ANTE FALLO:** Si el resultado final es un FALLO o FALLO CRÍTICO, el personaje **NO** consigue su objetivo y **NO DEBE** descubrir ninguna información detallada, secreta, propiedades mágicas o nombres de objetos específicos que estén en la sección de secretos o lore (tales como saber el nombre específico de un pergamino o sus secretos). En su lugar, describe que no puede descifrar las runas/escritos, no nota nada fuera de lo común, deduce información errónea o no encuentra nada útil. Es imperativo que no filtres información protegida por el fallo (ej: si falla al inspeccionar un pergamino o runas, describe que no logra descifrar sus intrincados símbolos y no sabe qué tipo de magia contiene).
+    **ATENCIÓN (SOBRE LA REGLA 14):** La restricción ante fallo prevalece y anula la obligación de nombrar o describir exactamente un objeto mágico o secreto. Si falla, el pergamino u objeto debe describirse simplemente como un pergamino enigmático u objeto genérico, ocultando por completo su nombre oficial y propiedades mágicas.
+  - **RESOLUCIÓN ANTE ÉXITO:** Si el resultado final es ÉXITO o ÉXITO CRÍTICO, utiliza el lore de la aventura y los secretos del contexto para revelar exactamente lo que describe el lore oficial del objeto (como detallar el nombre del pergamino o las propiedades del objeto si tiene éxito).
+    * **DISTINCIÓN ENTRE IDENTIFICACIÓN Y ACTIVACIÓN (CRÍTICO):** Si la tirada consistía en identificar, descifrar, examinar o inspeccionar un pergamino u objeto mágico, describe que el personaje logra comprender con éxito qué es el objeto, su nombre y qué magia contiene (ej. identificando el tipo específico de pergamino). **BAJO NINGÚN CONCEPTO** narres que el pergamino se activa, se consume, se lanza el conjuro o que sus efectos mágicos entran en vigor automáticamente en ese mismo instante. El objeto permanece inactivo hasta que el jugador decida usarlo o activarlo en una acción posterior. Por lo tanto, si el efecto mágico aún no está activo, las barreras de comunicación de los animales u otros efectos mágicos siguen vigentes en este turno.
+{{/if}}
 
 **GUIDELINES:**
 1. Use \`locationContext\` for room description and details.
@@ -80,10 +118,45 @@ Your job is to describe the world, the environment, and the immediate consequenc
 4. Use \`presentEntities\` for entities in THIS room only.
 5. If \`visitState\` is 'visited', be brief. If 'unknown', describe fully.
 6. Focus on sensory details (sight, sound, smell, temperature).
-7. Do NOT generate dialogue for NPCs - describe appearance/actions only.
+7. **NPC DIALOGUE:** You MAY generate dialogue for World NPCs (e.g., Dazlyn, Norbus, shopkeepers, villains) if the player interacts with them. However, do NOT generate dialogue for **Party Companions** (Elara, Merryl, etc.) - they speak for themselves.
 8. Do NOT invent deaths - only describe as dead if in \`deadEntities\` or marked as "corpse:" in visibleConnections.
-9. **ENTITY NAMES:** Respect the terminology used in the context. If the data says 'Goblin', use 'Goblin'. Do not translate specific monster names like 'Goblin' to 'Trasgo' or 'Bugbear' to 'Osgo' if the context uses the English term or a specific variation. Keep it consistent with the provided data.
+9. **ENTITY NAMES & SECRETS:** Respect the terminology used in the context. If the data says 'Goblin', use 'Goblin'. Do not translate specific monster names.
+   - **SPOILER PREVENTION (ENTITY NAMES):** Respect strictly the rule of secret/unrevealed identities (Rule 17). Even if the context lists a present entity's ID or technical name with its true name, you MUST NOT refer to them by this name in the narration until the group logically discovers it. Refer to them by physical descriptors (e.g., "el animal", "el encapuchado"). Keep it consistent with the provided data and player knowledge.
 10. **SPELL EFFCTS:** If you look up a spell, YOU MUST describe its visual effect based on its mechanics (e.g., "A 15-foot cone of fire erupts...", "Three glowing darts strike..."). Don't just say "You cast the spell". USE the range and shape details.
+11. **AVOID METAGAMING (dmNotes):** The \`dmNotes\` often describe the *intended* state AFTER the players complete a quest (e.g., "They are grateful for the warning"). Do NOT assume this state is true unless the players have actually performed the action or shared the info in the conversation history. If they haven't warned them yet, ignore the "grateful" part and roleplay the state *before* the warning.
+12. **CONTINUITY CHECK:** Before describing an approach or encounter, check the \`conversationHistory\`. If the player is ALREADY talking to the NPC, do NOT narrate "You approach them" or "You see them" again. Continue the conversation naturally based on the last exchange.
+13. **ADVENTURE LORE:** If \`adventureLore\` is provided, use its background history, adventure hooks, and secrets to add depth to your descriptions. If players search or examine their surroundings, they might discover subtle clues or traces related to the secrets listed in \`adventureLore\`.
+14. **FACTUALITY OF OBJECTS AND SECRETS:** When the player investigates, searches, examines, or interacts with a specific object, item, or container (especially those mentioned in the adventure lore or NPC possessions, such as a scroll, wand, key, etc.), you MUST describe it strictly according to the facts, properties, and secrets in the adventure context.
+    - NEVER invent fictional contents, letters of help, names, or magical properties that contradict or are not backed by the provided adventure data.
+    - For example: if the adventure lore/secrets states a scroll contains a specific spell, describe it as such. DO NOT invent fictional letters of help or other written contents that are not backed by the adventure data.
+    - **EXCEPTION (SKILL CHECK FAIL):** If the player attempted a skill check to identify, search, or investigate the object, and that check resulted in a **FALLO** or **FALLO CRÍTICO** (as specified in \`skillCheckResult\`), this Rule 14 **MUST NOT** be used to reveal the object's identity or properties. Instead, follow the **RESTRICCIÓN ABSOLUTA ANTE FALLO** instructions and keep its identity completely hidden (describing it in generic/non-magical terms).
+15. **JERARQUÍA DE FUENTES DE VERDAD (CRÍTICO):** En caso de conflicto de información, debes dar prioridad absoluta a los datos estructurados y el feedback directo frente al historial de chat:
+    - Prioridad 1: SYSTEM FEEDBACK (nos da el resultado directo y real de la última acción).
+    - Prioridad 2: LOCATION CONTEXT (el JSON define el estado actual físico y los ítems del mundo).
+    - Prioridad 3: CONVERSATION HISTORY (el chat previo puede contener errores o malentendidos de turnos anteriores, en cuyo caso debes ignorarlos y corregirlos narrativamente según el estado actual).
+16. **SAQUEO SELECTIVO, SINÓNIMOS, CONTENEDORES E INVENTARIO DE LA PARTY (CRÍTICO):** Al interactuar, narrar o responder a preguntas sobre cofres, alijos, contenedores u objetos físicos del entorno, debes guiarte estrictamente por la propiedad \`items\` e \`interactables\` en el \`locationContext\`, así como por el inventario estructurado de los personajes del grupo en \`party\`.
+    - **Resolución de sinónimos**: Si el jugador o la narración del historial se refieren a un ítem con un nombre físico o narrativo (ej. "poción burbujeante", "poción rojiza", "llave de hierro", "pesada llave"), debes asociarlo directamente con su nombre e ID oficial en el JSON de la aventura (ej. "Poción de Curación" / \`pocion-curacion\` o "Llave del Calabozo" / \`llave-calabozo\`). Son el mismo objeto.
+    - **Verdad de Posesión (Inventario de la Party)**: Si el jugador o los personajes te preguntan por la ubicación o posesión de un objeto (ej. "//Donde está la poción burbujeante?", "¿Tenemos la llave?"), debes examinar la propiedad \`party\` del input. Si el objeto figura en el inventario (\`inventory\`) de algún personaje del grupo, responde confirmando de manera exacta e inequívoca qué personaje lo tiene (ej. *"Galador recogió la llave y la tiene en su poder"* o *"La poción está guardada en vuestro inventario"*). NUNCA alucines diciendo que no tienes constancia de él si figura en \`party\`.
+    - **Visibilidad e interior de contenedores**: Si un contenedor se encuentra lógicamente cerrado (\`state: "closed"\`), los ítems siguen estando físicamente dentro de él. Si no han sido saqueados ni figuran en el inventario de la party, responde que se encuentran ocultos en el interior del contenedor cerrado.
+    - Si el jugador realiza un saqueo selectivo (ej: coger solo la llave), el contenedor NO se queda vacío. Debes mencionar o describir que la poción u otros ítems listados en su \`items\` de \`locationContext\` permanecen en su interior.
+    - NUNCA declares que un cofre queda vacío si todavía contiene ítems en el JSON de la localización. Si el historial conversacional dice lo contrario, corrígelo con elegancia (ej: "Galador ve que bajo las sombras del fondo aún descansa la poción...").
+17. **DO NOT ROLEPLAY COMPANIONS:** Under no circumstances should you generate dialogue or thoughts for the Party Companions (Elara, Merryl, etc.). You may briefly describe their physical reactions (e.g. "Merryl draws her sword" or "Elara looks at you"), but you MUST NOT make them speak or put words in their mouths.
+18. **FACTUALITY OF NPC IDENTITY AND RELATIONSHIPS:** Under no circumstances should the DM misrepresent an NPC's identity, goals, or relationships with other NPCs based on the adventure data. For example, if the adventure data defines a hostile thug/monster, you MUST NOT portray them as friendly. You must prioritize the official adventure data over any errors, hallucinated claims, or incorrect assumptions present in the chat history (\`conversationHistory\`).
+19. **NOMBRES DE ENTIDADES E IDENTIDADES SECRETAS:** Si un NPC tiene una identidad oculta, transformación o su nombre no se ha revelado formalmente en la conversación (p. ej., un animal, un encapuchado, un desconocido), el DM y los expertos **NO** deben referirse a él por su nombre real o ID técnico en la narración pública frente a los personajes jugadores hasta que el NPC se haya presentado formalmente o los personajes hayan descubierto su nombre de forma lógica en la historia. En su lugar, deben referirse al NPC usando términos genéricos basados en su apariencia física (p. ej., "el animal", "el encapuchado", "el desconocido").
+20. **COMMUNICATION BARRIERS & BEASTS (D&D Rules):** Si generas una descripción, acción o gesto de una criatura animal o bestia:
+    - **Without 'speak_with_animals' effect:** Si "speak_with_animals" **NO** está en el array 'activeEffects' (o está vacío/undefined), la criatura **bajo ninguna circunstancia** puede hablar, emitir palabras o comunicarse verbalmente. Describe sus acciones mediante balidos, gruñidos o gestos físicos.
+    - **With 'speak_with_animals' effect:** Si "speak_with_animals" **SÍ** está activo en 'activeEffects', la criatura ya puede comunicarse verbalmente. Describe que se expresa con palabras en Común.
+21. **RESOLUCIÓN DE EFECTOS MÁGICOS:** Si un efecto mágico (como "speak_with_animals") se activa con éxito, los personajes y las criaturas asociadas actúan en consecuencia (ej: la criatura animal es consciente de que podéis entenderla, por lo que cesará comportamientos desesperados de intentar comunicarse mediante señas o empujando objetos y empezará a hablar fluidamente en Común).
+22. **REGLA DE ORO: FIDELIDAD LÓGICA Y LIBERTAD SENSORIAL (CRÍTICO):**
+    Debes mantener una prosa inmersiva, literaria y evocadora en español de España, pero respetando estrictamente la causalidad lógica del juego:
+    - **LIBERTAD SENSORIAL (PERMITIDO):** Tienes total libertad para enriquecer la escena con detalles sensoriales (el entorno, sonidos, olores, tacto) y reacciones físicas/visuales del entorno para mantener la frescura narrativa.
+    - **FIDELIDAD DE ESTADO Y ACTIVACIÓN (PROHIBIDO):** Bajo ningún concepto inventes cambios en el estado lógico, activaciones mágicas o consumos de recursos. Si la acción del jugador no indica explícitamente el uso/consumo de un objeto (ej: si solo es coger, recoger, desarmar, desobstruir, dar, recibir, guardar, examinar o dejar caer al suelo), narra el acto físico enriqueciéndolo visualmente, pero mantén el objeto inactivo.
+    - **PREVALENCIA ESTRICTA DE EFECTOS ACTIVOS:** Las consecuencias de un efecto mágico, de estado o de comunicación (como comprender idiomas, hablar con bestias, invisibilidad, visión en la oscuridad, etc.) **SOLO** pueden manifestarse en tu narración si el identificador de dicho efecto figura explícitamente activo en el array 'activeEffects' **O** si la acción de este turno es precisamente usar/activar el objeto y el resultado de la tirada ('skillCheckResult') o el feedback del sistema confirman su activación exitosa en este turno. La mera posesión, recogida, intercambio o manipulación física del objeto que concede dicho efecto **NUNCA** activa sus consecuencias mágicas. Si el efecto no está activo ni se activa con éxito en este turno, las barreras del entorno siguen plenamente vigentes.
+
+
+
+
+
 
 {{#if isKeyMoment}}
 **NARRATION LENGTH - KEY MOMENT:**
@@ -96,9 +169,12 @@ Your job is to describe the world, the environment, and the immediate consequenc
 - Target length: **1-2 sentences**.
 {{/if}}
 
-**OUTPUT:**
-Return a JSON object with:
-- \`explorationNarration\`: The atmospheric description and result of the action.
+**Output Format (CRITICAL):**
+You MUST return a raw, valid JSON object matching the output schema. Do NOT wrap the response in markdown blocks (e.g. do NOT use code blocks with triple backticks). Do NOT write any thoughts, explanations, or text before or after the JSON.
+The JSON structure MUST be:
+{
+  "explorationNarration": "The atmospheric description and result of the action."
+}
 `,
 });
 
@@ -134,7 +210,10 @@ export const explorationExpertFlow = ai.defineFlow(
                 output = { explorationNarration: output };
             }
 
-            return { ...output, debugLogs };
+            // Normalización y validación estricta (ejecutando Zod preprocess para resolver erratas como explorationNaration)
+            const validatedOutput = ExplorationExpertOutputSchema.parse(output);
+
+            return { ...validatedOutput, debugLogs };
 
         } catch (e: any) {
             localLog(`ExplorationExpert: Failed. Error: ${e.message}`);

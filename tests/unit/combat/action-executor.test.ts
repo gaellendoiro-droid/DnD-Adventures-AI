@@ -52,7 +52,7 @@ describe('CombatActionExecutor', () => {
           spells: [],
           proficiencyBonus: 2,
           controlledBy: 'Player',
-        } as Character,
+        } as unknown as Character,
       ];
 
       const enemies = [
@@ -152,7 +152,7 @@ describe('CombatActionExecutor', () => {
           spells: [],
           proficiencyBonus: 2,
           controlledBy: 'Player',
-        } as Character,
+        } as unknown as Character,
       ];
 
       const enemies = [
@@ -237,7 +237,7 @@ describe('CombatActionExecutor', () => {
           spells: [],
           proficiencyBonus: 2,
           controlledBy: 'Player',
-        } as Character,
+        } as unknown as Character,
       ];
 
       const enemies = [
@@ -334,7 +334,7 @@ describe('CombatActionExecutor', () => {
           spells: [],
           proficiencyBonus: 2,
           controlledBy: 'Player',
-        } as Character,
+        } as unknown as Character,
       ];
 
       const enemies = [
@@ -418,6 +418,110 @@ describe('CombatActionExecutor', () => {
       });
     });
 
+    it('should execute a critical hit with a negative modifier (Issue #50 / Merryl)', async () => {
+      const combatant: Combatant = {
+        id: 'player-1',
+        characterName: 'Merryl',
+        total: 15,
+        type: 'player',
+        controlledBy: 'Player',
+      };
+
+      const party: Character[] = [
+        {
+          id: 'player-1',
+          name: 'Merryl',
+          hp: { current: 20, max: 20 },
+          ac: 13,
+          abilityScores: { fuerza: 8, destreza: 16, constitución: 14, inteligencia: 17, sabiduría: 10, carisma: 10 },
+          abilityModifiers: { fuerza: -1, destreza: 3, constitución: 2, inteligencia: 3, sabiduría: 0, carisma: 0 },
+          skills: [],
+          inventory: [],
+          spells: [],
+          proficiencyBonus: 2,
+          controlledBy: 'Player',
+        } as unknown as Character,
+      ];
+
+      const enemies = [
+        {
+          uniqueId: 'goblin-1',
+          id: 'goblin-1',
+          name: 'Goblin 1',
+          hp: { current: 10, max: 10 },
+          ac: 15,
+        },
+      ];
+
+      const initiativeOrder: Combatant[] = [combatant];
+
+      mockDiceRoller
+        .mockResolvedValueOnce({
+          id: 'roll-1',
+          roller: 'Merryl',
+          rollNotation: '1d20+1',
+          individualRolls: [20],
+          modifier: 1,
+          totalResult: 21,
+          outcome: 'crit',
+          timestamp: new Date(),
+          description: 'Tirada de ataque',
+        })
+        .mockResolvedValueOnce({
+          id: 'roll-2',
+          roller: 'Merryl',
+          rollNotation: '2d6-1', // Automatically doubles dice for critical: 1d6-1 -> 2d6-1
+          individualRolls: [4, 3],
+          modifier: -1,
+          totalResult: 6,
+          outcome: 'crit',
+          timestamp: new Date(),
+          description: 'Tirada de daño (crítico)',
+        });
+
+      const input: CombatActionInput = {
+        combatant,
+        action: {
+          type: 'attack',
+          targetId: 'goblin-1',
+          diceRollRequests: [
+            {
+              rollNotation: '1d20+1',
+              description: 'Tirada de ataque',
+              roller: 'Merryl',
+            },
+            {
+              rollNotation: '1d6-1', // Base damage dice with negative modifier
+              description: 'Tirada de daño',
+              roller: 'Merryl',
+            },
+          ],
+          actionDescription: 'ataque',
+        },
+        party,
+        enemies,
+        initiativeOrder,
+        diceRollerTool: mockDiceRoller,
+        updateRollNotationWithModifiers: mockUpdateRollNotation,
+      };
+
+      const result = await CombatActionExecutor.execute(input);
+
+      expect(result.success).toBe(true);
+      expect(result.diceRolls).toHaveLength(2);
+      expect(result.combatResult.attackHit).toBe(true);
+      expect(result.combatResult.wasCritical).toBe(true);
+      expect(result.combatResult.damageDealt).toBe(6);
+      expect(result.updatedEnemies[0].hp.current).toBe(4); // 10 - 6 = 4
+
+      // Verify that the dice roller was called with doubled notation for damage
+      expect(mockDiceRoller).toHaveBeenNthCalledWith(2, {
+        roller: 'Merryl',
+        rollNotation: '2d6-1', // Should be doubled from 1d6-1
+        description: 'Tirada de daño',
+      });
+    });
+
     it('should handle target not found', async () => {
       const combatant: Combatant = {
         id: 'player-1',
@@ -470,7 +574,7 @@ describe('CombatActionExecutor', () => {
           inventory: [],
           spells: [],
           controlledBy: 'Player',
-        } as Character,
+        } as unknown as Character,
       ];
 
       const initiativeOrder: Combatant[] = [combatant];

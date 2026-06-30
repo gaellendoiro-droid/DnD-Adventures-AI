@@ -141,6 +141,46 @@ Para consultar las iniciativas en curso y planificadas, utiliza el documento pri
 
 ---
 
+## 📅 Entregas de Junio de 2026
+
+### 1. Sistema de Combate y Reglas (Hito 1) ✅ COMPLETADO
+* **Revisión del inicio del combate:** Sincronización del delta de estado completo al inicializar el combate (`party`, `enemies`, `enemiesByLocation`, `diceRolls`) solucionando problemas de visualización de tiradas de iniciativa e HP de enemigos en el frontend.
+* **Cálculo de Daño Crítico:** Corrección de notación de modificadores negativos (`1d6-1` en vez de `1d6+-1`) y sanitización robusta en la comprobación de golpes críticos.
+* **Al arrancar un combate el dm repite la última narración que hizo:** Modificación del prompt de inicio de combate para evitar redundancias físicas con el último mensaje del historial de conversación.
+* **Estado:** ✅ **COMPLETADO** (2026-06-28)
+
+### 2. Automatización y Autocuración de Manuales (Hito 2) ✅ COMPLETADO
+* **Detección y Resubida de Manuales Expirados (File API):** Creado el gestor dinámico `RulebookManager` con caché persistente local en disco (`file-api-cache.json`) para detectar y resubir automáticamente manuales expirados a Google AI Studio en caso de error 403/404.
+* **Estado:** ✅ **COMPLETADO** (2026-06-28)
+
+### 3. Arquitectura Reactiva Dirigida por Eventos (Hito 3) ✅ COMPLETADO
+* **Definición de Esquemas de Eventos de Juego (GameEvents):** Diseñar y tipar con Zod los eventos estructurados de bajo nivel (ej: `PlayerMoved`, `DoorOpened`, `ItemCollected`, `TrapTriggered`, `DamageApplied`).
+* **Migración de Managers Procedurales a Sistemas Reactivos:** Refactorizar la secuencia de `narrative-turn-manager.ts` para usar un despachador/cola de eventos, extrayendo la lógica de navegación, interacción y tiradas de habilidad a sistemas aislados.
+* **Adaptación del Narrador conversacional (`narrativeExpert`):** Rediseñar el prompt del narrador para que reciba la lista de eventos reales ocurridos en el turno, limitando su labor a narrar literariamente hechos consumados en vez de intentar calcular qué ha pasado.
+* **Aislamiento del Estado (State Isolation):** Asegurar que el `worldState` y el estado de la `party` solo puedan ser mutados a través del procesamiento de eventos validados por los sistemas de reglas.
+* **Estado:** ✅ **COMPLETADO** (2026-06-27)
+
+### 4. Consistencia Física del Mundo e IA Conversacional (Hito 4) ✅ COMPLETADO
+* **Refactorización Genérica de Estado (Property Override System):** Migrado y unificado el `worldState` actual a mutaciones dinámicas en `WorldStateManager` para persistir estados físicos (abierto/cerrado, saqueado) e ítems de contenedores, puertas e interactuables genéricos.
+* **Unificación de Contexto de los Expertos (Single Source of Truth) [Fase 1]:** Estructuración e inyección del inventario de la party y personajes actualizados a todos los agentes de la IA conversacional, eliminando la ceguera de posesiones.
+* **Delimitación de Interacciones Físicas [Fase 2]:** Bloqueo automático de saqueo de contenedores cerrados y delegación limpia de interacciones físicas con muebles contenedores (moverlos/cargarlos) al DM.
+* **Validación de Llaves al Abrir Puertas:** Extender `handleDoorOpening` en `InteractionHandler` para validar si la conexión correspondiente a la puerta requiere una llave (`requiredKeyId`) y si algún miembro del grupo dispone de ella en su inventario antes de autorizar la apertura.
+* **Estado:** ✅ **COMPLETADO** (2026-06-26)
+
+### 5. Conversador OOC Mejorado ✅ COMPLETADO
+* **Descripción:** Permitir el uso del chat fuera de personaje (Out of Character - OOC) para resolver dudas sobre monstruos o reglas oficiales mediante el interceptor de prefijo `//` o `ooc`.
+* **Estado:** ✅ **COMPLETADO** (2026-06-25)
+
+### 6. Mejoras de Interfaz (UX) ✅ COMPLETADO
+* **Mejora de Fichas en UI:** Secciones colapsables o pestañas (Atributos, Inventario, Hechizos) para reducir la sobrecarga de información y visualización de modificadores activos mediante acordeones Radix UI.
+* **Estado:** ✅ **COMPLETADO** (2026-06-24)
+
+### 7. Corrección de Inconsistencia de Género (DM) ✅ COMPLETADO
+* **Descripción:** Implementación de reglas estrictas de concordancia de género gramatical en español de España en los prompts principales del Dungeon Master (`narrativeDirectorPrompt`, `combatInitiationPrompt`). Adicionalmente, se creó la inyección dinámica de contexto `combatantsContext` en el procesador de turnos de combate para que el narrador de combate asocie correctamente el género de cualquier personaje (incluyendo personajes personalizados).
+* **Estado:** ✅ **COMPLETADO** (2026-06-28)
+
+---
+
 > Las iniciativas completadas seguirán moviéndose a este archivo para mantener el roadmap principal enfocado exclusivamente en trabajo proactivo.
 
 

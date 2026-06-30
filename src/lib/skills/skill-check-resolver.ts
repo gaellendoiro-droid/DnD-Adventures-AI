@@ -48,7 +48,15 @@ export function resolveSkillCheck(
     let modifierSource = "calculated"; // 'sheet' or 'calculated'
 
     // Buscar en los pre-calculados
-    const sheetSkill = character.skills.find(s => s.name.toLowerCase() === skillName.toLowerCase() || s.name === SKILL_TRANSLATIONS[skillName]);
+    const normalizedTargetSkill = skillName.toLowerCase();
+    const sheetSkill = character.skills.find(s => {
+        const nameLower = s.name.toLowerCase();
+        return nameLower === normalizedTargetSkill || 
+               s.name === SKILL_TRANSLATIONS[skillName] ||
+               (normalizedTargetSkill === 'arcana' && (nameLower === 'arcano' || nameLower === 'arcanos')) ||
+               (normalizedTargetSkill === 'deception' && (nameLower === 'engaño' || nameLower === 'engañar')) ||
+               (normalizedTargetSkill === 'intimidation' && (nameLower === 'intimidación' || nameLower === 'intimidar'));
+    });
 
     if (sheetSkill && typeof sheetSkill.modifier === 'number') {
         finalModifier = sheetSkill.modifier;

@@ -29,14 +29,44 @@ export class EnemyValidator {
         const allEntities = adventureData.entities;
         const combatantData: any[] = [];
 
+        localLog(`EnemyValidator: Processing ${combatantIds.length} combatant IDs: ${JSON.stringify(combatantIds)}`);
+        localLog(`EnemyValidator: Party has ${party.length} members: ${JSON.stringify(party.map(p => ({ id: p.id, name: p.name, hp: p.hp })))}`);
+
+        const cleanWords = (s: string) => s.toLowerCase().trim().split(/[\s_-]+/).filter(Boolean);
+        const matchWord = (w1: string, w2: string) => {
+            if (w1 === w2) return true;
+            if (w1.startsWith(w2) || w2.startsWith(w1)) return true;
+            if (w1.length >= 6 && w2.length >= 6) {
+                return w1.substring(0, 6) === w2.substring(0, 6);
+            }
+            return false;
+        };
+        const matchEntity = (searchId: string, entityId: string, entityName?: string) => {
+            const searchWords = cleanWords(searchId);
+            const idWords = cleanWords(entityId);
+            const nameWords = entityName ? cleanWords(entityName) : [];
+
+            const idMatchCount = searchWords.filter(sw => idWords.some(iw => matchWord(sw, iw))).length;
+            const nameMatchCount = nameWords.length > 0
+                ? searchWords.filter(sw => nameWords.some(nw => matchWord(sw, nw))).length
+                : 0;
+
+            const minIdWords = Math.min(searchWords.length, idWords.length);
+            const minNameWords = nameWords.length > 0 ? Math.min(searchWords.length, nameWords.length) : Infinity;
+
+            return idMatchCount >= minIdWords || nameMatchCount >= minNameWords;
+        };
+
         for (const id of combatantIds) {
-            let found = party.find(p => p.id === id);
+            let found = party.find(p => matchEntity(id, p.id, p.name));
+
             if (found) {
                 // Check HP before including in combat
                 const hpCurrent = typeof (found as any).hp === 'number'
                     ? (found as any).hp
                     : (found as any).hp?.current;
                 if (hpCurrent !== undefined && hpCurrent > 0) {
+                    localLog(`EnemyValidator: Adding party member ${found.name} (id=${found.id}, hp=${hpCurrent})`);
                     combatantData.push({ ...found, entityType: 'player', name: found.name, controlledBy: found.controlledBy });
                 } else {
                     log.debug('Skipping dead party member in combat initiation', {
@@ -48,27 +78,41 @@ export class EnemyValidator {
                 continue;
             }
 
-            found = allEntities.find((e: any) => e.id === id);
+            found = allEntities.find((e: any) => matchEntity(id, e.id, e.name));
+
             if (found) {
                 const enemyHpCurrent = typeof (found as any).hp === 'number'
                     ? (found as any).hp
                     : (found as any).hp?.current;
 
-                // Check if enemy already exists and is dead
-                const existingEnemy = existingEnemies.find((e: any) => e.id === id || (e as any).uniqueId === id);
+                // Check if enemy already exists and is dead (using real found.id)
+                const existingEnemy = existingEnemies.find((e: any) => 
+                    e.id === found!.id || 
+                    (e as any).uniqueId === found!.id ||
+                    e.id === id ||
+                    (e as any).uniqueId === id
+                );
+
+                // Defensivo: Si el enemigo está en el estado pero no tiene hp.current, asumimos que está vivo
+                const isExistingEnemyDead = existingEnemy && 
+                    existingEnemy.hp && 
+                    (typeof existingEnemy.hp === 'number' 
+                        ? existingEnemy.hp <= 0 
+                        : (existingEnemy.hp.current !== undefined && existingEnemy.hp.current <= 0));
+
                 if (enemyHpCurrent !== undefined && enemyHpCurrent <= 0) {
                     log.debug('Skipping dead enemy from adventure data', {
                         module: 'CombatInitializer',
-                        enemyId: id,
+                        enemyId: found.id,
                         hp: enemyHpCurrent,
                     });
-                } else if (!existingEnemy || (existingEnemy.hp && existingEnemy.hp.current > 0)) {
+                } else if (!existingEnemy || !isExistingEnemyDead) {
                     combatantData.push({ ...found, entityType: 'monster', name: found.name, controlledBy: 'AI' });
                 } else {
                     log.debug('Skipping dead enemy in combat initiation', {
                         module: 'CombatInitializer',
-                        enemyId: id,
-                        hp: existingEnemy.hp?.current || 0,
+                        enemyId: found.id,
+                        hp: typeof existingEnemy.hp === 'number' ? existingEnemy.hp : (existingEnemy.hp?.current || 0),
                     });
                 }
             } else {
@@ -189,7 +233,7 @@ export class EnemyValidator {
             const newEnemy = {
                 uniqueId: enemy.uniqueId,
                 id: enemy.uniqueId, // Use uniqueId as id to match initiativeOrder
-                adventureId: enemy.id, // Preserve original adventure entity ID
+                adventureId: enemy.adventureId || enemy.id, // Preserve original adventure entity ID
                 name: enemy.name,
                 color: '#ef4444',
                 hp: { current: hpValue, max: hpMax },

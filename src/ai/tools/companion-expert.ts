@@ -11,6 +11,7 @@ import { characterLookupTool } from './character-lookup';
 import { PartySchema, CharacterSchema } from '@/lib/schemas';
 import { log } from '@/lib/logger';
 import { executePromptWithRetry } from '../flows/retry-utils';
+import { SkillCheckResultSchema } from '../flows/schemas';
 
 const CompanionExpertInputSchema = z.object({
     party: PartySchema.describe("The array of character objects for the entire party."),
@@ -19,6 +20,10 @@ const CompanionExpertInputSchema = z.object({
     inCombat: z.boolean().describe("Whether the party is currently in combat."),
     reactionTiming: z.enum(['before_dm', 'after_dm']).optional().describe("When this reaction is being generated: 'before_dm' (reacting to player's proposal) or 'after_dm' (reacting to what just happened)."),
     chatHistory: z.string().optional().describe("The recent chat history (last 8-10 messages) to provide context."),
+    locationContext: z.string().optional().describe("The description or details of the current location."),
+    presentEntities: z.array(z.any()).optional().describe("The list of entities (NPCs, items, monsters) present in the location."),
+    activeEffects: z.array(z.string()).optional().describe("The active world or magical effects (e.g. ['speak_with_animals'])."),
+    skillCheckResult: SkillCheckResultSchema.optional().describe("Optional result of a mechanical skill check resolved prior to narration."),
 });
 
 const CompanionExpertOutputSchema = z.object({
@@ -35,6 +40,10 @@ const reactionGenerationPrompt = ai.definePrompt({
             chatHistory: z.string().optional(),
             isBeforeDm: z.boolean().optional(),
             isAfterDm: z.boolean().optional(),
+            locationContext: z.string().optional(),
+            presentEntities: z.array(z.any()).optional(),
+            activeEffects: z.array(z.string()).optional(),
+            skillCheckResult: SkillCheckResultSchema.optional(),
         })
     },
     output: { schema: CompanionExpertOutputSchema },
@@ -47,6 +56,31 @@ const reactionGenerationPrompt = ai.definePrompt({
     {{{json character}}}
     \`\`\`
     
+    {{#if locationContext}}
+    **Current Location Context:**
+    {{{locationContext}}}
+    {{/if}}
+
+    {{#if presentEntities}}
+    **Entities Present in the Location (NPCs, Monsters, Items):**
+    \`\`\`json
+    {{{json presentEntities}}}
+    \`\`\`
+    {{/if}}
+
+    {{#if activeEffects}}
+    **Active Magical/World Effects:**
+    - {{{json activeEffects}}}
+    {{/if}}
+
+    {{#if skillCheckResult}}
+    **Prueba de Habilidad Mecánica Reciente:**
+    - Habilidad: {{skillCheckResult.skill}} (CD {{skillCheckResult.dc}})
+    - Realizada por: {{skillCheckResult.characterName}}
+    - Resultado: {{#if skillCheckResult.isSuccess}}ÉXITO{{else}}FALLO{{/if}} (Total: {{skillCheckResult.rollTotal}})
+    - Justificación: {{skillCheckResult.reasoning}}
+    {{/if}}
+
     **Current Situation:**
     "{{{context}}}"
 
@@ -83,6 +117,10 @@ const reactionGenerationPrompt = ai.definePrompt({
     - Keep actions concise (1-2 sentences maximum).
     - If the character does nothing, return an empty string for the action inside the JSON object, like this: {"action": ""}.
     - DO NOT repeat what was already said or narrated. Add something NEW.
+    - **FACTUALITY & IDENTIFICATION:** If the player asks your character to examine, read, or identify an object, item, or scroll in the scene (or carried by an NPC), and you have that information in "Entities Present", you can help. However:
+      - **CRITICAL (SKILL CHECKS):** If identifying or understanding the object requires a skill check (such as Arcana, Investigation, History, etc.) and the result of that check is a **FALLO** or **FALLO CRÍTICO** (as specified in \`skillCheckResult\`), you **MUST NOT** reveal the object's true identity, name, or properties. You must remain in character and express doubt, confusion, lack of knowledge, or offer an incorrect guess (e.g., "Parece algún tipo de pergamino antiguo, pero los símbolos me resultan indescifrables...", "No reconozco esa escritura, Galador").
+      - Only reveal the true identity (e.g., "Es un Pergamino de Hablar con los Animales") if a skill check is successful, or if no check was required.
+    - **ACTIVE EFFECTS & COMMUNICATION BARRIERS:** If a communication effect like "speak_with_animals" is in the 'Active Magical/World Effects', any communication barriers listed in the entities' descriptions (such as carrying a scroll in their mouth, barking/bleating, or needing a spell to speak) are now bypassed for you. You can understand them and converse with them fully. Do NOT act as if you cannot understand them or as if they still need the scroll/spell read.
     `,
 });
 
@@ -135,6 +173,10 @@ export const companionExpertTool = ai.defineTool(
                     chatHistory: input.chatHistory,
                     isBeforeDm: input.reactionTiming === 'before_dm',
                     isAfterDm: input.reactionTiming === 'after_dm' || !input.reactionTiming,
+                    locationContext: input.locationContext,
+                    presentEntities: input.presentEntities,
+                    activeEffects: input.activeEffects,
+                    skillCheckResult: input.skillCheckResult,
                 },
                 { flowName: 'companionExpert' }
             );

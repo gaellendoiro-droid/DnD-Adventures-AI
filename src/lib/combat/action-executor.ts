@@ -198,11 +198,15 @@ export class CombatActionExecutor {
                 // Adjust damage dice notation for critical hits BEFORE rolling
                 let adjustedRollNotation = rollRequest.rollNotation;
                 if (isDamageRoll && wasCritical && action.type === 'attack') {
-                    // Parse the damage notation to extract die and modifier
-                    const match = rollRequest.rollNotation.match(/^(\d+d\d+)(?:\+(\d+))?$/);
+                    // Parse the damage notation to extract die and modifier (supporting positive and negative modifiers)
+                    // Clean spaces and potential duplicate signs like +- or -+
+                    const cleanNotation = rollRequest.rollNotation.replace(/\s+/g, '').replace(/\+-/g, '-').replace(/-\+/g, '-');
+                    const match = cleanNotation.match(/^(\d+d\d+)(?:([+-])(\d+))?$/);
                     if (match) {
                         const damageDie = match[1]; // e.g., "1d6"
-                        const damageMod = match[2] ? parseInt(match[2], 10) : 0;
+                        const sign = match[2];
+                        const val = match[3];
+                        const damageMod = sign && val ? (sign === '-' ? -parseInt(val, 10) : parseInt(val, 10)) : 0;
                         adjustedRollNotation = getCriticalDamageNotation(damageDie, damageMod, true);
 
                         log.debug('Doubling damage dice for crit outcome', {

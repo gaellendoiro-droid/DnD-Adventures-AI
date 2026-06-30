@@ -200,7 +200,7 @@ export const getCriticalDamageNotation = (damageDie: string, damageMod: number, 
     const diceMatch = damageDie.match(/^(\d+)d(\d+)$/);
 
     if (!diceMatch) {
-        return `${damageDie}+${damageMod}`;
+        return damageMod !== 0 ? (damageMod > 0 ? `${damageDie}+${damageMod}` : `${damageDie}${damageMod}`) : damageDie;
     }
 
     const numDice = parseInt(diceMatch[1], 10);
@@ -208,5 +208,9 @@ export const getCriticalDamageNotation = (damageDie: string, damageMod: number, 
 
     const finalNumDice = isCritical ? numDice * 2 : numDice;
 
-    return `${finalNumDice}d${dieType}+${damageMod}`;
+    if (damageMod === 0) {
+        return `${finalNumDice}d${dieType}`;
+    }
+    const modSign = damageMod > 0 ? '+' : '';
+    return `${finalNumDice}d${dieType}${modSign}${damageMod}`;
 };

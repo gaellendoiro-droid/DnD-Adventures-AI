@@ -1,0 +1,435 @@
+{
+    "adventureId": "la-caza-de-la-oveja-salvaje",
+    "title": "La Caza de la Oveja Salvaje",
+    "summary": "Mientras los aventureros disfrutan de un merecido descanso, una oveja frenética irrumpe en escena, portando un pergamino y una urgente petición de ayuda. Esta no es una oveja común, sino un mago transformado que necesita recuperar un poderoso artefacto mágico de su antiguo aprendiz. ¿Podrán los héroes desentrañar este misterio y ayudar al lanudo hechicero?",
+    "introductoryNarration": "Mientras los aventureros disfrutan de un merecido descanso, una oveja frenética irrumpe en escena, portando un pergamino y una urgente petición de ayuda. Esta no es una oveja común, sino un mago transformado que necesita recuperar un poderoso artefacto mágico de su antiguo aprendiz. ¿Podrán los héroes desentrañar este misterio y ayudar al lanudo hechicero?",
+    "system": "D&D 5e",
+    "levelRange": {
+        "start": 4,
+        "end": 5
+    },
+    "adventureLore": {
+        "background": "Finethir Shinebright, un maestro de la transmutación, fue traicionado por su aprendiz, Ahmed Noke. Noke, resentido por el trato infantil y la dependencia de Shinebright de una poderosa Vara de Polimorfia Verdadera, usó la vara para transformar a su maestro en una oveja. Durante dos años, Shinebright ha sido prisionero en su propio jardín, mientras Noke ha usurpado su torre y su reputación, volviéndose cada vez más paranoico y transformando a sus guardias en bestias. Shinebright logró escapar con un Pergamino de Hablar con los Animales y busca ayuda para recuperar la vara y su forma original.",
+        "adventureHooks": [
+            "Noticias Baaa-malas: Los personajes están disfrutando de una tarde tranquila en una ciudad o pueblo cuando una oveja frenética con un pergamino en la boca se les acerca, buscando al miembro más dotado mágicamente del grupo.",
+            "Rumores de Noke: Antes de que comience la aventura, los personajes pueden escuchar rumores sobre Ahmed Noke de tenderos y posaderos, quienes lo ven con una mezcla de miedo y asombro.",
+            "Contrato Prestigioso: Un grupo de mentirosos muy hábiles con un plan lo suficientemente astuto y una buena dosis de suerte podrían tentar a Noke con la oferta de un contrato particularmente prestigioso y lucrativo, atrayéndolo fuera de su torre."
+        ],
+        "secretsAndClues": [
+            "La oveja es en realidad Finethir Shinebright, un poderoso mago elfo transformado.",
+            "Los lobos y el oso pardo que acompañan a Guz son guardias polimorfos con mentes humanas inteligentes.",
+            "Ahmed Noke, el antiguo aprendiz de Shinebright, es el responsable de la transformación y ha robado la Vara de Polimorfia Verdadera.",
+            "Noke es paranoico y ha transformado a muchos de sus guardias en formas bestiales más fuertes.",
+            "La Vara de Polimorfia Verdadera ha sido modificada y es extremadamente inestable y peligrosa de usar.",
+            "Noke se transformará en una Cría de Dragón de Cama si se siente acorralado en su dormitorio.",
+            "Si la vara falla al ser usada por Noke, se transformará en una Boca Balbuceante.",
+            "Shinebright, a pesar de sus defectos, es de buen corazón y, si se le restaura, ayudará a los guardias polimorfos."
+        ],
+        "runningTheAdventure": "Tono: La aventura combina elementos de misterio, humor y acción, con un trasfondo de traición y ambición desmedida. El DM debe enfatizar la excentricidad de Shinebright y la paranoia de Noke.Encuentro con Guz: Guz (semiorco) está acompañado por tres Lobos con ojos extrañamente inteligentes y un Oso Pardo polimorfo. Guz prefiere la violencia, pero puede ser sobornado. Si no progresa, atacará sin previo aviso. Los Lobos intentarán flanquear para capturar a Shinebright (que usa las estadísticas de un Pony, pero con INT 18 y SAB 14). Los animales actúan inteligentemente.La Torre de Noke: Exterior: Tres Simios (MM p317) con grandes espadas de hierro y un Oso Pardo en el retrete. Los Simios usan sus grandes espadas, reemplazando su ataque de Puño por un ataque de Tajo que inflige 10 (2d6+3) de daño cortante. Huirán si caen por debajo de la mitad de sus puntos de golpe. Puerta Central: Cerrada con llave. Requiere una prueba de Fuerza (Atletismo) CD 14 para derribar o una prueba de Herramientas de Ladrón CD 12 para abrir. Noke: Débil ofensivamente, pero potencia a sus aliados. Lanzará Agrandar/Reducir (PHB p237) sobre el Oso Pardo para aumentar su daño y usará Rayo de Escarcha (PHB p271) para complementar los ataques de sus esbirros, concentrándose en mantener la concentración. Escape de Noke: Si la lucha se pierde o un jugador se acerca demasiado, Noke lanzará Retirada Expedita (PHB p238) y huirá a su dormitorio, cerrando la puerta. Lanzará Polimorfia Verdadera sobre su cama, transformándola en una Cría de Dragón de Cama. Cría de Dragón de Cama: AC 16, HP 75 (10d8+30), Velocidad 30ft., trepar 30ft., volar 30ft. Vulnerabilidad al daño por fuego. Ataque de Mordisco: +6 a impactar, 15 (2d10+4) daño perforante. Aliento de Astillas (Recarga 5-6): Cono de 15 pies, CD 13 de Destreza para mitad de 24 (7d6) daño perforante. Priorizará enemigos que usen fuego. Noke lo montará y usará Rayo de Escarcha. Transformación Final de Noke: Si la Cría de Dragón de Cama es destruida o Noke pierde la concentración, la vara sobrecargada fallará al intentar transformarse a sí mismo, convirtiéndolo en una Boca Balbuceante (MM p157).Vara de Polimorfia Verdadera Modificada: Contiene 1d4-1 cargas de Polimorfia Verdadera (mínimo 1). Se recargan al amanecer. Requiere 1 hora de sintonización para ser usada por cualquier lanzador de conjuros. Inspección (Inteligencia (Arcana) CD 15) revela que es inestable. Cada uso requiere una prueba de Inteligencia (Arcana) CD 17. Éxito: El conjuro se lanza normalmente. La CD para usarla permanentemente aumenta en 1. Fallo por 5 o menos: El objetivo se transforma en una Boca Balbuceante (MM p157). Esta transformación no puede deshacerse con conjuros de nivel inferior a 9 y no se cancela al perder la concentración. El objetivo puede hacer una tirada de salvación normal contra Polimorfia Verdadera. Fallo por más de 5: Además de lo anterior, la vara explota, infligiendo 1d12 de daño de fuerza a todas las criaturas en un radio de 10 pies por cada carga restante. La vara se destruye.Recompensas: Cada aventurero que ayude a Shinebright a lidiar con Noke recibe 500 XP.Consecuencias de la Vara: Éxito al restaurar a Shinebright: Felicita al grupo, pero no puede pagar recompensas monetarias (Noke estaba en bancarrota). Ofrecerá transmutaciones de hasta 5º nivel (cubriendo componentes) y ayudará a los guardias polimorfos. Fallo al restaurar a Shinebright: Shinebright muere permanentemente. El grupo puede saquear la torre (valorables: equipo de laboratorio y parafernalia arcana por ~1.000 gp). Pueden quedarse con la torre, lo que podría causar problemas con los nobles locales. Rechazo a restaurar a Shinebright: Shinebright acepta, recupera su hogar y busca otra forma de romper la maldición, reconociendo una gran deuda con el grupo.",
+        "storyline": [
+            {
+                "eventName": "Encuentro con la Oveja Frenética",
+                "triggerCondition": "Los personajes están en un momento de ocio en una ciudad o pueblo.",
+                "description": "Un balido frenético y el sonido de cascos anuncian la llegada de una oveja común, pero con un pergamino en la boca. La oveja se acerca al personaje más dotado mágicamente, ofreciéndole el pergamino. Si lo leen en voz alta, la oveja revela ser Finethir Shinebright, un mago elfo transformado, que pide ayuda para recuperar un artefacto mágico de un mago peligroso.",
+                "consequences": "Poco después de que Shinebright comience su historia, se escuchan aullidos, anunciando la llegada de Guz."
+            },
+            {
+                "eventName": "La Persecución de Guz",
+                "triggerCondition": "Shinebright comienza a contar su historia.",
+                "description": "Un semiorco enorme, Guz, se abre paso entre la multitud, acompañado por tres Lobos con collares de hierro y una figura corpulenta con una capa marrón. Guz exige la 'oveja del Maestro Noke', afirmando que tiene un gran valor 'sent-ee-ment-all'. Se niega a creer en la verdadera naturaleza de Shinebright y prefiere la intimidación. Puede ofrecer sobornos si la situación lo requiere.",
+                "consequences": "Si los personajes se niegan a entregar a Shinebright o la negociación falla, Guz atacará. Si Guz captura a Shinebright, él y sus aliados se dirigirán a la casa de Noke, iniciando una posible escena de persecución."
+            },
+            {
+                "eventName": "La Historia de Shinebright",
+                "triggerCondition": "Guz y sus secuaces son derrotados o ahuyentados.",
+                "description": "Shinebright suplica la ayuda del grupo, explicando que sin ellos está condenado. Promete grandes recompensas (aunque no puede cumplirlas monetariamente). Revela que era un mago de transmutación, dueño de una Vara de Polimorfia Verdadera, hasta que su aprendiz, Ahmed Noke, lo transformó en oveja. Explica su escape y la necesidad de la vara para volver a su forma original. Describe la ubicación y el diseño de la torre de Noke.",
+                "consequences": "Los personajes tienen la información necesaria para dirigirse a la torre de Noke."
+            },
+            {
+                "eventName": "El Camino a la Torre de Noke",
+                "triggerCondition": "Los personajes deciden ir a la torre de Noke.",
+                "description": "El camino se desvía de la carretera principal, serpenteando entre robles. Se pueden ver huellas de pies y patas, algunas frescas, que coinciden con el grupo de Guz. La torre de Noke, construida con ramas vivas de robles, aparece a través de los árboles, con tres plataformas a diferentes alturas y dos cabañas y un retrete debajo.",
+                "consequences": "Los personajes llegan al complejo de la torre, donde se encuentran con los guardias polimorfos de Noke."
+            },
+            {
+                "eventName": "Encuentro en la Torre de Noke (Exterior)",
+                "triggerCondition": "Los personajes llegan al complejo de la torre.",
+                "description": "Un trío de Simios duerme o juega en el césped con grandes espadas de hierro clavadas en el suelo. Un Oso Pardo está en el retrete. Si los personajes son sigilosos, pueden intentar pasar desapercibidos.",
+                "consequences": "Si los guardias son alertados, se inicia el combate. Si los personajes logran entrar sin ser detectados, pueden sorprender a Noke."
+            },
+            {
+                "eventName": "Confrontación con Ahmed Noke (Plataforma Central)",
+                "triggerCondition": "Los personajes entran en la plataforma central de la torre.",
+                "description": "Noke está trabajando furiosamente en nuevos conjuros. Si los detecta, les ordenará 'devolver la oveja' o los destruirá. Puede revelar su resentimiento hacia Shinebright y jactarse de sus logros. Preguntará por Guz y se molestará si está muerto. Si se niegan a devolver a Shinebright, ordenará a sus hombres que ataquen. Noke es débil en combate directo, pero potencia a sus aliados.",
+                "consequences": "Se inicia el combate. Noke intentará escapar si se siente acorralado."
+            },
+            {
+                "eventName": "La Cría de Dragón de Cama",
+                "triggerCondition": "Noke se siente acorralado o un personaje se acerca demasiado a él durante el combate en la plataforma central.",
+                "description": "Noke lanza Retirada Expedita y huye a su dormitorio, cerrando la puerta. Tres asaltos después, irrumpe desde el techo de su dormitorio montando una Cría de Dragón de Cama, una bestia de madera con sábanas como alas. Atacará a los personajes, priorizando a quienes usen fuego.",
+                "consequences": "Combate contra Noke y la Cría de Dragón de Cama. Si la Cría es destruida o Noke pierde la concentración, la cama vuelve a su forma original."
+            },
+            {
+                "eventName": "El Destino de Noke",
+                "triggerCondition": "La Cría de Dragón de Cama es derrotada o Noke pierde la concentración.",
+                "description": "Desesperado, Noke intenta usar la vara en sí mismo para transformarse en una criatura monstruosa. Sin embargo, la vara sobrecargada chisporrotea y falla con un fuerte estallido, transformándolo en una Boca Balbuceante, una masa de carne deforme que ataca sin pensar.",
+                "consequences": "Combate final contra la Boca Balbuceante. Una vez derrotado, los personajes pueden recuperar la Vara de Polimorfia Verdadera."
+            },
+            {
+                "eventName": "El Dilema de la Vara",
+                "triggerCondition": "Los personajes recuperan la Vara de Polimorfia Verdadera.",
+                "description": "La vara está dañada y es inestable. Una prueba de Inteligencia (Arcana) CD 15 revela su peligrosidad. Shinebright, al ver el cadáver de Noke, puede reflexionar sobre su trato hacia su aprendiz. A pesar de los riesgos, Shinebright querrá usar la vara para volver a su forma élfica. Los personajes pueden intentar persuadirlo (prueba de Carisma (Persuasión) CD 15).",
+                "consequences": "Si tienen éxito al restaurar a Shinebright, este vuelve a su forma élfica y ofrece servicios. Si fallan, Shinebright muere. Si se niegan, Shinebright acepta, recupera su hogar y busca otra forma de romper la maldición."
+            }
+        ]
+    },
+    "settings": {
+        "startingLocationId": "ciudad-inicial",
+        "initialPartySize": 4
+    },
+    "credits": {
+        "author": "Gemini PDF Parser",
+        "source": "the-wild-sheep-chase.pdf"
+    },
+    "locations": [
+        {
+            "id": "ciudad-inicial",
+            "name": "Ciudad Inicial",
+            "description": "Una bulliciosa ciudad o un tranquilo pueblo, con sus calles adoquinadas y edificios de piedra o madera. El aire se llena con los sonidos cotidianos de la vida urbana: el parloteo de los mercaderes, el tintineo de las herraduras y el murmullo constante de la gente. Es un lugar donde los aventureros pueden encontrar un respiro o, como en este caso, ser arrastrados a una nueva aventura.",
+            "explorationMode": "safe",
+            "lightLevel": "bright",
+            "dmNotes": "Esta es la ubicación genérica donde los PJs comienzan la aventura. El encuentro con Shinebright y Guz puede ocurrir en una posada, en la calle o en su base. Guz está acompañado por tres Lobos con ojos extrañamente inteligentes y una figura encapuchada que es un Oso Pardo polimorfado. Guz exige la oveja de Noke y atacará si no la obtiene. Los lobos intentarán capturar a Shinebright. La verdadera naturaleza de los animales es un secreto para el DM.",
+            "entitiesPresent": [
+                "oveja-finethir",
+                "guz",
+                "lobo-polimorfo",
+                "lobo-polimorfo",
+                "lobo-polimorfo",
+                "oso-pardo-polimorfo"
+            ],
+            "hazards": [],
+            "interactables": [],
+            "connections": [
+                {
+                    "targetId": "torre-de-noke",
+                    "description": "Siguiendo el rastro de la oveja y la petición de ayuda, os dirigís hacia una torre peculiar que se alza en la distancia.",
+                    "direction": "fuera",
+                    "travelTime": "Varias horas de viaje a pie o a caballo."
+                }
+            ]
+        },
+        {
+            "id": "torre-de-noke",
+            "name": "Torre de Noke",
+            "description": "Ante vosotros se alza una estructura singular, no de piedra ni cristal, sino formada por las ramas vivas de cuatro robustos robles. Estas se han moldeado y entrelazado para crear tres plataformas gruesas que se elevan hacia el cielo. Alrededor de la base, las ramas se curvan, formando una especie de cuenco natural. En el césped, varios simios juegan o duermen con grandes espadas de hierro clavadas en el suelo.",
+            "explorationMode": "dungeon",
+            "lightLevel": "bright",
+            "connections": [
+                {
+                    "targetId": "ciudad-inicial",
+                    "description": "Volviendo por el camino que lleva de regreso a la ciudad.",
+                    "direction": "fuera",
+                    "travelTime": "Varias horas de viaje a pie o a caballo."
+                },
+                {
+                    "targetId": "plataforma-inferior-jardin",
+                    "description": "Ascendiendo por las ramas entrelazadas que forman la base de la torre hacia la primera plataforma elevada.",
+                    "direction": "arriba",
+                    "travelTime": "Unos minutos de escalada."
+                },
+                {
+                    "targetId": "cabanas-guardias",
+                    "description": "Acercándose a las pequeñas cabañas de madera dispersas bajo las plataformas principales.",
+                    "direction": "dentro",
+                    "travelTime": "Unos instantes."
+                },
+                {
+                    "targetId": "retrete-exterior",
+                    "description": "Dirigiéndose hacia la caseta exterior, apartada de las plataformas principales.",
+                    "direction": "fuera",
+                    "travelTime": "Unos instantes."
+                }
+            ],
+            "dmNotes": "Esta es la vista general del complejo de la torre. Los PJs llegan aquí después de seguir el camino desde la ciudad. Los simios son guardias polimorfados y atacarán si los PJs intentan pasar sin ser detectados o si Noke los alerta.",
+            "entitiesPresent": [
+                "simio-polimorfo",
+                "simio-polimorfo",
+                "simio-polimorfo"
+            ],
+            "hazards": [],
+            "interactables": [],
+            "mapData": {
+                "imagePath": "adventures/la-caza-de-la-oveja-salvaje/maps/torre-de-noke.png",
+                "spatialData": {
+                    "dimensions": {
+                        "width": 60,
+                        "height": 45,
+                        "scale": "1 cuadrícula = 5 pies"
+                    }
+                }
+            }
+        },
+        {
+            "id": "plataforma-inferior-jardin",
+            "name": "Plataforma Inferior (Jardín)",
+            "description": "Esta plataforma, de unos 12 metros de ancho, se encuentra a unos 3 metros del suelo. Las ramas se curvan alrededor de su base, creando una forma de cuenco natural. Desde aquí, se pueden ver flores y pequeños árboles creciendo en sus bordes, dando la impresión de un jardín elevado.",
+            "explorationMode": "dungeon",
+            "lightLevel": "bright",
+            "connections": [
+                {
+                    "targetId": "torre-de-noke",
+                    "description": "Descendiendo de la plataforma inferior al suelo, de vuelta a la base de la torre.",
+                    "direction": "abajo",
+                    "travelTime": "Unos minutos de descenso."
+                },
+                {
+                    "targetId": "plataforma-central",
+                    "description": "Intentando acceder a la plataforma central a través de la puerta que conecta ambos niveles.",
+                    "direction": "arriba",
+                    "isLocked": true,
+                    "travelTime": "Unos instantes."
+                }
+            ],
+            "dmNotes": "Aquí es donde Shinebright fue prisionero y forzado a pastar. La puerta a la plataforma central está casi siempre cerrada con llave (CD 14 Fuerza (Atletismo) para derribar o CD 12 Herramientas de Ladrón para forzar).",
+            "entitiesPresent": [],
+            "hazards": [],
+            "interactables": []
+        },
+        {
+            "id": "plataforma-central",
+            "name": "Plataforma Central (Biblioteca y Estancia)",
+            "description": "La más grande de las tres plataformas, de unos 18 metros de ancho, se eleva a unos 6 metros del suelo. Está completamente cerrada por una pared de ramas retorcidas, con huecos espaciados uniformemente que sirven de ventanas. En su interior, el espacio se divide en tres secciones: una combinación de biblioteca y laboratorio, una sala de estar y un comedor/cocina. Estanterías desordenadas cubren gran parte de las paredes exteriores, y las mesas de trabajo están repletas de notas manchadas de tinta y complicados diagramas anatómicos de diversas bestias y monstruos.",
+            "explorationMode": "dungeon",
+            "lightLevel": "dim",
+            "connections": [
+                {
+                    "targetId": "plataforma-inferior-jardin",
+                    "description": "Descendiendo a la plataforma inferior, el jardín elevado.",
+                    "direction": "abajo",
+                    "travelTime": "Unos instantes."
+                },
+                {
+                    "targetId": "plataforma-superior-dormitorio",
+                    "description": "Subiendo a la plataforma más alta, que parece ser el dormitorio de Noke.",
+                    "direction": "arriba",
+                    "travelTime": "Unos instantes."
+                }
+            ],
+            "dmNotes": "Noke se encuentra aquí trabajando en nuevos hechizos. Si los PJs se acercan, les ordenará que devuelvan la oveja. Contiene un Pergamino de Hablar con los Animales. Noke es ofensivamente débil pero puede potenciar a sus aliados. Si la lucha va mal, huirá a su dormitorio y se encerrará.",
+            "entitiesPresent": [
+                "ahmed-noke",
+                "boca-balbuceante"
+            ],
+            "hazards": [],
+            "interactables": [
+                {
+                    "name": "Estanterías y Mesas de Trabajo",
+                    "description": "Estanterías desordenadas llenas de libros y mesas cubiertas con notas manchadas de tinta y diagramas anatómicos.",
+                    "interactionResults": [
+                        {
+                            "action": "Buscar",
+                            "result": "Tras una rápida búsqueda entre el desorden, encuentras un viejo pergamino. Parece ser otro 'Pergamino de Hablar con los Animales'."
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "plataforma-superior-dormitorio",
+            "name": "Plataforma Superior (Dormitorio de Noke)",
+            "description": "La plataforma más alta, a unos 9 metros del suelo, es considerablemente más pequeña que las otras. Funciona como el dormitorio de Noke, conteniendo poco más que un armario, una gran cama de madera y un tocador desordenado.",
+            "explorationMode": "dungeon",
+            "lightLevel": "dim",
+            "connections": [
+                {
+                    "targetId": "plataforma-central",
+                    "description": "Descendiendo a la plataforma central, donde se encuentran la biblioteca y la estancia.",
+                    "direction": "abajo",
+                    "travelTime": "Unos instantes."
+                }
+            ],
+            "dmNotes": "Aquí es donde Noke se retirará si la lucha va mal, transformando su cama en un Dragón de Cama. La cama es el objeto que Noke transformará.",
+            "entitiesPresent": [
+                "cria-de-dragon-de-cama"
+            ],
+            "hazards": [],
+            "interactables": [
+                {
+                    "name": "Cama de Madera",
+                    "description": "Una cama de madera grande y robusta, con sábanas y almohadas.",
+                    "interactionResults": []
+                },
+                {
+                    "name": "Armario",
+                    "description": "Un armario de madera sencillo.",
+                    "interactionResults": []
+                },
+                {
+                    "name": "Tocador Desordenado",
+                    "description": "Un tocador cubierto de objetos personales y papeles.",
+                    "interactionResults": []
+                }
+            ]
+        },
+        {
+            "id": "cabanas-guardias",
+            "name": "Cabañas de los Guardias",
+            "description": "Dispersas bajo las plataformas principales, hay dos pequeñas cabañas de madera. Cada una contiene una o dos camas, algunas de ellas de tamaño considerable, junto con los objetos personales y el desorden habitual de los hombres comunes que las ocupan.",
+            "explorationMode": "dungeon",
+            "lightLevel": "dim",
+            "connections": [
+                {
+                    "targetId": "torre-de-noke",
+                    "description": "Saliendo de las cabañas y volviendo al exterior de la torre principal.",
+                    "direction": "fuera",
+                    "travelTime": "Unos instantes."
+                }
+            ],
+            "dmNotes": "Estas cabañas sirven como alojamiento para los guardias de Noke. No hay guardias presentes en el momento de la llegada de los PJs.",
+            "entitiesPresent": [],
+            "hazards": [],
+            "interactables": []
+        },
+        {
+            "id": "retrete-exterior",
+            "name": "Retrete Exterior",
+            "description": "Una caseta exterior grande y sencilla, apartada de las plataformas principales. Su propósito es evidente por su ubicación y diseño rústico.",
+            "explorationMode": "dungeon",
+            "lightLevel": "dim",
+            "connections": [
+                {
+                    "targetId": "torre-de-noke",
+                    "description": "Saliendo del retrete exterior y volviendo al área de la torre.",
+                    "direction": "fuera",
+                    "travelTime": "Unos instantes."
+                }
+            ],
+            "dmNotes": "Un Oso Pardo polimorfado está dentro, ocupado. Es un guardia de Noke.",
+            "entitiesPresent": [
+                "oso-pardo-polimorfo"
+            ],
+            "hazards": [],
+            "interactables": []
+        }
+    ],
+    "entities": [
+        {
+            "id": "oveja-finethir",
+            "name": "Oveja",
+            "type": "npc",
+            "description": "Una oveja de lana blanca y cara negra, con cuernos rizados, que lleva un pergamino en la boca.",
+            "dmNotes": "Es Finethir Shinebright, un mago elfo transmutador de gran talento, transformado en oveja por su antiguo aprendiz, Ahmed Noke. Busca ayuda para recuperar su forma original y su varita.",
+            "roleplay": {
+                "personality": "Arrogante, egocéntrico y con un sentido inflado de su propio ego. A pesar de sus defectos, es de buen corazón y, si no le incomoda demasiado, intentará ayudar a los demás. Se queja ruidosamente de la incapacidad de otros para comprender conceptos complejos.",
+                "voiceAndMannerisms": "Su balido se transforma en un Común culto con acento élfico, aunque con un ligero matiz de balido. Gesticula con la cabeza y el pergamino.",
+                "goals": "Recuperar su Varita de Polimorfismo Verdadero de Ahmed Noke para volver a su forma élfica. Quiere que los aventureros le ayuden a derrotar a Noke y recuperar la varita.",
+                "communicationBarrier": "Lleva un Pergamino de Hablar con los Animales en la boca y necesita que alguien lo use para comunicarse. Sin el pergamino, solo puede balar.",
+                "possessions": [
+                    "Pergamino de Hablar con los Animales (Modificado)"
+                ],
+                "secretsKnown": [
+                    "Ahmed Noke es su antiguo aprendiz",
+                    "Noke le transformó con su propia varita",
+                    "La varita de Polimorfismo Verdadero es la clave de su éxito",
+                    "Noke vive en su antigua torre"
+                ]
+            }
+        },
+        {
+            "id": "ahmed-noke",
+            "name": "Ahmed Noke",
+            "type": "npc",
+            "description": "Un mago humano, antiguo aprendiz de Finethir Shinebright. Paranoico y ambicioso, se ha establecido como un maestro transmutador.",
+            "dmNotes": "Noke hero-adoraba a Shinebright, pero se resintió por ser tratado como un niño durante décadas y por la dependencia de Shinebright de la Varita de Polimorfismo Verdadero. Su culpa y ambición desatada han afectado su estado mental, volviéndolo paranoico. Es débil ofensivamente pero puede potenciar a sus aliados.",
+            "roleplay": {
+                "personality": "Paranoico, ambicioso, resentido y con un ego frágil. Se jacta de sus logros y se molesta si sus 'hombres' son heridos. Puede ser confundido por enemigos de habla rápida.",
+                "voiceAndMannerisms": "Habla de forma inconexa, jactándose de sus logros. Puede usar palabras complicadas que ha oído de Shinebright, aunque no siempre las entiende.",
+                "goals": "Mantener su posición como maestro mago y la Varita de Polimorfismo Verdadero. Quiere que le devuelvan a la oveja (Shinebright) y eliminar cualquier amenaza a su poder.",
+                "secretsKnown": [
+                    "Transformó a Shinebright en una oveja",
+                    "La Varita de Polimorfismo Verdadero es la fuente de gran parte del poder de Shinebright",
+                    "Tiene guardias polimorfos",
+                    "La varita está modificada y es inestable"
+                ]
+            }
+        },
+        {
+            "id": "guz",
+            "name": "Guz",
+            "type": "npc",
+            "description": "Un semi-orco corpulento y bruto, con ojos pequeños. Es muy leal a Ahmed Noke.",
+            "dmNotes": "No es muy brillante, pero es leal y decidido a completar su tarea. Prefiere la violencia y la intimidación, pero está dispuesto a ofrecer sobornos o favores mágicos si es necesario. Puede ser fácilmente confundido por enemigos de habla rápida, lo que lo enfurece.",
+            "roleplay": {
+                "personality": "Bruto, intimidante, leal a Noke. Asume que la mayoría de la gente comparte su visión de la violencia como método. Intenta usar palabras complicadas que ha oído de Noke.",
+                "voiceAndMannerisms": "Habla con gritos enojados y un tono demandante. Se pavonea y apoya una mano en la empuñadura de su mandoble.",
+                "goals": "Recuperar la oveja (Finethir Shinebright) para su maestro, Ahmed Noke. No aceptará un 'no' por respuesta."
+            }
+        },
+        {
+            "id": "lobo-polimorfo",
+            "name": "Lobo Polimorfo",
+            "type": "monster",
+            "baseType": "Wolf",
+            "description": "Un lobo con un collar de hierro y ojos extrañamente inteligentes. En realidad, es un guardia de Noke transformado.",
+            "dmNotes": "Estos lobos son guardias de Noke transformados. Conservan una mente humana inteligente y actúan de forma astuta. Su objetivo es capturar a Shinebright, no matarlo.",
+            "roleplay": {
+                "personality": "Astuto e inteligente, a pesar de su forma animal. Leal a Noke.",
+                "voiceAndMannerisms": "Se comunica con aullidos y gruñidos, pero sus ojos revelan una inteligencia inusual.",
+                "goals": "Capturar a la oveja (Shinebright) y llevarla de vuelta a Noke."
+            }
+        },
+        {
+            "id": "oso-pardo-polimorfo",
+            "name": "Oso Pardo Polimorfo",
+            "type": "monster",
+            "baseType": "Brown Bear",
+            "description": "Una figura enorme y corpulenta con una capa marrón sucia, que en realidad es un oso pardo transformado. Tiene una mente humana inteligente.",
+            "dmNotes": "Este oso es un guardia de Noke transformado. Conserva una mente humana inteligente y actúa de forma astuta. Lucha junto a Guz en la línea frontal.",
+            "roleplay": {
+                "personality": "Feroz y leal a Noke, a pesar de su forma animal. Actúa con inteligencia en combate.",
+                "voiceAndMannerisms": "Se comunica con rugidos terribles y gruñidos. Sus movimientos son pesados y decididos.",
+                "goals": "Proteger a Guz y ayudar a capturar a la oveja (Shinebright) para Noke."
+            }
+        },
+        {
+            "id": "simio-polimorfo",
+            "name": "Simio Polimorfo",
+            "type": "monster",
+            "baseType": "Ape",
+            "description": "Un simio que está durmiendo o jugando con dados de gran tamaño en el césped, con un mandoble de hierro clavado a su lado. Es un guardia de Noke transformado.",
+            "dmNotes": "Estos simios son guardias de Noke transformados. Actúan de forma inteligente y usan mandobles. No lucharán hasta la muerte.",
+            "roleplay": {
+                "personality": "Inteligente y astuto, aunque en forma animal. No es propenso a luchar hasta la muerte.",
+                "voiceAndMannerisms": "Se comunica con gritos y gestos propios de un simio, pero sus acciones revelan una mente pensante.",
+                "goals": "Proteger la torre de Noke y atacar a los intrusos, pero prioriza su propia supervivencia."
+            }
+        },
+        {
+            "id": "cria-de-dragon-de-cama",
+            "name": "Cría de Dragón de Cama",
+            "type": "monster",
+            "baseType": "Bed Dragon Wyrmling",
+            "description": "Una bestia que parece un dragón tallado en madera, con sábanas ondeantes por alas y una cola que termina en una almohada suave. Es la cama de Noke transformada por Polimorfismo Verdadero.",
+            "dmNotes": "Esta criatura es la cama de Noke, transformada por Polimorfismo Verdadero. No es muy inteligente y priorizará a los enemigos que usen fuego contra ella. Si Noke pierde la concentración o es destruida, volverá a ser una cama vieja y maltrecha.",
+            "roleplay": {
+                "personality": "No es muy inteligente, actúa por instinto y las órdenes de Noke.",
+                "voiceAndMannerisms": "Emite sonidos chirriantes y crujidos de madera, con el batir de sus 'alas' de sábanas.",
+                "goals": "Atacar a los enemigos de Noke y protegerlo."
+            }
+        },
+        {
+            "id": "boca-balbuceante",
+            "name": "Boca Balbuceante",
+            "type": "monster",
+            "baseType": "Gibbering Mouther",
+            "description": "Un montón de carne deforme que ruge incoherentemente desde docenas de bocas. Es la forma en que Noke se transforma debido a un mal funcionamiento de la varita.",
+            "dmNotes": "Esta es la forma final de Noke si la varita falla al intentar transformarse. Ataca sin pensar hasta que es completamente destruida. Esta transformación no puede deshacerse con hechizos de nivel inferior a 9.",
+            "roleplay": {
+                "personality": "Completamente enloquecida y sin mente, solo impulsada por la agresión.",
+                "voiceAndMannerisms": "Brama incoherentemente desde docenas de bocas, sin capacidad de comunicación.",
+                "goals": "Atacar sin pensar al objetivo más cercano hasta ser destruida."
+            }
+        }
+    ],
+    "items": []
+}

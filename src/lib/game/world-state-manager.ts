@@ -29,6 +29,9 @@ export class WorldStateManager {
      * Obtiene el estado mutable de una ubicación. Si no existe, lo crea (lazy initialization).
      */
     static getLocationState(world: WorldState, locationId: string): LocationState {
+        if (!world.locations) {
+            world.locations = {};
+        }
         if (!world.locations[locationId]) {
             world.locations[locationId] = createInitialLocationState();
         }
@@ -142,12 +145,55 @@ export class WorldStateManager {
             }
         }
 
-        // 2. Determinar estado de puertas/conexiones
-        // Al devolver la location, podríamos inyectar info de puertas abiertas/cerradas para que el frontend/IA lo sepa
-        // TODO: Implementar fusión de conexiones si es necesario para el contexto
+        const location = JSON.parse(JSON.stringify(staticLocation));
+
+        // 2. Determinar estado de interactuables y conexiones si ya se ha visitado
+        if (locState) {
+            // A. Fusionar Interactables (cofres, palancas)
+            if (location.interactables && locState.interactables) {
+                location.interactables = location.interactables.map((interactable: any) => {
+                    const key = interactable.id || interactable.name;
+                    const dynamicInt = key ? locState.interactables[key] : undefined;
+                    if (dynamicInt) {
+                        const updated = {
+                            ...interactable,
+                            state: dynamicInt.state
+                        };
+                        if (dynamicInt.items !== undefined) {
+                            updated.items = dynamicInt.items;
+                        } else if (dynamicInt.state === 'looted') {
+                            updated.items = [];
+                        }
+                        return updated;
+                    }
+                    return interactable;
+                });
+            }
+
+            // B. Fusionar Conexiones (puertas/caminos)
+            if (location.connections && locState.connections) {
+                location.connections = location.connections.map((conn: any) => {
+                    const dynamicConn = locState.connections[conn.direction || ''] || locState.connections[conn.targetId || ''];
+                    if (dynamicConn) {
+                        return {
+                            ...conn,
+                            isOpen: dynamicConn.isOpen,
+                            isLocked: dynamicConn.isLocked,
+                            isBlocked: dynamicConn.isBlocked
+                        };
+                    }
+                    return conn;
+                });
+            }
+
+            // C. Fusionar droppedItems
+            if (locState.droppedItems) {
+                location.droppedItems = locState.droppedItems;
+            }
+        }
 
         return {
-            location: staticLocation,
+            location,
             enemies: effectiveEnemies,
             isFirstVisit: !locState?.visited
         };

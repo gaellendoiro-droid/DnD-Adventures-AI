@@ -25,14 +25,18 @@ vi.mock('../../src/lib/combat/combat-initializer', () => {
     };
 });
 
-vi.mock('../../src/ai/tools/dice-roller', () => ({
-    diceRollerTool: vi.fn().mockResolvedValue({
+vi.mock('../../src/ai/tools/dice-roller', () => {
+    const mockFn = vi.fn().mockResolvedValue({
         totalResult: 15,
         outcome: 'success',
         rollNotation: '1d20',
         individualRolls: [{ result: 15 }]
-    })
-}));
+    });
+    return {
+        diceRollerTool: mockFn,
+        rollDiceTool: mockFn
+    };
+});
 
 vi.mock('../../src/ai/flows/narrative-manager', () => ({
     narrativeExpert: vi.fn().mockResolvedValue({

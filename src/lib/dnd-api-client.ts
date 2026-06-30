@@ -254,9 +254,6 @@ export async function fetchResource(
         return cached;
     }
 
-    // Pre-warm antes de la primera llamada real
-    await ensureDndApiPrewarmed();
-
     // Check if there's already a pending request for this resource
     if (pendingRequests.has(cacheKey)) {
         log.debug('Waiting for pending request for D&D API resource', {
@@ -270,6 +267,9 @@ export async function fetchResource(
 
     // Create a new request and cache the promise
     const requestPromise = (async () => {
+        // Pre-warm antes de la primera llamada real
+        await ensureDndApiPrewarmed();
+
         const formattedName = formatQueryForUrl(normalizedName);
         const url = `${BASE_URL}/${resourceType}/${formattedName}`;
 
@@ -413,9 +413,6 @@ export async function searchResource(
         return cached;
     }
 
-    // Pre-warm antes de la primera llamada real
-    await ensureDndApiPrewarmed();
-
     // Check if there's already a pending request for this search
     if (pendingRequests.has(cacheKey)) {
         log.debug('Waiting for pending request for D&D API search', {
@@ -429,6 +426,9 @@ export async function searchResource(
 
     // Create a new request and cache the promise
     const requestPromise = (async () => {
+        // Pre-warm antes de la primera llamada real
+        await ensureDndApiPrewarmed();
+
         const formattedQuery = formatQueryForUrl(normalizedQuery);
 
         try {

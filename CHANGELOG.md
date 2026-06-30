@@ -11,6 +11,160 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+### Added
+- **🎙️ Integración de Gemini 3.1 Flash TTS:** Integrado el modelo `gemini-3.1-flash-tts-preview` como nuevo proveedor de Text-to-Speech (TTS) nativo y por defecto. Permite alternar dinámicamente entre Gemini y Eleven Labs mediante la variable de entorno `TTS_PROVIDER`.
+    - ✅ **Conversión Nativa a WAV:** Implementada una envoltura en el backend que añade una cabecera WAV de 44 bytes a las muestras PCM crudas (`audio/l16`) devueltas por Gemini, corrigiendo los errores `NotSupportedError` del navegador.
+    - ✅ **Dirección Artística por Prompt:** Integrado el soporte de directrices mediante "Audio Profile" y "Director's Notes" (`GEMINI_TTS_PROFILE`, `GEMINI_TTS_STYLE`, `GEMINI_TTS_PACE`, `GEMINI_TTS_ACCENT` en `.env`) que formatean el prompt del transcriptor de forma estructurada sin interferir con la narración, permitiendo modular la voz (ej: voz de Enceladus, anciana y profunda).
+- **📚 Resubida Automática de Manuales (File API):** Creado el servicio `RulebookManager` que valida el estado de los archivos de manuales subidos en Gemini y, si han caducado (error 403/404), resube automáticamente los PDFs locales ubicados en `knowledge/source_books/` a Google AI Studio. Guarda la configuración en `knowledge/file-api-cache.json` y maneja bloqueos de subidas concurrentes.
+
+### Fixed
+- **📜 Fallback y Continuidad en el Motor de Reglas (GameRulesEngine):** Corregido un fallo crítico en el bucle de evaluación de `GameRulesEngine` (`rules-engine.ts`) donde cualquier módulo que coincidiera en `canHandle` detenía la cadena de evaluación incluso si retornaba `intercepted: false`. Esto hacía que acciones como "dar el pergamino a Merryl" fueran pre-seleccionadas por `ScrollRuleModule` (al mencionar la palabra "pergamino") pero no interceptadas por este, impidiendo que `InventoryRuleModule` se evaluase y bloqueando la transferencia física del pergamino entre inventarios. Ahora el motor de reglas continúa con el resto de módulos de la lista si el módulo actual no intercepta la acción.
+- **🤖 Solución a Fallos de Validación de Esquema en Interacción (Gemini structured outputs):** Simplificado el campo `attitudeChange` en `InteractionExpertOutputSchema` (`schemas.ts`) para evitar uniones complejas con `z.union`, `z.literal` y `nullable()` que causaban fallos de validación en la API de Gemini (devolviendo `null` y produciendo caídas de conexión) al utilizar herramientas. Se eliminó la herramienta redundante `characterLookupTool` del prompt de interacción, se actualizaron las instrucciones del prompt en `interaction-expert.ts` para que la IA omita el campo en lugar de devolver `null` si no hay cambios, y se normalizaron los valores no definidos a `null` para conservar compatibilidad con el backend.
+- **🛡️ Inclusión Inteligente de NPCs en Combate:** Corregido el bug por el cual Guz (semiorco) y la oveja Shinebright (ambos de tipo `npc` en el esquema de la aventura) eran excluidos del orden de iniciativa y combate al inicio de sus encuentros. Implementada la **Opción de Diseño B** mediante un filtro de post-procesamiento (`enrichCombatantsWithSmartNPCs`) que corre después de la evaluación de la IA Experta para asegurar que NPCs clave se añadan al combate si son objetivo de agresión, son desencadenantes de trigger, o si son mencionados en el texto de acción del jugador o en la descripción de escena del DM.
+- **⚔️ Sincronización del Inicio del Combate:** Se ha inyectado el delta de estado completo (`party`, `enemies`, `enemiesByLocation`, `diceRolls`) en los eventos `state_delta` de inicialización del combate, resolviendo bugs que impedían ver la iniciativa en el frontend y bloqueaban la actualización de HP de monstruos y personajes.
+- **🎲 Daño Crítico en Modificadores Negativos:** Modificado `action-resolver.ts` para formatear de forma limpia las tiradas con modificadores negativos (evitando dobles signos como `+-`) y robustecida la sanitización previa a la evaluación de críticos en `action-executor.ts` (eliminando espacios y normalizando signos).
+- **🗣️ Redundancia Narrativa de DM al Iniciar Combate:** Actualizado el prompt `combatInitiationPrompt` con instrucciones críticas estrictas para impedir que el DM de combate repita o parafrasee descripciones del entorno y monstruos ya leídas en el último turno de exploración del historial.
+- **👩‍🎤 Concordancia de Género del Dungeon Master:** Añadida inyección dinámica de contexto `combatantsContext` en combate e instrucciones explícitas en los prompts de exploración (`narrativeDirectorPrompt`) e inicio de combate (`combatInitiationPrompt`) para respetar estrictamente la concordancia gramatical en español basada en la propiedad `sex` ("Varón"/"Mujer") de las fichas de personajes (corrigiendo el trato en femenino para Merryl).
+
+## [0.6.1] - 2026-06-28
+
+### Added
+- **🗝️ Enriquecimiento de Hechos Mecánicos en Apertura de Puertas con Llaves:** Añadido soporte de metadatos (`method`, `keyName`) al evento `DoorOpened` para registrar el uso exacto de llaves. El formateador de hechos para el narrador (`eventsLogText`) se adaptó para describir el método de apertura (llave, forzado de cerradura, fuerza bruta), de modo que el DM narre la acción física correcta en lugar de asumir que se empuja la puerta.
+
+### Fixed
+- **🚪 Visibilidad de Puertas y Verjas Cerradas en Modo Exploración:** Modificada la lógica de `exploration-context-builder.ts` para que las puertas cerradas y bloqueadas de carácter no secreto sean siempre visibles por defecto. Esto permite que el Dungeon Master las mencione en la descripción inicial de las salas en lugar de ignorarlas.
+- **🎯 Corrección de Cálculo de Daño Crítico para Modificadores Negativos (2026-06-27):**
+  - **Problema:** Los personajes y monstruos con modificador de daño neto negativo (como el bastón de Merryl, con daño `1d6-1` debido a su modificador de fuerza de `-1`) no duplicaban sus dados de daño al realizar golpes críticos debido a un fallo en la expresión regular de parseo.
+  - **Solución:** Corregida la expresión regular en `action-executor.ts` para aceptar el signo menos (`-`) y calcular el modificador final de forma correcta. Además, se mejoró `getCriticalDamageNotation` en `rules-engine.ts` para dar un formato limpio como `2d6-1` (en lugar de `2d6+-1`) y evitar concatenar `+0` cuando el modificador es nulo.
+- **🤫 Exclusión del Personaje Activo de las Reacciones Autónomas de Compañeros (2026-06-27):**
+  - **Mejora:** El compañero seleccionado actualmente en el frontend (`selectedCharacterName`) se propaga al array de exclusiones (`excludeCharacters`) para que la IA no genere comentarios síncronos ni en streaming para ese personaje mientras el jugador lo esté controlando de manera activa en ese turno.
+
+### Added
+- **🌐 Unificación de Contexto de los Expertos (Single Source of Truth) [Fase 1] (2026-06-27):**
+  - **Mejora:** Inyección del inventario estructurado y estado de la party a todos los expertos de la IA conversacional.
+  - **Características:**
+    - ✅ **Esquemas Zod**: Añadida la propiedad `party` a `NarrativeExpertInputSchema`, `ExplorationExpertInputSchema` e `InteractionExpertInputSchema`.
+    - ✅ **Propagación**: Modificados `NarrativeTurnManager` y `NarrativeManager` para propagar el contexto dinámico de los personajes e inventarios al orquestador, experto de exploración, interacción y director de escena.
+    - ✅ **Prompts Directivos**: Añadida la directiva de **Verdad de Posesión (Inventario de la Party)** en `exploration-expert.ts`, `interaction-expert.ts` y `narrative-manager.ts` para que la IA valide los inventarios estructurados antes de alucinar u ocultar la posesión de un objeto.
+- **🚫 Delimitación de Interacciones Físicas y Bloqueo de Contenedores Cerrados [Fase 2] (2026-06-27):**
+  - **Mejora:** Robustecimiento interactivo y control lógico de saqueos y manipulación de contenedores.
+  - **Características:**
+    - ✅ **Bloqueo de Cofre Cerrado**: Se impide el saqueo (`isLootAction`) de contenedores en estado `'closed'` en el `worldState`. Devolviendo el feedback específico: *"The container [Chest] is closed. You must open it first."*
+    - ✅ **Delegación Física de Interactuables**: Si el jugador intenta llevarse o coger el mueble contenedor físico completo (ej. *"Cojo el cofre"*), la acción no vacía el cofre ni altera los inventarios del juego, devolviendo una indicación al DM para narrar libremente el esfuerzo físico.
+    - ✅ **Tests Coherentes**: Añadidos tests unitarios para verificar el bloqueo de cofres cerrados y el control de transporte físico, y actualizados los tests existentes para abrir los cofres de forma coherente antes de realizar saqueos.
+- **🔒 Soporte Global de Acciones de Cierre y Resolución de Sinónimos Físicos (2026-06-26):**
+  - **Mejora:** Soporte determinista en `InteractionHandler` para cerrar contenedores, puertas e interactuables genéricos, y resolución robusta de sinónimos narrativos en los expertos de IA.
+  - **Características:**
+    - ✅ **Acciones de Cierre**: Agregada detección de `isCloseAction` y el método privado `handleDoorClosing` para persistir lógicamente el cierre de puertas, cofres e interactuables genéricos de la sala en `worldState` e `updatedOpenDoors`.
+    - ✅ **Mapeo Semántico Inverso**: Modificados los prompts de `exploration-expert.ts` e `interaction-expert.ts` para resolver descripciones conversacionales (ej. "poción burbujeante") a sus IDs formales ("Poción de Curación") a pesar del recorte del historial de chat.
+    - ✅ **Consistencia de Contenedores Cerrados**: Asegurado que los ítems permanezcan localizados dentro del cofre en el prompt de la IA cuando esté lógicamente cerrado.
+    - ✅ **Tests de Cierre**: Creados tests específicos en `interaction-handler.test.ts` para validar cierres de cofres, puertas y objetos decorativos.
+- **📦 Saqueo Selectivo y Detallado de Contenedores (2026-06-26):**
+  - **Mejora:** Implementación de mecánicas de saqueo parcial a nivel de contenedor en el motor dinámico del mundo.
+  - **Características:**
+    - ✅ **Contenido Dinámico**: Modificados los esquemas y `WorldStateManager` para almacenar la lista de objetos restantes de un contenedor dentro del `worldState`.
+    - ✅ **Saqueo Parcial**: Permite al jugador retirar un ítem específico de un cofre (ej. "cojo la llave"), dejándolo abierto y con los otros objetos dentro.
+    - ✅ **Redirección de Mapeo**: El gestor resuelve peticiones de ítems huérfanos a sus contenedores padres correspondientes en la sala actual de forma automática.
+- **🗝️ Sistema de Llaves y Forzado de Puertas / Cerraduras (2026-06-26):**
+  - **Mejora:** Integración del control determinista de apertura y forzado de cerraduras bajo D&D 5e.
+  - **Características:**
+    - ✅ **Apertura Determinista**: Abre automáticamente conexiones si algún miembro de la party posee la llave requerida (`requiredKeyId`) sin pedir tiradas de dados.
+    - ✅ **Reglas de Forzado**: Añadido `KeyRuleModule` que redirige a tiradas de *Juegos de Manos* (`lockpickDC`) o *Atletismo* (`breakDC`) ante intentos de forzar cerraduras o forzar físicamente la puerta, o bloquea la acción si es impenetrable.
+- **💾 Consolidación, Reactividad y Robustez de WorldState (2026-06-26):**
+  - **Mejora:** Consolidación de la arquitectura del estado del mundo con sincronización visual en tiempo real en el frontend y tolerancia a fallos ortográficos del modelo.
+  - **Características:**
+    - ✅ **Reactividad en Cliente**: Migrado `worldStateRef` a estado reactivo de React (`worldState`/`useState`) en `game-view.tsx`, solucionando cierres obsoletos en los callbacks asíncronos de streaming.
+    - ✅ **Memoria de Eventos**: Implementación de `event-manager.ts` para registrar sucesos y alimentar prompts de los compañeros.
+    - ✅ **Tolerancia a Erratas en IA**: Añadido preprocesamiento Zod en `schemas.ts` para corregir automáticamente claves mal escritas del LLM (ej. `explorationNaration` -> `explorationNarration`), previniendo caídas del stream.
+- **💾 Integración del WorldState y Consumo de Inventario en Tiradas de Habilidad (2026-06-22):**
+  - **Mejora:** Integración dinámica del estado del mundo (`worldState`) y los inventarios de personajes con el motor de resolución de tiradas de habilidad.
+  - **Características:**
+    - ✅ **Consumo Físico de Objetos:** Implementación del método auxiliar `consumeScrollFromPartyInventory` en `NarrativeTurnManager` para remover automáticamente los pergaminos (como pergaminos de conjuros) del inventario del personaje del grupo tras una tirada de identificación y activación exitosa.
+    - ✅ **Persistencia de Flags en WorldState:** El éxito en tiradas asocia directamente la activación de efectos mágicos y marcas circunstanciales en `globalFlags` dentro del `worldState`.
+    - ✅ **Propagación Dinámica de Efectos:** Los efectos mágicos resultantes de tiradas exitosas (ej. `"speak_with_animals"`) se propagan inmediatamente a `activeEffects` para habilitar o restringir mecánicas sociales o de exploración en tiempo real.
+
+- **📚 Simplificación y Consolidación del Sistema de Documentación (2026-06-22):**
+  - **Mejora:** Rediseño completo de la estructura de documentación del proyecto, consolidando más de 20 archivos fragmentados en 5 archivos únicos de "fuente de verdad" para reducir la redundancia y facilitar el mantenimiento.
+  - **Características:**
+    - ✅ **Arquitectura Consolidada:** Fusión de 11 documentos de arquitectura en `docs/arquitectura.md`.
+    - ✅ **Inicio Rápido y Visión:** Fusión de `inicio-rapido.md`, `vision-diseno.md` y la guía de setup de Eleven Labs en un único `docs/inicio-rapido.md`.
+    - ✅ **Testing y QA:** Fusión del manual de Vitest y las pautas de QA manual en `docs/testing.md`.
+    - ✅ **Roadmap y Bugs:** Unificación de issues pendientes y el roadmap estratégico en `docs/roadmap.md`.
+    - ✅ **Borrador de Notas:** Fusión de notas informales y frases de testeo en `docs/notas-desarrollo.md`.
+    - ✅ **Archivo Histórico:** Movidos todos los planes de desarrollo completados antiguos a la nueva carpeta `docs/referencias-historicas/` para mantener el repositorio limpio.
+    - ✅ **Eliminación de Redundancia:** Borrado de archivos redundantes como `issues/corregidos.md` (cuyo historial ya vive en el propio `CHANGELOG.md`).
+
+## [0.6.00] - 2026-06-09
+
+### Added
+- **🧙‍♂️ Sistema Genérico de Comunicación con Bestias y Efectos Activos (2026-06-09):**
+  - **Mejora:** Introducción de un sistema genérico para evaluar la capacidad de comunicación verbal de criaturas de tipo *Bestia* (o con barreras de comunicación) basado en los efectos mágicos activos del grupo.
+  - **Características:**
+    - ✅ **Detección de Efectos en Intérprete:** `ActionInterpreter` detecta cuando se lanzan conjuros o usan pergaminos de comunicación (ej. `"speak_with_animals"`) y los emite en `activatedEffects`.
+    - ✅ **Gestión de Estado Persistente:** `NarrativeTurnManager` almacena los efectos activos en los `globalFlags` del `worldState` y compila `activeEffects`.
+    - ✅ **Filtro de Barrera en Diálogos:** `InteractionExpert` y `InteractionExpertStream` impiden hablar en común a criaturas del tipo *Bestia* si el efecto `"speak_with_animals"` no está activo en `activeEffects` (describiendo solo balidos, gruñidos y gestos). Permiten el habla normal una vez activado.
+    - ✅ **Tests de Integración:** Suite completa de tests unitarios y de integración para validar el ciclo de vida del estado de efectos y su propagación.
+  - **Archivos creados/modificados:**
+    - `src/ai/flows/schemas.ts`
+    - `src/ai/flows/action-interpreter.ts`
+    - `src/ai/flows/managers/narrative-turn-manager.ts`
+    - `src/ai/streaming/game-stream-coordinator.ts`
+    - `src/ai/flows/game-coordinator.ts`
+    - `src/ai/flows/experts/interaction-expert.ts`
+    - `src/ai/flows/experts/interaction-expert-stream.ts`
+    - `src/ai/flows/managers/__tests__/narrative-turn-manager-effects.test.ts`
+
+- **🗺️ Visor de Mapa Táctico Interactivo (2026-06-09):**
+  - **Mejora:** Añadido un botón en la interfaz del juego que permite al jugador abrir un modal con el mapa táctico de la ubicación actual, facilitando la visualización espacial durante la exploración y combate.
+  - **Características:**
+    - ✅ **Controles de Navegación:** Paneo mediante click-and-drag, zoom interactivo mediante la rueda del ratón y botones de zoom in/zoom out/restablecer.
+    - ✅ **Escala y Fallback Táctico:** Muestra la escala táctica real si está definida en la aventura. Si una sala específica en modo exploración o mazmorra no posee un mapa asignado, el visor busca automáticamente y muestra de forma inteligente el mapa general de la aventura para evitar fallos.
+  - **Archivos modificados:**
+    - `src/components/game/game-view.tsx`
+
+- **📄 Conversor Automatizado de PDF a JSON (2026-06-09):**
+  - **Mejora:** Creación de un script ejecutable que utiliza Genkit IA (Gemini) para transformar PDFs de aventuras oficiales de D&D 5e al formato JSON compatible del juego.
+  - **Características:**
+    - ✅ **Extracción Completa:** Procesa de forma automatizada el lore global, todas las habitaciones (con sus conexiones y coordenadas), criaturas (con sus stats, posesiones, iniciativa y barreras de comunicación) y la tabla de contenidos inicial.
+    - ✅ **Robustez y Reintentos:** Manejo de cuotas mediante backoff exponencial y ordenación de entidades huérfanas en la sala inicial de forma limpia.
+  - **Archivos creados/modificados:**
+    - `scripts/pdf-to-json.ts` (Nuevo)
+
+## [0.5.99] - 2025-12-16
+
+### Added
+- **⚡ IA Conversacional Reactiva (Streaming) (Fase 4) (2025-12-16):**
+  - **Mejora:** Implementación de arquitectura de streaming para reducir drásticamente la latencia percibida en interacciones sociales.
+  - **Características:**
+    - ✅ **Streaming de Texto:** `InteractionExpertStream` ahora envía tokens de texto inmediatamente al cliente, eliminando la espera de "Pensando...".
+    - ✅ **Pipeline Reactivo:** `useGameStream` gestiona la conexión persistente y actualiza la UI letra a letra.
+    - ✅ **Cambio de Actitud en 2º Plano:** Nueva herramienta `updateAttitudeTool` permite a la IA modificar la actitud de los NPCs sin interrumpir el flujo de texto con JSONs bloqueantes.
+    - ✅ **Protocolo de Eventos:** Sistema robusto de eventos (`token`, `tool_call`, `debug`) para comunicación servidor-cliente.
+  - **Archivos modificados:**
+    - `src/ai/streaming/` (Nueva carpeta con lógica de streaming)
+    - `src/ai/flows/experts/interaction-expert-stream.ts` (Nuevo experto)
+    - `src/hooks/use-game-stream.ts` (Nuevo hook)
+  - **Referencia:** [Plan Completado](../docs/planes-desarrollo/en-curso/ia-conversacional-avanzada.md)
+
+### Fixed
+- **🐛 Corrección de "Impersonación" en Chat (Red Box Glitch) (2025-12-16):**
+  - **Problema:** En ocasiones, la IA generaba reacciones para el personaje del jugador (PC), mostrando mensajes con el borde rojo (estilo "Enemigo/AI") y texto que el jugador no había escrito.
+  - **Causa:** El `CompanionReactionManager` no filtraba explícitamente a las entidades controladas por el jugador (`controlledBy: 'Player'`).
+  - **Solución:** Añadida guardia estricta en `processCompanionReactionsStreaming` y `entity-status-utils.ts` para ignorar PCs.
+  - **Archivos modificados:** `src/ai/flows/managers/companion-reaction-manager.ts`, `src/lib/game/entity-status-utils.ts`.
+
+- **🕷️ Corrección de Triggers de Combate en Arquitectura de Streaming (2025-12-16):**
+  - **Problema:** Las emboscadas y triggers de combate por "acercarse" no interrumpían la narración en modo streaming. El sistema detectaba el combate internamente pero el coordinador ignoraba la señal, continuando la descripción pacífica.
+  - **Solución Arquitectónica:**
+    - **Event-Driven:** `NarrativeTurnManager` ahora emite un evento prioritario `logic_update` con `combatTriggerResult` en lugar de devolverlo silenciosamente al final.
+    - **Interrupción de Stream:** `GameStreamCoordinator` escucha este evento específico, detiene inmediatamente la generación de texto narrativo e invoca al `CombatManager`.
+    - **Datos Robustos:** Corrección en `CombatTriggerEvaluator` para manejar propiedades `active` indefinidas como `true` por defecto, más actualización del JSON para ser explícito.
+  - **Archivos modificados:**
+    - `src/ai/streaming/game-stream-coordinator.ts`
+    - `src/ai/flows/managers/narrative-turn-manager.ts`
+    - `src/lib/combat/trigger/combat-trigger-evaluator.ts`
+    - `JSON_adventures/el-dragon-del-pico-agujahelada_short.json`
+
 ## [0.5.97] - 2025-12-08
 
 ### Added
@@ -2049,6 +2203,22 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ### Docs
 - **Actualización del Plan de Combate:** Actualizado el plan de desarrollo (`docs/planes-desarrollo/combate-turnos.md`) para marcar el Paso 3 como completado, reflejando la exitosa implementación y depuración de la lógica táctica de la IA.
 - **Plan de Refactorización de Esquemas:** Creado el documento `docs/planes-desarrollo/refactor-esquemas.md` para guiar la refactorización de la arquitectura de esquemas y asegurar que todos los objetivos se cumplieran de forma estructurada.
+
+---
+
+## [0.5.99] - 2025-12-16
+### Changed
+- **Interacción de Compañeros Refinada:**
+  - El intérprete de acciones ahora distingue entre órdenes directas de movimiento ("Vamos a...") y propuestas sociales ("¿Qué os parece si vamos a...?").
+  - Las propuestas al grupo ahora garantizan una respuesta de los compañeros (100% probabilidad) antes de cualquier narración.
+  - Implementada deduplicación estricta: un compañero que habla antes del DM no volverá a hablar después en el mismo turno.
+- **Supresión de Narrador (DM):**
+  - El DM ahora mantiene un "voto de silencio" estricto durante interacciones puramente sociales con compañeros si no hay cambio de ubicación ni combate. Esto evita descripciones redundantes y mejora la fluidez del chat.
+- **UI Limpia:**
+  - Eliminado el indicador visual "Dungeon Master está pensando..." (Red Box) para evitar parpadeos y molestias visuales durante las respuestas rápidas o silencios intencionales del sistema.
+- **Streaming AI:** 
+  - Implementada arquitectura híbrida Request/Response + Event Streaming para narrativa y reacciones.
+  - Solucionado 'Echo Glitch' donde el input del usuario se duplicaba.
 
 ---
 

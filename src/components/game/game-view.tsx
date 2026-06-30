@@ -7,7 +7,7 @@ import { LeftPanel } from "@/components/layout/left-panel";
 import { CharacterSheet } from "@/components/game/character-sheet";
 import { ChatPanel } from "@/components/game/chat-panel";
 import { Button } from "../ui/button";
-import { Save } from "lucide-react";
+import { Save, Map, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { processPlayerAction } from "@/app/actions";
 import { PartyPanel } from "@/components/game/party-panel";
@@ -25,6 +25,8 @@ import { WorldStateManager } from "@/lib/game/world-state-manager";
 import { searchCompendium } from "@/app/actions/compendium";
 import { SearchResult } from "@/app/actions/compendium";
 import { formatCompendiumEntry, formatNotFoundMessage } from "@/lib/game/compendium-formatter";
+import { useGameStream } from "@/hooks/use-game-stream";
+
 
 interface GameViewProps {
   initialData: {
@@ -66,6 +68,43 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     }));
   }, []);
 
+  // Zoom and Pan states for Tactical Map
+  const [mapZoom, setMapZoom] = useState(1);
+  const [mapPosition, setMapPosition] = useState({ x: 0, y: 0 });
+  const [isDraggingMap, setIsDraggingMap] = useState(false);
+  const [mapDragStart, setMapDragStart] = useState({ x: 0, y: 0 });
+
+  const handleResetMapView = useCallback(() => {
+    setMapZoom(1);
+    setMapPosition({ x: 0, y: 0 });
+  }, []);
+
+  const handleMapWheel = useCallback((e: React.WheelEvent) => {
+    const zoomStep = 0.1;
+    setMapZoom(prev => {
+      const newZoom = prev + (e.deltaY < 0 ? zoomStep : -zoomStep);
+      return Math.max(0.5, Math.min(4, newZoom));
+    });
+  }, []);
+
+  const handleMapMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDraggingMap(true);
+    setMapDragStart({ x: e.clientX - mapPosition.x, y: e.clientY - mapPosition.y });
+  }, [mapPosition]);
+
+  const handleMapMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDraggingMap) return;
+    setMapPosition({
+      x: e.clientX - mapDragStart.x,
+      y: e.clientY - mapDragStart.y
+    });
+  }, [isDraggingMap, mapDragStart]);
+
+  const handleMapMouseUpOrLeave = useCallback(() => {
+    setIsDraggingMap(false);
+  }, []);
+
   // State
   const [party, setParty] = useState<Character[]>(initialData.party);
   const [messages, setMessages] = useState<GameMessage[]>(initialData.messages);
@@ -85,10 +124,11 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
   const [hasMoreAITurns, setHasMoreAITurns] = useState(false);
   const [combatPhase, setCombatPhase] = useState<CombatPhase>((initialData as any).phase || (initialData.inCombat ? CombatPhase.WAITING_FOR_ACTION : CombatPhase.SETUP));
   const [autoAdvancing, setAutoAdvancing] = useState(false);
-  const [isPartyPanelCollapsed, setIsPartyPanelCollapsed] = useState(false); // Track if party panel is collapsed
+  const [isPartyPanelCollapsed, setIsPartyPanelCollapsed] = useState(false);
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
   const [openDoors, setOpenDoors] = useState<Record<string, boolean>>(initialData.openDoors || {});
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   // Derived state for UI logic based purely on Combat Phase (FSM)
   // This simplifies logic and avoids synchronization issues with backend flags
@@ -110,8 +150,42 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
   const prevStateRef = useRef<string | null>(null);
 
 
-  // WorldState Ref
-  const worldStateRef = useRef<WorldState>(initialData.worldState || WorldStateManager.initialize());
+  // WorldState reactive state
+  const [worldState, setWorldState] = useState<WorldState>(() => initialData.worldState || WorldStateManager.initialize());
+
+  // Sync ref for async callbacks
+  const worldStateRef = useRef<WorldState>(worldState);
+  useEffect(() => {
+    worldStateRef.current = worldState;
+  }, [worldState]);
+
+  const syncDerivedStateFromWorldState = useCallback((ws: WorldState) => {
+    if (!ws || !ws.locations) return;
+
+    // Derivar puertas abiertas
+    const derivedOpenDoors: Record<string, boolean> = {};
+    Object.entries(ws.locations).forEach(([locId, locState]: [string, any]) => {
+      if (locState.connections) {
+        Object.entries(locState.connections).forEach(([direction, connState]: [string, any]) => {
+          if (connState.isOpen) {
+            derivedOpenDoors[`${locId}:${direction}`] = true;
+          }
+        });
+      }
+    });
+    setOpenDoors(derivedOpenDoors);
+    openDoorsRef.current = derivedOpenDoors;
+
+    // Derivar enemigos por localización
+    const derivedEnemiesByLocation: Record<string, any[]> = {};
+    Object.entries(ws.locations).forEach(([locId, locState]: [string, any]) => {
+      if (locState.enemies) {
+        derivedEnemiesByLocation[locId] = locState.enemies;
+      }
+    });
+    setEnemiesByLocation(derivedEnemiesByLocation);
+    enemiesByLocationRef.current = derivedEnemiesByLocation;
+  }, []);
 
   const isPlayerTurn = !isDMThinking && initiativeOrder[turnIndex]?.controlledBy === 'Player';
 
@@ -165,11 +239,16 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     setCombatPhase((initialData as any).phase || (initialData.inCombat ? CombatPhase.WAITING_FOR_ACTION : CombatPhase.SETUP));
     combatPhaseRef.current = (initialData as any).phase || (initialData.inCombat ? CombatPhase.WAITING_FOR_ACTION : CombatPhase.SETUP);
     partyRef.current = initialData.party;
-    // Sync WorldState
-    worldStateRef.current = initialData.worldState || WorldStateManager.initialize();
-  }, [initialData]);
+    
+    // Sync WorldState and derive legacy variables (openDoors, enemiesByLocation)
+    const ws = initialData.worldState || WorldStateManager.initialize();
+    setWorldState(ws);
+    syncDerivedStateFromWorldState(ws);
+  }, [initialData, syncDerivedStateFromWorldState]);
 
 
+
+  // Modify handleSendMessage to use streaming
 
   // Counter to ensure unique IDs even when messages are created in the same millisecond
   const messageIdCounterRef = useRef(0);
@@ -189,22 +268,34 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     });
   }, []);
 
-  const addMessages = useCallback((newMessages: Omit<GameMessage, 'id' | 'timestamp'>[], isRetry: boolean = false) => {
+  const addMessages = useCallback((newMessages: Partial<GameMessage>[], isRetry: boolean = false) => {
     if (!newMessages || newMessages.length === 0) return;
     const baseTimestamp = Date.now();
     const messagesToAdd = newMessages.map((m, index) => {
-      messageIdCounterRef.current += 1;
+      // If ID exists, use it. Otherwise generate one.
+      const id = m.id || `msg-${baseTimestamp}-${messageIdCounterRef.current++}-${index}-${Math.random().toString(36).substring(2, 11)}`;
+      // If Timestamp exists, use it.
+      const timestamp = m.timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
       return {
         ...m,
-        id: `msg-${baseTimestamp}-${messageIdCounterRef.current}-${index}-${Math.random().toString(36).substring(2, 11)}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
+        id,
+        timestamp,
+        // Ensure required fields
+        sender: m.sender || 'System',
+        content: m.content || '',
+      } as GameMessage;
     });
     setMessages((prev) => {
       const filteredMessages = isRetry ? prev.filter(m => m.sender !== 'Error') : prev;
-      const newMessages = [...filteredMessages, ...messagesToAdd];
-      messagesRef.current = newMessages; // Update ref synchronously
-      return newMessages;
+
+      // Basic deduplication by ID just in case
+      const existingIds = new Set(filteredMessages.map(m => m.id));
+      const uniqueNewMessages = messagesToAdd.filter(m => !existingIds.has(m.id));
+
+      const updatedMessages = [...filteredMessages, ...uniqueNewMessages];
+      messagesRef.current = updatedMessages; // Update ref synchronously
+      return updatedMessages;
     });
   }, []);
 
@@ -222,6 +313,192 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     // Use ref for synchronous access to messages (important for async callbacks)
     return messagesRef.current.slice(-10);
   }, []);
+
+  // Streaming Integration
+  const handleStateUpdate = useCallback((result: any) => {
+    // 1. Messages (New!)
+    if (result.messages) {
+      addMessages(result.messages);
+    }
+
+    // 2. Dice Rolls
+    if (result.diceRolls) addDiceRolls(result.diceRolls);
+
+    // 3. Location
+    if (result.nextLocationId) {
+      setLocationId(result.nextLocationId);
+      locationIdRef.current = result.nextLocationId;
+    }
+
+    // 4. Party
+    if (result.updatedParty) {
+      setParty(result.updatedParty);
+      partyRef.current = result.updatedParty;
+      const player = result.updatedParty.find((p: Character) => 
+        (p.id && selectedCharacterRef.current?.id && p.id.toString().trim() === selectedCharacterRef.current.id.toString().trim()) ||
+        (p.name && selectedCharacterRef.current?.name && p.name.toLowerCase().trim() === selectedCharacterRef.current.name.toLowerCase().trim())
+      );
+      if (player) {
+        setSelectedCharacter(player);
+        selectedCharacterRef.current = player;
+      }
+    }
+
+    // 5. Enemies & Doors (State Merging)
+    if (result.updatedEnemies) { // Legacy
+      setEnemies(result.updatedEnemies);
+      enemiesRef.current = result.updatedEnemies;
+    }
+    if (result.updatedEnemiesByLocation) {
+      setEnemiesByLocation(prev => {
+        const updated = { ...prev, ...result.updatedEnemiesByLocation };
+        enemiesByLocationRef.current = updated;
+        return updated;
+      });
+    }
+    if (result.updatedOpenDoors) {
+      setOpenDoors(prev => {
+        const updated = { ...prev, ...result.updatedOpenDoors };
+        openDoorsRef.current = updated;
+        return updated;
+      });
+    }
+    // enemiesByLocation/enemies explicit override (rare)
+    if (result.enemiesByLocation) {
+      setEnemiesByLocation(prev => {
+        const updated = { ...prev, ...result.enemiesByLocation };
+        enemiesByLocationRef.current = updated;
+        return updated;
+      });
+    }
+    if (result.enemies) { // fallback
+      if (!result.updatedEnemies) {
+        setEnemies(result.enemies);
+        enemiesRef.current = result.enemies;
+      }
+    }
+    if (result.party) { // fallback full replace
+      setParty(result.party);
+      partyRef.current = result.party;
+      const player = result.party.find((p: Character) => 
+        (p.id && selectedCharacterRef.current?.id && p.id.toString().trim() === selectedCharacterRef.current.id.toString().trim()) ||
+        (p.name && selectedCharacterRef.current?.name && p.name.toLowerCase().trim() === selectedCharacterRef.current.name.toLowerCase().trim())
+      );
+      if (player) {
+        setSelectedCharacter(player);
+        selectedCharacterRef.current = player;
+      }
+    }
+    if (result.locationId) {
+      setLocationId(result.locationId);
+      locationIdRef.current = result.locationId;
+    }
+    if (result.worldState) {
+      setWorldState(result.worldState);
+      syncDerivedStateFromWorldState(result.worldState);
+    }
+
+
+    // 6. Combat State & FSM
+    // This is complex. We receive partial updates.
+    if (typeof result.inCombat === 'boolean') {
+      setInCombat(result.inCombat);
+      inCombatRef.current = result.inCombat;
+
+      if (!result.inCombat) {
+        // Combat Ended
+        setInitiativeOrder([]);
+        setTurnIndex(0);
+        initiativeOrderRef.current = [];
+        turnIndexRef.current = 0;
+      } else {
+        // Combat Active/Started
+        if (result.initiativeOrder) {
+          setInitiativeOrder(result.initiativeOrder);
+          initiativeOrderRef.current = result.initiativeOrder;
+        }
+        // IMPORTANT: If we receive turnIndex, we update it.
+        if (result.turnIndex !== undefined) {
+          const oldTurn = turnIndexRef.current;
+          turnIndexRef.current = result.turnIndex;
+
+          // AI Auto-Advance Logic
+          if (result.lastProcessedTurnWasAI) {
+            const displayIndex = result.lastProcessedTurnIndex ?? result.turnIndex;
+            setTurnIndex(displayIndex);
+          } else {
+            setTurnIndex(result.turnIndex);
+          }
+        }
+      }
+    } else {
+      // No Change in inCombat explicitly, but maybe updates to order
+      if (result.initiativeOrder) {
+        setInitiativeOrder(result.initiativeOrder);
+        initiativeOrderRef.current = result.initiativeOrder;
+      }
+      if (result.turnIndex !== undefined) {
+        turnIndexRef.current = result.turnIndex;
+        if (result.lastProcessedTurnWasAI) {
+          const displayIndex = result.lastProcessedTurnIndex ?? result.turnIndex;
+          setTurnIndex(displayIndex);
+        } else {
+          setTurnIndex(result.turnIndex);
+        }
+      }
+    }
+
+    // 7. Phase Update
+    if (result.phase) {
+      setCombatPhase(result.phase);
+    }
+
+    // 8. Auto-Advance Trigger
+    if (autoAdvancingRef.current && result.lastProcessedTurnWasAI) {
+      setTimeout(() => {
+        if (autoAdvancingRef.current) {
+          // Use the stream sendMessage directly? 
+          // No, use handleSendMessage wrapper to ensure consisteny
+          handleSendMessage('continuar turno', { isContinuation: true });
+        }
+      }, 1500);
+    } else if (autoAdvancingRef.current && !result.lastProcessedTurnWasAI) {
+      // Stop auto advance
+      autoAdvancingRef.current = false;
+      setAutoAdvancing(false);
+    }
+
+  }, []); // Dependencies will be handled by refs where possible, or added if stable
+
+
+  const handleStreamComplete = useCallback((content: string) => {
+    // Legacy: The streaming content is now handled via state_delta messages.
+    // Use this callback ONLY for ephemeral UI cleanup or logic that depends on the 'Done' signal.
+
+    // We DON'T add 'content' as a message anymore, because 'messages' are sent structurally.
+    // However, if we ever needed a fallback for "Raw Stream Only" scenarios, we could check if messages were empty.
+    // For now, assume backend reliability.
+
+    setIsDMThinking(false);
+  }, []);
+
+  const handleStreamError = useCallback((error: Error) => {
+    logClient.uiError('GameView', 'Stream Error', error);
+    addMessage({
+      sender: 'Error',
+      content: `Error de conexión: ${error.message}. Intenta de nuevo.`,
+    });
+    setIsDMThinking(false);
+    setAutoAdvancing(false);
+    autoAdvancingRef.current = false;
+  }, [addMessage]);
+
+  const { sendMessage: sendStreamMessage, isStreaming, streamedContent, currentStatus } = useGameStream({
+    url: '/api/game/stream',
+    onStateUpdate: handleStateUpdate,
+    onStreamComplete: handleStreamComplete,
+    onError: handleStreamError
+  });
 
   const handleSendMessage = useCallback(async (content: string, options: { isRetry?: boolean, isContinuation?: boolean } = {}) => {
     const { isRetry = false, isContinuation = false } = options;
@@ -338,6 +615,8 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
         enemies: enemiesRef.current,
         enemiesByLocation: enemiesByLocationRef.current,
         openDoors: openDoorsRef.current,
+        worldState: worldStateRef.current,
+        selectedCharacterId: selectedCharacterRef.current?.id,
       };
 
       logClient.debug('Sending action to backend', {
@@ -398,259 +677,8 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
         throw validationError;
       }
 
-      const result = await processPlayerAction(actionInput);
+      await sendStreamMessage(content, actionInput);
 
-      // addDebugMessages(result.debugLogs);
-
-      if (result.error) throw new Error(result.error);
-      if (result.messages) {
-        // Ensure all messages from backend have unique IDs
-        const messagesWithUniqueIds = result.messages.map((m, index) => ({
-          ...m,
-          content: m.content || '',
-          id: m.id || `backend-msg-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 11)}`,
-        }));
-        addMessages(messagesWithUniqueIds, isRetry);
-
-        // Check if there's an inventory/spell/item error message (e.g., "No tienes el arma", "No conoces el hechizo")
-        // If so, reset playerActionCompleted to allow player to try again
-        const hasInventoryError = messagesWithUniqueIds.some(m => {
-          if (m.sender !== 'DM') return false;
-          const content = m.content?.toLowerCase() || '';
-          return content.includes('no tienes el arma') ||
-            content.includes('no tienes el objeto') ||
-            content.includes('no conoces el hechizo') ||
-            content.includes('no tienes') ||
-            content.includes('no conoces') ||
-            content.includes('acción no válida');
-        });
-
-        if (hasInventoryError && inCombatRef.current) {
-          logClient.uiEvent('GameView', 'Inventory/spell/item error detected, resetting playerActionCompleted', {
-            message: messagesWithUniqueIds.find(m => {
-              const content = m.content?.toLowerCase() || '';
-              return content.includes('no tienes') || content.includes('no conoces') || content.includes('acción no válida');
-            })?.content,
-          });
-          setCombatPhase(CombatPhase.WAITING_FOR_ACTION);
-        }
-      }
-      if (result.diceRolls) addDiceRolls(result.diceRolls);
-      if (result.nextLocationId) {
-        setLocationId(result.nextLocationId);
-        locationIdRef.current = result.nextLocationId; // Update ref synchronously
-      }
-      if (result.updatedParty) {
-        setParty(result.updatedParty);
-        partyRef.current = result.updatedParty; // Update ref synchronously
-        const player = result.updatedParty.find(p => p.id === selectedCharacterRef.current?.id);
-        if (player) {
-          setSelectedCharacter(player);
-          selectedCharacterRef.current = player; // Update ref synchronously
-        }
-      }
-
-      // Update enemies with HP changes if provided (backward compatibility)
-      if (result.updatedEnemies) {
-        setEnemies(result.updatedEnemies);
-        enemiesRef.current = result.updatedEnemies;
-      }
-
-      // Update enemiesByLocation if provided (new preferred method)
-      if (result.updatedEnemiesByLocation) {
-        setEnemiesByLocation(prev => {
-          const updated = { ...prev, ...result.updatedEnemiesByLocation };
-          enemiesByLocationRef.current = updated;
-          return updated;
-        });
-      }
-
-      // Update open doors if provided
-      if (result.updatedOpenDoors) {
-        setOpenDoors(prev => {
-          const updated = { ...prev, ...result.updatedOpenDoors };
-          openDoorsRef.current = updated;
-          return updated;
-        });
-      }
-
-      // Also update from enemiesByLocation if provided (for initial state)
-      if (result.enemiesByLocation) {
-        setEnemiesByLocation(prev => {
-          const updated = { ...prev, ...result.enemiesByLocation };
-          enemiesByLocationRef.current = updated;
-          return updated;
-        });
-      }
-
-      // Update combat-related states with synchronization
-      if (typeof result.inCombat === 'boolean') {
-        setInCombat(result.inCombat);
-        inCombatRef.current = result.inCombat; // Update ref synchronously
-        // If combat ends, clear combat-related states
-        if (!result.inCombat) {
-          setInitiativeOrder([]);
-          setTurnIndex(0);
-          // Don't clear enemies here - we need them for context (dead bodies, etc.)
-          // setEnemies([]);
-          // Update refs
-          initiativeOrderRef.current = [];
-          turnIndexRef.current = 0;
-          // enemiesRef.current = [];
-        } else {
-          // If combat starts or continues, update combat states
-          if (result.initiativeOrder) {
-            setInitiativeOrder(result.initiativeOrder);
-            initiativeOrderRef.current = result.initiativeOrder;
-          }
-          if (result.turnIndex !== undefined) {
-            const oldTurnIndexRefValue = turnIndexRef.current;
-            // Always update the ref to the next turn for internal logic
-            turnIndexRef.current = result.turnIndex;
-
-            logClient.uiEvent('GameView', 'turnIndexRef updated', {
-              previousRefValue: oldTurnIndexRefValue,
-              newRefValue: turnIndexRef.current,
-              receivedFromBackend: result.turnIndex,
-              lastProcessedTurnIndex: result.lastProcessedTurnIndex,
-              lastProcessedTurnWasAI: result.lastProcessedTurnWasAI,
-              hasMoreAITurns: result.hasMoreAITurns,
-              initiativeOrder: initiativeOrderRef.current.map((c, i) => ({
-                index: i,
-                name: c.characterName,
-                controlledBy: c.controlledBy,
-                isRef: i === turnIndexRef.current,
-                isProcessed: i === result.lastProcessedTurnIndex,
-              })),
-            });
-
-            // NEW SIMPLE LOGIC: The backend explicitly tells us if an AI turn was processed
-            if (result.lastProcessedTurnWasAI) {
-              // An AI turn was just processed - show that turn in the UI
-              const displayIndex = result.lastProcessedTurnIndex ?? result.turnIndex;
-
-              logClient.uiEvent('GameView', 'Backend processed AI turn', {
-                displayIndex,
-                displayCombatant: initiativeOrderRef.current[displayIndex]?.characterName || 'Unknown',
-                nextTurnIndex: result.turnIndex,
-                nextCombatant: initiativeOrderRef.current[result.turnIndex]?.characterName || 'Unknown',
-                hasMoreAITurns: result.hasMoreAITurns,
-              });
-
-              setTurnIndex(displayIndex);
-            } else {
-              // No AI turn was processed - show the next turn (player's turn or combat just started with player)
-              logClient.uiEvent('GameView', 'No AI turn processed', {
-                turnIndex: result.turnIndex,
-                combatant: initiativeOrderRef.current[result.turnIndex]?.characterName || 'Unknown',
-              });
-
-              setTurnIndex(result.turnIndex);
-            }
-          }
-          // Only update enemies if updatedEnemies is not provided (fallback to enemies) - backward compatibility
-          if (!result.updatedEnemies && result.enemies) {
-            setEnemies(result.enemies);
-            enemiesRef.current = result.enemies;
-          }
-
-          // Update enemiesByLocation if provided
-          if (result.updatedEnemiesByLocation) {
-            setEnemiesByLocation(prev => {
-              const updated = { ...prev, ...result.updatedEnemiesByLocation };
-              enemiesByLocationRef.current = updated;
-              return updated;
-            });
-          }
-        }
-      } else {
-        // If inCombat is not explicitly set, only update if provided
-        if (result.initiativeOrder) {
-          setInitiativeOrder(result.initiativeOrder);
-          initiativeOrderRef.current = result.initiativeOrder;
-        }
-        if (result.turnIndex !== undefined) {
-          // Always update the ref to the next turn for internal logic
-          turnIndexRef.current = result.turnIndex;
-
-          // NEW SIMPLE LOGIC: The backend explicitly tells us if an AI turn was processed
-          if (result.lastProcessedTurnWasAI) {
-            // An AI turn was just processed - show that turn in the UI
-            const displayIndex = result.lastProcessedTurnIndex ?? result.turnIndex;
-
-            logClient.uiEvent('GameView', 'Backend processed AI turn', {
-              displayIndex,
-              displayCombatant: initiativeOrderRef.current[displayIndex]?.characterName || 'Unknown',
-              nextTurnIndex: result.turnIndex,
-              nextCombatant: initiativeOrderRef.current[result.turnIndex]?.characterName || 'Unknown',
-              hasMoreAITurns: result.hasMoreAITurns,
-            });
-
-            setTurnIndex(displayIndex);
-          } else {
-            // No AI turn was processed - show the next turn (player's turn or combat just started with player)
-            logClient.uiEvent('GameView', 'No AI turn processed', {
-              turnIndex: result.turnIndex,
-              combatant: initiativeOrderRef.current[result.turnIndex]?.characterName || 'Unknown',
-            });
-
-            setTurnIndex(result.turnIndex);
-          }
-        }
-        // Only update enemies if updatedEnemies is not provided (fallback to enemies) - backward compatibility
-        if (!result.updatedEnemies && result.enemies) {
-          setEnemies(result.enemies);
-          enemiesRef.current = result.enemies;
-        }
-
-        // Update enemiesByLocation if provided
-        if (result.enemiesByLocation) {
-          setEnemiesByLocation(prev => {
-            const updated = { ...prev, ...result.enemiesByLocation };
-            enemiesByLocationRef.current = updated;
-            return updated;
-          });
-        }
-      }
-
-      // Step-by-step combat: Update Combat Phase from FSM
-      if (result.phase) {
-        logClient.uiEvent('GameView', 'Updating Combat Phase', { phase: result.phase });
-        setCombatPhase(result.phase);
-      }
-
-      // Handle Auto-Advance logic based on FSM state
-      if (autoAdvancingRef.current) {
-        // If we are in ACTION_RESOLVED and not player turn (or player turn auto-skip?), continue
-        // Actually, auto-advance usually applies to AI turns.
-        // If phase is ACTION_RESOLVED and current turn is NOT player, we continue.
-
-        // We need to look at the turn that JUST completed. 
-        // If result.lastProcessedTurnWasAI is true, it means we just finished an AI turn.
-        // OR if the current phase is ACTION_RESOLVED and the active combatant (before advance) was AI.
-
-        // Simplified Logic: If backend says "lastProcessedTurnWasAI", we auto-advance.
-        // This is safe because backend controls the flow.
-
-        if (result.lastProcessedTurnWasAI) {
-          logClient.uiEvent('GameView', 'Auto-advancing AI turn', {
-            turnIndex: result.turnIndex,
-          });
-
-          setTimeout(() => {
-            if (autoAdvancingRef.current) {
-              handleSendMessage('continuar turno', { isContinuation: true });
-            }
-          }, 1500);
-        } else {
-          // Stop auto-advance if it wasn't an AI turn (e.g. Player turn reached or Combat End)
-          logClient.uiEvent('GameView', 'Stopping auto-advance (Not AI turn)', {
-            turnIndex: result.turnIndex,
-          });
-          autoAdvancingRef.current = false;
-          setAutoAdvancing(false);
-        }
-      }
     } catch (error: any) {
       logClient.uiError('GameView', 'Error processing action', error, {
         action: content,
@@ -669,7 +697,7 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     } finally {
       setIsDMThinking(false);
     }
-  }, [addMessage, addMessages, buildConversationHistory, addDiceRolls]);
+  }, [addMessage, addMessages, buildConversationHistory, addDiceRolls, sendStreamMessage, handleStateUpdate]);
 
   const handleDiceRoll = useCallback((roll: { result: number, sides: number }) => {
     addDiceRolls([{
@@ -738,27 +766,7 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
   }, [turnIndex, handlePassTurn]);
 
   const handleInternalSaveGame = useCallback(() => {
-    // Construct up-to-date WorldState from current tracking state
-    const currentWorldState: WorldState = worldStateRef.current || WorldStateManager.initialize();
-
-    // Sync enemies
-    Object.entries(enemiesByLocation).forEach(([locId, enemies]) => {
-      WorldStateManager.updateEnemies(currentWorldState, locId, enemies);
-    });
-
-    // Sync doors
-    Object.entries(openDoors).forEach(([key, isOpen]) => {
-      // Assuming key format is "locationId:direction"
-      const parts = key.split(':');
-      // Handle case where locationId might contain colons? Assuming simple split for MVP or verifying format.
-      // If locationId has colons, this split is risky.
-      // Standard ID is usually uuid or simple string.
-      if (parts.length >= 2) {
-        const direction = parts.pop()!;
-        const locId = parts.join(':');
-        WorldStateManager.updateConnection(currentWorldState, locId, direction, { isOpen });
-      }
-    });
+    const currentWorldState: WorldState = worldState || WorldStateManager.initialize();
 
     const saveData = {
       savedAt: new Date().toISOString(),
@@ -789,7 +797,23 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     });
 
     onSaveGame(saveData);
-  }, [party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex, openDoors, enemiesByLocation, onSaveGame]);
+  }, [party, messages, diceRolls, locationId, inCombat, initiativeOrder, enemies, turnIndex, openDoors, enemiesByLocation, worldState, onSaveGame]);
+
+  // Resolver el mapa táctico para la ubicación actual con fallback inteligente
+  const currentLocation = adventureData?.locations?.find((l: any) => l.id === locationId);
+  let resolvedMapData = currentLocation?.mapData;
+  let resolvedMapLocationName = currentLocation?.name;
+
+  if (!resolvedMapData && currentLocation?.explorationMode === "dungeon") {
+    // Si la sala actual no tiene mapa y no es zona segura, buscar la primera sala con mapa en la aventura
+    const locWithMap = adventureData?.locations?.find((l: any) => l.mapData?.imagePath);
+    if (locWithMap) {
+      resolvedMapData = locWithMap.mapData;
+      resolvedMapLocationName = locWithMap.name;
+    }
+  }
+
+  const hasMap = !!resolvedMapData?.imagePath;
 
   return (
     <div className="flex flex-col h-full">
@@ -823,7 +847,26 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
             diceRolls={diceRolls}
             initiativeOrder={initiativeOrder}
             turnIndex={turnIndex}
-          />
+          >
+            <div className="p-3">
+              <Button
+                variant={hasMap ? "destructive" : "secondary"}
+                disabled={!hasMap}
+                onClick={() => {
+                  setIsMapOpen(true);
+                  handleResetMapView();
+                }}
+                className={`w-full flex items-center justify-center gap-2 transition-all font-semibold py-2 h-10 ${
+                  hasMap
+                    ? "bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-900/20 active:scale-95 cursor-pointer"
+                    : "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
+                }`}
+              >
+                <Map className="h-4 w-4" />
+                {hasMap ? "Ver Mapa Táctico" : "Mapa No Disponible"}
+              </Button>
+            </div>
+          </LeftPanel>
         }
         characterSheet={
           <div className="flex flex-col h-full">
@@ -868,6 +911,8 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
         <ChatPanel
           messages={messages}
           onSendMessage={handleSendMessage}
+          streamedContent={streamedContent}
+          isStreaming={isStreaming}
           isThinking={isDMThinking}
           inCombat={inCombat}
           hasMoreAITurns={false} // Deprecated, relying on FSM phase now
@@ -881,9 +926,97 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
           isMuted={isMuted}
           onVolumeChange={handleVolumeChange}
           onToggleMute={() => setIsMuted(prev => !prev)}
+          currentStatus={currentStatus}
         />
       </GameLayout>
+
+      {/* Modal del Mapa Táctico */}
+      {isMapOpen && resolvedMapData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="relative bg-card text-card-foreground border border-border rounded-xl shadow-2xl w-[80vw] h-[85vh] max-w-7xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Cabecera del Modal */}
+            <div className="flex items-center justify-between p-4 border-b border-border bg-muted/20 z-10">
+              <div>
+                <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+                  <Map className="h-5 w-5 text-red-500" />
+                  Mapa: {resolvedMapLocationName}
+                </h3>
+                {resolvedMapData.spatialData?.dimensions?.scale && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Escala: {resolvedMapData.spatialData.dimensions.scale}
+                  </p>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setIsMapOpen(false);
+                  handleResetMapView();
+                }}
+                className="h-8 w-8 p-0 rounded-full hover:bg-muted text-foreground flex items-center justify-center font-bold text-base"
+              >
+                ✕
+              </Button>
+            </div>
+            {/* Contenedor de la Imagen con zoom y paneo */}
+            <div 
+              className="flex-1 overflow-hidden relative bg-muted/5 flex justify-center items-center cursor-grab select-none active:cursor-grabbing"
+              onWheel={handleMapWheel}
+              onMouseDown={handleMapMouseDown}
+              onMouseMove={handleMapMouseMove}
+              onMouseUp={handleMapMouseUpOrLeave}
+              onMouseLeave={handleMapMouseUpOrLeave}
+            >
+              <img
+                src={`/${resolvedMapData.imagePath}`}
+                alt={`Mapa de ${resolvedMapLocationName}`}
+                className="max-h-[70vh] object-contain rounded-lg border border-border shadow-md pointer-events-none"
+                style={{
+                  transform: `translate(${mapPosition.x}px, ${mapPosition.y}px) scale(${mapZoom})`,
+                  transition: isDraggingMap ? 'none' : 'transform 0.15s ease-out',
+                  transformOrigin: 'center',
+                }}
+              />
+
+              {/* Controles Flotantes de Zoom y Centrado */}
+              <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-background/90 backdrop-blur-md border border-border rounded-lg p-2 shadow-lg z-10 select-none">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 rounded hover:bg-muted"
+                  onClick={() => setMapZoom(prev => Math.max(0.5, prev - 0.25))}
+                  title="Alejar"
+                >
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <span className="text-xs font-mono font-bold w-12 text-center text-foreground">
+                  {Math.round(mapZoom * 100)}%
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 rounded hover:bg-muted"
+                  onClick={() => setMapZoom(prev => Math.min(4, prev + 0.25))}
+                  title="Acercar"
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+                <Separator orientation="vertical" className="h-6 mx-1" />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 rounded hover:bg-muted text-foreground flex items-center justify-center"
+                  onClick={handleResetMapView}
+                  title="Restablecer Vista"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

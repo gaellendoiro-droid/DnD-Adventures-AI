@@ -1,0 +1,13 @@
+{
+  "uris": {
+    "Manual_Jugador.pdf": "https://generativelanguage.googleapis.com/v1beta/files/z2me5szxn8og",
+    "Manual_Monstruos_part1.pdf": "https://generativelanguage.googleapis.com/v1beta/files/wd7w8z87d5pt",
+    "Manual_Monstruos_part2.pdf": "https://generativelanguage.googleapis.com/v1beta/files/7kk4e7p5ovtc"
+  },
+  "names": {
+    "Manual_Jugador.pdf": "files/z2me5szxn8og",
+    "Manual_Monstruos_part1.pdf": "files/wd7w8z87d5pt",
+    "Manual_Monstruos_part2.pdf": "files/7kk4e7p5ovtc"
+  },
+  "lastValidated": "2026-06-28T12:04:05.081Z"
+}

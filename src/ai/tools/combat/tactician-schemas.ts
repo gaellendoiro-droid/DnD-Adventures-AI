@@ -96,6 +96,7 @@ export const CombatNarrationExpertInputSchema = z.object({
     // Context for richer narration
     locationDescription: z.string().optional().describe("Brief description of the current location for environmental context."),
     conversationHistory: z.string().optional().describe("Recent combat events for context continuity."),
+    combatantsContext: z.string().optional().describe("Dynamic text listing names, class/race, and sex of characters in combat to enforce grammatical gender agreement in Spanish, e.g., 'Galador (Paladín Humano, Varón), Merryl (Mago Mediano, Varón)'."),
 });
 export type CombatNarrationExpertInput = z.infer<typeof CombatNarrationExpertInputSchema>;
 

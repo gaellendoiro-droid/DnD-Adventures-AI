@@ -17,6 +17,7 @@ import { updateRollNotationWithModifiers } from '@/lib/combat/roll-notation-util
 import { combatNarrationExpertTool } from './combat/combat-narration-expert';
 import { CombatSession } from '@/lib/combat/combat-session';
 import { EnemyStateManager } from '@/lib/game/enemy-state-manager';
+import { WorldStateManager } from '@/lib/game/world-state-manager';
 
 /**
  * Dependencies interface for Dependency Injection in combatManagerTool.
@@ -60,6 +61,7 @@ export const CombatManagerOutputSchema = z.object({
     initiativeOrder: z.array(z.any()).optional(),
     enemies: z.array(z.any()).optional(), // Deprecated: Use enemiesByLocation instead
     enemiesByLocation: z.record(z.string(), z.array(z.any())).optional(), // Map of locationId -> enemies array
+    combatantIds: z.array(z.string()).optional(), // Active combatants
     // debugLogs removed - UI DebugLog panel is being deprecated
     turnIndex: z.number().optional(),
     hasMoreAITurns: z.boolean().optional(),
@@ -68,6 +70,7 @@ export const CombatManagerOutputSchema = z.object({
     lastProcessedTurnWasAI: z.boolean().optional(), // true si el último turno procesado fue de IA/Enemy
     lastProcessedTurnIndex: z.number().optional(),  // índice del turno que se acaba de procesar
     playerActionCompleted: z.boolean().optional(),  // true si el jugador ya completó su acción en este turno
+    worldState: z.any().optional(), // WorldState actualizado
 });
 
 
@@ -162,7 +165,68 @@ export async function executeCombatManager(
     }
 
     // Serialize session state to output format
-    return session.toJSON();
+    const output = session.toJSON();
+
+    // Sincronizar el HP y estado de enemigos del combate con la localización en el worldState
+    // Esto se realiza en cada ejecución de combat-manager para mantener el WorldState actualizado en tiempo real
+    let finalWorldState = input.worldState ? JSON.parse(JSON.stringify(input.worldState)) : undefined;
+    const currentEnemiesState = output.enemies || currentLocationEnemies;
+    if (locationId && currentEnemiesState) {
+        if (!finalWorldState) {
+            finalWorldState = WorldStateManager.initialize();
+        }
+        const mappedEnemies = currentEnemiesState.map((e: any) => ({
+            ...e,
+            id: e.id,
+            hp: { 
+                current: typeof e.hp === 'object' ? (e.hp?.current ?? 0) : (e.hp ?? 0), 
+                max: typeof e.hp === 'object' ? (e.hp?.max ?? 10) : (e.hp ?? 10)
+            },
+            status: (typeof e.hp === 'object' ? (e.hp?.current ?? 0) : (e.hp ?? 0)) <= 0 ? 'dead' : (e.status || 'active')
+        }));
+        WorldStateManager.updateEnemies(finalWorldState, locationId, mappedEnemies);
+    }
+
+    // Si el combate estaba activo pero ahora ha terminado, registrar en el worldState
+    if (inCombat && !output.inCombat) {
+        if (!finalWorldState) {
+            finalWorldState = WorldStateManager.initialize();
+        }
+
+        // Obtener nombres de enemigos derrotados
+        const defeatedEnemiesNames = currentLocationEnemies
+            .filter((e: any) => e.hp?.current <= 0)
+            .map((e: any) => e.name || 'Enemigo')
+            .join(', ');
+
+        const description = defeatedEnemiesNames
+            ? `El combate ha finalizado. Enemigos derrotados: ${defeatedEnemiesNames}.`
+            : 'El combate ha finalizado.';
+
+        const turnNumber = input.conversationHistory ? input.conversationHistory.length : 0;
+
+        const { EventManager } = await import('@/lib/game/event-manager');
+        finalWorldState = EventManager.recordEvent(finalWorldState, turnNumber, {
+            type: 'combat_end',
+            locationId: locationId || '',
+            description,
+            metadata: {
+                defeatedEnemies: currentLocationEnemies
+                    .filter((e: any) => e.hp?.current <= 0)
+                    .map((e: any) => e.id)
+            }
+        });
+
+        log.info('Combat end registered in recent events', {
+            locationId,
+            description
+        });
+    }
+
+    return {
+        ...output,
+        worldState: finalWorldState
+    };
 }
 
 /**

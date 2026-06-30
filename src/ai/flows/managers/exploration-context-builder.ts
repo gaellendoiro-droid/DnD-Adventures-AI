@@ -11,7 +11,8 @@
  */
 
 import { log } from '@/lib/logger';
-import type { GameState, Character } from '@/lib/types';
+import type { Character } from '@/lib/types';
+import type { GameState } from '@/ai/flows/schemas';
 import { ExplorationManager } from './exploration-manager';
 import { EnemyStateManager } from '@/lib/game/enemy-state-manager';
 import { isEntityOutOfCombat } from '@/lib/game/entity-status-utils';
@@ -157,6 +158,7 @@ export class ExplorationContextBuilder {
             explorationState: currentGameState.exploration,
             enemiesByLocation,
             enemies,
+            worldState: currentGameState.worldState,
         });
 
         // 7. Resolver entidades presentes (usando estado actualizado si está disponible)
@@ -166,6 +168,7 @@ export class ExplorationContextBuilder {
             locationId,
             enemiesByLocation,
             enemies,
+            worldState: currentGameState.worldState,
         });
 
         // 8. Calcular estado de puertas para TODAS las conexiones
@@ -227,8 +230,9 @@ export class ExplorationContextBuilder {
         explorationState?: any;
         enemiesByLocation?: Record<string, any[]>;
         enemies?: any[];
+        worldState?: any;
     }): string[] {
-        const { locationData, locationId, cameFromLocationId, openDoors, adventureData, explorationState, enemiesByLocation } = input;
+        const { locationData, locationId, cameFromLocationId, openDoors, adventureData, explorationState, enemiesByLocation, worldState } = input;
         const visibleConnections: string[] = [];
 
         if (!locationData.connections) {
@@ -244,8 +248,8 @@ export class ExplorationContextBuilder {
             // Verificar si la conexión es visible/abierta
             const doorKey = `${locationId}:${conn.direction}`;
             const isDoorOpen = openDoors?.[doorKey] === true;
-            // Visible si: visibility='open' (arco/abertura) O puerta está abierta O isOpen=true en JSON
-            const isVisible = conn.visibility === 'open' || isDoorOpen || conn.isOpen === true;
+            // Visible si: no es oculta/secreta, o está abierta
+            const isVisible = (conn.visibility !== 'hidden' && conn.visibility !== 'secret') || isDoorOpen || conn.isOpen === true;
 
             if (isVisible) {
                 const targetLoc = adventureData.locations.find((l: any) => l.id === conn.targetId);
@@ -259,7 +263,8 @@ export class ExplorationContextBuilder {
                         conn.targetId,
                         targetLoc,
                         enemiesByLocation,
-                        adventureData
+                        adventureData,
+                        worldState
                     );
 
                     // Build simple description
@@ -270,7 +275,7 @@ export class ExplorationContextBuilder {
 
                     // Room name (only if visited to avoid spoilers)
                     if (isVisited) {
-                        parts.push(targetLoc.title || conn.targetId);
+                        parts.push(targetLoc.name || targetLoc.title || conn.targetId);
                     }
 
                     // Door state
@@ -280,7 +285,8 @@ export class ExplorationContextBuilder {
                         parts.push('(archway)');
                     }
 
-                    // Entities
+                    // Entities (DISABLED: Avoid spoilers of entities in adjacent rooms. Use 'Look' action to see.)
+                    /*
                     if (entitiesVisible.length > 0) {
                         const entityNames = entitiesVisible.map(e => {
                             const name = e.name || e.id || 'Unknown';
@@ -288,6 +294,7 @@ export class ExplorationContextBuilder {
                         });
                         parts.push(`entities: ${entityNames.join(', ')}`);
                     }
+                    */
 
                     // Interactables (New: Show visible interactables like Chests, Altars, etc.)
                     if (targetLoc.interactables && targetLoc.interactables.length > 0) {
@@ -315,24 +322,28 @@ export class ExplorationContextBuilder {
         locationId: string,
         locationData: any,
         enemiesByLocation?: Record<string, any[]>,
-        adventureData?: any
+        adventureData?: any,
+        worldState?: any
     ): any[] {
         if (!locationData.entitiesPresent) return [];
 
         // CRÍTICO: Solo obtener enemigos de ESTA ubicación específica
-        const locationSpecificEnemies = enemiesByLocation?.[locationId] || [];
+        const locationSpecificEnemies = [...(enemiesByLocation?.[locationId] || [])];
 
         const resolved: any[] = [];
 
         for (const entityId of locationData.entitiesPresent) {
             // 1. Buscar en el estado actualizado de esta ubicación ESPECÍFICA
-            const stateEnemy = locationSpecificEnemies.find((e: any) =>
+            const stateEnemyIndex = locationSpecificEnemies.findIndex((e: any) =>
                 e.id === entityId ||
                 (e as any).uniqueId === entityId ||
                 (e as any).adventureId === entityId
             );
 
-            if (stateEnemy) {
+            if (stateEnemyIndex !== -1) {
+                const stateEnemy = locationSpecificEnemies[stateEnemyIndex];
+                locationSpecificEnemies.splice(stateEnemyIndex, 1);
+                
                 // Tenemos estado actualizado - usar este (tiene HP correcto)
                 if (stateEnemy.disposition !== 'hidden') {
                     resolved.push(stateEnemy);
@@ -373,7 +384,7 @@ export class ExplorationContextBuilder {
             }
         }
 
-        return resolved;
+        return resolved.map(entity => this.applyIdentityPerception(entity, worldState));
     }
 
     /**
@@ -391,8 +402,9 @@ export class ExplorationContextBuilder {
         locationId: string;
         enemiesByLocation?: Record<string, any[]>;
         enemies?: any[];
+        worldState?: any;
     }): any[] {
-        const { locationData, adventureData, locationId, enemiesByLocation } = input;
+        const { locationData, adventureData, locationId, enemiesByLocation, worldState } = input;
 
         if (!locationData.entitiesPresent) {
             return [];
@@ -400,18 +412,21 @@ export class ExplorationContextBuilder {
 
         // CRÍTICO: Solo obtener enemigos de ESTA ubicación específica
         // NO usar el parámetro 'enemies' global que puede mezclar ubicaciones
-        const locationSpecificEnemies = enemiesByLocation?.[locationId] || [];
+        const locationSpecificEnemies = [...(enemiesByLocation?.[locationId] || [])];
 
         const result = locationData.entitiesPresent
             .map((entityId: string) => {
                 // 1. Buscar en el estado actualizado de ESTA ubicación específica
-                const stateEnemy = locationSpecificEnemies.find((e: any) =>
+                const stateEnemyIndex = locationSpecificEnemies.findIndex((e: any) =>
                     e.id === entityId ||
                     (e as any).uniqueId === entityId ||
                     (e as any).adventureId === entityId
                 );
 
-                if (stateEnemy) {
+                if (stateEnemyIndex !== -1) {
+                    const stateEnemy = locationSpecificEnemies[stateEnemyIndex];
+                    locationSpecificEnemies.splice(stateEnemyIndex, 1);
+                    
                     // Tenemos estado actualizado - usar este (tiene HP correcto)
                     if (stateEnemy.disposition === 'hidden') {
                         return null;
@@ -433,7 +448,7 @@ export class ExplorationContextBuilder {
                     ? EnemyStateManager.normalizeEnemyStats(entity)
                     : entity;
 
-                return normalizedEntity;
+                return this.applyIdentityPerception(normalizedEntity, worldState);
             })
             .filter((e: any) => e !== null);
 
@@ -447,6 +462,40 @@ export class ExplorationContextBuilder {
         });
 
         return result;
+    }
+
+    /**
+     * Aplica el enmascaramiento o revelación de identidades basadas en percepción (PIB)
+     */
+    private static applyIdentityPerception(entity: any, worldState: any): any {
+        if (!entity || !entity.trueIdentity) {
+            return entity;
+        }
+
+        // Clonar la entidad para no mutar el JSON estático original de la aventura
+        const processedEntity = JSON.parse(JSON.stringify(entity));
+        const isRevealed = worldState?.globalFlags?.[`identity_revealed_${entity.id}`] === true;
+
+        if (isRevealed) {
+            // Revelar la verdadera identidad
+            const trueId = processedEntity.trueIdentity;
+            processedEntity.name = trueId.name;
+            if (trueId.description) processedEntity.description = trueId.description;
+            if (trueId.roleplay) processedEntity.roleplay = trueId.roleplay;
+            if (trueId.combatTactics) processedEntity.combatTactics = trueId.combatTactics;
+            if (trueId.dmNotes) processedEntity.dmNotes = trueId.dmNotes;
+        } else {
+            // Ocultar la verdadera identidad para evitar spoilers en la IA
+            delete processedEntity.trueIdentity;
+            if (processedEntity.roleplay) {
+                processedEntity.roleplay = {
+                    ...processedEntity.roleplay,
+                    secretsKnown: [] // Ocultar secretos conocidos de la verdadera identidad
+                };
+            }
+        }
+
+        return processedEntity;
     }
 }
 

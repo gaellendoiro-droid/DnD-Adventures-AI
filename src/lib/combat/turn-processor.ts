@@ -620,7 +620,21 @@ export class TurnProcessor {
                 }
 
                 let resolution;
-                if (combatantData) {
+                if ((actionType === 'heal' || actionType === 'spell') && requestedRolls.length > 0) {
+                    // Hotfix: For healing or spells, trust and pass the AI's requested rolls directly to avoid overriding with weapon attacks
+                    resolution = {
+                        success: true,
+                        diceRollRequests: requestedRolls.map((r: any) => ({
+                            rollNotation: r.rollNotation,
+                            description: r.description || (actionType === 'heal' ? 'Curación' : 'Conjuro'),
+                            roller: r.roller || combatant.characterName,
+                            attackType: (r.attackType || (actionType === 'heal' ? 'healing' : 'saving_throw')) as any,
+                            attributeUsed: r.attributeUsed,
+                            attackRange: r.attackRange
+                        })),
+                        actionDescription: finalActionDescription
+                    };
+                } else if (combatantData) {
                     resolution = CombatActionResolver.resolveAttack(
                             combatantData,
                             weaponQuery,
@@ -736,11 +750,16 @@ export class TurnProcessor {
                     narrativeAttackResult = 'hit';
                 }
 
+                const combatantsContext = updatedParty
+                    .map(p => `${p.name} (${p.characterClass || ''} ${p.race || ''}, ${p.sex || 'Varón'})`)
+                    .join(', ');
+
                 const narrationInput: any = {
                     attackerName: combatant.characterName,
                     targetName: targetVisualName,
                     actionDescription: plannedAction.actionDescription,
                     attackResult: narrativeAttackResult,
+                    combatantsContext,
                 };
 
                 // Add damage and HP information if attack hit

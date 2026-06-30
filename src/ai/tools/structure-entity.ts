@@ -46,8 +46,8 @@ export const structureEntityTool = ai.defineTool(
             });
 
             // LOG COMPLETO DE LA INFO CRUDA (Vital para debug)
-            log.info(`[DEBUG RAW INFO] Longitud: ${rawInfo.length} caracteres.`);
-            console.log(`[RAW TEXT PREVIEW]: ${rawInfo.substring(0, 600)}...`); // DEBUG: Ver qué lee realmente
+            log.debug(`Longitud de info cruda: ${rawInfo.length} caracteres.`, { module: 'StructureEntity' });
+            log.debug(`[RAW TEXT PREVIEW]: ${rawInfo.substring(0, 600)}...`, { module: 'StructureEntity' });
 
             if (rawInfo.includes("no pude consultar") || rawInfo.length < 50) {
                 return { found: false, reason: "No se encontró información suficiente en el manual." };
@@ -61,25 +61,25 @@ export const structureEntityTool = ai.defineTool(
                 size: z.string().optional(), // Pequeño, Mediano...
                 type: z.string(), // Bestia, Humanoide...
                 alignment: z.string().optional(), // Sin alineamiento...
-                ac: z.number().or(z.string()),
-                hp: z.number().or(z.string()), // "11 (2d8 + 2)"
+                ac: z.number().describe("Clase de Armadura como número (ej. 11)"),
+                hp: z.number().describe("Puntos de golpe promedio como número (ej. 34)"),
                 speed: z.string().optional(), // "40 pies"
-                cr: z.number().or(z.string()),
+                cr: z.number().describe("Desafío / Challenge Rating como número (ej. 1, 0.25)"),
                 stats: z.object({
-                    str: z.number().or(z.string()),
-                    dex: z.number().or(z.string()),
-                    con: z.number().or(z.string()),
-                    int: z.number().or(z.string()),
-                    wis: z.number().or(z.string()),
-                    cha: z.number().or(z.string()),
+                    str: z.number(),
+                    dex: z.number(),
+                    con: z.number(),
+                    int: z.number(),
+                    wis: z.number(),
+                    cha: z.number(),
                 }),
                 modifiers: z.object({
-                    str: z.number().or(z.string()),
-                    dex: z.number().or(z.string()),
-                    con: z.number().or(z.string()),
-                    int: z.number().or(z.string()),
-                    wis: z.number().or(z.string()),
-                    cha: z.number().or(z.string()),
+                    str: z.number(),
+                    dex: z.number(),
+                    con: z.number(),
+                    int: z.number(),
+                    wis: z.number(),
+                    cha: z.number(),
                 }).optional(),
                 skills: z.string().nullable(), // "Percepción +3..."
                 senses: z.string().nullable(), // "Percepción pasiva 13..."
@@ -115,7 +115,7 @@ export const structureEntityTool = ai.defineTool(
                 price: z.string().optional(),
                 mechanics: z.object({
                     damage: z.string().optional(),
-                    ac: z.number().or(z.string()).optional(),
+                    ac: z.number().optional(),
                     properties: z.array(z.string()).optional()
                 }).optional()
             });

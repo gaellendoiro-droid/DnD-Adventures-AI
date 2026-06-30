@@ -81,7 +81,19 @@ export async function retryWithExponentialBackoff<T>(
                 throw error;
             }
 
-            const delay = initialDelayMs * Math.pow(2, attempt);
+            let delay = initialDelayMs * Math.pow(2, attempt);
+            
+            // Check if API specifies a precise retry delay (standard Gemini API behavior for 429)
+            const retryInMatch = errorStr.match(/please retry in ([\d.]+)\s*s/i) || msg.match(/please retry in ([\d.]+)\s*s/i);
+            if (retryInMatch) {
+                const seconds = parseFloat(retryInMatch[1]);
+                delay = Math.ceil(seconds * 1000) + 500; // Add 500ms safety buffer
+                log.info(`API Rate Limit (429) details: API requested wait time of ${seconds}s. Adjusting retry delay to ${delay}ms.`, {
+                    module: 'RetryUtils',
+                    flow: flowName
+                });
+            }
+
             // Extract clean error message for logging
             const errorMsg = error.cause?.message || error.message || 'Network error';
             const errorCode = error.cause?.code || error.code;

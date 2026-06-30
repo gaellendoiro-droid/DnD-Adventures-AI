@@ -752,5 +752,101 @@ describe('TurnProcessor', () => {
       expect(result.error).toBeDefined();
     });
   });
-});
 
+    describe('AI Turn - Spells and Healing Resolution', () => {
+      it('should preserve tactician healing rolls instead of resolving a weapon attack', async () => {
+        const combatant: Combatant = {
+          id: 'companion-1',
+          characterName: 'Companion',
+          total: 10,
+          type: 'ally',
+          controlledBy: 'AI',
+        };
+
+        const party: Character[] = [
+          {
+            id: 'companion-1',
+            name: 'Companion',
+            hp: { current: 15, max: 20 },
+            ac: 12,
+            abilityScores: { fuerza: 10, destreza: 12, constitución: 12, inteligencia: 14, sabiduría: 16, charisma: 12 } as any,
+            abilityModifiers: { fuerza: 0, destreza: 1, constitución: 1, inteligencia: 2, sabiduría: 3, charisma: 1 } as any,
+            skills: [],
+            inventory: [{ name: 'Bastón', description: '1d6 damage' }],
+            spells: [],
+            proficiencyBonus: 2,
+            controlledBy: 'AI',
+          } as Character,
+          {
+            id: 'player-1',
+            name: 'Hero',
+            hp: { current: 5, max: 30 },
+            ac: 15,
+            abilityScores: { fuerza: 16, destreza: 14, constitución: 14, inteligencia: 10, sabiduría: 12, charisma: 10 } as any,
+            abilityModifiers: { fuerza: 3, destreza: 2, constitución: 2, inteligencia: 0, sabiduría: 1, charisma: 0 } as any,
+            skills: [],
+            inventory: [],
+            spells: [],
+            proficiencyBonus: 2,
+            controlledBy: 'Player',
+          } as Character,
+        ];
+
+        const enemies: any[] = [];
+        const initiativeOrder = [combatant];
+
+        // Mock tactician response for healing
+        mockTactician.mockResolvedValue({
+          actionDescription: 'Curar a Hero',
+          targetId: 'player-1',
+          diceRolls: [
+            {
+              roller: 'Companion',
+              rollNotation: '1d8+3',
+              description: 'Curación',
+              attackType: 'healing',
+            },
+          ],
+        });
+
+        // Mock dice roller
+        mockDiceRoller.mockResolvedValue({
+          id: 'roll-heal-1',
+          roller: 'Companion',
+          rollNotation: '1d8+3',
+          individualRolls: [6],
+          modifier: 3,
+          totalResult: 9,
+          outcome: 'success',
+          timestamp: new Date(),
+          description: 'Curación',
+        });
+
+        mockNarrationExpert.mockResolvedValue({
+          narration: 'Companion cura a Hero.',
+        });
+
+        const input: TurnProcessorInput = {
+          combatant,
+          party,
+          enemies,
+          initiativeOrder,
+          dependencies: {
+            tactician: mockTactician,
+            narrationExpert: mockNarrationExpert,
+            diceRollerTool: mockDiceRoller,
+          },
+        };
+
+        const result = await TurnProcessor.processTurn(input);
+
+        expect(result.success).toBe(true);
+        expect(result.diceRolls).toHaveLength(1);
+        expect(result.diceRolls[0].description).toBe('Curación');
+        expect(result.diceRolls[0].rollNotation).toBe('1d8+3');
+        expect(result.diceRolls[0].totalResult).toBe(9);
+        // Verify target HP was updated (5 + 9 = 14)
+        expect(result.updatedParty.find(p => p.id === 'player-1')?.hp.current).toBe(14);
+      });
+    });
+});

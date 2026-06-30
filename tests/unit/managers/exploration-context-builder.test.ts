@@ -28,12 +28,13 @@ describe('ExplorationContextBuilder', () => {
         vi.clearAllMocks();
     });
 
-    const createMockGameState = (overrides?: Partial<GameState>): GameState => ({
+    const createMockGameState = (overrides?: any): any => ({
         playerAction: '',
         party: [],
         locationId: 'loc-1',
         inCombat: false,
         conversationHistory: [],
+        messages: [],
         exploration: {
             knownLocations: {
                 'loc-1': {
@@ -493,6 +494,128 @@ describe('ExplorationContextBuilder', () => {
                 const result = ExplorationContextBuilder.build(input);
 
                 expect(result.context.presentEntities).toEqual([]);
+            });
+
+            describe('identity perception (PIB)', () => {
+                it('should enmask true identity if not revealed', () => {
+                    const gameState = createMockGameState({
+                        worldState: {
+                            locations: {},
+                            globalFlags: {} // identity_revealed_npc-1 is NOT set or false
+                        }
+                    });
+                    const locationData = createMockLocation({
+                        entitiesPresent: ['npc-1'],
+                    });
+                    const party = createMockParty();
+                    const adventureData = {
+                        locations: [],
+                        entities: [
+                            {
+                                id: 'npc-1',
+                                name: 'Oveja parlante',
+                                description: 'Una oveja balando.',
+                                type: 'npc',
+                                roleplay: {
+                                    personality: 'Asustadiza',
+                                    voiceAndMannerisms: 'Bala al hablar',
+                                    goals: 'Pasto fresco',
+                                    secretsKnown: ['Quiere volver a ser elfo']
+                                },
+                                trueIdentity: {
+                                    name: 'Finethir Shinebright',
+                                    description: 'Un mago elfo polimorfado.',
+                                    roleplay: {
+                                        personality: 'Orgulloso y sabio',
+                                        voiceAndMannerisms: 'Habla refinadamente',
+                                        goals: 'Recuperar su forma original y vengarse',
+                                        secretsKnown: ['Su aprendiz lo traicionó']
+                                    }
+                                }
+                            }
+                        ],
+                    };
+
+                    vi.mocked(ExplorationManager.updateExplorationState).mockReturnValue(gameState);
+                    vi.mocked(ExplorationManager.checkPassivePerception).mockReturnValue([]);
+
+                    const input: ExplorationContextInput = {
+                        gameState,
+                        locationData,
+                        party,
+                        adventureData,
+                    };
+
+                    const result = ExplorationContextBuilder.build(input);
+
+                    expect(result.context.presentEntities).toHaveLength(1);
+                    const npc = result.context.presentEntities[0];
+                    expect(npc.name).toBe('Oveja parlante');
+                    expect(npc.description).toBe('Una oveja balando.');
+                    expect(npc.trueIdentity).toBeUndefined(); // Se eliminó para evitar leaks
+                    expect(npc.roleplay.personality).toBe('Asustadiza');
+                    expect(npc.roleplay.secretsKnown).toEqual([]); // Los secretos reales se enmascararon
+                });
+
+                it('should reveal true identity if revealed flag is true', () => {
+                    const gameState = createMockGameState({
+                        worldState: {
+                            locations: {},
+                            globalFlags: {
+                                'identity_revealed_npc-1': true
+                            }
+                        }
+                    });
+                    const locationData = createMockLocation({
+                        entitiesPresent: ['npc-1'],
+                    });
+                    const party = createMockParty();
+                    const adventureData = {
+                        locations: [],
+                        entities: [
+                            {
+                                id: 'npc-1',
+                                name: 'Oveja parlante',
+                                description: 'Una oveja balando.',
+                                type: 'npc',
+                                roleplay: {
+                                    personality: 'Asustadiza',
+                                    voiceAndMannerisms: 'Bala al hablar',
+                                    goals: 'Pasto fresco'
+                                },
+                                trueIdentity: {
+                                    name: 'Finethir Shinebright',
+                                    description: 'Un mago elfo polimorfado.',
+                                    roleplay: {
+                                        personality: 'Orgulloso y sabio',
+                                        voiceAndMannerisms: 'Habla refinadamente',
+                                        goals: 'Recuperar su forma original y vengarse',
+                                        secretsKnown: ['Su aprendiz lo traicionó']
+                                    }
+                                }
+                            }
+                        ],
+                    };
+
+                    vi.mocked(ExplorationManager.updateExplorationState).mockReturnValue(gameState);
+                    vi.mocked(ExplorationManager.checkPassivePerception).mockReturnValue([]);
+
+                    const input: ExplorationContextInput = {
+                        gameState,
+                        locationData,
+                        party,
+                        adventureData,
+                    };
+
+                    const result = ExplorationContextBuilder.build(input);
+
+                    expect(result.context.presentEntities).toHaveLength(1);
+                    const npc = result.context.presentEntities[0];
+                    expect(npc.name).toBe('Finethir Shinebright');
+                    expect(npc.description).toBe('Un mago elfo polimorfado.');
+                    expect(npc.roleplay.personality).toBe('Orgulloso y sabio');
+                    expect(npc.roleplay.secretsKnown).toEqual(['Su aprendiz lo traicionó']);
+                });
             });
         });
 
