@@ -1,117 +1,73 @@
-# D&D Adventures AI (v0.5.0)
+# D&D Adventures AI (v0.6.2)
 
-Este proyecto es una aplicación web interactiva que simula una partida de Dungeons & Dragons 5ª Edición. Utiliza un Dungeon Master (DM) impulsado por Inteligencia Artificial para crear una experiencia de juego de rol conversacional y dinámica, todo en español. Los jugadores pueden explorar un mundo, interactuar con personajes, tomar decisiones y participar en combates, todo ello narrado y gestionado por la IA.
+Aplicación web interactiva para jugar aventuras oficiales de **Dungeons & Dragons 5ª Edición** en español con un Dungeon Master (DM) impulsado por Inteligencia Artificial y un motor de reglas determinista.
 
-## Tecnologías Principales (Stack)
+El sistema combina la creatividad literaria de **Google Gemini** con una **Arquitectura Neuro-Simbólica de 3 Capas**, garantizando que las tiradas de dados, el inventario, las llaves, los descansos, los combates y la persistencia del mundo (`WorldState`) se resuelvan con precisión matemática sin alucinaciones de estado.
 
--   **Framework:** Next.js (con App Router)
--   **Lenguaje:** TypeScript
--   **Estilos:** Tailwind CSS y shadcn/ui
--   **IA Generativa:** Google Gemini a través de Genkit
--   **Gestión de Estado (Cliente):** React Hooks (`useState`, `useCallback`)
--   **Fuente de la Aventura:** Archivos JSON locales.
+---
 
-## Cómo Empezar
+## 🛠️ Tecnologías Principales (Stack)
 
-Para una guía detallada de instalación y configuración, consulta:
+- **Framework:** Next.js 15 (App Router, Server Actions y Streaming SSE)
+- **Lenguaje:** TypeScript (Tipado estricto con validación Zod)
+- **Estilos e Interfaz:** Tailwind CSS, Radix UI / shadcn/ui, Lucide Icons
+- **IA Generativa y Orquestación:** Google Genkit + Google Gemini (`gemini-2.5-flash` / `gemini-2.5-pro`)
+- **Base de Conocimiento Híbrida (RAG + SQLite):** `better-sqlite3` (`knowledge/dnd-local.db`) + Google AI File API (`RulebookManager`) para consulta de manuales oficiales en PDF
+- **Conversor de Aventuras:** Pipeline automatizado de PDF a JSON (`scripts/pdf-to-json.ts`) con extracción de mapas tácticos mediante Gemini Vision
+- **Audio y Voz (TTS):** Síntesis de voz dual con **Gemini 3.1 Flash TTS** (por defecto) y **ElevenLabs**, con caché local en disco y gestor de música ambiental (`MusicManager`)
+
+---
+
+## 🚀 Cómo Empezar
+
+Para una guía paso a paso de instalación, configuración de variables de entorno y síntesis de voz, consulta:
 
 > **[📖 Guía de Inicio Rápido](./docs/inicio-rapido.md)**
 
 ### Resumen Rápido
 
-**Prerrequisitos:**
-- Node.js (versión 20 o superior)
-- npm (o tu gestor de paquetes preferido)
-- API Key de Google Gemini
+1. **Instalar dependencias:**
+   ```bash
+   npm install
+   ```
 
-**Instalación:**
-```bash
-npm install
-```
+2. **Configurar variables de entorno (`.env`):**
+   ```env
+   GOOGLE_GENAI_API_KEY=tu_api_key_aqui
+   TTS_PROVIDER=gemini
+   GEMINI_TTS_VOICE=Charon
+   ```
 
-**Configuración:**
-Crea un archivo `.env` en la raíz del proyecto:
-```env
-GOOGLE_GENAI_API_KEY=tu_api_key_aqui
-```
+3. **Iniciar el servidor de desarrollo:**
+   ```bash
+   npm run dev
+   ```
+   Abre `http://localhost:8080` en tu navegador.
 
-**Ejecución:**
+---
 
-Para **usar la aplicación**, solo necesitas:
+## 🏛️ Arquitectura General (Neuro-Simbólica de 3 Capas)
 
-```bash
-npm run dev
-```
+El motor de juego separa de forma estricta la interpretación semántica, el cálculo de reglas y la narración literaria:
 
-Esto iniciará el servidor de desarrollo en `http://localhost:8080`. La aplicación funcionará completamente, ya que Genkit se integra con Next.js a través de Server Actions.
+1. **Capa 1 — Árbitro Semántico (`actionInterpreter`):** Analiza la intención del jugador en lenguaje natural y la traduce a una acción estructurada (`attack`, `interact`, `skill_check`, `move`, `drop`, `give`, `ooc`, `narrate`), detectando intenciones de sigilo, uso de objetos y delegación a compañeros.
+2. **Capa 2 — Motor Determinista en TypeScript (`GameRulesEngine` + `EventDispatcher`):** Procesa físicamente las acciones sobre el `WorldStateManager` y el grupo (`party`). Resuelve tiradas de dados, uso de pergaminos, apertura de puertas con llaves, descansos, navegación, botín de contenedores y presencia de entidades condicionales (`presenceFlag` / `absenceFlag`), emitiendo un registro inmutable de hechos (`eventsLog`).
+3. **Capa 3 — Director Narrativo (`NarrativeManager` + Expertos):** Recibe los hechos consumados y las directivas obligatorias de la Capa 2 para componer la respuesta literaria del DM y las intervenciones reactivas de los compañeros de grupo en tiempo real mediante Server-Sent Events (SSE).
 
-**Para desarrollo y depuración (opcional):**
+Para el combate táctico por turnos, el sistema delega en una **Máquina de Estados Finitos (`CombatSession`)** que controla el orden de iniciativa, las tácticas de enemigos/aliados y la validación matemática de ataques y conjuros.
 
-El Developer UI de Genkit es útil para depurar y probar flujos de IA de forma aislada. Primero instala `genkit-cli` globalmente:
+---
 
-```bash
-npm install -g genkit-cli
-```
+## 📚 Documentación del Proyecto
 
-Luego inicia el Developer UI:
+Toda la documentación técnica está centralizada y actualizada en la carpeta [`docs/`](./docs/README.md):
 
-```bash
-npm run genkit:ui
-```
-
-**Nota:** El Developer UI es **opcional** - la aplicación funciona completamente sin él. Las funciones de IA funcionan correctamente a través de Next.js Server Actions. Para más detalles, consulta la [Guía de Inicio Rápido](./docs/inicio-rapido.md).
-
-## Arquitectura General
-
-El proyecto sigue un modelo cliente-servidor desacoplado:
-
--   **Frontend (Cliente):** Una aplicación de página única (SPA) construida con Next.js y React. Se encarga de toda la renderización de la interfaz de usuario y de la gestión del estado local del juego (personajes, mensajes, etc.).
--   **Backend (Servidor):** Un sistema de IA modular construido con Genkit. Contiene toda la lógica del juego, la toma de decisiones y la generación de narrativa.
-
-La comunicación entre ambos se realiza a través de **Next.js Server Actions**, que actúan como un puente seguro entre el cliente y los flujos de IA del backend.
-
-### Arquitectura del Frontend
-
-El frontend está orquestado por el componente `app/game-view.tsx`, que actúa como la "fuente única de la verdad" para el estado de la partida en el cliente. Gestiona el ciclo de cada turno, enviando las acciones del usuario al backend y actualizando la interfaz con la respuesta.
-
-Para un desglose detallado de los componentes, el flujo de datos y la gestión de estado, consulta el documento:
-
-> **[📄 Documentación de Arquitectura del Frontend](./docs/arquitectura/arquitectura-frontend.md)**
-
-### Arquitectura de la IA
-
-El cerebro de la aplicación es un sistema modular de flujos y herramientas de Genkit, diseñado para la especialización de tareas. Un `gameCoordinator` central dirige cada turno, delegando la interpretación de acciones, la narración y la lógica de combate a expertos de IA especializados.
-
-Para una descripción completa de los flujos, las herramientas y la lógica de toma de decisiones de la IA, consulta el documento:
-
-> **[📄 Documentación de Arquitectura de la IA](./docs/arquitectura/arquitectura-backend.md)**
-
-## Documentación
-
-El proyecto incluye documentación completa:
-
-- **[Inicio Rápido](./docs/inicio-rapido.md)** - Guía de instalación y configuración
-- **[Visión General de Arquitectura](./docs/arquitectura/vision-general.md)** - Visión de alto nivel del sistema
-- **[Arquitectura del Frontend](./docs/arquitectura/arquitectura-frontend.md)** - Detalles del cliente
-- **[Arquitectura del Backend IA](./docs/arquitectura/arquitectura-backend.md)** - Detalles del servidor
-- **[Flujo de Datos](./docs/arquitectura/flujo-datos.md)** - Diagramas detallados de flujos
-- **[Sistema de Logging](./docs/arquitectura/sistema-logging.md)** - Sistema de logging estructurado y centralizado
-- **[Referencia de API](./docs/arquitectura/referencia-api.md)** - Esquemas y contratos de datos
-- **[Roadmap](./docs/roadmap.md)** - Mejoras futuras planificadas
-
-## Solución de Problemas
-
-### Error: "eslint-plugin-genkit not found"
-Este paquete no existe en npm. Puede ser eliminado del `package.json` sin afectar la funcionalidad.
-
-### Error: "GOOGLE_GENAI_API_KEY is not defined"
-- Verifica que el archivo `.env` existe en la raíz del proyecto
-- Verifica que la variable se llama exactamente `GOOGLE_GENAI_API_KEY`
-- Reinicia ambos servidores después de crear/modificar el `.env`
-
-### El DM no responde
-- Verifica que ambos servidores (Next.js y Genkit) están corriendo
-- Revisa la consola del navegador y las terminales para errores
-- Verifica que tu API key es válida
-
-Para más información, consulta la [Guía de Inicio Rápido](./docs/inicio-rapido.md) que incluye una sección completa de solución de problemas.
+- **[Índice de Documentación](./docs/README.md)** — Punto de entrada a toda la documentación del proyecto.
+- **[Guía de Inicio Rápido](./docs/inicio-rapido.md)** — Instalación, estructura del proyecto y configuración de TTS (Gemini / ElevenLabs).
+- **[Arquitectura del Sistema](./docs/arquitectura.md)** — Desglose completo del Frontend, Backend, Motor de 3 Capas, `WorldState`, Combate FSM y Streaming SSE.
+- **[Compendio de Prompts de IA](./docs/compendio-prompts-ia.md)** — Catálogo detallado de todos los prompts del sistema, expertos, tácticos y herramientas RAG.
+- **[Plan de WorldState Definitivo](./docs/plan-world-state-definitivo.md)** — Especificación del sistema de persistencia Base + Deltas y arquitectura orientada a eventos.
+- **[Estrategia de Testing](./docs/testing.md)** — Guía de pruebas unitarias e integración con Vitest.
+- **[Notas de Desarrollo](./docs/notas-desarrollo.md)** — Registro histórico de decisiones de arquitectura, investigaciones y resolución de bugs complejos.
+- **[Roadmap y Control de Issues](./docs/roadmap.md)** — Planificación de mejoras futuras organizadas por prioridad.
+- **[Guía de Construcción de Aventuras (PDF a JSON)](./aventuras/dev/README.md)** — Documentación del pipeline de conversión de módulos PDF oficiales a JSON.

@@ -114,20 +114,70 @@ export class WorldStateManager {
 
         // 1. Determinar enemigos
         let effectiveEnemies: EnemyState[] = [];
+        const globalFlags = world.globalFlags || {};
+
+        const createEnemyInstance = (entityId: string, index: number): EnemyState => {
+            const adventureEntity = adventure.entities?.find((e: any) => e.id === entityId);
+            return {
+                id: `${entityId}-${index}-${Date.now()}`, // ID único de instancia
+                adventureId: entityId, // Conservar el original para búsqueda de stats en la API
+                hp: {
+                    current: adventureEntity?.stats?.hp || adventureEntity?.statsOverrides?.hp || 10,
+                    max: adventureEntity?.stats?.hp || adventureEntity?.statsOverrides?.hp || 10
+                },
+                status: 'active',
+                name: adventureEntity?.name || entityId,
+                type: adventureEntity?.type || 'enemy'
+            } as unknown as EnemyState;
+        };
 
         if (locState && locState.visited) {
-            // Si ya visitamos, la verdad absoluta son los enemigos del estado (que pueden estar muertos o heridos)
-            // NOTA: Esto asume que si visitamos, ya inicializamos los enemigos en el estado.
-            // Si el array está vacío y visitamos, significa que o no había nadie o matamos a todos y limpiamos (depende de implementación).
-            // Para mayor seguridad: si visitamos pero enemies es empty, podría significar que todos murieron.
-            // Si nunca spawneamos enemigos, el array seguiría vacío.
-            effectiveEnemies = locState.enemies || [];
+            // Si ya visitamos, partimos de los enemigos persistidos en el estado (que pueden estar muertos o heridos)
+            effectiveEnemies = [...(locState.enemies || [])];
+
+            // Además, evaluamos entidades condicionales de la aventura por si algún globalFlag
+            // ha cambiado tras la primera visita (ej. una emboscada al regresar al pueblo o un PNJ que se retira).
+            if (staticLocation.entitiesPresent) {
+                const conditionalRefs = staticLocation.entitiesPresent.filter(
+                    (ref: any) => ref && typeof ref === 'object' && 'entityId' in ref
+                ) as Array<{ entityId: string; presenceFlag?: string; absenceFlag?: string }>;
+
+                if (conditionalRefs.length > 0) {
+                    // A. Filtrar enemigos existentes cuyo absenceFlag se haya activado o cuyo presenceFlag haya dejado de cumplirse
+                    effectiveEnemies = effectiveEnemies.filter((enemy: any) => {
+                        const baseId = enemy.adventureId || enemy.id?.split('-')[0];
+                        const condRef = conditionalRefs.find(r => r.entityId === baseId);
+                        if (!condRef) return true; // Entidad estática normal, se mantiene
+
+                        const presence = !condRef.presenceFlag || globalFlags[condRef.presenceFlag] === true;
+                        const absence = !condRef.absenceFlag || globalFlags[condRef.absenceFlag] !== true;
+                        return presence && absence;
+                    });
+
+                    // B. Spawnear entidades condicionales cuyas condiciones ahora se cumplan y aún no estén en la sala
+                    conditionalRefs.forEach((condRef, idx) => {
+                        const presence = !condRef.presenceFlag || globalFlags[condRef.presenceFlag] === true;
+                        const absence = !condRef.absenceFlag || globalFlags[condRef.absenceFlag] !== true;
+                        if (presence && absence) {
+                            const alreadyPresent = effectiveEnemies.some((enemy: any) => {
+                                const baseId = enemy.adventureId || enemy.id?.split('-')[0];
+                                return baseId === condRef.entityId;
+                            });
+                            if (!alreadyPresent) {
+                                effectiveEnemies.push(createEnemyInstance(condRef.entityId, effectiveEnemies.length + idx));
+                            }
+                        }
+                    });
+
+                    // Sincronizar con el estado de la sala para persistir los cambios
+                    locState.enemies = effectiveEnemies;
+                }
+            }
         } else {
             // PRIMERA VISITA (o nunca visitado oficialmente):
             // Debemos "spawnear" los enemigos basándonos en los datos estáticos y condicionales.
             if (staticLocation.entitiesPresent) {
                 const activeEntityIds: string[] = [];
-                const globalFlags = world.globalFlags || {};
 
                 staticLocation.entitiesPresent.forEach((entityRef: any) => {
                     if (typeof entityRef === 'string') {
@@ -141,20 +191,9 @@ export class WorldStateManager {
                     }
                 });
 
-                effectiveEnemies = activeEntityIds.map((entityId: string, index: number) => {
-                    const adventureEntity = adventure.entities?.find((e: any) => e.id === entityId);
-                    return {
-                        id: `${entityId}-${index}-${Date.now()}`, // ID único de instancia
-                        adventureId: entityId, // Conservar el original para búsqueda de stats en la API
-                        hp: { 
-                            current: adventureEntity?.stats?.hp || adventureEntity?.statsOverrides?.hp || 10, 
-                            max: adventureEntity?.stats?.hp || adventureEntity?.statsOverrides?.hp || 10 
-                        },
-                        status: 'active',
-                        name: adventureEntity?.name || entityId,
-                        type: adventureEntity?.type || 'enemy'
-                    } as unknown as EnemyState;
-                });
+                effectiveEnemies = activeEntityIds.map((entityId: string, index: number) =>
+                    createEnemyInstance(entityId, index)
+                );
             }
         }
 

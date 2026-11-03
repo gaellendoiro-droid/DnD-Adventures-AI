@@ -68,10 +68,13 @@ export const combatInitiationExpertTool = ai.defineTool(
     // Issue #27: Filter out dead enemies from entitiesPresent
     // locationContext.entitiesPresent permanece intacto (incluye cadáveres)
     // Filtramos SOLO para selección de combatientes
-    const allEntityIds = Array.isArray(locationContext.entitiesPresent) ? locationContext.entitiesPresent : [];
+    const rawEntityRefs = Array.isArray(locationContext.entitiesPresent) ? locationContext.entitiesPresent : [];
+    const allEntityIds: string[] = rawEntityRefs
+        .map((ref: any) => (typeof ref === 'string' ? ref : ref?.entityId))
+        .filter(Boolean);
     const aliveEntityIds = updatedEnemies 
-        ? allEntityIds.filter(id => {
-            const enemy = updatedEnemies.find((e: any) => e.id === id || (e as any).uniqueId === id);
+        ? allEntityIds.filter((id: string) => {
+            const enemy = updatedEnemies.find((e: any) => e.id === id || (e as any).uniqueId === id || (e as any).adventureId === id);
             if (!enemy) return true;
             // Si el enemigo tiene información de hp, comprobar si está muerto
             const hpCurrent = typeof enemy.hp === 'number'
@@ -114,7 +117,7 @@ export const combatInitiationExpertTool = ai.defineTool(
       if (partyIds.includes(recommendedId)) continue;
 
       // Find matching entities in location
-      entityIdsInLocation.forEach((locId, idx) => {
+      entityIdsInLocation.forEach((locId: string, idx: number) => {
         if (addedEntityIndexes.has(idx)) return;
 
         const isExactMatch = locId === recommendedId;
@@ -131,7 +134,7 @@ export const combatInitiationExpertTool = ai.defineTool(
       });
 
       // If not found in location entities at all, add it directly as a fallback
-      const locBaseIds = entityIdsInLocation.map(locId => locId.split('-').slice(0, -1).join('-') || locId.split('-')[0] || locId);
+      const locBaseIds = entityIdsInLocation.map((locId: string) => locId.split('-').slice(0, -1).join('-') || locId.split('-')[0] || locId);
       const recBaseId = recommendedId.split('-').slice(0, -1).join('-') || recommendedId.split('-')[0] || recommendedId;
       const hasAnyMatch = entityIdsInLocation.includes(recommendedId) || locBaseIds.includes(recBaseId);
 

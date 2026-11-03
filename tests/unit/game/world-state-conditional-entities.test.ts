@@ -119,4 +119,41 @@ describe('Entidades Condicionales Dinámicas', () => {
         expect((result.enemies[0] as any).adventureId).toBe('guz');
         expect(result.enemies[0].hp.max).toBe(67);
     });
+
+    it('debe spawnear o retirar dinámicamente entidades condicionales aunque la sala ya haya sido visitada antes', () => {
+        const worldState = {
+            locations: {},
+            globalFlags: {},
+            recentEvents: []
+        } as any;
+
+        // 1. Primera visita a ciudad-inicial (sin guz_en_pueblo)
+        const firstVisit = WorldStateManager.getEffectiveLocationContext(mockAdventureData, worldState, 'ciudad-inicial');
+        expect(firstVisit.enemies.length).toBe(1);
+        expect((firstVisit.enemies[0] as any).name).toBe('oveja-finethir');
+
+        // Simulamos que la sala queda marcada como visitada con la oveja presente
+        worldState.locations['ciudad-inicial'] = {
+            visited: true,
+            visitedCount: 1,
+            enemies: firstVisit.enemies,
+            interactables: {},
+            connections: {},
+            droppedItems: []
+        };
+
+        // 2. Más adelante en la partida se activa guz_en_pueblo = true y el grupo regresa a ciudad-inicial
+        worldState.globalFlags.guz_en_pueblo = true;
+        const secondVisit = WorldStateManager.getEffectiveLocationContext(mockAdventureData, worldState, 'ciudad-inicial');
+
+        expect(secondVisit.enemies.length).toBe(3); // oveja + guz + lobo
+        expect(secondVisit.enemies.some((e: any) => e.adventureId === 'guz')).toBe(true);
+        expect(secondVisit.enemies.some((e: any) => e.adventureId === 'lobo')).toBe(true);
+
+        // 3. Si luego se activa guz_derrotado = true, Guz y el Lobo dejan de aparecer como presentes condicionales
+        worldState.globalFlags.guz_derrotado = true;
+        const thirdVisit = WorldStateManager.getEffectiveLocationContext(mockAdventureData, worldState, 'ciudad-inicial');
+        expect(thirdVisit.enemies.length).toBe(1);
+        expect((thirdVisit.enemies[0] as any).name).toBe('oveja-finethir');
+    });
 });

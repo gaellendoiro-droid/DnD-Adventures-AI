@@ -8,7 +8,7 @@ Este documento centraliza toda la planificación futura, características pendie
 
 1. **Selección de presets de party al iniciar partida.**
 2. **Diferenciación entre inventario (mochila) y equipamiento equipado.**
-3. **Desactivar los comentarios automáticos del compañero que esté activo como personaje seleccionado.**
+3. **[COMPLETADO en v0.6.1] Desactivar los comentarios automáticos del compañero que esté activo como personaje seleccionado.**
 4. **[COMPLETADO en v0.6.2] Incluir fichas de monstruos automáticas en el conversor de PDF a JSON.** Cuando se hace la conversión de un pdf a un JSON podríamos incluír las fichas de los monstruos que no estén incluídos para evitar hacer llamadas a la API en medio de la partida.
 5. **Revisar el sistema de tiradas de skill checks** Hay veces en que no son necesarias aunque el jugador diga "Necesito hacer una tirada de [skill]".
 6. **Pensar como gestionar las situaciones en las que un jugador describe cosas que no debería haber conocido aún** Mere la pena? Por ejemplo al empezar una partida el jugador puede ir a un sitio que aún no se le ha revelado?.

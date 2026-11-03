@@ -105,7 +105,15 @@ const mockParty: Character[] = [{
     inventory: [],
     hp: { current: 10, max: 10 },
     ac: 15,
-    conditions: []
+    abilityModifiers: { fuerza: 0, destreza: 0, constitución: 0, inteligencia: 0, sabiduría: 0, carisma: 0 },
+    proficiencyBonus: 2,
+    speed: 30,
+    initiative: 0,
+    savingThrows: { fuerza: 0, destreza: 0, constitución: 0, inteligencia: 0, sabiduría: 0, carisma: 0 },
+    isDead: false,
+    spells: [],
+    attacks: [],
+    controlledBy: 'Player'
 }];
 
 describe('NarrativeTurnManager - Social Skill Checks & Combat Transition', () => {

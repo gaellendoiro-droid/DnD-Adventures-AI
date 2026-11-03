@@ -280,9 +280,6 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 - Ajuste de ambush en sala visible: Retirado el hazard de emboscada en la sala sur (goblin visible) para que el combate inicie por proximidad sin sorpresa.
 
 
-
-## [Unreleased]
-
 ### Added
 - **📚 Integración de Google File Search (RAG Automatizado) (2025-12-14):**
   - **Mejora:** Implementación completa del sistema RAG gestionado por Gemini para consulta de manuales.

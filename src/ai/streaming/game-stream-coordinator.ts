@@ -103,7 +103,28 @@ export async function* gameStreamCoordinator(
         );
         currentLocationData = adventureData.locations.find((l: any) => l.id === activeLocationId);
 
-        const enrichedLocationData = { ...currentLocationData };
+        let enrichedLocationData = { ...currentLocationData };
+        if (input.worldState) {
+            try {
+                const effectiveContext = WorldStateManager.getEffectiveLocationContext(adventureData, input.worldState, activeLocationId);
+                enrichedLocationData = effectiveContext.location;
+            } catch (err: any) {
+                log.error('Failed to get effective location context in gameStreamCoordinator', { error: err.message });
+            }
+        }
+        if (currentLocationData?.regionId) {
+            const implicitDestinations = adventureData.locations
+                .filter((l: any) => l.regionId === currentLocationData.regionId && l.id !== currentLocationData.id)
+                .map((l: any) => ({
+                    id: l.id,
+                    name: l.name || l.title,
+                    type: 'implicit_hub_connection'
+                }));
+
+            if (implicitDestinations.length > 0) {
+                (enrichedLocationData as any).implicitDestinations = implicitDestinations;
+            }
+        }
 
         const interpretationResult = await actionInterpreter({
             playerAction,
