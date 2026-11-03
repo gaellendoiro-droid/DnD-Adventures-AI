@@ -28,5 +28,6 @@ export const createInitialWorldState = (): WorldState => ({
 export const createInitialLocationState = (): LocationState => ({
     visited: false,
     visitedCount: 0,
-    enemies: []
+    enemies: [],
+    droppedItems: []
 });

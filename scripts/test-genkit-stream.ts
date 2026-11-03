@@ -1,4 +1,3 @@
-
 import { ai } from '../src/ai/genkit';
 import { z } from 'genkit';
 
@@ -30,12 +29,12 @@ const textPrompt = ai.definePrompt({
 
 async function main() {
     console.log("Testing Stream...");
-    const response = await textPrompt.generateStream({ input: "I give you a compliment." });
+    const response = await (textPrompt as any).generateStream({ input: "I give you a compliment." });
 
     for await (const chunk of response.stream) {
         console.log("Chunk:", JSON.stringify(chunk));
         if (chunk.content) {
-            process.stdout.write(chunk.content.map(c => c.text).join(''));
+            process.stdout.write(chunk.content.map((c: any) => c.text).join(''));
         }
     }
     console.log("\nStream Done.");

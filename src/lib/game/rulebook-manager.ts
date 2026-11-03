@@ -40,7 +40,7 @@ export class RulebookManager {
                 return JSON.parse(content);
             }
         } catch (error) {
-            log.error('Error al cargar caché de manuales', { module: 'RulebookManager' }, error);
+            log.error('Error al cargar caché de manuales', { module: 'RulebookManager' }, error instanceof Error ? error : new Error(String(error)));
         }
         return { uris: {}, names: {} };
     }
@@ -56,7 +56,7 @@ export class RulebookManager {
             }
             fs.writeFileSync(this.CACHE_PATH, JSON.stringify(cache, null, 2), 'utf-8');
         } catch (error) {
-            log.error('Error al guardar caché de manuales', { module: 'RulebookManager' }, error);
+            log.error('Error al guardar caché de manuales', { module: 'RulebookManager' }, error instanceof Error ? error : new Error(String(error)));
         }
     }
 

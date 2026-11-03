@@ -183,6 +183,14 @@ export const gameCoordinatorFlow = ai.defineFlow(
                 try {
                     const effectiveContext = WorldStateManager.getEffectiveLocationContext(adventureData, input.worldState, locationId);
                     enrichedLocationData = effectiveContext.location;
+                    if (effectiveContext.enemies && effectiveContext.enemies.length > 0) {
+                        const existingIds = new Set(currentLocationEnemies.map((e: any) => e.id));
+                        for (const effEnemy of effectiveContext.enemies) {
+                            if (effEnemy?.id && !existingIds.has(effEnemy.id)) {
+                                currentLocationEnemies.push(effEnemy);
+                            }
+                        }
+                    }
                 } catch (err: any) {
                     log.error('Failed to get effective location context in gameCoordinatorFlow', { error: err.message });
                 }

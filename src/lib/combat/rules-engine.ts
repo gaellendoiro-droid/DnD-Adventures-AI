@@ -18,12 +18,12 @@ export interface DamageResult {
 }
 
 export interface CombatantState {
-    hp: {
+    hp?: {
         current: number;
         max: number;
     };
     isDead?: boolean;
-    controlledBy?: 'Player' | 'AI';
+    controlledBy?: 'Player' | 'AI' | string;
     name?: string;
     id?: string;
     uniqueId?: string;
@@ -105,7 +105,7 @@ export function isUnconsciousOrDead(character: CombatantState): boolean {
  * Checks if combat has ended.
  */
 export function checkEndOfCombat(updatedParty: CombatantState[], updatedEnemies: CombatantState[]): { combatEnded: boolean; reason: string | null } {
-    const allEnemiesDefeated = updatedEnemies.every(e => e.hp.current <= 0);
+    const allEnemiesDefeated = updatedEnemies.every(e => (e.hp?.current ?? 0) <= 0);
     if (allEnemiesDefeated) {
         return { combatEnded: true, reason: 'Todos los enemigos derrotados' };
     }
@@ -138,8 +138,8 @@ export function checkEndOfCombat(updatedParty: CombatantState[], updatedEnemies:
  *                unless massive damage rule applies.
  */
 export function applyDamage(target: CombatantState, damage: number, isEnemy: boolean = false): DamageResult {
-    const currentHP = target.hp.current;
-    const maxHP = target.hp.max;
+    const currentHP = target.hp?.current ?? 0;
+    const maxHP = target.hp?.max ?? 10;
 
     // If already dead, no change
     if (target.isDead) {

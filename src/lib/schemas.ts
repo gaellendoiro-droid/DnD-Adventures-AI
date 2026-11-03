@@ -45,7 +45,7 @@ export const CharacterSchema = z.object({
         sabiduría: z.number(),
         carisma: z.number(),
     }).optional(),
-    proficiencyBonus: z.number().optional().default(2), // Bono de competencia (default +2 para nivel 1)
+    proficiencyBonus: z.number().optional(), // Bono de competencia (default +2 para nivel 1)
     skills: z.array(z.object({
         name: z.string(),
         proficient: z.boolean(),
@@ -56,7 +56,7 @@ export const CharacterSchema = z.object({
     controlledBy: z.enum(["Player", "AI"]),
     inventory: z.array(z.object({ id: z.string(), name: z.string(), quantity: z.number(), description: z.string().optional().nullable() })),
     spells: z.array(z.object({ id: z.string(), name: z.string(), level: z.number(), description: z.string().nullable() })),
-    isDead: z.boolean().optional().default(false), // Sistema de muerte masiva D&D 5e
+    isDead: z.boolean().optional(), // Sistema de muerte masiva D&D 5e
 
     // Campos adicionales para ficha completa de D&D 5e
     alignment: z.string().optional(), // Alineamiento (ej: "Legal Bueno", "Caótico Neutral")
@@ -427,7 +427,7 @@ export const LocationStateSchema = z.object({
         name: z.string(),
         quantity: z.number(),
         description: z.string().optional().nullable()
-    })).optional().default([])
+    })).optional()
 });
 
 /**

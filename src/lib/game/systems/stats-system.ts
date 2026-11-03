@@ -56,6 +56,18 @@ export class StatsSystem implements GameSystem {
 
           if (newHp <= 0) {
             enemy.status = 'dead';
+            if (context.worldState && enemy.id) {
+              if (!context.worldState.globalFlags) {
+                context.worldState.globalFlags = {};
+              }
+              const rawId = String(enemy.id).toLowerCase();
+              const baseId = rawId.replace(/-\d+$/, '');
+              const shortId = baseId.split('-')[0];
+              context.worldState.globalFlags[`${baseId}_derrotado`] = true;
+              if (shortId && shortId !== baseId) {
+                context.worldState.globalFlags[`${shortId}_derrotado`] = true;
+              }
+            }
             context.enqueue({
               type: 'EnemyDied',
               payload: {

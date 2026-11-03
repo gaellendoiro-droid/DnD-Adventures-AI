@@ -65,7 +65,7 @@ describe('ExplorationContextBuilder', () => {
             stats: {
                 perception: 12,
             },
-        } as Character,
+        } as unknown as Character,
     ];
 
     describe('build', () => {
@@ -181,7 +181,7 @@ describe('ExplorationContextBuilder', () => {
                 const locationData = createMockLocation();
                 const party = createMockParty();
 
-                const detectedHazards = [
+                const detectedHazards: any[] = [
                     { id: 'hazard-1', type: 'trap', detectionDC: 15 },
                     { id: 'hazard-2', type: 'trap', detectionDC: 10 },
                 ];
@@ -227,7 +227,7 @@ describe('ExplorationContextBuilder', () => {
                 const locationData = createMockLocation();
                 const party = createMockParty();
 
-                const detectedHazards = [{ id: 'hazard-1', type: 'trap' }];
+                const detectedHazards: any[] = [{ id: 'hazard-1', type: 'trap' }];
                 const updatedGameState = {
                     ...gameState,
                     exploration: {

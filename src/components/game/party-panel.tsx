@@ -46,9 +46,9 @@ export function PartyPanel({
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-semibold text-sm truncate">{character.name}</p>
                   {character.controlledBy === 'Player' ? (
-                    <User className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" title="Jugador" />
+                    <span title="Jugador" className="flex-shrink-0"><User className="h-3.5 w-3.5 text-blue-500" /></span>
                   ) : (
-                    <Bot className="h-3.5 w-3.5 text-green-500 flex-shrink-0" title="IA" />
+                    <span title="IA" className="flex-shrink-0"><Bot className="h-3.5 w-3.5 text-green-500" /></span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">

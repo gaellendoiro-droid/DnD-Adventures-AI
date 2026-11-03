@@ -44,7 +44,7 @@ describe('getHpStatus', () => {
 describe('validateAndClampHP', () => {
   it('should return character unchanged if no HP property', () => {
     const character = { id: 'test', name: 'Test' };
-    const result = validateAndClampHP(character);
+    const result = validateAndClampHP(character as any);
     expect(result).toEqual(character);
   });
 
@@ -53,7 +53,7 @@ describe('validateAndClampHP', () => {
       id: 'test',
       hp: { current: 150, max: 100 },
     };
-    const result = validateAndClampHP(character);
+    const result = validateAndClampHP(character as any);
     expect(result.hp.current).toBe(100);
     expect(result.hp.max).toBe(100);
   });
@@ -63,7 +63,7 @@ describe('validateAndClampHP', () => {
       id: 'test',
       hp: { current: -10, max: 100 },
     };
-    const result = validateAndClampHP(character);
+    const result = validateAndClampHP(character as any);
     expect(result.hp.current).toBe(0);
     expect(result.hp.max).toBe(100);
   });
@@ -73,7 +73,7 @@ describe('validateAndClampHP', () => {
       id: 'test',
       hp: { current: 5, max: 0 },
     };
-    const result = validateAndClampHP(character);
+    const result = validateAndClampHP(character as any);
     expect(result.hp.max).toBe(10);
     expect(result.hp.current).toBe(5);
   });
@@ -84,7 +84,7 @@ describe('validateAndClampHP', () => {
       hp: { current: 50, max: 100 },
       isDead: true,
     };
-    const result = validateAndClampHP(character);
+    const result = validateAndClampHP(character as any);
     expect(result.hp.current).toBe(0);
     expect(result.hp.max).toBe(100);
     expect(result.isDead).toBe(true);
@@ -95,7 +95,7 @@ describe('validateAndClampHP', () => {
       id: 'test',
       hp: { current: 50, max: 100 },
     };
-    const result = validateAndClampHP(character);
+    const result = validateAndClampHP(character as any);
     expect(result.isDead).toBe(false);
   });
 
@@ -105,7 +105,7 @@ describe('validateAndClampHP', () => {
       hp: { current: 50, max: 100 },
       isDead: false,
     };
-    const result = validateAndClampHP(character);
+    const result = validateAndClampHP(character as any);
     expect(result.isDead).toBe(false);
   });
 });

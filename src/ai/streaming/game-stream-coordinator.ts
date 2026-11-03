@@ -14,6 +14,7 @@ import { formatMessageForTranscript } from '@/lib/utils/transcript-formatter';
 import { oocAssistant } from '@/ai/flows/ooc-assistant';
 import { CombatInitiationService } from '@/lib/combat/combat-initiation-service';
 import { combatInitiationExpertTool } from '@/ai/tools/combat-initiation-expert';
+import { WorldStateManager } from '@/lib/game/world-state-manager';
 
 /**
  * Helper generator to stream text with pacing.
@@ -96,7 +97,7 @@ export async function* gameStreamCoordinator(
         yield createEvent('debug', { message: 'Interpreting Action...' });
 
         const historyTranscript = conversationHistory.slice(-6).map(formatMessageForTranscript).join('\n');
-        const currentLocationEnemies = EnemyStateManager.getEnemiesForLocation(
+        let currentLocationEnemies = EnemyStateManager.getEnemiesForLocation(
             activeLocationId,
             input.enemiesByLocation,
             input.enemies
@@ -108,6 +109,14 @@ export async function* gameStreamCoordinator(
             try {
                 const effectiveContext = WorldStateManager.getEffectiveLocationContext(adventureData, input.worldState, activeLocationId);
                 enrichedLocationData = effectiveContext.location;
+                if (effectiveContext.enemies && effectiveContext.enemies.length > 0) {
+                    const existingIds = new Set(currentLocationEnemies.map((e: any) => e.id));
+                    for (const effEnemy of effectiveContext.enemies) {
+                        if (effEnemy?.id && !existingIds.has(effEnemy.id)) {
+                            currentLocationEnemies.push(effEnemy);
+                        }
+                    }
+                }
             } catch (err: any) {
                 log.error('Failed to get effective location context in gameStreamCoordinator', { error: err.message });
             }

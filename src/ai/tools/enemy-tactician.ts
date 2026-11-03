@@ -30,13 +30,21 @@ const enemyTacticianPrompt = ai.definePrompt({
   {{#each enemies}}
   - **{{this.name}}** (ID: {{this.id}}, Status: {{this.hp}})
   {{/each}}
+{{#if availableActions}}
+- **Your Available Statblock Actions (STRICT - ONLY USE THESE):**
+  {{#each availableActions}}
+  - **{{this.name}}**: {{this.desc}}
+  {{/each}}
+{{/if}}
 - **Recent Events:**
   \`\`\`
   {{{conversationHistory}}}
   \`\`\`
 
 **Your Task:**
-1.  **CRITICAL - You MUST choose a combat action:** You MUST select an action for **{{{activeCombatant}}}**. "No hacer nada" is FORBIDDEN unless the monster is dead or unconscious. You MUST attack, use an ability, or take another combat action. If you don't know the monster's abilities, use the \`dndApiLookupTool\` to look up **{{{activeCombatant}}}** and find its available actions (attacks, special abilities, etc.).
+1.  **CRITICAL - You MUST choose a combat action:** You MUST select an action for **{{{activeCombatant}}}**. "No hacer nada" is FORBIDDEN unless the monster is dead or unconscious. You MUST attack, use an ability, or take another combat action.
+    - **If "Your Available Statblock Actions" is listed above:** You MUST strictly pick one of those exact actions (e.g., if it lists "Espadón", use "Ataque con Espadón"). Do NOT invent spells, ranged weapons, or abilities that are not in that list, and do NOT call \`dndApiLookupTool\` if actions are already provided above.
+    - **Only if no available actions are listed above:** Use the \`dndApiLookupTool\` to look up **{{{activeCombatant}}}** and find its available actions.
 2.  **Analyze & Decide:** Choose the best tactical action. Usually, this means attacking the most injured or threatening player. For monsters like Mimics, use their Pseudopod attack. For goblins, use their scimitar. Always choose an aggressive action.
 3.  **Generate JSON Output:** Fill out the following fields based on your decision. The output MUST be a valid JSON object matching the required schema.
 

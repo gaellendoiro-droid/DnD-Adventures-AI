@@ -21,7 +21,7 @@ Este documento centraliza toda la planificación futura, características pendie
 13. **Asignar diferentes configuraciones de voz para los personajes** Sería cuestión de configurar en cada ficha de personajes unos atributos de voz únicos para cada uno. 
 14. **Desarrollar una forma de visualizar el daño que tiene los personajes del orden de combate** pero que no sea numérica para que funcione como una pista visual más bien sin revelar el daño exacto. Quizás algo como ir tiñendo el nombre del personaje de blanco-> rosa-> rojo-> marrón ->negro->tachado. (Obviamente si se llega al último paso el personaje muere).
 15. **Selección de personajes** Cuando la selección del personaje cambia debería ser solo para mostrar la ficha de personaje, pero los mensajes que escribe el jugador deberían ser siempre para el personaje que es controlado por el jugador. No se debería poder enviar mensajes en nombre de personajes controlados por IA.
-16. **Nombres de personajes en el orden de combate** Cuando comienza el combate aunque no haya monstruos o personajes duplicados siempre salen con una numeración acompañando al nombre. Esto lo podríamos corregir para que si solo hay una oveja o un Guz no se le añada la numeración.
+16. **[COMPLETADO] Nombres de personajes en el orden de combate** Cuando comienza el combate aunque no haya monstruos o personajes duplicados siempre salen con una numeración acompañando al nombre. Esto lo podríamos corregir para que si solo hay una oveja o un Guz no se le añada la numeración.
 17. **Replantear el sistema para hablar con el DM fuera del personaje** Quizás sea mejor que cualquier consulta que se haga fuera de personaje se muestre en unmodel, ahí se mostrarian fichas, reglas etc. Así no sobrecargamos el chat.
 
 ---
@@ -47,7 +47,7 @@ Este documento centraliza toda la planificación futura, características pendie
   3. *Capa 3 (IA Narradora/DM):* Un prompt de DM simplificado toma el JSON de Hechos Absolutos del Turno y se limita a vestirlo de gala literaria en prosa evocadora de D&D, previniendo alucinaciones lógicas, double-binds y colapsos de esquema.
 
 ### Sistema de Combate y Reglas:
-- **Alucinaciones del Tactician Enemigo (Acciones inventadas):** Evitar que la IA del tactician enemigo (`enemyTacticianTool`) alucine acciones o armas inexistentes (ej. "Multiataque (Barba y Glaive)" para un Oso Pardo). Implementar que se pasen las acciones disponibles (`availableActions`) directamente en el prompt del tactician o forzarlo a consultar las estadísticas oficiales antes de elegir la acción.
+- **[COMPLETADO] Alucinaciones del Tactician Enemigo (Acciones inventadas):** Evitar que la IA del tactician enemigo (`enemyTacticianTool`) alucine acciones o armas inexistentes (ej. "Multiataque (Barba y Glaive)" para un Oso Pardo). Implementar que se pasen las acciones disponibles (`availableActions`) directamente en el prompt del tactician o forzarlo a consultar las estadísticas oficiales antes de elegir la acción.
 
 - **Visualización de Acciones Disponibles:** Mostrar gráficamente en la interfaz las acciones principales, bonus actions, reacciones y movimiento restantes del personaje activo en su turno.
 - **Múltiples Acciones en Turno de Jugador:** Permitir realizar movimiento y acciones adicionales antes de que el turno pase obligatoriamente (reemplazar auto-avance por paso manual / fin de turno explícito).

@@ -42,7 +42,7 @@ describe('CombatSession', () => {
     });
 
     it('should create a session from input with fromInput()', () => {
-      const mockInput: CombatManagerInput = {
+      const mockInput: any = {
         party: [
           {
             id: 'player-1',
@@ -61,7 +61,7 @@ describe('CombatSession', () => {
             inventory: [],
             spells: [],
             controlledBy: 'Player',
-          } as Character,
+          } as unknown as Character,
         ],
         enemies: [],
         initiativeOrder: [
@@ -110,7 +110,7 @@ describe('CombatSession', () => {
 
   describe('Getters', () => {
     it('should return active combatant when combat is active', () => {
-      const mockInput: CombatManagerInput = {
+      const mockInput: any = {
         party: [],
         enemies: [],
         initiativeOrder: [
@@ -142,7 +142,7 @@ describe('CombatSession', () => {
     });
 
     it('should clamp turnIndex to valid range when out of bounds', () => {
-      const mockInput: CombatManagerInput = {
+      const mockInput: any = {
         party: [],
         enemies: [],
         initiativeOrder: [
@@ -193,7 +193,7 @@ describe('CombatSession', () => {
       vi.mocked(checkEndOfCombat).mockReturnValue({ combatEnded: false, reason: null });
       vi.mocked(CombatTurnManager.hasMoreAITurns).mockReturnValue(false);
 
-      const mockInput: CombatManagerInput = {
+      const mockInput: any = {
         party: [
           {
             id: 'player-1',
@@ -211,7 +211,7 @@ describe('CombatSession', () => {
             inventory: [],
             spells: [],
             controlledBy: 'Player',
-          } as Character,
+          } as unknown as Character,
         ],
         enemies: [],
         initiativeOrder: [
@@ -264,7 +264,7 @@ describe('CombatSession', () => {
     });
 
     it('should advance turn index using CombatTurnManager', () => {
-      const mockInput: CombatManagerInput = {
+      const mockInput: any = {
         party: [],
         enemies: [],
         initiativeOrder: [
@@ -290,7 +290,7 @@ describe('CombatSession', () => {
     });
 
     it('should handle wrap-around correctly', () => {
-      const mockInput: CombatManagerInput = {
+      const mockInput: any = {
         party: [],
         enemies: [],
         initiativeOrder: [
@@ -338,7 +338,7 @@ describe('CombatSession', () => {
     });
 
     it('should return false if no active combatant', () => {
-      const mockInput: CombatManagerInput = {
+      const mockInput: any = {
         party: [],
         enemies: [],
         initiativeOrder: [],
@@ -354,7 +354,7 @@ describe('CombatSession', () => {
     });
 
     it('should use CombatTurnManager.hasMoreAITurns', () => {
-      const mockInput: CombatManagerInput = {
+      const mockInput: any = {
         party: [
           {
             id: 'player-1',
@@ -372,7 +372,7 @@ describe('CombatSession', () => {
             inventory: [],
             spells: [],
             controlledBy: 'Player',
-          } as Character,
+          } as unknown as Character,
         ],
         enemies: [],
         initiativeOrder: [
@@ -398,7 +398,7 @@ describe('CombatSession', () => {
     });
 
     it('should return false if combat has ended', () => {
-      const mockInput: CombatManagerInput = {
+      const mockInput: any = {
         party: [],
         enemies: [],
         initiativeOrder: [
@@ -434,7 +434,7 @@ describe('CombatSession', () => {
     });
 
     it('should use rules-engine checkEndOfCombat', () => {
-      const mockInput: CombatManagerInput = {
+      const mockInput: any = {
         party: [
           {
             id: 'player-1',
@@ -452,7 +452,7 @@ describe('CombatSession', () => {
             inventory: [],
             spells: [],
             controlledBy: 'Player',
-          } as Character,
+          } as unknown as Character,
         ],
         enemies: [
           { uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 7, max: 7 } } as any,
@@ -479,7 +479,7 @@ describe('CombatSession', () => {
     });
 
     it('should return reason when combat has ended (guarded when no enemies present)', () => {
-      const mockInput: CombatManagerInput = {
+      const mockInput: any = {
         party: [],
         enemies: [],
         initiativeOrder: [],
@@ -544,7 +544,7 @@ describe('CombatSession', () => {
             inventory: [],
             spells: [],
             controlledBy: 'Player',
-          } as Character,
+          } as unknown as Character,
         ],
         messages: [{ sender: 'System', content: '¡Comienza el Combate!' }],
         diceRolls: [],
@@ -606,7 +606,7 @@ describe('CombatSession', () => {
             inventory: [],
             spells: [],
             controlledBy: 'Player',
-          } as Character,
+          } as unknown as Character,
         ],
         messages: [
           { sender: 'System', content: '¡Comienza el Combate!' },
@@ -737,7 +737,7 @@ describe('CombatSession', () => {
       const output = session.toJSON();
       expect(session.isActive()).toBe(true);
       expect(output.phase).toBe(CombatPhase.ACTION_RESOLVED);
-      expect(output.enemies.length).toBeGreaterThanOrEqual(0);
+      expect(output.enemies!.length).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -757,7 +757,7 @@ describe('CombatSession', () => {
     });
 
     it('should return early if no active combatant', async () => {
-      const mockInput: CombatManagerInput = {
+      const mockInput: any = {
         party: [],
         enemies: [],
         initiativeOrder: [],
@@ -778,7 +778,7 @@ describe('CombatSession', () => {
     });
 
     it('should handle continue_turn action for player', async () => {
-      const mockInput: CombatManagerInput = {
+      const mockInput: any = {
         party: [
           {
             id: 'player-1',
@@ -796,7 +796,7 @@ describe('CombatSession', () => {
             inventory: [],
             spells: [],
             controlledBy: 'Player',
-          } as Character,
+          } as unknown as Character,
         ],
         enemies: [],
         initiativeOrder: [
@@ -839,7 +839,7 @@ describe('CombatSession', () => {
     });
 
     it('should process player turn when action is provided', async () => {
-      const mockInput: CombatManagerInput = {
+      const mockInput: any = {
         party: [
           {
             id: 'player-1',
@@ -857,7 +857,7 @@ describe('CombatSession', () => {
             inventory: [],
             spells: [],
             controlledBy: 'Player',
-          } as Character,
+          } as unknown as Character,
         ],
         enemies: [
           { uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 7, max: 7 }, ac: 15 } as any,
@@ -915,7 +915,7 @@ describe('CombatSession', () => {
     });
 
     it('should process AI turn automatically', async () => {
-      const mockInput: CombatManagerInput = {
+      const mockInput: any = {
         party: [
           {
             id: 'player-1',
@@ -933,7 +933,7 @@ describe('CombatSession', () => {
             inventory: [],
             spells: [],
             controlledBy: 'Player',
-          } as Character,
+          } as unknown as Character,
         ],
         enemies: [
           { uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 7, max: 7 }, ac: 15 } as any,
@@ -986,7 +986,7 @@ describe('Edge Cases and Error Handling', () => {
   });
 
   it('should handle processCurrentTurn when combat ends during AI turn', async () => {
-    const mockInput: CombatManagerInput = {
+    const mockInput: any = {
       party: [
         {
           id: 'player-1',
@@ -1004,7 +1004,7 @@ describe('Edge Cases and Error Handling', () => {
           inventory: [],
           spells: [],
           controlledBy: 'Player',
-        } as Character,
+        } as unknown as Character,
       ],
       enemies: [
         { uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 1, max: 7 }, ac: 15 } as any,
@@ -1053,12 +1053,12 @@ await session.processCurrentTurn(
 const output = session.toJSON();
 // Combat ended
 expect(output.inCombat).toBe(false);
-expect(output.enemies.length).toBeGreaterThanOrEqual(0);
+expect(output.enemies!.length).toBeGreaterThanOrEqual(0);
 expect(output.phase).toBeDefined();
     });
 
 it('should handle player turn with ambiguous target', async () => {
-  const mockInput: CombatManagerInput = {
+  const mockInput: any = {
     party: [
       {
         id: 'player-1',
@@ -1076,7 +1076,7 @@ it('should handle player turn with ambiguous target', async () => {
         inventory: [],
         spells: [],
         controlledBy: 'Player',
-      } as Character,
+      } as unknown as Character,
     ],
     enemies: [
       { uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 7, max: 7 }, ac: 15 } as any,
@@ -1109,7 +1109,7 @@ it('should handle player turn with ambiguous target', async () => {
 });
 
 it('should handle player turn with no enemies alive', async () => {
-  const mockInput: CombatManagerInput = {
+  const mockInput: any = {
     party: [
       {
         id: 'player-1',
@@ -1127,7 +1127,7 @@ it('should handle player turn with no enemies alive', async () => {
         inventory: [],
         spells: [],
         controlledBy: 'Player',
-      } as Character,
+      } as unknown as Character,
     ],
     enemies: [
       { uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 0, max: 7 }, ac: 15 } as any,
@@ -1161,7 +1161,7 @@ expect(output.inCombat).toBe(false);
 });
 
 it('should handle AI turn with no targetId', async () => {
-  const mockInput: CombatManagerInput = {
+  const mockInput: any = {
     party: [
       {
         id: 'player-1',
@@ -1179,7 +1179,7 @@ it('should handle AI turn with no targetId', async () => {
         inventory: [],
         spells: [],
         controlledBy: 'Player',
-      } as Character,
+      } as unknown as Character,
     ],
     enemies: [
       { uniqueId: 'enemy-1', name: 'Goblin', hp: { current: 7, max: 7 }, ac: 15 } as any,
@@ -1258,7 +1258,7 @@ it('should handle initialize failure gracefully', async () => {
 });
 
 it('should handle fromInput with invalid turnIndex (out of bounds)', () => {
-  const mockInput: CombatManagerInput = {
+  const mockInput: any = {
     party: [],
     enemies: [],
     initiativeOrder: [
@@ -1278,7 +1278,7 @@ it('should handle fromInput with invalid turnIndex (out of bounds)', () => {
 });
 
 it('should handle fromInput with negative turnIndex', () => {
-  const mockInput: CombatManagerInput = {
+  const mockInput: any = {
     party: [],
     enemies: [],
     initiativeOrder: [
@@ -1298,7 +1298,7 @@ it('should handle fromInput with negative turnIndex', () => {
 });
 
 it('should handle processCurrentTurn with invalid action type', async () => {
-  const mockInput: CombatManagerInput = {
+  const mockInput: any = {
     party: [
       {
         id: 'player-1',
@@ -1316,7 +1316,7 @@ it('should handle processCurrentTurn with invalid action type', async () => {
         inventory: [],
         spells: [],
         controlledBy: 'Player',
-      } as Character,
+      } as unknown as Character,
     ],
     enemies: [],
     initiativeOrder: [

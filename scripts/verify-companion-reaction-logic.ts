@@ -1,6 +1,5 @@
-
 import { processCompanionReactionsStreaming } from '../src/ai/flows/managers/companion-reaction-manager';
-import { canEntityReact } from '../src/lib/game/entity-status-utils';
+import { isEntityOutOfCombat } from '../src/lib/game/entity-status-utils';
 import { Character } from '../src/lib/types';
 
 async function main() {
@@ -12,8 +11,8 @@ async function main() {
         controlledBy: 'Player', // Expected value
         hp: { current: 10, max: 10 },
         isDead: false,
-        race: 'Elf', characterClass: 'Rogue', stats: {} as any, inventory: [], skills: [], statusEffects: [], level: 1, accessories: [], armor: [], weapons: [], spells: [], abilityScores: {} as any, background: 'Criminal', sex: 'Female', color: 'Purple', personality: 'Sassy'
-    };
+        race: 'Elf', characterClass: 'Rogue', inventory: [], skills: [], level: 1, spells: [], abilityScores: {} as any, background: 'Criminal', sex: 'Female', color: 'Purple', personality: 'Sassy'
+    } as any;
 
     const aiChar: Character = {
         id: 'p2',
@@ -21,20 +20,20 @@ async function main() {
         controlledBy: 'AI',
         hp: { current: 10, max: 10 },
         isDead: false,
-        race: 'Human', characterClass: 'Paladin', stats: {} as any, inventory: [], skills: [], statusEffects: [], level: 1, accessories: [], armor: [], weapons: [], spells: [], abilityScores: {} as any, background: 'Noble', sex: 'Male', color: 'Blue', personality: 'Noble'
-    };
+        race: 'Human', characterClass: 'Paladin', inventory: [], skills: [], level: 1, spells: [], abilityScores: {} as any, background: 'Noble', sex: 'Male', color: 'Blue', personality: 'Noble'
+    } as any;
 
     const party = [playerChar, aiChar];
 
-    console.log('Checking canEntityReact:');
-    console.log(`Merryl (Player): ${canEntityReact(playerChar)}`);
-    console.log(`Galador (AI): ${canEntityReact(aiChar)}`);
+    console.log('Checking isEntityOutOfCombat:');
+    console.log(`Merryl (Player): ${!isEntityOutOfCombat(playerChar)}`);
+    console.log(`Galador (AI): ${!isEntityOutOfCombat(aiChar)}`);
 
     console.log('\nRunning Stream...');
     const stream = processCompanionReactionsStreaming({
         party,
         playerAction: 'Hola a todos',
-        interpretation: { actionType: 'interact' },
+        interpretation: { actionType: 'interact' } as any,
         inCombat: false,
         timing: 'before_dm',
         isAdventureStart: false,

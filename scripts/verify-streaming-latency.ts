@@ -38,14 +38,15 @@ async function main() {
         const generator = gameStreamCoordinator(mockState as GameState);
         console.log('Generator created.');
 
-        for await (const event of generator) {
+        for await (const rawEvent of generator) {
+            const event: any = rawEvent;
             const now = Date.now();
             const elapsed = (now - startTime) / 1000;
 
             if (event.type === 'token') {
                 if (firstTokenTime === 0) {
                     firstTokenTime = elapsed;
-                    console.log(`[${elapsed.toFixed(3)}s] FIRST TOKEN (${event.role}): ${JSON.stringify(event.content).substring(0, 20)}...`);
+                    console.log(`[${elapsed.toFixed(3)}s] FIRST TOKEN (${(event.payload as any).role}): ${JSON.stringify((event.payload as any).content).substring(0, 20)}...`);
                 }
             } else if (event.type === 'state_delta') {
                 if (event.data?.messages) {

@@ -246,17 +246,17 @@ export async function* executeNarrativeTurnStreaming(
     // Formatear historial para los sistemas que lo necesiten
     const trimmedHistoryText = conversationHistory.slice(-6).map(formatMessageForTranscript).join('\n');
 
-    if (actionType === 'move' && targetId) {
+    if (!rulesEngineResult.intercepted && actionType === 'move' && targetId) {
         dispatcher.enqueue({
             type: 'MoveAttempted',
             payload: { toLocationId: targetId, stealthIntent: !!stealthIntent, assignedCompanion }
         });
-    } else if (actionType === 'interact' && targetId) {
+    } else if (!rulesEngineResult.intercepted && actionType === 'interact' && targetId) {
         dispatcher.enqueue({
             type: 'InteractAttempted',
             payload: { targetId, assignedCompanion, playerAction }
         });
-    } else if (actionType === 'attack' && targetId) {
+    } else if (!rulesEngineResult.intercepted && actionType === 'attack' && targetId) {
         dispatcher.enqueue({
             type: 'AttackAttempted',
             payload: { targetId, assignedCompanion }
@@ -274,17 +274,17 @@ export async function* executeNarrativeTurnStreaming(
                 pendingWorldStateFlags
             }
         });
-    } else if (actionType === 'drop' && targetId) {
+    } else if (!rulesEngineResult.intercepted && actionType === 'drop' && targetId) {
         dispatcher.enqueue({
             type: 'ItemDropAttempted',
             payload: { itemId: targetId, quantity: 1, assignedCompanion }
         });
-    } else if (actionType === 'give' && targetId && recipient) {
+    } else if (!rulesEngineResult.intercepted && actionType === 'give' && targetId && recipient) {
         dispatcher.enqueue({
             type: 'ItemGiveAttempted',
             payload: { itemId: targetId, quantity: 1, recipient, assignedCompanion }
         });
-    } else if (actionType === 'ooc') {
+    } else if (!rulesEngineResult.intercepted && actionType === 'ooc') {
         dispatcher.enqueue({
             type: 'OocDeclared',
             payload: { text: playerAction }

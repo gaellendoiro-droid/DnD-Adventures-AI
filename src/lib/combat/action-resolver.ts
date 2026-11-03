@@ -246,7 +246,7 @@ export class CombatActionResolver {
             strMod,
             dexMod,
             player.attacks, // Pass explicit attacks array from Character
-            weapon?.description // Pass inventory description
+            weapon?.description ?? undefined // Pass inventory description
         );
 
         const abilityMod = attributeUsed === 'DES' ? dexMod : strMod;

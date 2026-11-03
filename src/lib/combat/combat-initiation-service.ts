@@ -328,7 +328,9 @@ export class CombatInitiationService {
         // 2. Fallback: Load from adventureData if not in state
         if (combatEnemies.length === 0 && locationData.entitiesPresent) {
             const enemyGroups = new Map<string, number>(); // Map<baseId, currentIndex>
-            combatEnemies = locationData.entitiesPresent.map((id: string) => {
+            combatEnemies = locationData.entitiesPresent.map((rawEntry: any) => {
+                const id = typeof rawEntry === 'string' ? rawEntry : rawEntry?.entityId;
+                if (!id) return null;
                 const entity = adventureData.entities?.find((e: any) => e.id === id);
                 if (!entity) return null;
 
@@ -544,7 +546,7 @@ export class CombatInitiationService {
      */
     static enrichCombatantsWithSmartNPCs(
         recommendedIds: string[],
-        entitiesPresent: string[] | undefined,
+        entitiesPresent: Array<string | { entityId: string }> | undefined,
         adventureData: any,
         playerAction: string,
         targetId?: string,
@@ -555,7 +557,9 @@ export class CombatInitiationService {
 
         const enrichedIds = [...recommendedIds];
 
-        entitiesPresent.forEach((id: string) => {
+        entitiesPresent.forEach((rawEntry: any) => {
+            const id = typeof rawEntry === 'string' ? rawEntry : rawEntry?.entityId;
+            if (!id) return;
             // Check if the entity is already in combatantIds (base ID check to prevent duplicates)
             const locBaseId = id.split('-').slice(0, -1).join('-') || id.split('-')[0] || id;
             const isAlreadyIncluded = enrichedIds.some(recId => {

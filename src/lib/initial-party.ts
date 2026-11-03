@@ -482,12 +482,12 @@ if (galador) {
   galador.level = 4;
   galador.hp = { current: 36, max: 36 };
   galador.abilityScores.fuerza = 18;
-  galador.abilityModifiers.fuerza = 4;
+  galador.abilityModifiers!.fuerza = 4;
   
   const atletismo = galador.skills.find(s => s.name === "Atletismo");
   if (atletismo) atletismo.modifier = 6;
   
-  const mandobleAtk = galador.attacks.find(a => a.name === "Mandoble");
+  const mandobleAtk = galador.attacks!.find(a => a.name === "Mandoble");
   if (mandobleAtk) {
     mandobleAtk.attackBonus = 6;
     mandobleAtk.damage = "2d6+4";
@@ -498,7 +498,7 @@ if (galador) {
     { id: "p-spell-1", name: "Favor Divino", level: 1, description: "Tus ataques de arma hacen 1d4 de daño radiante adicional." },
     { id: "p-spell-2", name: "Curar Heridas", level: 1, description: "Curas 1d8 + modificador a una criatura al tocarla." }
   ];
-  galador.classFeatures.push({
+  galador.classFeatures!.push({
     name: "Castigo Divino (Divine Smite)",
     description: "Cuando golpeas a una criatura con un ataque de arma cuerpo a cuerpo, puedes gastar una ranura de conjuro para infligir 2d8 de daño radiante adicional."
   });
@@ -510,7 +510,7 @@ if (merryl) {
   merryl.level = 4;
   merryl.hp = { current: 26, max: 26 };
   merryl.abilityScores.inteligencia = 19;
-  merryl.abilityModifiers.inteligencia = 4;
+  merryl.abilityModifiers!.inteligencia = 4;
   
   for (const s of merryl.skills) {
     if (["Arcano", "Historia", "Investigación"].includes(s.name)) {
@@ -543,7 +543,7 @@ if (elara) {
   elara.level = 4;
   elara.hp = { current: 31, max: 31 };
   elara.abilityScores.sabiduría = 18;
-  elara.abilityModifiers.sabiduría = 4;
+  elara.abilityModifiers!.sabiduría = 4;
   
   for (const s of elara.skills) {
     if (["Perspicacia", "Medicina"].includes(s.name)) {

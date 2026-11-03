@@ -304,7 +304,19 @@ export class ScrollRuleModule implements RuleModule {
                 systemFeedback: `Recoges el '${foundScrollName}' y lo guardas en el inventario de ${activeChar.name}.`,
                 updatedWorldState,
                 updatedParty,
-                intercepted: true
+                intercepted: true,
+                events: [
+                    {
+                        type: 'ItemCollected',
+                        payload: {
+                            characterId: activeChar.id || activeChar.name,
+                            characterName: activeChar.name,
+                            itemId: `scroll-${scrollSpellEffect}`,
+                            itemName: foundScrollName,
+                            quantity: 1
+                        }
+                    }
+                ]
             };
         }
 

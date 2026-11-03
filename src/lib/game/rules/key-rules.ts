@@ -235,6 +235,9 @@ export class KeyRuleModule implements RuleModule {
                 systemFeedback: `Intentas forzar la cerradura de la puerta bloqueada al ${connection.direction} usando herramientas de ladrón (Prueba de Juego de Manos con CD ${connection.lockpickDC}).`,
                 updatedWorldState,
                 updatedParty,
+                pendingWorldStateFlags: {
+                    [`__unlock_door_${currentLocationId}_${connection.direction}_${connection.targetId || ''}_lockpick`]: true
+                },
                 intercepted: true
             };
         }
@@ -252,6 +255,9 @@ export class KeyRuleModule implements RuleModule {
                 systemFeedback: `Intentas forzar o derribar la puerta bloqueada al ${connection.direction} mediante la fuerza bruta (Prueba de Atletismo con CD ${connection.breakDC}).`,
                 updatedWorldState,
                 updatedParty,
+                pendingWorldStateFlags: {
+                    [`__unlock_door_${currentLocationId}_${connection.direction}_${connection.targetId || ''}_force`]: true
+                },
                 intercepted: true
             };
         }

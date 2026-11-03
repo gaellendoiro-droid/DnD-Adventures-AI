@@ -117,6 +117,93 @@ export class SkillCheckSystem implements GameSystem {
           context.worldState.globalFlags = {};
         }
         for (const [flag, val] of Object.entries(pendingWorldStateFlags)) {
+          if (flag.startsWith('__unlock_door_') && val === true) {
+            const parts = flag.replace('__unlock_door_', '').split('_');
+            const method = (parts.pop() as 'lockpick' | 'force') || 'lockpick';
+            const locId = parts[0] || context.currentLocationId;
+            const direction = parts[1] || '';
+            const targetId = parts.slice(2).join('_');
+
+            if (direction) {
+              const doorKey = `${locId}:${direction}`;
+              context.openDoors[doorKey] = true;
+
+              if (!context.worldState.locations) {
+                context.worldState.locations = {};
+              }
+              if (!context.worldState.locations[locId]) {
+                context.worldState.locations[locId] = {
+                  visited: true,
+                  visitCount: 1,
+                  interactables: {},
+                  connections: {},
+                  enemies: [],
+                  modificationLog: [],
+                  droppedItems: [],
+                };
+              }
+              const locState = context.worldState.locations[locId];
+              if (!locState.connections) {
+                locState.connections = {};
+              }
+              locState.connections[direction] = {
+                direction,
+                isOpen: true,
+                isLocked: false,
+                isBlocked: false,
+              };
+
+              // También desbloquear la conexión recíproca si existe
+              const reverseMap: Record<string, string> = {
+                norte: 'sur',
+                sur: 'norte',
+                este: 'oeste',
+                oeste: 'este',
+                noreste: 'suroeste',
+                suroeste: 'noreste',
+                noroeste: 'sureste',
+                sureste: 'noroeste',
+                arriba: 'abajo',
+                abajo: 'arriba',
+              };
+              const reverseDir = reverseMap[direction.toLowerCase()];
+              if (targetId && reverseDir) {
+                context.openDoors[`${targetId}:${reverseDir}`] = true;
+                if (!context.worldState.locations[targetId]) {
+                  context.worldState.locations[targetId] = {
+                    visited: false,
+                    visitCount: 0,
+                    interactables: {},
+                    connections: {},
+                    enemies: [],
+                    modificationLog: [],
+                    droppedItems: [],
+                  };
+                }
+                const targetLocState = context.worldState.locations[targetId];
+                if (!targetLocState.connections) {
+                  targetLocState.connections = {};
+                }
+                targetLocState.connections[reverseDir] = {
+                  direction: reverseDir,
+                  isOpen: true,
+                  isLocked: false,
+                  isBlocked: false,
+                };
+              }
+
+              context.enqueue({
+                type: 'DoorOpened',
+                payload: {
+                  locationId: locId,
+                  direction,
+                  method,
+                },
+              });
+            }
+            continue;
+          }
+
           context.worldState.globalFlags[flag] = val;
           if (flag.startsWith('consumed_scroll_') && val === true) {
             const effect = flag.replace('consumed_scroll_', '');

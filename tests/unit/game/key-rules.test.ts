@@ -28,7 +28,7 @@ describe('KeyRuleModule', () => {
         ]
     });
 
-    const createMockParty = (hasKeyId: string | null = null) => [
+    const createMockParty = (hasKeyId: string | null = null): any[] => [
         {
             id: 'galador',
             name: 'Galador',
@@ -238,9 +238,9 @@ describe('KeyRuleModule', () => {
         expect(result.interpretation.actionType).toBe('interact');
         
         // Verificar que la llave se ha inyectado en el inventario de Galador
-        const activeChar = result.updatedParty.find((c: any) => c.name === 'Galador');
-        expect(activeChar.inventory).toHaveLength(1);
-        expect(activeChar.inventory[0].id).toBe('llave-calabozo');
+        const activeChar = result.updatedParty!.find((c: any) => c.name === 'Galador');
+        expect(activeChar!.inventory).toHaveLength(1);
+        expect(activeChar!.inventory[0].id).toBe('llave-calabozo');
 
         // Verificar que el cofre ahora está vacío (looted) en el worldState
         const cofreState = result.updatedWorldState.locations['camara-test'].interactables['cofre-madera'];

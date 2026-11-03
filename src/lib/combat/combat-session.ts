@@ -82,6 +82,8 @@ export class CombatSession {
   /** Flags for turn processing state */
   private lastProcessedTurnWasAI: boolean;
   private lastProcessedTurnIndex: number;
+  private playerActionCompleted: boolean = false;
+  private turnCompleted: boolean = false;
 
   /** Current phase of the combat turn */
   private phase: CombatPhase;
@@ -144,7 +146,7 @@ export class CombatSession {
    * @returns A new CombatSession instance
    * @throws Error if input is invalid (e.g., inCombat=true but missing required data)
    */
-  static fromInput(input: CombatManagerInput): CombatSession {
+  static fromInput(input: Partial<CombatManagerInput> & Record<string, any>): CombatSession {
     const party = input.party || [];
     const enemies = input.enemies || [];
     const initiativeOrder = input.initiativeOrder || [];
@@ -1012,6 +1014,7 @@ export class CombatSession {
     nextLocationId?: string | null;
     lastProcessedTurnWasAI?: boolean;
     lastProcessedTurnIndex?: number;
+    playerActionCompleted?: boolean;
     phase?: CombatPhase;
   }): void {
     if (updates.party !== undefined) this.party = updates.party;
@@ -1049,7 +1052,7 @@ export class CombatSession {
    * 
    * @param diceRoll - Dice roll to add
    */
-  private addDiceRoll(diceRoll: Omit<DiceRoll, 'id' | 'timestamp'>): void {
+  private addDiceRoll(diceRoll: Omit<DiceRoll, 'id' | 'timestamp'> & { id?: string; timestamp?: Date }): void {
     this.diceRolls.push(diceRoll);
   }
 

@@ -19,6 +19,7 @@ export interface RulesEngineResult {
     intercepted: boolean;
     pendingEffects?: string[];
     pendingWorldStateFlags?: Record<string, any>;
+    events?: any[];
 }
 
 export interface RuleModule {

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { InventoryRuleModule } from '../../../src/lib/game/rules/inventory-rules';
 
 describe('InventoryRuleModule', () => {
-    const createMockParty = () => [
+    const createMockParty = (): any[] => [
         {
             id: 'galador',
             name: 'Galador',
@@ -121,7 +121,7 @@ describe('InventoryRuleModule', () => {
         const galador = result.updatedParty?.find(p => p.id === 'galador');
         const potion = galador?.inventory.find((it: any) => it.id === 'pocion-curacion');
         expect(potion).toBeDefined();
-        expect(potion.quantity).toBe(1);
+        expect(potion!.quantity).toBe(1);
 
         // Verificar que la localización en el worldState tiene 1 poción en droppedItems
         const droppedItems = result.updatedWorldState?.locations['camara-test']?.droppedItems;
@@ -153,13 +153,13 @@ describe('InventoryRuleModule', () => {
         // Galador debe tener 1 poción ahora
         const galador = result.updatedParty?.find(p => p.id === 'galador');
         const galadorPotion = galador?.inventory.find((it: any) => it.id === 'pocion-curacion');
-        expect(galadorPotion.quantity).toBe(1);
+        expect(galadorPotion!.quantity).toBe(1);
 
         // Merryl debe tener 1 poción en su inventario
         const merryl = result.updatedParty?.find(p => p.id === 'merryl');
         const merrylPotion = merryl?.inventory.find((it: any) => it.id === 'pocion-curacion');
         expect(merrylPotion).toBeDefined();
-        expect(merrylPotion.quantity).toBe(1);
+        expect(merrylPotion!.quantity).toBe(1);
 
         expect(result.systemFeedback).toContain('le ha entregado Poción de Curación a Merryl');
     });

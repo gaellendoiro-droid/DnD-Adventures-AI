@@ -46,13 +46,16 @@ export function generateDifferentiatedNames(enemies: any[]): Map<string, string>
             return aIndex - bIndex;
         });
 
-        // ALWAYS number all enemies, even if there's only one
-        // This ensures consistency: if there's 1 goblin, it's "Goblin 1", not just "Goblin"
-        // Now the uniqueId number matches the visual number directly (1-indexed)
-        sorted.forEach((enemy) => {
-            const visualNumber = parseInt(enemy.uniqueId.split('-').pop() || '1', 10);
-            nameMap.set(enemy.uniqueId, `${baseName} ${visualNumber}`);
-        });
+        // Number enemies ONLY when there are multiple enemies of the same base name.
+        // If there is only 1 enemy of this type (e.g., "Guz" or a single "Goblin"), keep its clean base name.
+        if (sorted.length === 1) {
+            nameMap.set(sorted[0].uniqueId, baseName);
+        } else {
+            sorted.forEach((enemy) => {
+                const visualNumber = parseInt(enemy.uniqueId.split('-').pop() || '1', 10);
+                nameMap.set(enemy.uniqueId, `${baseName} ${visualNumber}`);
+            });
+        }
     }
 
     return nameMap;

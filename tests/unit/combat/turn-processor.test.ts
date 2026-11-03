@@ -76,7 +76,7 @@ describe('TurnProcessor', () => {
           spells: [],
           proficiencyBonus: 2,
           controlledBy: 'Player',
-        } as Character,
+        } as unknown as Character,
       ];
 
       const enemies = [
@@ -242,7 +242,7 @@ describe('TurnProcessor', () => {
           spells: [],
           proficiencyBonus: 2,
           controlledBy: 'Player',
-        } as Character,
+        } as unknown as Character,
       ];
 
       const baseEnemies = [
@@ -591,7 +591,7 @@ describe('TurnProcessor', () => {
           inventory: [],
           spells: [],
           controlledBy: 'Player',
-        } as Character,
+        } as unknown as Character,
       ];
 
       const enemies = [
@@ -776,7 +776,7 @@ describe('TurnProcessor', () => {
             spells: [],
             proficiencyBonus: 2,
             controlledBy: 'AI',
-          } as Character,
+          } as unknown as Character,
           {
             id: 'player-1',
             name: 'Hero',
@@ -789,7 +789,7 @@ describe('TurnProcessor', () => {
             spells: [],
             proficiencyBonus: 2,
             controlledBy: 'Player',
-          } as Character,
+          } as unknown as Character,
         ];
 
         const enemies: any[] = [];

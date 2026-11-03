@@ -66,9 +66,11 @@ export interface InitiativeRoll {
   characterName: string;
   roll: number;
   modifier: number;
-  total: number;
+  total?: number;
   id: string;
-  type: 'player' | 'npc';
+  type?: 'player' | 'npc' | 'enemy' | 'ally';
+  initiative?: number;
+  isPlayer?: boolean;
 }
 
 export enum CombatPhase {
@@ -84,9 +86,11 @@ export enum CombatPhase {
 export interface Combatant {
   id: string;
   characterName: string;
-  total: number;
-  type: 'player' | 'npc';
-  controlledBy: "Player" | "AI";
+  total?: number;
+  type?: 'player' | 'npc' | 'enemy' | 'ally';
+  initiative?: number;
+  isPlayer?: boolean;
+  controlledBy?: "Player" | "AI";
   status?: 'active' | 'unconscious' | 'dead';
   isSurprised?: boolean; // If true, this combatant loses their first turn
 }

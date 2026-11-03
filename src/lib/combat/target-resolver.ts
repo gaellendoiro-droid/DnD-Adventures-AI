@@ -57,12 +57,14 @@ export function resolveEnemyId(
             const baseName = parts[0];
             const visualNumber = parseInt(parts[1], 10); // Now the number in uniqueId IS the visual number
             
-            // Construct visual name directly from uniqueId
+            // Construct visual name directly from uniqueId (numbered or single base name)
             const capitalizedBaseName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
             const visualName = `${capitalizedBaseName} ${visualNumber}`;
             
-            // Search in initiativeOrder by visual name
-            const visualMatch = initiativeOrder.find(c => c.characterName === visualName);
+            // Search in initiativeOrder by visual name (or base name if single enemy)
+            const visualMatch = initiativeOrder.find(
+                c => c.characterName === visualName || (visualNumber === 1 && normalizeNameForMatching(c.characterName) === normalizeNameForMatching(capitalizedBaseName))
+            );
             if (visualMatch) {
                 log.debug('Resolved ID-format targetId to visual name (direct mapping)', {
                     module: 'TargetResolver',

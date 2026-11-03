@@ -101,11 +101,26 @@ export async function executeCombatManager(
     const { playerAction, inCombat, locationId, interpretedAction, locationContext, conversationHistory, combatantIds, surpriseSide } = input;
 
     // Get enemies for current location from enemiesByLocation, fallback to enemies for backward compatibility
-    const currentLocationEnemies = EnemyStateManager.getEnemiesForLocation(
+    let currentLocationEnemies = EnemyStateManager.getEnemiesForLocation(
         locationId,
         input.enemiesByLocation,
         input.enemies
     );
+
+    // Si hay enemigos en worldState (p.ej. entidades condicionales recién instanciadas), sincronizarlos
+    const worldStateLocationEnemies = locationId ? input.worldState?.locations?.[locationId]?.enemies : undefined;
+    if (worldStateLocationEnemies && worldStateLocationEnemies.length > 0) {
+        if (currentLocationEnemies.length === 0) {
+            currentLocationEnemies = [...worldStateLocationEnemies];
+        } else {
+            const existingIds = new Set(currentLocationEnemies.map((e: any) => e.id));
+            for (const wsEnemy of worldStateLocationEnemies) {
+                if (wsEnemy?.id && !existingIds.has(wsEnemy.id)) {
+                    currentLocationEnemies.push(wsEnemy);
+                }
+            }
+        }
+    }
 
     // Create or hydrate CombatSession from input
     const session = CombatSession.fromInput({
@@ -116,8 +131,8 @@ export async function executeCombatManager(
         phase: input.phase,
         inCombat: inCombat || false,
         locationId: locationId || '',
-        messages: input.messages || [],
-        diceRolls: input.diceRolls || [],
+        playerAction: playerAction || '',
+        conversationHistory: conversationHistory || [],
     });
 
     if (inCombat) {
@@ -167,23 +182,49 @@ export async function executeCombatManager(
     // Serialize session state to output format
     const output = session.toJSON();
 
+    // Preservar los enemigos de otras salas en updatedEnemiesByLocation
+    const mergedEnemiesByLocation = {
+        ...(input.enemiesByLocation || {}),
+        ...(output.updatedEnemiesByLocation || {}),
+    };
+
     // Sincronizar el HP y estado de enemigos del combate con la localización en el worldState
     // Esto se realiza en cada ejecución de combat-manager para mantener el WorldState actualizado en tiempo real
     let finalWorldState = input.worldState ? JSON.parse(JSON.stringify(input.worldState)) : undefined;
-    const currentEnemiesState = output.enemies || currentLocationEnemies;
+    const currentEnemiesState = output.updatedEnemies || (output as any).enemies || currentLocationEnemies;
     if (locationId && currentEnemiesState) {
         if (!finalWorldState) {
             finalWorldState = WorldStateManager.initialize();
         }
-        const mappedEnemies = currentEnemiesState.map((e: any) => ({
-            ...e,
-            id: e.id,
-            hp: { 
-                current: typeof e.hp === 'object' ? (e.hp?.current ?? 0) : (e.hp ?? 0), 
-                max: typeof e.hp === 'object' ? (e.hp?.max ?? 10) : (e.hp ?? 10)
-            },
-            status: (typeof e.hp === 'object' ? (e.hp?.current ?? 0) : (e.hp ?? 0)) <= 0 ? 'dead' : (e.status || 'active')
-        }));
+        if (!finalWorldState.globalFlags) {
+            finalWorldState.globalFlags = {};
+        }
+        const mappedEnemies = currentEnemiesState.map((e: any) => {
+            const currentHp = typeof e.hp === 'object' ? (e.hp?.current ?? 0) : (e.hp ?? 0);
+            const maxHp = typeof e.hp === 'object' ? (e.hp?.max ?? 10) : (e.hp ?? 10);
+            const isDead = currentHp <= 0 || e.status === 'dead';
+
+            if (isDead && e.id) {
+                const rawId = String(e.id).toLowerCase();
+                // Extraer baseId sin sufijo numérico (p.ej. "guz-maton-semiorco-1" -> "guz-maton-semiorco")
+                const baseId = rawId.replace(/-\d+$/, '');
+                const shortId = baseId.split('-')[0];
+                finalWorldState.globalFlags[`${baseId}_derrotado`] = true;
+                if (shortId && shortId !== baseId) {
+                    finalWorldState.globalFlags[`${shortId}_derrotado`] = true;
+                }
+            }
+
+            return {
+                ...e,
+                id: e.id,
+                hp: {
+                    current: currentHp,
+                    max: maxHp
+                },
+                status: isDead ? 'dead' : (e.status || 'active')
+            };
+        });
         WorldStateManager.updateEnemies(finalWorldState, locationId, mappedEnemies);
     }
 
@@ -194,8 +235,8 @@ export async function executeCombatManager(
         }
 
         // Obtener nombres de enemigos derrotados
-        const defeatedEnemiesNames = currentLocationEnemies
-            .filter((e: any) => e.hp?.current <= 0)
+        const defeatedEnemiesNames = currentEnemiesState
+            .filter((e: any) => (typeof e.hp === 'object' ? e.hp?.current : e.hp) <= 0)
             .map((e: any) => e.name || 'Enemigo')
             .join(', ');
 
@@ -211,8 +252,8 @@ export async function executeCombatManager(
             locationId: locationId || '',
             description,
             metadata: {
-                defeatedEnemies: currentLocationEnemies
-                    .filter((e: any) => e.hp?.current <= 0)
+                defeatedEnemies: currentEnemiesState
+                    .filter((e: any) => (typeof e.hp === 'object' ? e.hp?.current : e.hp) <= 0)
                     .map((e: any) => e.id)
             }
         });
@@ -225,6 +266,7 @@ export async function executeCombatManager(
 
     return {
         ...output,
+        updatedEnemiesByLocation: mergedEnemiesByLocation,
         worldState: finalWorldState
     };
 }

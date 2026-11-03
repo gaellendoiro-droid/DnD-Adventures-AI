@@ -122,8 +122,8 @@ export class WorldStateManager {
                 id: `${entityId}-${index}-${Date.now()}`, // ID único de instancia
                 adventureId: entityId, // Conservar el original para búsqueda de stats en la API
                 hp: {
-                    current: adventureEntity?.stats?.hp || adventureEntity?.statsOverrides?.hp || 10,
-                    max: adventureEntity?.stats?.hp || adventureEntity?.statsOverrides?.hp || 10
+                    current: adventureEntity?.stats?.hp || (adventureEntity as any)?.statsOverrides?.hp || 10,
+                    max: adventureEntity?.stats?.hp || (adventureEntity as any)?.statsOverrides?.hp || 10
                 },
                 status: 'active',
                 name: adventureEntity?.name || entityId,
@@ -205,7 +205,7 @@ export class WorldStateManager {
             if (location.interactables && locState.interactables) {
                 location.interactables = location.interactables.map((interactable: any) => {
                     const key = interactable.id || interactable.name;
-                    const dynamicInt = key ? locState.interactables[key] : undefined;
+                    const dynamicInt = key && locState.interactables ? locState.interactables[key] : undefined;
                     if (dynamicInt) {
                         const updated = {
                             ...interactable,
@@ -225,7 +225,7 @@ export class WorldStateManager {
             // B. Fusionar Conexiones (puertas/caminos)
             if (location.connections && locState.connections) {
                 location.connections = location.connections.map((conn: any) => {
-                    const dynamicConn = locState.connections[conn.direction || ''] || locState.connections[conn.targetId || ''];
+                    const dynamicConn = locState.connections ? (locState.connections[conn.direction || ''] || locState.connections[conn.targetId || '']) : undefined;
                     if (dynamicConn) {
                         return {
                             ...conn,

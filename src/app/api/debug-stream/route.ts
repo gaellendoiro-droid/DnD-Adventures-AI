@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { gameStreamCoordinator } from '@/ai/streaming/game-stream-coordinator';
 import { GameState } from '@/ai/flows/schemas';
@@ -8,12 +7,11 @@ export async function POST(req: NextRequest) {
     const mockState: GameState = {
         playerAction: 'Mirar alrededor',
         party: [
-            { id: 'p1', name: 'Gael', race: 'Human', class: 'Fighter', hp: { current: 10, max: 10 }, stats: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }, inventory: [], skills: [], statusEffects: [], level: 1, accessories: [], armor: [], weapons: [], spells: [], controlledBy: 'Player' }
+            { id: 'p1', name: 'Gael', race: 'Human', characterClass: 'Fighter', hp: { current: 10, max: 10 }, stats: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }, inventory: [], skills: [], statusEffects: [], level: 1, accessories: [], armor: [], weapons: [], spells: [], controlledBy: 'Player' } as any
         ],
         locationId: 'posada-rocacolina', // Valid ID from known adventure
         inCombat: false,
         conversationHistory: [],
-        diceRolls: [],
         enemies: [],
         enemiesByLocation: {},
         openDoors: {},
@@ -21,11 +19,9 @@ export async function POST(req: NextRequest) {
         initiativeOrder: [],
         worldState: {
             locations: {},
-            quests: {},
-            npcs: {},
             globalFlags: {},
-            time: { day: 1, timeOfDay: 'morning', turnCount: 0 }
-        }
+            recentEvents: [],
+        } as any
     };
 
     try {

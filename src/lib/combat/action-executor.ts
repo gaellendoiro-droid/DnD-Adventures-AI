@@ -35,6 +35,7 @@ export interface DiceRollRequest {
     roller?: string; // Character name (defaults to combatant.characterName)
     attackType?: 'attack' | 'saving_throw' | 'attack_roll' | 'damage_roll' | 'healing'; // Expanded types
     attributeUsed?: 'FUE' | 'DES' | 'CON' | 'INT' | 'SAB' | 'CAR';
+    attackRange?: 'melee' | 'ranged';
 }
 
 /**
@@ -364,13 +365,13 @@ export class CombatActionExecutor {
                     if (targetIsEnemy) {
                         updatedEnemies = updatedEnemies.map(e =>
                             ((e as any).uniqueId === (target as any).uniqueId || e.id === target.id)
-                                ? validateAndClampHP(updatedTarget as CombatantState)
+                                ? (validateAndClampHP(updatedTarget as CombatantState) as Character)
                                 : e
                         );
                     } else {
                         updatedParty = updatedParty.map(p =>
                             p.id === target.id
-                                ? validateAndClampHP(updatedTarget as CombatantState)
+                                ? (validateAndClampHP(updatedTarget as CombatantState) as Character)
                                 : p
                         );
                     }
@@ -436,13 +437,13 @@ export class CombatActionExecutor {
                     if (targetIsEnemy) {
                         updatedEnemies = updatedEnemies.map(e =>
                             ((e as any).uniqueId === (target as any).uniqueId || e.id === target.id)
-                                ? validateAndClampHP(updatedTarget as CombatantState)
+                                ? (validateAndClampHP(updatedTarget as CombatantState) as Character)
                                 : e
                         );
                     } else {
                         updatedParty = updatedParty.map(p =>
                             p.id === target.id
-                                ? validateAndClampHP(updatedTarget as CombatantState)
+                                ? (validateAndClampHP(updatedTarget as CombatantState) as Character)
                                 : p
                         );
                     }

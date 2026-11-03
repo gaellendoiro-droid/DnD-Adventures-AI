@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
                 controller.close();
 
             } catch (error) {
-                send(createEvent('error', { code: 'INTERNAL_ERROR', message: 'Stream failed' }));
+                send(createEvent('error', { code: 'INTERNAL_ERROR', message: 'Stream failed', isFatal: true }));
                 controller.close();
             }
         }

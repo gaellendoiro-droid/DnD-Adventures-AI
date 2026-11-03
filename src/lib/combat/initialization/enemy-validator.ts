@@ -155,6 +155,23 @@ export class EnemyValidator {
         for (const enemy of initialEnemies) {
             // Prefer explicit adventure stats (stats.hp / stats.ac) over any defaults
             const statsBlock = (enemy as any).stats || {};
+            const statsOverrides = (enemy as any).statsOverrides || {};
+            const explicitAbilityScores =
+                (enemy as any).abilityScores ||
+                statsOverrides.abilityScores ||
+                statsBlock.abilityScores;
+            const explicitAbilityModifiers =
+                (enemy as any).abilityModifiers ||
+                statsOverrides.abilityModifiers ||
+                statsBlock.abilityModifiers;
+            const explicitProficiencyBonus =
+                (enemy as any).proficiencyBonus ??
+                statsOverrides.proficiencyBonus ??
+                statsBlock.proficiencyBonus;
+            const explicitActions =
+                (enemy as any).actions ||
+                statsOverrides.actions ||
+                statsBlock.actions;
             let hpValue: number | undefined =
                 enemy.hp?.current ??
                 (typeof enemy.hp === 'number' ? enemy.hp : undefined) ??
@@ -239,10 +256,10 @@ export class EnemyValidator {
                 hp: { current: hpValue, max: hpMax },
                 ac: ac,
                 // Add full stats for robust roll system
-                abilityScores: fullStats?.abilityScores,
-                abilityModifiers: fullStats?.abilityModifiers,
-                proficiencyBonus: fullStats?.proficiencyBonus,
-                actions: fullStats?.actions,
+                abilityScores: explicitAbilityScores || fullStats?.abilityScores,
+                abilityModifiers: explicitAbilityModifiers || fullStats?.abilityModifiers,
+                proficiencyBonus: explicitProficiencyBonus ?? fullStats?.proficiencyBonus,
+                actions: (Array.isArray(explicitActions) && explicitActions.length > 0) ? explicitActions : fullStats?.actions,
             };
 
             const validatedEnemy = validateAndClampHP(newEnemy);
