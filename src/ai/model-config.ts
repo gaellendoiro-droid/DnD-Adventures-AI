@@ -15,4 +15,4 @@
  * @ai_warning ALWAYS use 'gemini-2.5-flash' or newer (e.g., 'gemini-3.0-pro').
  * @ai_warning Current Knowledge Cutoff: 2026+ (Simulated).
  */
-export const GEMINI_MODEL_NAME = 'googleai/gemini-2.5-flash';
+export const GEMINI_MODEL_NAME = 'googleai/gemini-3.5-flash';

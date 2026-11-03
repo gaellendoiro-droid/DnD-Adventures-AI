@@ -1,8 +1,8 @@
 {
     "adventureId": "la-caza-de-la-oveja-salvaje",
     "title": "La Caza de la Oveja Salvaje",
-    "summary": "Vuestro intento de disfrutar de una tarde tranquila se ve interrumpido por una oveja frenética que porta un pergamino y parece desesperada por captar vuestra atención. Pronto descubriréis que este animal esconde un secreto mucho más grande de lo que parece, y que un mago caído en desgracia necesita vuestra ayuda para recuperar su verdadera forma y detener a un antiguo aprendiz.",
-    "introductoryNarration": "Vuestro intento de disfrutar de una tarde tranquila se ve interrumpido por una oveja frenética que porta un pergamino y parece desesperada por captar vuestra atención. Pronto descubriréis que este animal esconde un secreto mucho más grande de lo que parece, y que un mago caído en desgracia necesita vuestra ayuda para recuperar su verdadera forma y detener a un antiguo aprendiz.",
+    "summary": "Vuestra tarde de descanso se ve interrumpida por una oveja frenética que busca ayuda desesperadamente, portando un pergamino enrollado en la boca. Un insólito misterio que arrastrará a los aventureros a una divertida y peligrosa persecución.",
+    "introductoryNarration": "Estáis disfrutando de una tarde tranquila en la plaza cuando el murmullo cotidiano se ve repentinamente interrumpido por un apresurado repiqueteo de pezuñas, gritos de sorpresa y un balido agudo y desesperado. Antes de que podáis reaccionar, una oveja se abre paso a la carrera entre los transeúntes y se planta directamente ante vosotros. Jadeante, os mira con ojos suplicantes y os ofrece un pergamino enrollado y sellado que sujeta firmemente entre sus fauces. ¿Qué hacéis?",
     "system": "D&D 5e",
     "levelRange": {
         "start": 4,
@@ -76,7 +76,7 @@
         ]
     },
     "settings": {
-        "startingLocationId": "ciudad-inicial",
+        "startingLocationId": "ciudad-o-pueblo",
         "initialPartySize": 4
     },
     "credits": {
@@ -120,11 +120,31 @@
             "dmNotes": "Aquí es donde la aventura comienza. Guz, tres lobos y un oso pardo polimorfado (un guardia) aparecen para reclamar a la oveja, que es Finethir Shinebright, un mago elfo transformado. Guz es leal a Noke y no aceptará un 'no' por respuesta. Los animales son inteligentes y pueden entablar conversación o negociación.",
             "entitiesPresent": [
                 "oveja-finethir-shinebright",
-                "guz-semiorco",
-                "lobo-polimorfo",
-                "lobo-polimorfo",
-                "lobo-polimorfo",
-                "oso-pardo-polimorfo"
+                {
+                    "entityId": "guz-semiorco",
+                    "presenceFlag": "guz_aparece",
+                    "absenceFlag": "guz-semiorco_derrotado"
+                },
+                {
+                    "entityId": "lobo-polimorfo",
+                    "presenceFlag": "guz_aparece",
+                    "absenceFlag": "guz-semiorco_derrotado"
+                },
+                {
+                    "entityId": "lobo-polimorfo",
+                    "presenceFlag": "guz_aparece",
+                    "absenceFlag": "guz-semiorco_derrotado"
+                },
+                {
+                    "entityId": "lobo-polimorfo",
+                    "presenceFlag": "guz_aparece",
+                    "absenceFlag": "guz-semiorco_derrotado"
+                },
+                {
+                    "entityId": "oso-pardo-polimorfo",
+                    "presenceFlag": "guz_aparece",
+                    "absenceFlag": "guz-semiorco_derrotado"
+                }
             ]
         },
         {

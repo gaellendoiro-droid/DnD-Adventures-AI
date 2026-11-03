@@ -1,8 +1,8 @@
 {
     "adventureId": "la-persecucion-de-la-oveja-salvaje",
     "title": "La Persecución de la Oveja Salvaje",
-    "summary": "Vuestro intento de disfrutar de una tarde tranquila se ve interrumpido por una oveja frenética que porta un pergamino y una determinación feroz. Esta no es una bestia cualquiera, sino un mago víctima de un aprendiz resentido. ¿Podréis ayudar a este peculiar ovino a recuperar su forma original y detener la tiranía transmutacional de su antiguo pupilo?",
-    "introductoryNarration": "Vuestro intento de disfrutar de una tarde tranquila se ve interrumpido por una oveja frenética que porta un pergamino y una determinación feroz. Esta no es una bestia cualquiera, sino un mago víctima de un aprendiz resentido. ¿Podréis ayudar a este peculiar ovino a recuperar su forma original y detener la tiranía transmutacional de su antiguo pupilo?",
+    "summary": "Vuestra tarde de descanso se ve interrumpida por una oveja frenética que busca ayuda desesperadamente, portando un pergamino enrollado en la boca. Un insólito misterio que arrastrará a los aventureros a una divertida y peligrosa persecución.",
+    "introductoryNarration": "Estáis disfrutando de una tarde tranquila en la plaza cuando el murmullo cotidiano se ve repentinamente interrumpido por un apresurado repiqueteo de pezuñas, gritos de sorpresa y un balido agudo y desesperado. Antes de que podáis reaccionar, una oveja se abre paso a la carrera entre los transeúntes y se planta directamente ante vosotros. Jadeante, os mira con ojos suplicantes y os ofrece un pergamino enrollado y sellado que sujeta firmemente entre sus fauces. ¿Qué hacéis?",
     "system": "D&D 5e",
     "levelRange": {
         "start": 4,
@@ -101,14 +101,32 @@
             ],
             "dmNotes": "Esta es la ubicación inicial de la aventura. El encuentro con Guz y sus secuaces ocurre aquí. Guz es un semiorco, acompañado por tres lobos con ojos extrañamente inteligentes y una figura corpulenta con capa que es un oso pardo polimorfado. Shinebright, en forma de oveja, busca ayuda aquí. Guz exige la devolución de la oveja, que afirma que es de Noke y de gran valor sentimental. No aceptará un 'no' por respuesta y atacará si no se le entrega la oveja o si no se progresa en la negociación. Los lobos intentarán capturar a Shinebright. Shinebright es un mago elfo polimorfado, arrogante pero de buen corazón.",
             "entitiesPresent": [
-                "guz",
-                "lobo",
-                "lobo",
-                "lobo",
-                "oso-pardo",
                 "oveja",
-                "cria-de-dragon-de-cama",
-                "boca-balbuceante"
+                {
+                    "entityId": "guz",
+                    "presenceFlag": "guz_aparece",
+                    "absenceFlag": "guz_derrotado"
+                },
+                {
+                    "entityId": "lobo",
+                    "presenceFlag": "guz_aparece",
+                    "absenceFlag": "guz_derrotado"
+                },
+                {
+                    "entityId": "lobo",
+                    "presenceFlag": "guz_aparece",
+                    "absenceFlag": "guz_derrotado"
+                },
+                {
+                    "entityId": "lobo",
+                    "presenceFlag": "guz_aparece",
+                    "absenceFlag": "guz_derrotado"
+                },
+                {
+                    "entityId": "oso-pardo",
+                    "presenceFlag": "guz_aparece",
+                    "absenceFlag": "guz_derrotado"
+                }
             ],
             "hazards": [],
             "interactables": []

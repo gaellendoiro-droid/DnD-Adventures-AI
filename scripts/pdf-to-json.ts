@@ -6,6 +6,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { AdventureDataSchema } from '@/lib/schemas';
 import { getMonsterStatsFromDndApi } from '@/lib/combat/monster-stats-parser';
+import { GEMINI_MODEL_NAME } from '@/ai/model-config';
 
 // Configurar variables de entorno
 dotenv.config();
@@ -21,7 +22,7 @@ if (!GOOGLE_GENAI_API_KEY) {
 /**
  * Realiza una llamada a ai.generate con reintentos automáticos y exponencial backoff ante errores 429 y 503
  */
-async function generateWithRetry(options: any, maxRetries = 5, initialDelayMs = 2000): Promise<any> {
+async function generateWithRetry(options: any, maxRetries = 8, initialDelayMs = 3000): Promise<any> {
   // Configurar safety settings por defecto para evitar bloqueos por contenido de rol/combate (fantasía)
   options.config = options.config || {};
   options.config.safetySettings = options.config.safetySettings || [
@@ -46,9 +47,13 @@ async function generateWithRetry(options: any, maxRetries = 5, initialDelayMs = 
       const isTransient = errorMsg.includes('503') || errorMsg.includes('Service Unavailable') || errorMsg.includes('high demand') || errorMsg.includes('busy');
       
       if ((isRateLimit || isTransient) && attempt < maxRetries) {
+        if (attempt >= 2 && options.model === GEMINI_MODEL_NAME) {
+          console.warn(`🔄 Cambiando a modelo fallback 'googleai/gemini-2.5-flash-lite' para evitar restricciones de cuota...`);
+          options.model = 'googleai/gemini-2.5-flash-lite';
+        }
         console.warn(`⚠️ Error de API (${isRateLimit ? '429 Quota' : '503 Busy'}). Reintentando intento ${attempt}/${maxRetries} en ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 2; // backoff exponencial
+        delay = Math.min(delay * 2, 30000); // backoff exponencial con tope de 30s
       } else {
         throw error;
       }
@@ -60,6 +65,7 @@ async function generateWithRetry(options: any, maxRetries = 5, initialDelayMs = 
 interface TableOfContents {
   title: string;
   summary: string;
+  introductoryNarration: string;
   levelRange: { start: number; end: number };
   startingLocationId: string;
   tocLocations: string[];
@@ -216,10 +222,15 @@ async function extractTableOfContents(introText: string): Promise<TableOfContent
   
   Devuelve un objeto estructurado que contenga:
   - title: El título principal de la aventura traducido de forma atractiva al español (ej: "La Mina Perdida de Phandelver").
-  - summary: Un resumen atractivo de 1-3 frases en español de España para leer como introducción inicial a los jugadores. CRITICAL: El resumen DEBE ser escrito estrictamente desde la perspectiva de desconocimiento de los jugadores al inicio de la aventura y no debe revelar NINGÚN SPOILER de la trama (secretos de trasfondo, identidades reales ocultas o sorpresas finales). Debe limitarse a pintar la escena o misterio inicial en el que se encuentran los personajes al comenzar la partida (ej: 'Los aventureros llegan a la pacífica villa de Phandalin, pero pronto descubren que una banda de rufianes aterroriza a los lugareños. ¿Podrán desentrañar el misterio de la mina perdida?').
+  - summary: Un resumen breve de 1-2 frases en español de España para mostrar en el catálogo de aventuras. CRITICAL (CERO SPOILERS): Escríbelo desde el punto de vista inicial de los aventureros sin desvelar NINGÚN secreto de trasfondo (por ejemplo, NO digas que una oveja es un mago transformado ni menciones a su aprendiz; di solo que una oveja frenética con un pergamino en la boca irrumpe buscando ayuda).
+  - introductoryNarration: La narración inmersiva de apertura (3-5 frases en segunda persona del plural: "Estáis...", "Ante vosotros...") que el Dungeon Master lee en voz alta a los jugadores nada más comenzar la partida en la primera escena.
+    CRITICAL (REGLAS ESTRICTAS PARA introductoryNarration):
+    1. Describe ÚNICAMENTE lo que los personajes perciben a través de sus sentidos en el minuto 0 de la partida (el ambiente de la ubicación inicial y el suceso físico inmediato que da pie a la primera acción, por ejemplo: el bullicio tranquilo de la posada o calle, el repentino alboroto de cascos y balidos, y la oveja que se acerca corriendo hacia ellos con un pergamino lacrado en la boca).
+    2. PROHIBIDO TERMINANTEMENTE revelar identidades ocultas, transformaciones mágicas, nombres de NPCs o villanos que aún no se han presentado, motivaciones secretas o eventos que ocurren más adelante (NO menciones a Guz ni a los lobos si aparecen después de interactuar con la oveja, y JAMÁS digas que la oveja es un mago ni menciones a su aprendiz).
+    3. PROHIBIDO usar tono de tráiler o preguntas meta-narrativas como "¿Podréis ayudar a...?" o "Pronto descubriréis que...". Debe ser narración pura de partida de rol en mesa y terminar invitando a los jugadores a actuar en el presente inmediato.
   - levelRange: El rango de niveles recomendado { start: número, end: número }. Si no se especifica, usa { start: 1, end: 3 }.
-  - startingLocationId: Un ID descriptivo en minúsculas y kebab-case para la ubicación de inicio (ej: "plaza-phandalin").
-  - tocLocations: Una lista limpia de todos los nombres de ubicaciones y salas principales que aparecen en la aventura.
+  - tocLocations: Una lista limpia de todos los nombres de ubicaciones y salas principales que aparecen en la aventura, empezando en la posición 0 por la ubicación exacta donde arranca la escena inicial.
+  - startingLocationId: El ID en minúsculas y kebab-case correspondiente EXACTAMENTE a la primera ubicación de 'tocLocations' (ej: si tocLocations[0] es "Ciudad o Pueblo", startingLocationId DEBE ser "ciudad-o-pueblo").
   - tocEntities: Una lista limpia de nombres de criaturas y NPCs principales que aparecen en la aventura.
   - adventureLore: Objeto con información de lore global para el DM:
     * background: Trasfondo narrativo detallado de la aventura que explica la situación y motivos de los NPCs.
@@ -237,12 +248,13 @@ async function extractTableOfContents(introText: string): Promise<TableOfContent
   `;
  
   const response = await generateWithRetry({
-    model: 'googleai/gemini-2.5-flash',
+    model: GEMINI_MODEL_NAME,
     prompt,
     output: {
       schema: z.object({
         title: z.string(),
         summary: z.string(),
+        introductoryNarration: z.string(),
         levelRange: z.object({ start: z.number(), end: z.number() }),
         startingLocationId: z.string(),
         tocLocations: z.array(z.string()),
@@ -340,7 +352,7 @@ async function extractLocations(
 
   try {
     const response = await generateWithRetry({
-      model: 'googleai/gemini-2.5-flash',
+      model: GEMINI_MODEL_NAME,
       prompt,
       output: {
         schema: z.array(
@@ -453,8 +465,8 @@ async function extractEntities(textBlock: string, tocEntities: string[]): Promis
   - type: Uno de: "monster" (si es hostil o de combate), "npc" (si es amistoso/neutral con quien se puede conversar).
   - description: Una breve descripción física o rasgos de personalidad en español de España. Máximo 2 o 3 frases, redactada en singular.
   - dmNotes: Notas secretas y breves para el DM en español de España. Máximo 3 frases. NO repitas información ni entres en bucle.
-  - baseType: Si es un monstruo o criatura que usa las estadísticas de otro ser del Manual de Monstruos (e.g., "(MM p319)", "(MM p325)", "uses the statistics of a Pony", etc.), indica el nombre en inglés oficial de esa criatura base para cargarlo del compendio (e.g. "Brown Bear", "Pony", "Wolf", "Goblin", "Skeleton"). Extrae este nombre analizando las referencias entre paréntesis o frases del texto.
-  - statsOverrides: Objeto opcional si el texto de la aventura indica modificaciones de estadísticas o atributos específicos respecto a la ficha del monstruo base (por ejemplo, si el texto dice "uses the statistics of a Pony but with INT and WIS scores of 18 and 14 respectively", debes rellenar este campo estableciendo la inteligencia en 18 y la sabiduría en 14).
+  - baseType: Si es un monstruo o criatura que usa las estadísticas de otro ser del Manual de Monstruos (e.g., "(MM p319)", "(MM p325)", "uses the statistics of a Pony", etc.), indica el nombre en inglés oficial de esa criatura base para cargarlo del compendio (e.g. "Brown Bear", "Pony", "Wolf", "Ape", "Gibbering Mouther", "Goblin", "Skeleton"). Extrae este nombre analizando las referencias entre paréntesis o frases del texto.
+  - statsOverrides: Objeto opcional si el texto de la aventura indica estadísticas propias (como en el caso de NPCs/jefes únicos con bloque de estadísticas propio en el PDF) o modificaciones de estadísticas respecto a la ficha del monstruo base (por ejemplo, si el texto dice "uses the statistics of a Pony but with INT and WIS scores of 18 and 14 respectively", o si define la CA, PG, puntuaciones de característica y acciones de ataque de Guz, Ahmed Noke o la Cría de Dragón de Cama). Incluye en 'actions' todos los ataques o conjuros ofensivos descritos en su bloque de estadísticas (con su bonificador de impacto '+X a impactar' y dados de daño 'XdY+Z').
   - roleplay: Objeto opcional (especialmente para NPCs o monstruos dialogantes) con perfil de interpretación social:
     * personality: Rasgos clave de su forma de ser o personalidad en español.
     * voiceAndMannerisms: Forma de hablar, gestos y tics en español.
@@ -473,7 +485,7 @@ async function extractEntities(textBlock: string, tocEntities: string[]): Promis
 
   try {
     const response = await generateWithRetry({
-      model: 'googleai/gemini-2.5-flash',
+      model: GEMINI_MODEL_NAME,
       prompt,
       output: {
         schema: z.array(
@@ -495,6 +507,12 @@ async function extractEntities(textBlock: string, tocEntities: string[]): Promis
                 sabiduría: z.number().optional(),
                 carisma: z.number().optional(),
               }).optional(),
+              actions: z.array(
+                z.object({
+                  name: z.string(),
+                  description: z.string(),
+                })
+              ).optional(),
             }).optional(),
             roleplay: z.object({
               personality: z.string(),
@@ -568,7 +586,7 @@ async function generateConnectionsGraph(locations: any[], adventureSummary: stri
 
   try {
     const response = await generateWithRetry({
-      model: 'googleai/gemini-2.5-flash',
+      model: GEMINI_MODEL_NAME,
       prompt,
       output: {
         schema: z.array(
@@ -638,7 +656,8 @@ async function generateConnectionsGraph(locations: any[], adventureSummary: stri
 async function alignEntitiesToLocationsWithGemini(
   locations: any[],
   entities: any[],
-  adventureSummary: string
+  adventureSummary: string,
+  adventureLore?: TableOfContents['adventureLore']
 ): Promise<any[]> {
   console.log('\n🤖 Alineando inteligentemente las criaturas y NPCs a sus localizaciones con Gemini...');
 
@@ -654,14 +673,22 @@ async function alignEntitiesToLocationsWithGemini(
     id: e.id,
     name: e.name,
     description: e.description || '',
+    dmNotes: e.dmNotes || '',
     type: e.type,
     baseType: e.baseType || ''
   }));
 
-  const prompt = `Analiza la estructura de esta aventura de D&D, sus ubicaciones y sus personajes/monstruos para decidir de forma inteligente y contextual qué criaturas y NPCs deben estar inicialmente presentes en cada ubicación física.
+  const storylineSummary = adventureLore?.storyline
+    ? JSON.stringify(adventureLore.storyline, null, 2)
+    : 'No disponible';
+
+  const prompt = `Analiza la estructura de esta aventura de D&D, su guion cronológico (storyline), sus ubicaciones y sus personajes/monstruos para decidir de forma inteligente y contextual qué criaturas y NPCs deben estar presentes en cada ubicación física (de forma estática o condicional).
 
 Resumen de la aventura:
 ${adventureSummary}
+
+Guion cronológico de escenas (Storyline):
+${storylineSummary}
 
 Lista de ubicaciones disponibles:
 ${JSON.stringify(locationsList, null, 2)}
@@ -669,27 +696,22 @@ ${JSON.stringify(locationsList, null, 2)}
 Lista de entidades (monstruos y NPCs) globales disponibles:
 ${JSON.stringify(entitiesList, null, 2)}
 
-Tu tarea es asociar cada entidad a la ubicación o ubicaciones donde debe encontrarse inicialmente en la aventura.
+Tu tarea es asociar cada entidad a la ubicación o ubicaciones donde debe encontrarse en la aventura.
 DIRECTRICES IMPORTANTES:
-1. Si una entidad es un monstruo que custodia, ataca o habita en una sala o zona concreta según el trasfondo de la aventura (ej: guardias vigilando una entrada, un monstruo en su guarida, bandidos patrullando un sendero), debes asignarlos a esa ubicación específica.
-2. Si una criatura aparece múltiples veces en una misma ubicación (ej: tres trasgos custodiando la entrada de una cueva), debes incluir el ID de la criatura tantas veces como copias de la misma deban estar presentes en la sala (ej: ["trasgo", "trasgo", "trasgo"]).
-3. Los NPCs/monstruos que no tengan una ubicación de combate o descanso estática pero que interactúen en un encuentro inicial o específico de la trama deben colocarse en la ubicación inicial donde los personajes se topan con ellos de forma condicional o temporal según el flujo de la historia.
-   * Si la criatura cambia de localización o su presencia depende de la historia (como Guz, que asalta a la oveja al inicio en el pueblo pero luego huye a la torre si sobrevive), debes incluirla como un objeto condicional en ambas ubicaciones:
-     {
-       "entityId": "ID de la criatura (ej: 'guz')",
-       "presenceFlag": "Nombre del flag global (opcional) que DEBE ser true para que aparezca (ej: 'guz_en_pueblo' o 'guz_en_torre')",
-       "absenceFlag": "Nombre del flag global (opcional) que NO debe estar activo (ej: 'guz_derrotado')"
-     }
-4. NINGUNA criatura o NPC de la lista global de entidades debe quedar huérfano. Asegúrate de colocar a todos los personajes/monstruos de la lista global de entidades en al menos una ubicación inicial coherente con su descripción y rol en la historia.
-5. Asegúrate de usar únicamente IDs de entidades válidos de la lista global de entidades proporcionada.
-6. El campo "locationId" debe coincidir exactamente con uno de los IDs de la lista de ubicaciones.
+1. En la ubicación de inicio (minuto 0 de la aventura), coloca como string directo ÚNICAMENTE al NPC o criatura que protagoniza el gancho inmediato en el segundo 0 (por ejemplo, la oveja con el pergamino).
+2. Si un grupo de enemigos llega a la ubicación inicial POCO DESPUÉS de que los jugadores interactúen con el gancho inicial (por ejemplo, Guz, sus lobos y el oso pardo que llegan buscando a la oveja tras hablar con ella), DEBES incluirlos en esa ubicación inicial como objetos condicionales con un 'presenceFlag' y un 'absenceFlag':
+   { "entityId": "guz", "presenceFlag": "guz_en_pueblo", "absenceFlag": "guz_derrotado" }
+3. Si una criatura solo aparece mediante una transformación, invocación o evento especial en el clímax (por ejemplo, una cama transformada en Cría de Dragón de Cama o un villano mutado en Boca Balbuceante al fallar su varita), colócala en la sala donde ocurre esa escena (ej. el dormitorio o la torre) SIEMPRE con un 'presenceFlag' descriptivo (ej. { "entityId": "cria-de-dragon-de-cama", "presenceFlag": "cama_polimorfada" }, { "entityId": "boca-balbuceante", "presenceFlag": "noke_mutado" }). JAMÁS coloques jefes o transformaciones finales en la ubicación inicial del pueblo.
+4. Si una entidad es un monstruo que custodia o habita de forma permanente en una sala o zona concreta desde que los jugadores llegan a ella (ej: guardias simios en el jardín/exterior de la torre, un oso pardo en el retrete, Noke en la plataforma central), asígnalos directamente a esa ubicación.
+5. Si una criatura aparece múltiples veces en una misma ubicación (ej: tres lobos o tres simios), incluye su entrada (string u objeto condicional) tantas veces como copias deban aparecer en la sala.
+6. NINGUNA criatura o NPC de la lista global de entidades debe quedar huérfano. Asegúrate de usar únicamente IDs válidos de la lista global de entidades y de ubicaciones.
 
 Devuelve un array de objetos JSON que cumpla el esquema indicado. Cada objeto representa la asignación para una ubicación.
 `;
 
   try {
     const response = await generateWithRetry({
-      model: 'googleai/gemini-2.5-flash',
+      model: GEMINI_MODEL_NAME,
       prompt,
       output: {
         schema: z.array(
@@ -744,11 +766,15 @@ Devuelve un array de objetos JSON que cumpla el esquema indicado. Cada objeto re
 
     if (missingEntities.length > 0) {
       console.warn(`⚠️ Gemini no ubicó las siguientes entidades globales: ${missingEntities.join(', ')}.`);
-      const firstLoc = locations[0];
-      if (firstLoc) {
-        console.log(`📌 Asignando de emergencia las entidades huérfanas residuales a la primera ubicación "${firstLoc.id}": ${missingEntities.join(', ')}`);
-        const currentList = alignmentMap.get(firstLoc.id) || [];
-        alignmentMap.set(firstLoc.id, [...currentList, ...missingEntities]);
+      const fallbackLoc = locations[locations.length - 1] || locations[0];
+      if (fallbackLoc) {
+        console.log(`📌 Asignando de emergencia las entidades huérfanas con presenceFlag a "${fallbackLoc.id}": ${missingEntities.join(', ')}`);
+        const currentList = alignmentMap.get(fallbackLoc.id) || [];
+        const conditionalMissing = missingEntities.map((id: string) => ({
+          entityId: id,
+          presenceFlag: `${id.replace(/-/g, '_')}_activo`
+        }));
+        alignmentMap.set(fallbackLoc.id, [...currentList, ...conditionalMissing]);
       }
     }
 
@@ -808,7 +834,7 @@ async function processMapAssets(
       `;
 
       const response = await generateWithRetry({
-        model: 'googleai/gemini-2.5-flash',
+        model: GEMINI_MODEL_NAME,
         prompt: [
           { media: { url: dataUrl, contentType: 'image/png' } },
           { text: prompt },
@@ -959,23 +985,12 @@ async function main() {
         existing.interactables = [...(existing.interactables || []), ...loc.interactables];
       }
       if (loc.entitiesPresent) {
-        const counts1: Record<string, number> = {};
-        const counts2: Record<string, number> = {};
-        for (const id of (existing.entitiesPresent || [])) {
-          counts1[id] = (counts1[id] || 0) + 1;
+        const existingList = existing.entitiesPresent || [];
+        const newList = loc.entitiesPresent || [];
+        // Keep the list that has more detailed/complete entries
+        if (newList.length > existingList.length) {
+          existing.entitiesPresent = newList;
         }
-        for (const id of loc.entitiesPresent) {
-          counts2[id] = (counts2[id] || 0) + 1;
-        }
-        const merged: string[] = [];
-        const allIds = new Set([...Object.keys(counts1), ...Object.keys(counts2)]);
-        for (const id of allIds) {
-          const maxCount = Math.max(counts1[id] || 0, counts2[id] || 0);
-          for (let i = 0; i < maxCount; i++) {
-            merged.push(id);
-          }
-        }
-        existing.entitiesPresent = merged;
       }
 
     } else {
@@ -1033,6 +1048,9 @@ async function main() {
               }
             }
           }
+          if (ent.statsOverrides.actions && ent.statsOverrides.actions.length > 0) {
+            stats.actions = ent.statsOverrides.actions;
+          }
         }
         // Guardar las estadísticas resueltas y mezcladas en el bloque 'stats'
         ent.stats = stats;
@@ -1044,10 +1062,14 @@ async function main() {
   }
 
   // Asegurar que la ubicación de inicio exista en la lista de ubicaciones
-  const startingId = normalizeId(toc.startingLocationId) || 'inicio-de-la-aventura';
+  let startingId = normalizeId(toc.startingLocationId) || 'inicio-de-la-aventura';
   const startingLocExists = finalLocations.some((l: any) => l.id === startingId);
 
-  if (!startingLocExists) {
+  if (!startingLocExists && finalLocations.length > 0) {
+    console.log(`\nℹ️ El startingLocationId "${startingId}" no coincide con ningún ID extraído. Usando la primera ubicación extraída ("${finalLocations[0].id}") como ubicación inicial.`);
+    startingId = finalLocations[0].id;
+    toc.startingLocationId = startingId;
+  } else if (!startingLocExists) {
     console.log(`\n⚠️ La ubicación de inicio "${startingId}" no fue extraída del texto. Generándola sintéticamente para garantizar consistencia...`);
 
     const startingName = toc.startingLocationId
@@ -1074,7 +1096,7 @@ async function main() {
   finalLocations = await generateConnectionsGraph(finalLocations, toc.summary);
 
   // Alinear inteligentemente las entidades presentes en cada ubicación usando Gemini
-  finalLocations = await alignEntitiesToLocationsWithGemini(finalLocations, finalEntities, toc.summary);
+  finalLocations = await alignEntitiesToLocationsWithGemini(finalLocations, finalEntities, toc.summary, toc.adventureLore);
 
   // 4. Extracción de imágenes del PDF
   const mapsDestDir = path.join(process.cwd(), 'public', 'adventures', adventureId, 'maps');
@@ -1140,7 +1162,7 @@ async function main() {
     adventureId,
     title: adventureTitle,
     summary: toc.summary,
-    introductoryNarration: toc.summary,
+    introductoryNarration: toc.introductoryNarration || toc.summary,
     system: 'D&D 5e',
     levelRange: toc.levelRange,
     adventureLore: toc.adventureLore,
