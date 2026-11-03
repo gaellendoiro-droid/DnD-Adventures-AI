@@ -5,6 +5,7 @@ import { PDFParse } from 'pdf-parse';
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { AdventureDataSchema } from '@/lib/schemas';
+import { getMonsterStatsFromDndApi } from '@/lib/combat/monster-stats-parser';
 
 // Configurar variables de entorno
 dotenv.config();
@@ -168,7 +169,8 @@ function postProcessAdventure(adventure: any): any {
 
     // 2. Limpiar entidades presentes en la sala
     if (loc.entitiesPresent) {
-      loc.entitiesPresent = loc.entitiesPresent.filter((entId: string) => {
+      loc.entitiesPresent = loc.entitiesPresent.filter((entRef: any) => {
+        const entId = typeof entRef === 'string' ? entRef : entRef?.entityId;
         if (!entityIds.has(entId)) {
           console.warn(`⚠️ Eliminando entidad huérfana "${entId}" en la ubicación "${loc.id}": no está declarada en la lista global.`);
           return false;
@@ -317,7 +319,20 @@ async function extractLocations(
     * name: Nombre del objeto (ej: "Cofre de Madera").
     * description: Descripción visual.
     * interactionResults: Array de { action: "Verbo (ej: Abrir)", result: "Resultado narrativo de la acción" }
-  - entitiesPresent: Array de los nombres o IDs de los monstruos/enemigos o NPCs presentes en esta sala en concreto (los nombres deben coincidir con la lista de entidades). Si en la sala hay múltiples copias de la misma criatura, debes repetir su nombre o ID en el array tantas veces como copias de la criatura deban aparecer en el combate (ej: si hay tres trasgos, incluye ["Trasgo", "Trasgo", "Trasgo"]).
+  - entitiesPresent: Array de los nombres o IDs de los monstruos/enemigos o NPCs presentes en esta sala.
+    Puede ser un array de strings (IDs de entidades) si siempre están presentes físicamente en la sala al entrar.
+    O puede ser un objeto condicional si la criatura aparece o cambia de ubicación según el avance de la historia, sigilo o estado lógico.
+    Estructura del objeto condicional:
+    {
+      "entityId": "ID de la criatura (ej: 'guz')",
+      "presenceFlag": "Nombre del flag global (opcional) que DEBE ser true para que aparezca",
+      "absenceFlag": "Nombre del flag global (opcional) que NO debe estar activo (ser false/undefined) para que aparezca"
+    }
+    Ejemplo para Guz: si aparece en la ciudad de inicio de forma temporal al asaltar a la oveja, pero huye a las cabañas si sobrevive, inclúyelo en la localización de inicio como:
+    { "entityId": "guz", "presenceFlag": "guz_en_pueblo", "absenceFlag": "guz_derrotado" }
+    Y en la localización de las cabañas como:
+    { "entityId": "guz", "presenceFlag": "guz_en_torre", "absenceFlag": "guz_derrotado" }
+    Si hay múltiples copias de la misma criatura estática, repite su ID string tantas veces como copias deban aparecer.
 
   Texto del fragmento:
   ${textBlock}
@@ -390,7 +405,16 @@ async function extractLocations(
                 ).optional(),
               })
             ).optional(),
-            entitiesPresent: z.array(z.string()).optional(),
+            entitiesPresent: z.array(
+              z.union([
+                z.string(),
+                z.object({
+                  entityId: z.string(),
+                  presenceFlag: z.string().optional(),
+                  absenceFlag: z.string().optional()
+                })
+              ])
+            ).optional(),
           })
         ),
       },
@@ -429,7 +453,8 @@ async function extractEntities(textBlock: string, tocEntities: string[]): Promis
   - type: Uno de: "monster" (si es hostil o de combate), "npc" (si es amistoso/neutral con quien se puede conversar).
   - description: Una breve descripción física o rasgos de personalidad en español de España. Máximo 2 o 3 frases, redactada en singular.
   - dmNotes: Notas secretas y breves para el DM en español de España. Máximo 3 frases. NO repitas información ni entres en bucle.
-  - baseType: Si es un monstruo (type = "monster"), indica el nombre del monstruo base oficial en inglés para cargarlo del compendio. Esto es sumamente importante para que el motor de combate cargue sus estadísticas del compendio de D&D 5e de forma automática.
+  - baseType: Si es un monstruo o criatura que usa las estadísticas de otro ser del Manual de Monstruos (e.g., "(MM p319)", "(MM p325)", "uses the statistics of a Pony", etc.), indica el nombre en inglés oficial de esa criatura base para cargarlo del compendio (e.g. "Brown Bear", "Pony", "Wolf", "Goblin", "Skeleton"). Extrae este nombre analizando las referencias entre paréntesis o frases del texto.
+  - statsOverrides: Objeto opcional si el texto de la aventura indica modificaciones de estadísticas o atributos específicos respecto a la ficha del monstruo base (por ejemplo, si el texto dice "uses the statistics of a Pony but with INT and WIS scores of 18 and 14 respectively", debes rellenar este campo estableciendo la inteligencia en 18 y la sabiduría en 14).
   - roleplay: Objeto opcional (especialmente para NPCs o monstruos dialogantes) con perfil de interpretación social:
     * personality: Rasgos clave de su forma de ser o personalidad en español.
     * voiceAndMannerisms: Forma de hablar, gestos y tics en español.
@@ -459,6 +484,18 @@ async function extractEntities(textBlock: string, tocEntities: string[]): Promis
             description: z.string().optional(),
             dmNotes: z.string().optional(),
             baseType: z.string().optional(),
+            statsOverrides: z.object({
+              hp: z.number().optional(),
+              ac: z.number().optional(),
+              abilityScores: z.object({
+                fuerza: z.number().optional(),
+                destreza: z.number().optional(),
+                constitución: z.number().optional(),
+                inteligencia: z.number().optional(),
+                sabiduría: z.number().optional(),
+                carisma: z.number().optional(),
+              }).optional(),
+            }).optional(),
             roleplay: z.object({
               personality: z.string(),
               voiceAndMannerisms: z.string(),
@@ -636,7 +673,13 @@ Tu tarea es asociar cada entidad a la ubicación o ubicaciones donde debe encont
 DIRECTRICES IMPORTANTES:
 1. Si una entidad es un monstruo que custodia, ataca o habita en una sala o zona concreta según el trasfondo de la aventura (ej: guardias vigilando una entrada, un monstruo en su guarida, bandidos patrullando un sendero), debes asignarlos a esa ubicación específica.
 2. Si una criatura aparece múltiples veces en una misma ubicación (ej: tres trasgos custodiando la entrada de una cueva), debes incluir el ID de la criatura tantas veces como copias de la misma deban estar presentes en la sala (ej: ["trasgo", "trasgo", "trasgo"]).
-3. Los NPCs/monstruos que no tengan una ubicación de combate o descanso estática pero que interactúen en un encuentro inicial o específico de la trama deben colocarse en la ubicación inicial donde los personajes se topan con ellos.
+3. Los NPCs/monstruos que no tengan una ubicación de combate o descanso estática pero que interactúen en un encuentro inicial o específico de la trama deben colocarse en la ubicación inicial donde los personajes se topan con ellos de forma condicional o temporal según el flujo de la historia.
+   * Si la criatura cambia de localización o su presencia depende de la historia (como Guz, que asalta a la oveja al inicio en el pueblo pero luego huye a la torre si sobrevive), debes incluirla como un objeto condicional en ambas ubicaciones:
+     {
+       "entityId": "ID de la criatura (ej: 'guz')",
+       "presenceFlag": "Nombre del flag global (opcional) que DEBE ser true para que aparezca (ej: 'guz_en_pueblo' o 'guz_en_torre')",
+       "absenceFlag": "Nombre del flag global (opcional) que NO debe estar activo (ej: 'guz_derrotado')"
+     }
 4. NINGUNA criatura o NPC de la lista global de entidades debe quedar huérfano. Asegúrate de colocar a todos los personajes/monstruos de la lista global de entidades en al menos una ubicación inicial coherente con su descripción y rol en la historia.
 5. Asegúrate de usar únicamente IDs de entidades válidos de la lista global de entidades proporcionada.
 6. El campo "locationId" debe coincidir exactamente con uno de los IDs de la lista de ubicaciones.
@@ -652,7 +695,16 @@ Devuelve un array de objetos JSON que cumpla el esquema indicado. Cada objeto re
         schema: z.array(
           z.object({
             locationId: z.string(),
-            entitiesPresent: z.array(z.string()),
+            entitiesPresent: z.array(
+              z.union([
+                z.string(),
+                z.object({
+                  entityId: z.string(),
+                  presenceFlag: z.string().optional(),
+                  absenceFlag: z.string().optional()
+                })
+              ])
+            ),
           })
         ),
       },
@@ -663,13 +715,14 @@ Devuelve un array de objetos JSON que cumpla el esquema indicado. Cada objeto re
 
     const results = response.output as any[];
     const entityIds = new Set(entities.map((e: any) => e.id));
-    const alignmentMap = new Map<string, string[]>();
+    const alignmentMap = new Map<string, any[]>();
     
     for (const item of results) {
-      const validEntities = (item.entitiesPresent || []).filter((id: string) => {
-        const isValid = entityIds.has(id);
+      const validEntities = (item.entitiesPresent || []).filter((entityRef: any) => {
+        const entId = typeof entityRef === 'string' ? entityRef : entityRef?.entityId;
+        const isValid = entityIds.has(entId);
         if (!isValid) {
-          console.warn(`⚠️ Gemini asignó un ID de entidad no válido "${id}" a la sala "${item.locationId}". Ignorando...`);
+          console.warn(`⚠️ Gemini asignó un ID de entidad no válido "${entId}" a la sala "${item.locationId}". Ignorando...`);
         }
         return isValid;
       });
@@ -679,7 +732,8 @@ Devuelve un array de objetos JSON que cumpla el esquema indicado. Cada objeto re
     // Comprobar si hay entidades huérfanas que Gemini olvidó ubicar
     const allocatedEntities = new Set<string>();
     for (const ents of alignmentMap.values()) {
-      for (const entId of ents) {
+      for (const entRef of ents) {
+        const entId = typeof entRef === 'string' ? entRef : entRef?.entityId;
         allocatedEntities.add(entId);
       }
     }
@@ -712,9 +766,6 @@ Devuelve un array de objetos JSON que cumpla el esquema indicado. Cada objeto re
   }
 }
 
-/**
- * Paso 4: Clasificar y asociar imágenes de mapas usando Gemini Vision
- */
 async function processMapAssets(
   images: Buffer[],
   locations: any[],
@@ -940,7 +991,57 @@ async function main() {
   }
 
   let finalLocations = Array.from(uniqueLocationsMap.values());
-  const finalEntities = Array.from(uniqueEntitiesMap.values());
+
+  // Resolver fichas de monstruos y aplicar overrides
+  console.log('\n🛡️ Resolviendo y precargando estadísticas de monstruos y aplicando overrides...');
+  const finalEntities: any[] = [];
+  for (const ent of Array.from(uniqueEntitiesMap.values())) {
+    if (ent.type === 'monster' || ent.type === 'npc') {
+      const searchName = ent.baseType || ent.name;
+      console.log(`   🔎 Buscando estadísticas para: "${ent.name}" (Base: "${searchName}")...`);
+      try {
+        let stats = await getMonsterStatsFromDndApi(searchName, !!ent.baseType);
+        if (!stats) {
+          console.log(`     ⚠️ Criatura única detectada: Creando plantilla vacía de estadísticas para "${ent.name}"`);
+          stats = {
+            hp: 10,
+            ac: 10,
+            abilityScores: { fuerza: 10, destreza: 10, constitución: 10, inteligencia: 10, sabiduría: 10, carisma: 10 },
+            abilityModifiers: { fuerza: 0, destreza: 0, constitución: 0, inteligencia: 0, sabiduría: 0, carisma: 0 },
+            proficiencyBonus: 2,
+            actions: []
+          };
+        }
+
+        // Si hay overrides, los aplicamos
+        if (ent.statsOverrides) {
+          console.log(`     ✏️ Aplicando modificaciones de estadísticas para "${ent.name}":`, JSON.stringify(ent.statsOverrides));
+          if (ent.statsOverrides.hp !== undefined) {
+            stats.hp = ent.statsOverrides.hp;
+          }
+          if (ent.statsOverrides.ac !== undefined) {
+            stats.ac = ent.statsOverrides.ac;
+          }
+          if (ent.statsOverrides.abilityScores) {
+            const keys = ['fuerza', 'destreza', 'constitución', 'inteligencia', 'sabiduría', 'carisma'] as const;
+            for (const key of keys) {
+              const overVal = ent.statsOverrides.abilityScores[key];
+              if (overVal !== undefined) {
+                stats.abilityScores[key] = overVal;
+                // Recalcular modificador
+                stats.abilityModifiers[key] = Math.floor((overVal - 10) / 2);
+              }
+            }
+          }
+        }
+        // Guardar las estadísticas resueltas y mezcladas en el bloque 'stats'
+        ent.stats = stats;
+      } catch (err) {
+        console.error(`     ❌ Error resolviendo estadísticas de "${ent.name}":`, err);
+      }
+    }
+    finalEntities.push(ent);
+  }
 
   // Asegurar que la ubicación de inicio exista en la lista de ubicaciones
   const startingId = normalizeId(toc.startingLocationId) || 'inicio-de-la-aventura';

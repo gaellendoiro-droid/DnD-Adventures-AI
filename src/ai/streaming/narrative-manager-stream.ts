@@ -84,6 +84,7 @@ export async function* narrativeManagerStream(
                 adventureLore: input.adventureLore,
                 activeEffects: input.activeEffects,
                 skillCheckResult: input.skillCheckResult,
+                narrativeDirectives: input.narrativeDirectives,
             });
             explorationText = expResult.explorationNarration;
 
@@ -102,6 +103,7 @@ export async function* narrativeManagerStream(
                 activeEffects: input.activeEffects,
                 adventureLore: input.adventureLore,
                 skillCheckResult: input.skillCheckResult,
+                narrativeDirectives: input.narrativeDirectives,
             });
             interactionText = intResult.npcResponse;
 
@@ -124,6 +126,7 @@ export async function* narrativeManagerStream(
                     adventureLore: input.adventureLore,
                     activeEffects: input.activeEffects,
                     skillCheckResult: input.skillCheckResult,
+                    narrativeDirectives: input.narrativeDirectives,
                 }),
                 interactionExpert({
                     playerAction: input.playerAction,
@@ -134,6 +137,7 @@ export async function* narrativeManagerStream(
                     activeEffects: input.activeEffects,
                     adventureLore: input.adventureLore,
                     skillCheckResult: input.skillCheckResult,
+                    narrativeDirectives: input.narrativeDirectives,
                 })
             ]);
 
@@ -154,6 +158,7 @@ export async function* narrativeManagerStream(
                 systemFeedback: input.systemFeedback,
                 activeEffects: input.activeEffects,
                 skillCheckResult: input.skillCheckResult,
+                narrativeDirectives: input.narrativeDirectives,
             },
             { flowName: 'narrativeDirector' }
         );

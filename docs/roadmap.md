@@ -9,7 +9,7 @@ Este documento centraliza toda la planificación futura, características pendie
 1. **Selección de presets de party al iniciar partida.**
 2. **Diferenciación entre inventario (mochila) y equipamiento equipado.**
 3. **Desactivar los comentarios automáticos del compañero que esté activo como personaje seleccionado.**
-4. **Incluir fichas de monstruos automáticas en el conversor de PDF a JSON.** Cuando se hace la conversión de un pdf a un JSON podríamos incluír las fichas de los monstruos que no estén incluídos para evitar hacer llamadas a la API en medio de la partida.
+4. **[COMPLETADO en v0.6.2] Incluir fichas de monstruos automáticas en el conversor de PDF a JSON.** Cuando se hace la conversión de un pdf a un JSON podríamos incluír las fichas de los monstruos que no estén incluídos para evitar hacer llamadas a la API en medio de la partida.
 5. **Revisar el sistema de tiradas de skill checks** Hay veces en que no son necesarias aunque el jugador diga "Necesito hacer una tirada de [skill]".
 6. **Pensar como gestionar las situaciones en las que un jugador describe cosas que no debería haber conocido aún** Mere la pena? Por ejemplo al empezar una partida el jugador puede ir a un sitio que aún no se le ha revelado?.
 7. **Añadir flechas de desplazamiento lateral en la ficha de personaje (donde está el nombre) para poder cambiar de personaje**
@@ -20,6 +20,9 @@ Este documento centraliza toda la planificación futura, características pendie
 12. **La carga automática de los libros de reglas debería comprobarse, si es necesaria, al iniciar cada partida** para evitar pausas demasiado largas en medio de una partida.
 13. **Asignar diferentes configuraciones de voz para los personajes** Sería cuestión de configurar en cada ficha de personajes unos atributos de voz únicos para cada uno. 
 14. **Desarrollar una forma de visualizar el daño que tiene los personajes del orden de combate** pero que no sea numérica para que funcione como una pista visual más bien sin revelar el daño exacto. Quizás algo como ir tiñendo el nombre del personaje de blanco-> rosa-> rojo-> marrón ->negro->tachado. (Obviamente si se llega al último paso el personaje muere).
+15. **Selección de personajes** Cuando la selección del personaje cambia debería ser solo para mostrar la ficha de personaje, pero los mensajes que escribe el jugador deberían ser siempre para el personaje que es controlado por el jugador. No se debería poder enviar mensajes en nombre de personajes controlados por IA.
+16. **Nombres de personajes en el orden de combate** Cuando comienza el combate aunque no haya monstruos o personajes duplicados siempre salen con una numeración acompañando al nombre. Esto lo podríamos corregir para que si solo hay una oveja o un Guz no se le añada la numeración.
+17. **Replantear el sistema para hablar con el DM fuera del personaje** Quizás sea mejor que cualquier consulta que se haga fuera de personaje se muestre en unmodel, ahí se mostrarian fichas, reglas etc. Así no sobrecargamos el chat.
 
 ---
 
@@ -34,10 +37,11 @@ Este documento centraliza toda la planificación futura, características pendie
 ## 🔴 Prioridad Alta (Mejoras Core y UX)
 
 ### Sistema de Conversión y Datos:
-- **Robustecimiento del Conversor PDF a JSON:** Revisar y adaptar el script `scripts/pdf-to-json.ts` para que valide estrictamente los JSON generados contra los esquemas Zod de la aventura, normalice coherentemente los IDs de llaves, puertas y contenedores, y genere metadatos de visibilidad y estados iniciales consistentes con el Event-Driven Core.
+- **[COMPLETADO en v0.6.2] Robustecimiento del Conversor PDF a JSON:** Adaptado el script `scripts/pdf-to-json.ts` para resolver estadísticas y aplicar overrides a monstruos y NPCs, desactivar IA RAG en PNJs únicos, y validar el JSON generado contra el esquema Zod `AdventureDataSchema`.
+- **[COMPLETADO en v0.6.2] Entidades Condicionales Simplificadas:** Integrar el soporte para NPCs con presencia condicional en localizaciones mediante flags de presencia y ausencia (`presenceFlag` y `absenceFlag`), permitiendo que el conversor de PDF a JSON sitúe de forma dinámica y temporal a las criaturas a lo largo del mapa y la Capa 2 (TypeScript) evalúe su presencia física basándose en el estado global del juego.
 
 ### Arquitectura y Flujos de IA:
-- **Rediseño a Arquitectura Neuro-Simbólica de 3 Capas (Robustez):** Desacoplar completamente la lógica dura del juego de la narración creativa.
+- **[COMPLETADO en v0.6.1] Rediseño a Arquitectura Neuro-Simbólica de 3 Capas (Robustez):** Desacoplar completamente la lógica dura del juego de la narración creativa.
   1. *Capa 1 (IA Árbitro):* Un agente interpretativo traduce la acción creativa y libre del jugador a un JSON que propone cambios físicos y mecánicos en el estado.
   2. *Capa 2 (Código TypeScript):* El motor de reglas de TypeScript procesa y valida este JSON, gestionando estados, inventarios, tiradas de dados reales y actualizando la base de datos de forma robusta y determinista, generando un JSON final de "Hechos Absolutos del Turno".
   3. *Capa 3 (IA Narradora/DM):* Un prompt de DM simplificado toma el JSON de Hechos Absolutos del Turno y se limita a vestirlo de gala literaria en prosa evocadora de D&D, previniendo alucinaciones lógicas, double-binds y colapsos de esquema.
@@ -71,20 +75,17 @@ Este documento centraliza toda la planificación futura, características pendie
 - **Límites de Lanzamiento (Spell Slots):** Controlar y descontar las ranuras de conjuro disponibles por nivel de los personajes, evitando que se lancen hechizos de nivel sin recursos.
 
 #### 📜 Magia Fuera de Combate y Utilidad
-- **Ciclo de Vida y Uso de Pergaminos Mágicos:** Integrar con el inventario físico el uso de consumibles mágicos (restar el pergamino al activarlo, validar si el personaje tiene la habilidad de usarlo y realizar la transferencia correcta entre mochilas de compañeros sin duplicidades).
+- **[COMPLETADO en v0.6.1] Ciclo de Vida y Uso de Pergaminos Mágicos:** Integrar con el inventario físico el uso de consumibles mágicos (restar el pergamino al activarlo, validar si el personaje tiene la habilidad de usarlo y realizar la transferencia correcta entre mochilas de compañeros sin duplicidades).
 - **Registro de Efectos y Duración de Estados Mágicos:** Crear un sistema para registrar y persistir efectos temporales activos (ej: *Hablar con los animales* o *Invisibilidad*) en el `worldState`, manteniendo un contador de turnos/tiempo para que el DM arbitre congruentemente y la UI muestre el estado activo.
-
+ 
 ### Mecánicas de Rol (D&D 5e):
 - **Sistema de Progresión y Niveles:** Implementar la ganancia de experiencia (XP) y subida de nivel de 1 a 5 con aumento de estadísticas de personaje.
 - **Sistema de Comercio y Tiendas:** Compras, ventas, regateos y dinero dinámico en bazares integrados mecánicamente.
 - **Simulación de Transacciones Físicas y Economía (Fase 4):**
   - **Depósito de Objetos en Contenedores**: Extender `InventoryRuleModule` para soportar acciones de tipo `drop` con destino a interactuables de tipo contenedor (ej: *"meto la llave en el cofre"*). En lugar de tirar el ítem al suelo (`droppedItems`), se debe descontar del inventario del PJ y agregar al array `items` del contenedor correspondiente en el `worldState`.
-    * *Ejemplo a solucionar:* Al decir *"Meto la llave de nuevo en el cofre"*, el backend debe restar la llave de la mochila y guardarla dinámicamente en el cofre.
   - **Gestión Física y Deducción de Oro**: Implementar lógica en el motor de reglas para descontar oro dinámicamente de la ficha de personaje cuando el jugador realiza transacciones, decide depositar monedas en cofres o soltarlas (ej: *"dejo 20 monedas de oro en el cofre"*), previniendo que la acción solo sea un adorno narrativo de la IA y no afecte a las estadísticas reales.
-    * *Ejemplo a solucionar:* Al escribir *"Dejo 20 monedas de oro en el cofre"*, el backend debe restar 20 de oro de la ficha del personaje activo en la party.
-  - **Unificación de Inventarios Iniciales**: Homologar los inventarios de las fichas iniciales de personajes para que utilicen exactamente los mismos IDs y estructuras estándar sincronizadas con `adventureData.items` (ej: evitar IDs genéricos y resolver sinónimos semánticos de forma genérica).
-  - **Mapeo de Sinónimos de Inventario Personal**: Añadir reglas específicas en los prompts de los expertos conversacionales de la IA para que apliquen la misma tabla de sinónimos a las pertenencias de los personajes (ej: comprender que si el jugador pregunta por *"la llave"*, Merryl la tiene porque su ficha indica `llave-calabozo` o `key_1`).
-    * *Ejemplo a solucionar:* Cuando Merryl tiene la llave en su ficha, al preguntar al DM *"¿Dónde está la llave?"*, el DM no sabe responder debido a la inercia de chat y la falta de mapeo de sinónimos de inventario personal.
+  - **[COMPLETADO en v0.6.1] Unificación de Inventarios Iniciales**: Homologar los inventarios de las fichas iniciales de personajes para que utilicen exactamente los mismos IDs y estructuras estándar sincronizadas con `adventureData.items` (ej: evitar IDs genéricos y resolver sinónimos semánticos de forma genérica).
+  - **[COMPLETADO en v0.6.1] Mapeo de Sinónimos de Inventario Personal**: Añadir reglas específicas en los prompts de los expertos conversacionales de la IA para que apliquen la misma tabla de sinónimos a las pertenencias de los personajes (ej: comprender que si el jugador pregunta por *"la llave"*, Merryl la tiene porque su ficha indica `llave-calabozo` o `key_1`).
 - **Sistema de Death Saving Throws y Revivencia:** Reglas de tiradas de salvación contra la muerte cuando un PJ cae a 0 HP.
 - **Sistema de Estados y Condiciones:** Soporte técnico y visual para estados como envenenado, bendecido, paralizado, aturdido, etc., y su impacto en las tiradas.
 - **Sistema de Foco de Objetivo:** Táctica inteligente de la IA enemiga para priorizar objetivos según distancia o nivel de HP.

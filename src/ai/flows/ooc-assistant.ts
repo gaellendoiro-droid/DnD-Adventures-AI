@@ -39,9 +39,7 @@ const oocAssistantPrompt = ai.definePrompt({
   If they are pointing out a mistake you made, acknowledge it and thank them.
   If they are asking for a rule clarification or a question about the current situation, explain it simply. If you are unsure about a specific rule, spell, or item, use the dndApiLookupTool to get accurate information before answering.
   
-  Response:{
-    "dmReply": "Your helpful out-of-character response to the player."
-  }`,
+  Response must be a valid JSON object matching the output schema containing the field "dmReply" with your response. Do NOT use braces or markdown, just return the JSON object matching the schema.`,
 });
 
 const oocAssistantFlow = ai.defineFlow(

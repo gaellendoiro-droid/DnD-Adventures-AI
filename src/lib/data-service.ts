@@ -11,10 +11,12 @@ export class DataService {
     /**
      * Busca un monstruo en local. Si no existe, intenta estructurarlo desde el Manual (PDF) y guardarlo.
      */
-    static async getMonster(query: string): Promise<MonsterData | null> {
+    static async getMonster(query: string, allowAiFallback = true): Promise<MonsterData | null> {
         // 1. Búsqueda Local (Síncrona)
         const local = this.getMonsterLocal(query);
         if (local) return local;
+
+        if (!allowAiFallback) return null;
 
         // 2. Fallback: Inteligencia Artificial (Lectura del PDF)
         log.info(`Monstruo '${query}' no encontrado en local. Invocando al Sabio (AI-Hydration)...`, { module: 'DataService' });

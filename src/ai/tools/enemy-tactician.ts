@@ -53,26 +53,12 @@ const enemyTacticianPrompt = ai.definePrompt({
 **OUTPUT FORMAT (CRITICAL):**
 - You MUST return ONLY a valid JSON object. Do NOT wrap it in markdown code blocks (\`\`\`json\`\`\`).
 - Do NOT include any text before or after the JSON.
-- The JSON must match this exact structure:
-
-Example output for a Goblin attacking with a scimitar:
-{
-  "actionDescription": "Ataque con Cimitarra",
-  "targetId": "player-1",
-  "diceRolls": []
-}
-
-Example output for a Mimic using its Pseudopod attack:
-{
-  "actionDescription": "Ataque con Pseudópodo",
-  "targetId": "player-1",
-  "diceRolls": []
-}
-
+Return a valid JSON object matching the schema. Do NOT include any markdown code blocks. The JSON must contain "actionDescription", "targetId", and "diceRolls" (an array of rolls).
+ 
 **FORBIDDEN OUTPUTS:**
 - "No hacer nada" - This is NEVER a valid action unless the monster is dead/unconscious.
 - Empty or null actionDescription - You MUST provide a combat action.
-
+ 
 Return ONLY the JSON object, nothing else.`,
 });
 

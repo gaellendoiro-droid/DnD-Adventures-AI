@@ -182,6 +182,12 @@ export const ConnectionSchema = z.object({
 
 
 
+export const ConditionalEntitySchema = z.object({
+    entityId: z.string(),
+    presenceFlag: z.string().optional().describe("ID del flag global que DEBE estar activo (true) para que la entidad aparezca"),
+    absenceFlag: z.string().optional().describe("ID del flag global que NO debe estar activo (o ser false/undefined) para que la entidad aparezca")
+});
+
 /**
  * Schema for a Location in an adventure.
  */
@@ -213,7 +219,7 @@ export const LocationSchema = z.object({
     // Additional fields can be added here as needed based on the JSON structure
     encounters: z.array(z.any()).optional(), // Placeholder for encounters
     items: z.array(z.any()).optional(), // Placeholder for items found in location
-    entitiesPresent: z.array(z.any()).optional(),
+    entitiesPresent: z.array(z.union([z.string(), ConditionalEntitySchema])).optional(),
     interactables: z.array(z.any()).optional(),
     dmNotes: z.string().optional(),
 }).refine(data => data.name || data.title, {

@@ -68,6 +68,7 @@ export const NarrativeExpertInputSchema = z.object({
   skillCheckResult: SkillCheckResultSchema.optional().describe("Optional result of a mechanical skill check resolved prior to narration."),
   party: z.array(z.any()).optional().describe("The array of characters in the party, representing their status and inventory."),
   eventsLog: z.string().optional().describe("Un registro de texto plano con los hechos mecánicos exactos que acaban de ocurrir en el backend y que deben ser descritos en la narración."),
+  narrativeDirectives: z.array(z.string()).optional().describe("Lista de directivas narrativas obligatorias que guían la resolución lógica de este turno y que el DM/experto debe seguir en su prosa."),
 });
 export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
 
@@ -189,6 +190,7 @@ export const ExplorationExpertInputSchema = z.object({
   activeEffects: z.array(z.string()).optional().describe("List of active magical/world effects (e.g., ['speak_with_animals'])."),
   skillCheckResult: SkillCheckResultSchema.optional().describe("Optional result of a mechanical skill check resolved prior to narration."),
   party: z.array(z.any()).optional().describe("The array of characters in the party, representing their status and inventory."),
+  narrativeDirectives: z.array(z.string()).optional().describe("Lista de directivas narrativas obligatorias que guían la resolución lógica de este turno y que el DM/experto debe seguir en su prosa."),
 });
 export type ExplorationExpertInput = z.infer<typeof ExplorationExpertInputSchema>;
 
@@ -219,12 +221,13 @@ export const InteractionExpertInputSchema = z.object({
   adventureLore: z.string().optional().describe("A JSON string containing the global adventure lore background, hooks, secrets, storyline, and guidelines."),
   skillCheckResult: SkillCheckResultSchema.optional().describe("Optional result of a mechanical skill check resolved prior to narration."),
   party: z.array(z.any()).optional().describe("The array of characters in the party, representing their status and inventory."),
+  narrativeDirectives: z.array(z.string()).optional().describe("Lista de directivas narrativas obligatorias que guían la resolución lógica de este turno y que el DM/experto debe seguir en su prosa."),
 });
 export type InteractionExpertInput = z.infer<typeof InteractionExpertInputSchema>;
 
 export const InteractionExpertOutputSchema = z.object({
   npcResponse: z.string().describe("The dialogue and actions of the NPC(s) in response to the player."),
-  attitudeChange: z.enum(['improved', 'worsened']).nullable().optional().describe("If the NPC's attitude changed, specify 'improved' or 'worsened', otherwise null."),
+  attitudeChange: z.enum(['improved', 'worsened']).nullable().optional().describe("If the NPC's attitude changed, 'improved' or 'worsened'. Null means no change."),
   debugLogs: z.array(z.string()).optional(),
 });
 export type InteractionExpertOutput = z.infer<typeof InteractionExpertOutputSchema>;

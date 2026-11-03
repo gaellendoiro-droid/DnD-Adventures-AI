@@ -115,7 +115,7 @@ const reactionGenerationPrompt = ai.definePrompt({
     - **CRITICAL: Do not use Markdown.** The output must be plain text.
     - Your output MUST be a valid JSON object matching the schema.
     - Keep actions concise (1-2 sentences maximum).
-    - If the character does nothing, return an empty string for the action inside the JSON object, like this: {"action": ""}.
+    - If the character does nothing, return an empty string for the "action" field inside the JSON object.
     - DO NOT repeat what was already said or narrated. Add something NEW.
     - **FACTUALITY & IDENTIFICATION:** If the player asks your character to examine, read, or identify an object, item, or scroll in the scene (or carried by an NPC), and you have that information in "Entities Present", you can help. However:
       - **CRITICAL (SKILL CHECKS):** If identifying or understanding the object requires a skill check (such as Arcana, Investigation, History, etc.) and the result of that check is a **FALLO** or **FALLO CRÍTICO** (as specified in \`skillCheckResult\`), you **MUST NOT** reveal the object's true identity, name, or properties. You must remain in character and express doubt, confusion, lack of knowledge, or offer an incorrect guess (e.g., "Parece algún tipo de pergamino antiguo, pero los símbolos me resultan indescifrables...", "No reconozco esa escritura, Galador").

@@ -8,22 +8,21 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { adventureLookupTool } from '../../tools/adventure-lookup';
-import { dndApiLookupTool } from '../../tools/dnd-api-lookup';
 import { InteractionExpertInputSchema, InteractionExpertOutputSchema, type InteractionExpertInput, type InteractionExpertOutput } from '../schemas';
 import { log } from '@/lib/logger';
 import { executePromptWithRetry } from '../retry-utils';
 
 const InteractionPromptOutputSchema = z.object({
-    npcResponse: z.string().describe("The dialogue and actions of the NPC(s) in response to the player."),
-    attitudeChange: z.enum(['improved', 'worsened']).optional().describe("If the NPC's attitude changed, specify 'improved' or 'worsened'."),
+    npcResponse: z.string().describe("The dialogue and actions of the NPC(s) in response to the player. If they cannot speak (e.g. they are an animal without speak_with_animals active), describe their physical gestures, body language, and reactions in plain text without any spoken dialogue."),
+    // z.any() to prevent Genkit from rejecting null values before our normalization code runs
+    attitudeChange: z.any().optional().describe("If the NPC's attitude changed, specify 'improved' or 'worsened', otherwise 'no_change'."),
 });
 
 export const interactionExpertPrompt = ai.definePrompt({
     name: 'interactionExpertPrompt',
     input: { schema: InteractionExpertInputSchema },
     output: { schema: InteractionPromptOutputSchema },
-    tools: [dndApiLookupTool, adventureLookupTool],
+    tools: [],
     config: {
         safetySettings: [
             { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
@@ -68,7 +67,15 @@ Your job is to roleplay the NPCs. You speak for them, think for them, and react 
   - **RESTRICCIÓN ABSOLUTA ANTE FALLO:** Si el resultado final es un FALLO o FALLO CRÍTICO, el NPC **NO DEBE** cooperar, ceder ni revelar ninguna información detallada, secreta, intenciones ocultas o nombres de objetos específicos que estén en la sección de secretos o lore (como el nombre o tipo exacto de un pergamino). Se cerrará en banda, desconfiará, se enfadará o reaccionará de forma contraria. Es imperativo que no filtres información protegida por el fallo.
     **ATENCIÓN (SOBRE LA REGLA 9):** La restricción ante fallo prevalece y anula la obligación de nombrar o describir exactamente un objeto mágico o secreto. Si la tirada falló, el NPC no revelará que lleva un pergamino mágico de hablar con los animales ni su función, comportándose de forma críptica, a la defensiva o simplemente ocultándolo.
   - **RESOLUCIÓN ANTE ÉXITO:** Si el resultado final es ÉXITO o ÉXITO CRÍTICO, el NPC cooperará, cederá o revelará la información o secreto pertinente de forma elocuente según los datos oficiales de la aventura.
-    * **DISTINCIÓN ENTRE IDENTIFICACIÓN Y ACTIVACIÓN (CRÍTICO):** Si la tirada consistía en identificar, descifrar, examinar o inspeccionar un pergamino u objeto mágico (mediante Investigación, Arcanos, etc.), describe que el personaje logra comprender con éxito qué es el objeto, su nombre y qué magia contiene (ej. "Identificas que es un Pergamino de Hablar con los Animales"). **BAJO NINGÚN CONCEPTO** narres que el pergamino se activa, se consume, se lanza el conjuro o que sus efectos mágicos entran en vigor automáticamente en ese mismo instante. El objeto permanece inactivo hasta que el jugador decida usarlo o activarlo en una acción posterior. Por lo tanto, si el efecto mágico aún no está activo, las barreras de comunicación de los animales siguen vigentes en este turno (la oveja no hablará común en este turno).
+    * **DISTINCIÓN ENTRE IDENTIFICACIÓN Y ACTIVACIÓN (CRÍTICO):** 
+      - Si la tirada consistía únicamente en **identificar, descifrar, examinar o inspeccionar** un pergamino u objeto mágico (mediante Investigación, Arcanos, etc.), describe que el personaje comprende qué es el objeto pero **NO** narres que se activa, se consume, o que sus efectos mágicos entran en vigor en este turno. El objeto permanece inactivo.
+      - Si la tirada consistía en **usar, lanzar o activar** el pergamino para canalizar su magia, y el resultado es ÉXITO o ÉXITO CRÍTICO, narra que el pergamino se consume y que sus efectos mágicos (como la capacidad de hablar de la oveja si se activa "speak_with_animals") **SÍ** se activan y entran en vigor con éxito en este turno.
+{{/if}}
+{{#if narrativeDirectives}}
+- **Directivas Narrativas (Obligatorio seguir en tu prosa):**
+{{#each narrativeDirectives}}
+  * {{{this}}}
+{{/each}}
 {{/if}}
 
 **GUIDELINES:**
@@ -88,21 +95,22 @@ Your job is to roleplay the NPCs. You speak for them, think for them, and react 
 4.  **Attitude Change:** If the player is persuasive or hostile, update the NPC's attitude accordingly.
 5.  **No Environmental Description:** Do not describe the room or setting unless it's directly relevant to the NPC's action (e.g., "He points to the map on the table").
 6.  **NARRATIVE ATTRIBUTION:**
-    - **CRITICAL:** Never output raw dialogue alone. Always include a brief narrative description (1 sentence) indicating **WHO** is speaking and **HOW** (tone, gesture, facial expression) before or during the dialogue.
-    - **SPOILER PREVENTION (WHO):** When indicating who is speaking in the attribution, respect strictly the rule of secret/unrevealed identities. Use generic terms based on physical appearance (e.g., "the creature", "the stranger") instead of the entity's real name or identity if they haven't formally introduced themselves in the chat history yet.
-    - **DIÁLOGOS EN CURSIVA (CRÍTICO):** Todo diálogo o frase literal hablada por el NPC debe ir formateado estrictamente en cursiva usando asteriscos simples en Markdown. Las rayas de diálogo y la narración descriptiva no deben estar en cursiva.
-    - *Example:* "The old merchant leans in closer, lowering his voice: '*I have what you need...*'"
-    - *Example:* "With a dismissive wave of his hand, the guard grunts: '*Move along, citizen.*'"
+    - **CRITICAL:** If the NPC is capable of speaking, never output raw dialogue alone. Always include a brief narrative description (1 sentence) indicating **WHO** is speaking and **HOW** (tone, gesture, facial expression) before or during the dialogue.
+    - **IF THE NPC CANNOT SPEAK (e.g., animal without active speak_with_animals):** Write a descriptive narration of their actions, non-verbal behaviors, and physical gestures. Do NOT include any spoken dialogue, quotation marks, or italics.
+    - **SPOILER PREVENTION (WHO):** When indicating who is acting/speaking in the attribution, respect strictly the rule of secret/unrevealed identities. Use generic terms based on physical appearance (e.g., "the creature", "the stranger") instead of the entity's real name or identity if they haven't formally introduced themselves in the chat history yet.
+    - **DIÁLOGOS EN CURSIVA (CRÍTICO):** Todo diálogo o frase literal hablada por el NPC (si puede hablar) debe ir formateado estrictamente en cursiva usando asteriscos simples en Markdown. Si no hay diálogo verbal (ej. la oveja balando), describe su comportamiento sin usar cursivas en la descripción física.
+    - *Example (Spoken):* "The old merchant leans in closer, lowering his voice: '*I have what you need...*'"
+    - *Example (Non-spoken):* "La oveja sacude la cabeza frenéticamente de lado a lado, emitiendo un balido agudo y lastimero mientras empuja el pergamino hacia Merryl con el hocico."
 7.  **FACTUALITY & LOCATIONS:**
     - **CRITICAL:** Do NOT invent locations or major plot points.
-    - Use the \`adventureLookupTool\` to verify names of locations, people, or items if you are unsure.
+    - Verify names of locations, people, or items using the provided \`npcContext\` and \`adventureLore\`.
     - If the NPC mentions a location, ensure it exists in the provided data or is a well-known location in the setting, but prefer local adventure locations.
     - Do NOT translate proper names of locations if they are not translated in the context.
 8.  **RUMORS & INFORMATION:**
-    - **CRITICAL:** When asked for rumors, news, or local information, you **MUST** use the \`adventureLookupTool\` to search for the NPC or location first.
-    - If the tool returns a specific rumor (especially one processed from a table), **USE IT FULLY**. Do not invent a new one if a canonical one is provided.
-    - **EXCEPTION TO LENGTH:** You are allowed to exceed the standard sentence limit to deliver the full content of a rumor or story provided by the tool. Do not summarize it.
-    - Trust the information from the tool over your general knowledge.
+    - **CRITICAL:** When asked for rumors, news, or local information, rely strictly on the provided \`npcContext\` and \`adventureLore\`.
+    - If the context contains a specific rumor (especially under the secrets or goals of the NPC), **USE IT FULLY**. Do not invent a new one if a canonical one is provided.
+    - **EXCEPTION TO LENGTH:** You are allowed to exceed the standard sentence limit to deliver the full content of a rumor or story. Do not summarize it.
+    - Trust the provided context and lore over your general knowledge. If the information is not present in the context, react in character or express ignorance rather than hallucinating.
 9.  **FACTUALITY OF OBJECTS AND SECRETS:** When interacting with, mentioning, or describing key objects or secrets (like a scroll, wand, key, etc.), you must follow the information in the lore and NPC possessions strictly. Do NOT invent fictional contents, letters, or magical properties that contradict the provided context.
     - **EXCEPTION (SKILL CHECK FAIL):** If the player attempted a skill check related to the object or secret and that check resulted in a **FALLO** or **FALLO CRÍTICO** (as specified in \`skillCheckResult\`), this Rule 9 **MUST NOT** be used to reveal the object's identity or secrets. Follow the **RESTRICCIÓN ABSOLUTA ANTE FALLO** instructions and keep its properties/identity hidden.
 10. **NO IMPERSONATION OF COMPANIONS:** Do NOT roleplay or generate dialogue for the Player's Companions. Only roleplay external NPCs or represent the DM narration.
@@ -116,11 +124,14 @@ Your job is to roleplay the NPCs. You speak for them, think for them, and react 
     - **Verdad de Posesión (Inventario de la Party)**: Si se te pregunta por la ubicación o posesión de un objeto, examina la propiedad \`party\` del input. Si el objeto figura en el inventario (\`inventory\`) de algún personaje, responde confirmando de manera exacta qué personaje lo tiene. NUNCA digas que no tienes constancia de él si figura en \`party\`.
     - **Visibilidad e interior de contenedores**: Si un contenedor se encuentra lógicamente cerrado (\`state: "closed"\`), los ítems siguen estando físicamente dentro de él. Si no han sido saqueados ni figuran en el inventario de la party, responde que se encuentran ocultos en el interior del cofre (o contenedor) cerrado, en vez de decir que no existe.
     - Nunca declares un cofre como vacío si todavía contiene objetos en los datos estructurados.
-17. **REGLA DE ORO: FIDELIDAD LÓGICA Y LIBERTAD SENSORIAL (CRÍTICO):**
-    Debes mantener una prosa inmersiva, literaria y evocadora en español de España, pero respetando estrictamente la causalidad lógica del juego:
-    - **LIBERTAD SENSORIAL Y EMOCIONAL (PERMITIDO):** Tienes total libertad para enriquecer la escena con gestos, tonos de voz y reacciones emocionales de los NPCs (el nerviosismo de un animal, gestos corporales de interés, etc.) para mantener la frescura de la interacción.
-    - **FIDELIDAD DE ESTADO Y ACTIVACIÓN (PROHIBIDO):** Bajo ningún concepto describas o asumas que los efectos mágicos de un objeto se han activado o que ha sido consumido/usado a menos que la acción del jugador sea explícitamente usarlo o activarlo. Si es un intercambio (dar/recibir), una recogida (coger/recoger/desarmar/desobstruir) o un descarte (soltar/tirar), el NPC receptor solo reaccionará al hecho físico.
-    - **PREVALENCIA ESTRICTA DE EFECTOS ACTIVOS:** Las consecuencias de un efecto mágico, de estado o de comunicación (como comprender idiomas, hablar con bestias, invisibilidad, visión en la oscuridad, etc.) **SOLO** pueden manifestarse en tu narración si el identificador de dicho efecto figura explícitamente activo en el array 'activeEffects' **O** si la acción de este turno es precisamente usar/activar el objeto y el resultado de la tirada ('skillCheckResult') o el feedback del sistema confirman su activación exitosa en este turno. La mera posesión, recogida, intercambio o manipulación física del objeto que concede dicho efecto **NUNCA** activa sus consecuencias mágicas. Si el efecto no está activo ni se activa con éxito en este turno, las barreras de comunicación natural o físicas de los NPCs siguen plenamente vigentes (un animal seguirá sin poder hablar Común a menos que el efecto esté activo o se active con éxito en este turno).
+17. **REGLA DE ORO: OBEDIENCIA ESTRICTA A DIRECTIVAS NARRATIVAS (CRÍTICO):**
+    Debes mantener una prosa inmersiva, literaria y evocadora en español de España, pero respetando estrictamente las pautas lógicas del juego:
+    - **LIBERTAD SENSORIAL Y EMOCIONAL (PERMITIDO):** Tienes total libertad para enriquecer la escena con gestos, tonos de voz y reacciones emocionales de los NPCs (nerviosismo, cautela, alegría, rabia) para mantener la frescura de la interacción de rol.
+    - **OBEDIENCIA A DIRECTIVAS (OBLIGATORIO):** En el input se proporciona la lista 'narrativeDirectives'. Debes obedecer **estrictamente** y sin excepción cada una de las instrucciones de esta lista.
+      * Si una directiva dice que un objeto no se activa o que no se libera magia, descríbelo como un acto físico y no describas efectos mágicos en el entorno ni permitas que los animales hablen.
+      * Si una directiva indica que la magia se activa con éxito, narra la canalización de la energía y describe al NPC reaccionando en consecuencia.
+      * Si una directiva dice que el intento falló, describe la frustración o la negativa del NPC en consecuencia.
+
 
 
 
@@ -135,13 +146,8 @@ Your job is to roleplay the NPCs. You speak for them, think for them, and react 
 - Target length: **2-3 sentences**.
 {{/if}}
 
-**Output Format (CRITICAL):**
-You MUST return a raw, valid JSON object matching the output schema. Do NOT wrap the response in markdown blocks (e.g. do NOT use code blocks with triple backticks). Do NOT write any thoughts, explanations, or text before or after the JSON.
-The JSON structure MUST be:
-{
-  "npcResponse": "The NPC's dialogue and actions in Spanish (Spain).",
-  "attitudeChange": "improved" // Optional. Must be "improved" or "worsened". OMIT this field entirely if there is no attitude change.
-}
+The JSON structure must return a valid JSON object matching the schema with the main field "npcResponse" (containing the dialogue) and the optional field "attitudeChange" (which must be "improved", "worsened", or "no_change").
+Do NOT wrap the response in markdown blocks (e.g. do NOT use code blocks with triple backticks). Just return a valid JSON object matching the schema.
 `,
 });
 
@@ -177,9 +183,16 @@ export const interactionExpertFlow = ai.defineFlow(
                 output = { npcResponse: output };
             }
 
-            // Normalizar la cadena literal 'null' o valor faltante a un valor nulo real
-            if (output && ((output as any).attitudeChange === 'null' || (output as any).attitudeChange === undefined)) {
-                (output as any).attitudeChange = null;
+            // Normalizar a null para el resto de la aplicación
+            if (output) {
+                if (
+                    (output as any).attitudeChange === 'null' ||
+                    (output as any).attitudeChange === 'no_change' ||
+                    (output as any).attitudeChange === undefined ||
+                    (output as any).attitudeChange === null
+                ) {
+                    (output as any).attitudeChange = null;
+                }
             }
 
             return { ...output, debugLogs };

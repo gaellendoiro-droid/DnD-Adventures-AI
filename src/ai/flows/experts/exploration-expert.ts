@@ -106,7 +106,15 @@ Your job is to describe the world, the environment, and the immediate consequenc
   - **RESTRICCIÓN ABSOLUTA ANTE FALLO:** Si el resultado final es un FALLO o FALLO CRÍTICO, el personaje **NO** consigue su objetivo y **NO DEBE** descubrir ninguna información detallada, secreta, propiedades mágicas o nombres de objetos específicos que estén en la sección de secretos o lore (tales como saber el nombre específico de un pergamino o sus secretos). En su lugar, describe que no puede descifrar las runas/escritos, no nota nada fuera de lo común, deduce información errónea o no encuentra nada útil. Es imperativo que no filtres información protegida por el fallo (ej: si falla al inspeccionar un pergamino o runas, describe que no logra descifrar sus intrincados símbolos y no sabe qué tipo de magia contiene).
     **ATENCIÓN (SOBRE LA REGLA 14):** La restricción ante fallo prevalece y anula la obligación de nombrar o describir exactamente un objeto mágico o secreto. Si falla, el pergamino u objeto debe describirse simplemente como un pergamino enigmático u objeto genérico, ocultando por completo su nombre oficial y propiedades mágicas.
   - **RESOLUCIÓN ANTE ÉXITO:** Si el resultado final es ÉXITO o ÉXITO CRÍTICO, utiliza el lore de la aventura y los secretos del contexto para revelar exactamente lo que describe el lore oficial del objeto (como detallar el nombre del pergamino o las propiedades del objeto si tiene éxito).
-    * **DISTINCIÓN ENTRE IDENTIFICACIÓN Y ACTIVACIÓN (CRÍTICO):** Si la tirada consistía en identificar, descifrar, examinar o inspeccionar un pergamino u objeto mágico, describe que el personaje logra comprender con éxito qué es el objeto, su nombre y qué magia contiene (ej. identificando el tipo específico de pergamino). **BAJO NINGÚN CONCEPTO** narres que el pergamino se activa, se consume, se lanza el conjuro o que sus efectos mágicos entran en vigor automáticamente en ese mismo instante. El objeto permanece inactivo hasta que el jugador decida usarlo o activarlo en una acción posterior. Por lo tanto, si el efecto mágico aún no está activo, las barreras de comunicación de los animales u otros efectos mágicos siguen vigentes en este turno.
+    * **DISTINCIÓN ENTRE IDENTIFICACIÓN Y ACTIVACIÓN (CRÍTICO):** 
+      - Si la tirada consistía únicamente en **identificar, descifrar, examinar o inspeccionar** un pergamino u objeto mágico, describe que el personaje comprende qué es el objeto pero **NO** narres que se activa, se consume, o que sus efectos mágicos entran en vigor en este turno. El objeto permanece inactivo.
+      - Si la tirada consistía en **usar, lanzar o activar** el pergamino para canalizar su magia, y el resultado es ÉXITO o ÉXITO CRÍTICO, narra que el pergamino se consume y que sus efectos mágicos (como la capacidad de hablar de la oveja si se activa "speak_with_animals") **SÍ** se activan y entran en vigor con éxito en este turno.
+{{/if}}
+{{#if narrativeDirectives}}
+- **Directivas Narrativas (Obligatorio seguir en tu prosa):**
+{{#each narrativeDirectives}}
+  * {{{this}}}
+{{/each}}
 {{/if}}
 
 **GUIDELINES:**
@@ -143,20 +151,13 @@ Your job is to describe the world, the environment, and the immediate consequenc
 17. **DO NOT ROLEPLAY COMPANIONS:** Under no circumstances should you generate dialogue or thoughts for the Party Companions (Elara, Merryl, etc.). You may briefly describe their physical reactions (e.g. "Merryl draws her sword" or "Elara looks at you"), but you MUST NOT make them speak or put words in their mouths.
 18. **FACTUALITY OF NPC IDENTITY AND RELATIONSHIPS:** Under no circumstances should the DM misrepresent an NPC's identity, goals, or relationships with other NPCs based on the adventure data. For example, if the adventure data defines a hostile thug/monster, you MUST NOT portray them as friendly. You must prioritize the official adventure data over any errors, hallucinated claims, or incorrect assumptions present in the chat history (\`conversationHistory\`).
 19. **NOMBRES DE ENTIDADES E IDENTIDADES SECRETAS:** Si un NPC tiene una identidad oculta, transformación o su nombre no se ha revelado formalmente en la conversación (p. ej., un animal, un encapuchado, un desconocido), el DM y los expertos **NO** deben referirse a él por su nombre real o ID técnico en la narración pública frente a los personajes jugadores hasta que el NPC se haya presentado formalmente o los personajes hayan descubierto su nombre de forma lógica en la historia. En su lugar, deben referirse al NPC usando términos genéricos basados en su apariencia física (p. ej., "el animal", "el encapuchado", "el desconocido").
-20. **COMMUNICATION BARRIERS & BEASTS (D&D Rules):** Si generas una descripción, acción o gesto de una criatura animal o bestia:
-    - **Without 'speak_with_animals' effect:** Si "speak_with_animals" **NO** está en el array 'activeEffects' (o está vacío/undefined), la criatura **bajo ninguna circunstancia** puede hablar, emitir palabras o comunicarse verbalmente. Describe sus acciones mediante balidos, gruñidos o gestos físicos.
-    - **With 'speak_with_animals' effect:** Si "speak_with_animals" **SÍ** está activo en 'activeEffects', la criatura ya puede comunicarse verbalmente. Describe que se expresa con palabras en Común.
-21. **RESOLUCIÓN DE EFECTOS MÁGICOS:** Si un efecto mágico (como "speak_with_animals") se activa con éxito, los personajes y las criaturas asociadas actúan en consecuencia (ej: la criatura animal es consciente de que podéis entenderla, por lo que cesará comportamientos desesperados de intentar comunicarse mediante señas o empujando objetos y empezará a hablar fluidamente en Común).
-22. **REGLA DE ORO: FIDELIDAD LÓGICA Y LIBERTAD SENSORIAL (CRÍTICO):**
-    Debes mantener una prosa inmersiva, literaria y evocadora en español de España, pero respetando estrictamente la causalidad lógica del juego:
-    - **LIBERTAD SENSORIAL (PERMITIDO):** Tienes total libertad para enriquecer la escena con detalles sensoriales (el entorno, sonidos, olores, tacto) y reacciones físicas/visuales del entorno para mantener la frescura narrativa.
-    - **FIDELIDAD DE ESTADO Y ACTIVACIÓN (PROHIBIDO):** Bajo ningún concepto inventes cambios en el estado lógico, activaciones mágicas o consumos de recursos. Si la acción del jugador no indica explícitamente el uso/consumo de un objeto (ej: si solo es coger, recoger, desarmar, desobstruir, dar, recibir, guardar, examinar o dejar caer al suelo), narra el acto físico enriqueciéndolo visualmente, pero mantén el objeto inactivo.
-    - **PREVALENCIA ESTRICTA DE EFECTOS ACTIVOS:** Las consecuencias de un efecto mágico, de estado o de comunicación (como comprender idiomas, hablar con bestias, invisibilidad, visión en la oscuridad, etc.) **SOLO** pueden manifestarse en tu narración si el identificador de dicho efecto figura explícitamente activo en el array 'activeEffects' **O** si la acción de este turno es precisamente usar/activar el objeto y el resultado de la tirada ('skillCheckResult') o el feedback del sistema confirman su activación exitosa en este turno. La mera posesión, recogida, intercambio o manipulación física del objeto que concede dicho efecto **NUNCA** activa sus consecuencias mágicas. Si el efecto no está activo ni se activa con éxito en este turno, las barreras del entorno siguen plenamente vigentes.
-
-
-
-
-
+20. **REGLA DE ORO: OBEDIENCIA ESTRICTA A DIRECTIVAS NARRATIVAS (CRÍTICO):**
+    Debes mantener una prosa inmersiva, literaria y evocadora en español de España, pero respetando estrictamente las pautas lógicas del juego:
+    - **LIBERTAD SENSORIAL Y ATMÓSFERA (PERMITIDO):** Tienes total libertad para describir los olores, sonidos, clima, detalles físicos del entorno y el tacto de los objetos para mantener la frescura de la exploración de mazmorras.
+    - **OBEDIENCIA A DIRECTIVAS (OBLIGATORIO):** En el input se proporciona la lista 'narrativeDirectives'. Debes obedecer **estrictamente** y sin excepción cada una de las instrucciones de esta lista.
+      * Si una directiva dice que un objeto no se activa o que no se libera magia, descríbelo como un acto físico y no describas efectos mágicos en el entorno ni permitas que los animales hablen.
+      * Si una directiva indica que la magia se activa con éxito, narra la canalización de la energía y describe la activación física o el efecto resultante.
+      * Si una directiva dice que el intento falló, describe el fracaso del personaje en su acción física en consecuencia.
 
 {{#if isKeyMoment}}
 **NARRATION LENGTH - KEY MOMENT:**
@@ -169,12 +170,8 @@ Your job is to describe the world, the environment, and the immediate consequenc
 - Target length: **1-2 sentences**.
 {{/if}}
 
-**Output Format (CRITICAL):**
-You MUST return a raw, valid JSON object matching the output schema. Do NOT wrap the response in markdown blocks (e.g. do NOT use code blocks with triple backticks). Do NOT write any thoughts, explanations, or text before or after the JSON.
-The JSON structure MUST be:
-{
-  "explorationNarration": "The atmospheric description and result of the action."
-}
+The JSON structure must return a valid JSON object where the main field is "explorationNarration" containing the description.
+Do NOT wrap the response in markdown blocks (e.g. do NOT use code blocks with triple backticks). Just return a valid JSON object matching the schema.
 `,
 });
 

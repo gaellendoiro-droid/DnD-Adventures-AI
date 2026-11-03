@@ -124,6 +124,7 @@ export const narrativeDirectorPrompt = ai.definePrompt({
             skillCheckResult: z.any().optional(),
             party: z.array(z.any()).optional(),
             eventsLog: z.string().optional(),
+            narrativeDirectives: z.array(z.string()).optional(),
         })
     },
     output: {
@@ -153,20 +154,20 @@ Your main responsibility is to act as the central orchestrator of the scene. You
 **RULES OF NARRATIVE INTEGRITY & SECRECY (CRITICAL)**
 0. **HECHOS MECÁNICOS DEL SISTEMA (CRÍTICO):** Si se provee un listado en \`eventsLog\`, debes incorporar obligatoriamente todos los hechos descritos en él en tu narración. Estos hechos son la única verdad matemática y mecánica de lo que ha sucedido (ej: si se abrió una puerta, si alguien sufrió daño, o si se falló una tirada). Viste estos hechos con tu prosa inmersiva.
 1. **PREVALENCIA DE LOS EXPERTOS (REGLA DE ORO):** Respeta estrictamente la información y descripciones generadas por los expertos especializados (\`explorationText\` e \`interactionText\`). Si los expertos ocultan información en sus fragmentos, no la reveles en tu síntesis final.
-2. **DISTINCIÓN ENTRE IDENTIFICACIÓN Y ACTIVACIÓN:** Si la tirada reciente en \`skillCheckResult\` fue un éxito para identificar, examinar o descifrar un objeto o pergamino mágico, describe que los personajes comprenden qué es y qué contiene. **BAJO NÍNGUN CONCEPTO** narres que el objeto se activa, que se lanza el hechizo, que se consume el objeto, o que sus efectos mágicos entran en vigor de forma automática en este turno. El objeto permanece latente e inactivo hasta que el jugador decida usarlo o activarlo explícitamente en una acción posterior.
-3. **BARRERAS DE COMUNICACIÓN Y ANIMALES:** Si un NPC es un animal/bestia y el effect "speak_with_animals" NO figura activo en \`activeEffects\`, no permitas que hable o se exprese verbalmente en Común en tu narración. Debe limitarse a los balidos, gruñidos o gestos corporales descritos por el experto. Si el efecto mágico está activo en \`activeEffects\`, puede hablar Común libremente.
-4. **RESTRICCIÓN ABSOLUTA ANTE FALLO:** Si el resultado en \`skillCheckResult\` indica un fallo (\`isSuccess: false\`), no reveles secretos, trasfondos ocultos, identidades reales ni nombres específicos de objetos de la aventura. Descríbelos de forma vaga y genérica (ej. "un pergamino antiguo cubierto de runas indescifrables" en lugar de "un Pergamino de Hablar con los Animales").
-5. **PREVENCIÓN DE SPOILERS DE IDENTIDAD:** No utilices los nombres propios o identidades de NPCs que figuren en los datos de la aventura si el NPC no se ha presentado formalmente en el chat de juego de rol. En su lugar, utiliza descriptores físicos genéricos (ej: "el semiorco", "la oveja", "el encapuchado").
-6. **CONSISTENCIA EN CONTENEDORES, SAQUEO SELECTIVO E INVENTARIOS (CRÍTICO):** Al narrar el saqueo, la posesión o interactuar con contenedores (cofres, alijos, baúles) u objetos físicos, debes guiarte estrictamente por el estado físico lógico proporcionado en el \`Location Context\` y por los inventarios del grupo en \`party\`.
+2. **REGLA DE ORO: OBEDIENCIA ESTRICTA A DIRECTIVAS NARRATIVAS (CRÍTICO):**
+   Debes mantener una prosa inmersiva, literaria y evocadora en español de España, pero respetando estrictamente las pautas lógicas del juego:
+   - **LIBERTAD SENSORIAL Y ATMÓSFERA (PERMITIDO):** Tienes total libertad para describir los olores, sonidos, clima, gestos físicos y reacciones emocionales de los personajes o NPCs para mantener la inmersión narrativa.
+   - **OBEDIENCIA A DIRECTIVAS (OBLIGATORIO):** En el input se proporciona la lista 'narrativeDirectives'. Debes obedecer **estrictamente** y sin excepción cada una de las instrucciones de esta lista.
+     * Si una directiva dice que un objeto no se activa o que no se libera magia, descríbelo como un acto físico y no permitas que la oveja hable ni que el entorno reaccione mágicamente.
+     * Si una directiva indica que la magia se activa con éxito, narra la canalización mágica y describe el efecto activo (ej: el animal comenzando a hablar Común con acento élfico).
+     * Si una directiva dice que el intento falló, describe la frustración y el fracaso sin activar la magia.
+3. **PREVENCIÓN DE SPOILERS DE IDENTIDAD:** No utilices los nombres propios o identidades de NPCs que figuren en los datos de la aventura si el NPC no se ha presentado formalmente en el chat de juego de rol. En su lugar, utiliza descriptores físicos genéricos (ej: "el semiorco", "la oveja", "el encapuchado").
+4. **CONSISTENCIA EN CONTENEDORES, SAQUEO SELECTIVO E INVENTARIOS (CRÍTICO):** Al narrar el saqueo, la posesión o interactuar con contenedores (cofres, alijos, baúles) u objetos físicos, debes guiarte estrictamente por el estado físico lógico proporcionado en el \`Location Context\` y por los inventarios del grupo en \`party\`.
    - **REGLA DE EXCLUSIÓN ABSOLUTA DE POSESIONES**: Si un ítem (ej: "Llave del Calabozo", "Poción de Curación", llaves, pociones, espadas) figura en el inventario (\`inventory\`) de cualquier personaje de la \`party\` en el input estructurado, **está TERMINANTEMENTE PROHIBIDO** narrar, insinuar o describir que dicho objeto sigue en el cofre, en el suelo, o en el entorno de la sala. Si la descripción literaria de la localización o el historial conversacional anterior afirman que el objeto sigue en el cofre, debes ignorarlos y corregir la narración de forma coherente reflejando la realidad lógicamente actualizada (el objeto está con su poseedor y el contenedor ya no lo contiene).
    - Si el jugador ha realizado un saqueo selectivo (ej: coger solo la llave), el contenedor NO está vacío. Debes narrar explícitamente que los demás objetos (como pociones u otros ítems listados en su JSON) siguen en su interior.
    - NUNCA declares que un contenedor está vacío si el JSON del contexto indica que aún tiene objetos.
-7. **REGLA DE ORO: FIDELIDAD LÓGICA Y LIBERTAD SENSORIAL (CRÍTICO):**
-   Debes mantener una prosa inmersiva, literaria y evocadora en español de España, pero respetando estrictamente la causalidad lógica del juego:
-   - **LIBERTAD SENSORIAL Y EMOCIONAL (PERMITIDO):** Tienes total libertad para enriquecer la escena con detalles sensoriales (el clima, sonidos, olores) y reacciones corporales/emocionales de los NPCs o personajes (nerviosismo, curiosidad, cautela) para mantener la frescura narrativa.
-   - **FIDELIDAD DE ESTADO Y ACTIVACIÓN (PROHIBIDO):** Bajo ningún concepto inventes cambios en el estado lógico del juego, activaciones mágicas o consumos de recursos que no se deriven de la acción del jugador. Si la acción no es usar/activar (ej: si solo es coger, recoger, desarmar, desobstruir, dar, recibir, guardar, examinar o soltar), narra el acto físico enriqueciéndolo visualmente, pero mantén el objeto latente e inactivo.
-   - **PREVALENCIA ESTRICTA DE EFECTOS ACTIVOS:** Las consecuencias de un efecto mágico, de estado o de comunicación (como comprender idiomas, hablar con bestias, invisibilidad, visión en la oscuridad, etc.) **SOLO** pueden manifestarse en tu narración si el identificador de dicho efecto figura explícitamente activo en el array 'activeEffects' **O** si la acción de este turno es precisamente usar/activar el objeto y el resultado de la tirada ('skillCheckResult') o el feedback del sistema confirman su activación exitosa en este turno. La mera posesión, recogida, intercambio o manipulación física del objeto que concede dicho efecto **NUNCA** activa sus consecuencias mágicas. Si el efecto no está activo ni se activa con éxito en este turno, las barreras del entorno o comunicación siguen plenamente vigentes.
-   - **RESPETO AL RITMO DE LA HISTORIA (PROHIBIDO):** No anticipes hitos de la historia ('storyline') ni reacciones del entorno que dependan del uso o activación de un objeto hasta que el jugador decida usarlo o activarlo de forma explícitamente declarada.
+5. **RESPETO AL RITMO DE LA HISTORIA (PROHIBIDO):** No anticipes hitos de la historia ('storyline') ni reacciones del entorno que dependan del uso o activación de un objeto hasta que el jugador decida usarlo o activarlo de forma explícitamente declarada.
+
 
 
 
@@ -216,6 +217,14 @@ Your main responsibility is to act as the central orchestrator of the scene. You
 {{{adventureLore}}}
 \`\`\`
 
+{{#if narrativeDirectives}}
+- **Directivas Narrativas (Obligatorio seguir en tu prosa):**
+{{#each narrativeDirectives}}
+  * {{{this}}}
+{{/each}}
+{{/if}}
+
+
 **Output Format (CRITICAL):**
 Return a raw, valid JSON object matching the output schema. Do NOT wrap the response in markdown code blocks. Do NOT write any thoughts, explanations, or text before or after the JSON. markdown code blocks. Do NOT write any thoughts, explanations, or text before or after the JSON.
 `
@@ -263,6 +272,13 @@ export const combatInitiationPrompt = ai.definePrompt({
 - Do NOT translate specific monster names (e.g., Bugbear, Hobgoblin) unless you are certain of the established Spanish term and it is NOT "Trasgo" for Goblin. When in doubt, use the English term found in the context.
 - Be immersive and descriptive while maintaining accuracy about enemy types
 - Example: If combatContext shows "Goblin 1", "Goblin 2", "Orco 1" → narrate as "dos goblins y un orco" (not "Goblin 1, Goblin 2 y Orco 1")
+
+{{#if narrativeDirectives}}
+- **Directivas Narrativas (Obligatorio seguir en tu prosa):**
+{{#each narrativeDirectives}}
+  * {{{this}}}
+{{/each}}
+{{/if}}
 
 Narrate the scene in Spanish (Spain).
 `,
@@ -349,6 +365,7 @@ export const narrativeManagerFlow = ai.defineFlow(
                     activeEffects: input.activeEffects,
                     skillCheckResult: input.skillCheckResult,
                     party: input.party,
+                    narrativeDirectives: input.narrativeDirectives,
                 });
                 explorationText = expResult.explorationNarration;
                 if (expResult.debugLogs) debugLogs.push(...expResult.debugLogs);
@@ -368,6 +385,7 @@ export const narrativeManagerFlow = ai.defineFlow(
                     adventureLore: input.adventureLore,
                     skillCheckResult: input.skillCheckResult,
                     party: input.party,
+                    narrativeDirectives: input.narrativeDirectives,
                 });
                 interactionText = intResult.npcResponse;
                 if (intResult.attitudeChange) localLog(`Attitude Change: ${intResult.attitudeChange}`);
@@ -394,6 +412,7 @@ export const narrativeManagerFlow = ai.defineFlow(
                         activeEffects: input.activeEffects,
                         skillCheckResult: input.skillCheckResult,
                         party: input.party,
+                        narrativeDirectives: input.narrativeDirectives,
                     }),
                     interactionExpert({
                         playerAction: input.playerAction,
@@ -405,6 +424,7 @@ export const narrativeManagerFlow = ai.defineFlow(
                         adventureLore: input.adventureLore,
                         skillCheckResult: input.skillCheckResult,
                         party: input.party,
+                        narrativeDirectives: input.narrativeDirectives,
                     })
                 ]);
 
@@ -428,6 +448,7 @@ export const narrativeManagerFlow = ai.defineFlow(
                     activeEffects: input.activeEffects,
                     skillCheckResult: input.skillCheckResult,
                     party: input.party,
+                    narrativeDirectives: input.narrativeDirectives,
                 },
                 { flowName: 'narrativeDirector' }
             );

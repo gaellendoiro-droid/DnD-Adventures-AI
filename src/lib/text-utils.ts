@@ -104,6 +104,7 @@ export const SPANISH_TO_ENGLISH_MAP: Record<string, string> = {
     'armadura de cuero endurecido': 'studded leather armor',
     'cota de mallas': 'chain mail',
     'armadura de placas': 'plate armor',
+    'oveja': 'sheep',
 };
 
 /**
@@ -124,8 +125,13 @@ export function normalizeQuery(query: string): string {
         return SPANISH_TO_ENGLISH_MAP[normalized];
     }
 
-    // Try to find a partial match (for multi-word queries)
-    for (const [spanish, english] of Object.entries(SPANISH_TO_ENGLISH_MAP)) {
+    // Try to find a partial match (for multi-word queries), checking longer terms first
+    // to avoid shorter terms intercepting longer ones (e.g. 'oso' matching before 'oso pardo').
+    const sortedEntries = Object.entries(SPANISH_TO_ENGLISH_MAP).sort(
+        (a, b) => b[0].length - a[0].length
+    );
+
+    for (const [spanish, english] of sortedEntries) {
         if (normalized.includes(spanish) || spanish.includes(normalized)) {
             return english;
         }

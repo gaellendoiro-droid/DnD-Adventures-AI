@@ -126,7 +126,7 @@ export function formatCompendiumEntry(type: string, data: any, query: string): s
                 ${renderSection('Acciones Legendarias', e.legendaryActions, '👑', 'text-purple-500')}
             </div>
              <div class="bg-slate-950/50 p-1 text-center border-t border-slate-800">
-                <span class="text-[10px] text-slate-600">Fuente: ${data.source === 'ai' ? '🤖 Análisis IA' : '💾 Base de Datos'}</span>
+                <span class="text-[10px] text-slate-600">Fuente: ${data.source === 'adventure' ? '📖 Aventura' : (data.source === 'ai' ? '🤖 Análisis IA' : '💾 Base de Datos')}</span>
              </div>
         </div>`;
   }
@@ -210,6 +210,9 @@ export function formatCompendiumEntry(type: string, data: any, query: string): s
         } catch (e) { return ''; }
       })() : ''}
             </div>
+             <div class="bg-slate-950/50 p-1 text-center border-t border-slate-800">
+                <span class="text-[10px] text-slate-600">Fuente: ${i.source === 'adventure' ? '📖 Aventura' : (i.source === 'ai' ? '🤖 Análisis IA' : '💾 Base de Datos')}</span>
+             </div>
          </div>`;
   }
 

@@ -63,6 +63,74 @@ export function initDB() {
   `);
 
   console.log("✅ Base de Datos lista en:", DB_PATH);
+
+  // Inyectar semillas básicas esenciales si no existen
+  try {
+    const sheepExists = db.prepare('SELECT 1 FROM monsters WHERE id = ?').get('sheep');
+    if (!sheepExists) {
+      console.log("🐑 Semilla: Insertando Oveja en la base de datos local...");
+      const sheepData = {
+        id: 'sheep',
+        name: 'Oveja',
+        source: 'local_seeds',
+        type: 'Bestia',
+        size: 'Pequeño',
+        alignment: 'No alineado',
+        cr: 0,
+        ac: 10,
+        hp: 2,
+        speed: '30 pies',
+        stats: {
+          str: 3,
+          dex: 10,
+          con: 8,
+          int: 2,
+          wis: 10,
+          cha: 4
+        },
+        modifiers: {
+          str: -4,
+          dex: 0,
+          con: -1,
+          int: -4,
+          wis: 0,
+          cha: -3
+        },
+        skills: 'Percepción +2',
+        senses: 'Percepción pasiva 10',
+        languages: '--',
+        actions: [
+          {
+            name: 'Cabezazo',
+            desc: 'Ataque con Arma Cuerpo a Cuerpo: +2 al golpe, alcance 5 pies, un objetivo. Impacto: 1 punto de daño contundente.',
+            attack_bonus: 2,
+            damage: [
+              {
+                damage_type: {
+                  index: 'bludgeoning',
+                  name: 'Bludgeoning'
+                },
+                damage_dice: '1'
+              }
+            ]
+          }
+        ]
+      };
+
+      db.prepare(`
+        INSERT INTO monsters (id, name, type, cr, data)
+        VALUES (@id, @name, @type, @cr, @data)
+      `).run({
+        id: sheepData.id,
+        name: sheepData.name,
+        type: sheepData.type,
+        cr: sheepData.cr,
+        data: JSON.stringify(sheepData)
+      });
+    }
+  } catch (error) {
+    console.error("⚠️ Error insertando semillas de base de datos:", error);
+  }
 }
 
 // Ejecutar init al cargar por primera vez (o hacerlo manual en el arranque app)

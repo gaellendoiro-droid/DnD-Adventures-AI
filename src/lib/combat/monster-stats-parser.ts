@@ -269,7 +269,7 @@ function mapLocalMonsterToStats(local: any): MonsterStats {
  * 1. Local SQLite DB (DataService)
  * 2. External D&D 5e API (dnd-api-client)
  */
-export async function getMonsterStatsFromDndApi(monsterName: string): Promise<MonsterStats | null> {
+export async function getMonsterStatsFromDndApi(monsterName: string, allowAiFallback = true): Promise<MonsterStats | null> {
     try {
         log.debug('Fetching monster stats...', {
             module: 'MonsterStatsParser',
@@ -277,7 +277,7 @@ export async function getMonsterStatsFromDndApi(monsterName: string): Promise<Mo
         });
 
         // 1. Try Local DB
-        const localMonster = await DataService.getMonster(monsterName);
+        const localMonster = await DataService.getMonster(monsterName, allowAiFallback);
         if (localMonster) {
             log.debug('✅ Monster found in Local SQLite DB', {
                 module: 'MonsterStatsParser',

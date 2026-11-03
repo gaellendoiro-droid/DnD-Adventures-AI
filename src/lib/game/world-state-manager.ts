@@ -124,23 +124,36 @@ export class WorldStateManager {
             effectiveEnemies = locState.enemies || [];
         } else {
             // PRIMERA VISITA (o nunca visitado oficialmente):
-            // Debemos "spawnear" los enemigos basándonos en los datos estáticos.
-            // Aquí instanciamos 'EnemyState' desde 'entitiesPresent' o 'encounters'.
-
-            // Logica simplificada de spawn:
+            // Debemos "spawnear" los enemigos basándonos en los datos estáticos y condicionales.
             if (staticLocation.entitiesPresent) {
-                effectiveEnemies = staticLocation.entitiesPresent.map((entityRef: any, index: number) => {
-                    // entityRef podría ser un ID string o un objeto. Asumimos objeto o buscamos en adventure.entities
-                    // Para el MVP, asumimos que entityRef tiene info básica o la buscamos
-                    // TODO: Refinar lógica de búsqueda de stats completos
+                const activeEntityIds: string[] = [];
+                const globalFlags = world.globalFlags || {};
+
+                staticLocation.entitiesPresent.forEach((entityRef: any) => {
+                    if (typeof entityRef === 'string') {
+                        activeEntityIds.push(entityRef);
+                    } else if (entityRef && typeof entityRef === 'object' && 'entityId' in entityRef) {
+                        const presence = !entityRef.presenceFlag || globalFlags[entityRef.presenceFlag] === true;
+                        const absence = !entityRef.absenceFlag || globalFlags[entityRef.absenceFlag] !== true;
+                        if (presence && absence) {
+                            activeEntityIds.push(entityRef.entityId);
+                        }
+                    }
+                });
+
+                effectiveEnemies = activeEntityIds.map((entityId: string, index: number) => {
+                    const adventureEntity = adventure.entities?.find((e: any) => e.id === entityId);
                     return {
-                        id: `${entityRef.id || 'enemy'}-${index}-${Date.now()}`, // ID único de instancia
-                        hp: { current: entityRef.hp?.max || 10, max: entityRef.hp?.max || 10 }, // Placeholder safe
+                        id: `${entityId}-${index}-${Date.now()}`, // ID único de instancia
+                        adventureId: entityId, // Conservar el original para búsqueda de stats en la API
+                        hp: { 
+                            current: adventureEntity?.stats?.hp || adventureEntity?.statsOverrides?.hp || 10, 
+                            max: adventureEntity?.stats?.hp || adventureEntity?.statsOverrides?.hp || 10 
+                        },
                         status: 'active',
-                        name: entityRef.name || 'Unknown Enemy',
-                        type: entityRef.type || 'enemy'
-                        // ... otros campos
-                    } as unknown as EnemyState; // Casting forzado por simplificación temporal
+                        name: adventureEntity?.name || entityId,
+                        type: adventureEntity?.type || 'enemy'
+                    } as unknown as EnemyState;
                 });
             }
         }

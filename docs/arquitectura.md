@@ -57,6 +57,20 @@ graph TD
 4. **`ExplorationExpert`:** Diseñado con conciencia espacial. Administra la niebla de guerra (`visited`, `seen`, `unknown`), realiza pruebas de percepción pasiva automáticas y describe ubicaciones.
 5. **`InteractionExpert` / `InteractionExpertStream`:** Resuelve conversaciones y tiradas de diplomacia o engaño con NPCs.
 
+### Arquitectura Neuro-Simbólica de 3 Capas (Robustez)
+
+Para desacoplar por completo la lógica matemática y física del juego de la narración creativa, el backend implementa un patrón neuro-simbólico dividido en tres capas operativas consecutivas:
+
+1. **Capa 1: IA Árbitro (Semántica)**
+   - **Componente:** `ActionInterpreter` ([action-interpreter.ts](file:///t:/ProyectosPersonales/Programacion/DnD-Adventures-AI/src/ai/flows/action-interpreter.ts))
+   - **Función:** Toma la acción del jugador en lenguaje natural y la traduce a una intención de acción estructurada bajo un esquema Zod.
+2. **Capa 2: Motor TypeScript (Simbólica / Determinista)**
+   - **Componente:** `GameRulesEngine` ([rules-engine.ts](file:///t:/ProyectosPersonales/Programacion/DnD-Adventures-AI/src/lib/game/rules/rules-engine.ts)) y `EventDispatcher` ([event-dispatcher.ts](file:///t:/ProyectosPersonales/Programacion/DnD-Adventures-AI/src/lib/game/events/event-dispatcher.ts))
+   - **Función:** Valida y ejecuta la acción mecánicamente en TypeScript (tiradas de dados reales, comprobación de inventario/llaves, control de estados de contenedores, y transiciones). Genera un conjunto de **Hechos Absolutos del Turno** (`eventsLog`) y actualiza el `worldState`.
+3. **Capa 3: IA Narradora (Estética / DM)**
+   - **Componente:** `NarrativeManager` ([narrative-manager.ts](file:///t:/ProyectosPersonales/Programacion/DnD-Adventures-AI/src/ai/flows/narrative-manager.ts)) y su prompt central `narrativeDirectorPrompt`
+   - **Función:** Recibe los Hechos Absolutos calculados por la Capa 2 y los viste con prosa inmersiva, literaria y adaptada a D&D en español de España. Al DM se le prohíbe estrictamente decidir la resolución de las acciones; se limita a narrar el resultado determinista.
+
 ---
 
 ## ⚔️ Máquina de Estados Finita (FSM) de Combate

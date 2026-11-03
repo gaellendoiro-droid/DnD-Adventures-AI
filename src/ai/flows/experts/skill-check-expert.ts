@@ -117,23 +117,7 @@ Your goal is to translate a player's narrative intention into a concrete D&D 5e 
 **LANGUAGE:**
 Reply in **SPANISH (Spain)** for all narrations. Keep reasoning technical.
 
-**EXAMPLE OUTPUT:**
-Action: "I try to climb the slippery wall"
-{
-  "selectedSkill": "athletics",
-  "difficultyClass": 15,
-  "suggestedMode": "normal",
-  "combatOnFailure": false,
-  "reasoning": "Climbing is Athletics. Wall is slippery so DC is higher than normal (10 -> 15).",
-  "narrations": {
-     "attempt": "Galador busca asideros en la roca cubierta de musgo húmedo e intenta impulsarse hacia arriba...",
-     "success": "Con un esfuerzo de sus músculos, logra aferrarse a un saliente seco y se iza hasta la cima.",
-     "failure": "Sus dedos resbalan en el limo y cae de espaldas dolorosamente al suelo.",
-     "criticalSuccess": "Con una agilidad sobrehumana, Galador trepa por la pared húmeda como si fuera una escalera, coronándola en un parpadeo.",
-     "criticalFailure": "El saliente se rompe, haciendo que caiga de espaldas y se golpee fuertemente contra el suelo rocoso."
-  }
-}
-`,
+Return a valid JSON object matching the schema. The JSON must contain the keys "selectedSkill" (e.g., athletics), "difficultyClass" (a number), "suggestedMode" (normal/advantage/disadvantage), "combatOnFailure" (boolean), "reasoning" (text), and "narrations" (an object with attempt, success, failure, criticalSuccess, and criticalFailure text fields). Do NOT include any markdown code blocks, just return the JSON object matching the schema.`,
 });
 
 export const skillCheckExpertFlow = ai.defineFlow(

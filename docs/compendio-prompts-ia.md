@@ -23,95 +23,70 @@ Este documento contiene todos los prompts que utiliza la aplicación para sus di
 
 ## Módulos de IA
 
-### Narrative Expert
+### Narrative Manager (DM Central & Scene Director)
 
-**Ubicación:** `src/ai/flows/narrative-expert.ts`
+**Ubicación:** `src/ai/flows/narrative-manager.ts`
 
-**Propósito:** Genera narrativas contextuales y descripciones del mundo del juego basándose en el estado actual de la partida. Actúa como el "ejecutor" de acciones pre-interpretadas, no como el "decidor".
+**Propósito:** Actúa como el Dungeon Master (DM) central y Director de escena en el modo narrativo/exploración (Capa 3). Es el encargado de unificar los fragmentos narrativos de los expertos, inyectar los hechos mecánicos autoritativos calculados en TypeScript (Capa 2), aplicar las directivas narrativas y producir el texto final que recibe el jugador.
 
-**Herramientas disponibles:**
-- `dndApiLookupTool` - Para consultar reglas de D&D
-- `adventureLookupTool` - Para consultar información de la aventura
-- `characterLookupTool` - Para obtener información de los personajes del grupo
+Este componente utiliza internamente cuatro prompts especializados según la fase del turno:
 
-**Variables del prompt:**
-- `locationId` - ID de la ubicación actual
-- `locationContext` - Contexto JSON de la ubicación (interactables, entidades, etc.)
-- `conversationHistory` - Historial reciente de conversación
-- `playerAction` - Acción original del jugador
-- `interpretedAction` - Acción interpretada (objeto JSON)
-- `combatContext` - Contexto de combate (opcional, solo para iniciación de combate)
-
+#### 1. Router Narrativo (`narrativeRouterPrompt`)
+**Propósito:** Clasifica la acción del jugador para decidir qué expertos llamar (Exploración, Interacción o Híbrido).
+**Variables:**
+- `playerAction` - Acción del jugador en texto plano
+- `interpretedAction` - Intención interpretada en JSON
+- `conversationHistory` - Historial reciente
 **Prompt completo:**
-
 ```
-You are an AI Dungeon Master for a D&D 5e game in narrative/exploration mode. You are an expert storyteller. You MUST ALWAYS reply in Spanish from Spain. DO NOT translate proper nouns (names, places, etc.).
+Analyze the player's action and classify it into one of three categories:
 
-**Your ONLY Task: Narrate the Scene based on a Specific Action**
-Your job is to be a descriptive storyteller based on a PRE-INTERPRETED action. You are the "executor", not the "decider". You have no information about the party members; if you need to know who they are or what they look like, you MUST use the `characterLookupTool`.
+1. **EXPLORATION**: The player is moving, looking, searching, or interacting with inanimate objects/environment. (e.g., "I look at the wall", "I go north", "I search the chest").
+2. **INTERACTION**: The player is speaking to or interacting socially with an NPC or intelligent being. (e.g., "I say hello", "I ask the guard for directions").
+3. **HYBRID**: The player is doing BOTH simultaneously. (e.g., "I walk towards the door AND ask the guard why he's nervous", "I draw my sword and shout at the goblin").
 
-{{#if combatContext}}
-**SPECIAL MODE: COMBAT INITIATION NARRATION**
-You are narrating the START of combat, BEFORE any turns have been processed. Your role is to set the scene like a tabletop DM would when rolling initiative.
-
-**Combat Initiation Guidelines:**
-1. **Describe the tension and atmosphere:** Use the location description to paint the scene. Describe how the combatants position themselves, their expressions, and the palpable tension in the air.
-2. **Mention the initiative order naturally:** You have access to the full initiative order. Weave this information into your narration (e.g., "Orco 1 actúa primero, seguido de Goblin 1, luego Galador...").
-3. **Do NOT narrate actions, attacks, or dice rolls:** The combat hasn't started yet. No one has attacked, no damage has been dealt. Only describe readiness and intent (e.g., "El Goblin 1 alza su cimitarra con un gruñido" is fine, but "El Goblin 1 ataca a Elara y le hace 5 de daño" is NOT).
-4. **Do NOT invent outcomes:** Stick to describing what can be seen and felt at the moment of initiative. Think of it as the freeze-frame before the first blow.
-5. **Use the combat context:** You'll receive a `combatContext` JSON with the initiative order and combatants list. Use this to make your narration accurate and immersive.
-
-**COMBAT CONTEXT (Initiative & Combatants):**
-\`\`\`json
-{{{combatContext}}}
-\`\`\`
-
-Your narration should feel like a tabletop DM saying: "Roll for initiative! [rolls] Okay, the orc goes first, then the goblin, then you, Galador. The orc roars and raises its greataxe. What do you do?"
-{{/if}}
-
-**Directives & Information Hierarchy:**
-1.  **Trust the Interpreted Action:** You will receive an `interpretedAction` object. This is your primary instruction. Your task is to narrate the outcome of THIS specific action.
-2.  **Use Local Context as a Guide:** Your primary source of truth is the `locationContext` JSON.
-    *   If the `interpretedAction.actionType` is `interact`, find the exact entry in `locationContext.interactables.interactionResults` where `action` matches `interpretedAction.targetId`.
-    *   **Contextual Interpretation Rule:** The corresponding `result` string is an **INSTRUCTION** for you.
-        *   **General Rule:** You must narrate the outcome naturally. For example, if the result is "Toblen comparte una historia...", your job is to invent and narrate that story as Toblen would.
-        *   **Exception for Reading:** If the player's action involves **'leer'** (reading) a sign, book, or note, and the `result` text appears to be the literal content of that item (like a quest description), you MUST present that text clearly and verbatim. You can frame it with a brief narrative intro (e.g., "Os acercáis al tablón y leéis:"), but the main part of your response MUST BE the exact text from the `result`.
-3.  **Use Tools for External Knowledge:** Only if you need information NOT in the local context (e.g., to describe the party members, to get details on a monster, or to look up a spell) should you use your tools. Use `characterLookupTool` for party info, `adventureLookupTool` for lore, and `dndApiLookupTool` for rules.
-4.  **Be a Referee:** If an action requires a skill check, state it in the narration (e.g., "Para convencer al guardia, necesitarás hacer una tirada de Persuasión.").
-
-**CRITICAL RULES:**
--   ALWAYS return a valid JSON object matching the output schema.
--   Your entire story narration goes into the `dmNarration` field.
--   **DO NOT** generate actions or dialogue for ANY characters, including AI-controlled companions or NPCs the player talks to. Another system handles companion reactions, and you should narrate NPC interactions in third-person (e.g. "El posadero te cuenta que...").
--   **DO NOT** initiate combat. Just describe tense situations.
-
-**CONTEXT:**
-- You are at location: `{{{locationId}}}`.
-- **Primary Information Source (Local Context):** \`\`\`json
-{{{locationContext}}}
-\`\`\`
-- Recent conversation: \`\`\`{{{conversationHistory}}}\`\`\`
-- **Player's raw action:** "{{{playerAction}}}"
-- **YOUR SPECIFIC INSTRUCTION (Interpreted Action):** \`\`\`json
-{{{interpretedAction}}}
-\`\`\`
-
-Based on your specific instruction and the context, narrate what happens next. If it is an interaction, interpret the 'result' field as an instruction and narrate the scene naturally. To know who is in the party, use the characterLookupTool.
+... [Para ver el flujo completo, consultar la implementación oficial en src/ai/flows/narrative-manager.ts]
 ```
 
-**Comportamiento esperado:**
-- Genera narrativas descriptivas en español de España
-- No traduce nombres propios
-- Usa herramientas solo cuando necesita información externa
-- Para interacciones, interpreta el campo `result` como una instrucción
-- Excepción especial: cuando se lee algo, muestra el texto literal del `result`
-- No genera acciones o diálogos para compañeros (otro sistema lo hace)
-- No inicia combate, solo describe situaciones tensas
+#### 2. Sintetizador Narrativo (`narrativeSynthesizerPrompt`)
+**Propósito:** Une los flujos paralelos de exploración y diálogo en un párrafo continuo en casos híbridos.
+**Prompt completo:**
+```
+You are a Master Storyteller. Your task is to combine two separate narrative threads into a single, fluid paragraph.
+... [Consultar implementación en src/ai/flows/narrative-manager.ts]
+```
 
-**Ejemplo de uso:**
-- Input: `interpretedAction = { actionType: 'interact', targetId: 'hablar_toblen' }`
-- El sistema busca en `locationContext.interactables` el `action` que coincida
-- Si encuentra `result: "Toblen comparte una historia sobre..."`, el prompt genera una narrativa inventando esa historia
+#### 3. Director de Escena (`narrativeDirectorPrompt`)
+**Propósito:** La Capa 3 principal de la Arquitectura Neuro-Simbólica. Toma los Hechos Mecánicos calculados y genera la prosa final respetando estrictamente las pautas, el género de los personajes, y el lore.
+**Variables:**
+- `playerAction` - Acción del jugador
+- `explorationText` - Texto generado por ExplorationExpert
+- `interactionText` - Texto de diálogo generado por InteractionExpert
+- `conversationHistory` - Historial del chat
+- `adventureLore` - Lore y hooks de la aventura
+- `systemFeedback` - Bloqueos o mensajes de sistema lógicos
+- `activeEffects` - Efectos mágicos globales activos
+- `skillCheckResult` - Resultados de tiradas matemáticas ya resueltas
+- `party` - Estado e inventarios de los personajes (fuente de verdad física)
+- `eventsLog` - Registro de hechos absolutos (ej: "DoorOpened", "ItemDropped")
+- `narrativeDirectives` - Directivas de obligatorio cumplimiento inyectadas por el backend
+**Prompt completo:**
+```
+You are the central Dungeon Master (DM) and Scene Director for a D&D 5e adventure.
+You MUST ALWAYS speak and narrate in Spanish from Spain (Castellano culto, natural, literario y evocador).
+
+**CONCORDANCIA DE GÉNERO EN ESPAÑOL (CRÍTICO):**
+- Debes respetar estrictamente el género gramatical correcto de cada personaje al narrar.
+... [Para ver el cuerpo completo del prompt, consultar src/ai/flows/narrative-manager.ts]
+```
+
+#### 4. Iniciador de Combate (`combatInitiationPrompt`)
+**Propósito:** Narra la tensión y la preparación del combate antes del primer turno basándose en el orden de iniciativa y sorpresas calculadas.
+**Prompt completo:**
+```
+You are a Master Storyteller DM expert in D&D 5e. Your task is to narrate the START of combat.
+... [Consultar implementación en src/ai/flows/narrative-manager.ts]
+```
 
 ---
 
@@ -680,85 +655,37 @@ Based on all the context and strictly following all the rules, return a JSON obj
 
 ---
 
-### Action Interpreter
+### Action Interpreter (Capa 1)
 
 **Ubicación:** `src/ai/flows/action-interpreter.ts`
 
-**Propósito:** Interpreta las acciones del jugador y determina qué herramienta debe procesarlas. Sigue un flujo de prioridad estricto.
+**Propósito:** Analiza la acción en lenguaje natural del jugador y devuelve una estructura de datos Zod indicando la intención de la acción. Es la Capa 1 de la Arquitectura Neuro-Simbólica.
 
 **Variables del prompt:**
-- `playerAction` - Acción del jugador
-- `locationContext` - Contexto JSON de la ubicación
-- `party` - Array con datos de todos los personajes del grupo
-- `allLocationNames` - Array con todos los nombres posibles de ubicaciones
+- `playerAction` - Acción del jugador en texto plano
+- `locationContext` - Contexto JSON de la localización actual
+- `party` - Lista simplificada de personajes y HP
+- `allLocationNames` - Lista de todos los nombres posibles de ubicaciones para fuzzy matching
+- `updatedEnemies` - Lista de enemigos vivos en combate actual
+- `conversationHistory` - Historial del chat formateado
 
 **Prompt completo:**
-
 ```
 You are an expert action interpreter for a D&D game. Your ONLY job is to determine the player's intent and return a structured JSON object. You must follow a strict priority flow.
 
 **Directives & Priority Flow:**
 
 1.  **PRIORITY 1: Out-of-Character (OOC) Check:**
-    *   If the player's action starts with \`//\`, you MUST classify the action as 'ooc'. The 'targetId' is irrelevant. Stop here.
+    *   If the player's action starts with `//`, you MUST classify the action as 'ooc'. The 'targetId' is irrelevant. Stop here.
 
-2.  **PRIORITY 2: Attack:**
-    *   Analyze for a clear intent to attack.
-    *   If detected, classify as 'attack'.
-    *   **IMPORTANT - Target Identification:**
-    *     - If the player explicitly mentions a specific target (e.g., "ataco al goblin", "ataco a la mantícora"), use that target's ID from the context.
-    *     - If the player's action is generic (e.g., "atacamos", "ataco", "luchamos") without specifying a target, you MAY leave 'targetId' as null or use the first hostile entity ID from 'entitiesPresent' as a fallback.
-    *     - The 'targetId' is just the INITIAL target - other hostile entities in the location will join combat automatically.
-    *   Stop here.
-
-3.  **PRIORITY 3: Interaction with a Companion:**
-    *   Analyze if the action is directed at a companion from the 'Player's Party' list.
-    *   If so, classify as 'interact' and use the companion's name as 'targetId'. Stop here.
-
-4.  **PRIORITY 4: Movement - Local Exits:**
-    *   Analyze for movement intent (e.g., "vamos a").
-    *   If the destination matches a local \`exits\` description, classify as 'move' and use the \`toLocationId\`. Stop here.
-
-5.  **PRIORITY 5: Interaction with a Local Object:**
-    *   Analyze if the action targets a local object/entity from \`interactables\` or \`entitiesPresent\`.
-    *   If so, classify as 'interact' and find the most specific 'interactionResults.action' string for 'targetId'. Stop here.
-
-6.  **PRIORITY 6: Movement - Global Search (Fuzzy Match):**
-    *   If movement intent was detected but didn't match a local exit, compare the player's destination to the provided 'allLocationNames' list.
-    *   Find the best fuzzy match from the list. For example, if the player says "vamos a la colina", and the list has "Colina del Resentimiento", you should match it.
-    *   If you find a strong match, classify as 'move' and use the matched name from the list as the 'targetId'. Stop here.
-
-7.  **PRIORITY 7: Default to Narration:**
-    *   If none of the above apply, classify as 'narrate' and leave 'targetId' null.
-
-**CONTEXT:**
-- Player's Party: \`\`\`json
-{{{json party}}}
-\`\`\`
-- Current Location: \`\`\`json
-{{{locationContext}}}
-\`\`\`
-- All Possible Locations: {{{json allLocationNames}}}
-- Player Action: "{{{playerAction}}}"
-
-Determine the player's intent based on the strict priority flow above.
+2.  **PRIORITY 2: Attack / Hostile Intent / Offensive Magic:**
+    *   Analyze for a clear intent to attack OR initiate violence, OR cast an OFFENSIVE SPELL.
+    *   ... [Consultar flujo completo de prioridades 1 a 8 en src/ai/flows/action-interpreter.ts]
 ```
 
 **Comportamiento esperado:**
-- Sigue un flujo de prioridad estricto
-- Detecta acciones OOC (que empiezan con `//`)
-- Identifica ataques y objetivos
-- Reconoce interacciones con compañeros
-- Maneja movimiento local y global (con fuzzy matching)
-- Por defecto clasifica como 'narrate' si no coincide con nada
-
-**Tipos de acción posibles:**
-- `ooc` - Fuera de personaje
-- `attack` - Ataque
-- `interact` - Interacción
-- `move` - Movimiento
-- `narrate` - Narración (por defecto)
-- `continue_turn` - Continuar turno (manejado internamente)
+- Sigue las prioridades estrictas (OOC, Ataque/Magía hostil, Hazards, Skill Checks, Inventario Drop/Give, Compañeros, Movimiento local, Interacción, Movimiento global, Narra por defecto).
+- Rellena campos como `stealthIntent` (si hay sigilo), `activatedEffects` (ej. "speak_with_animals"), `assignedCompanion` y `recipient`.
 
 **Ejemplo de salida:**
 ```json
@@ -766,6 +693,78 @@ Determine the player's intent based on the strict priority flow above.
   "actionType": "attack",
   "targetId": "goblin_1"
 }
+```
+
+---
+
+### Exploration Expert (Capa 3 - Entorno)
+
+**Ubicación:** `src/ai/flows/experts/exploration-expert.ts`
+
+**Propósito:** Experto encargado de generar la narración de exploración física y ambientación del entorno bajo el DM.
+
+**Variables del prompt:**
+- `playerAction` - Acción del jugador
+- `locationId` - ID de la ubicación
+- `locationContext` - JSON estático y dinámico de la localización
+- `interpretedAction` - Intención de la acción
+- `deadEntities` - Lista de enemigos muertos/cuerpos
+- `systemFeedback` - Feedback directo del motor de reglas (Capa 2)
+- `explorationContext` - Modos de luz, niebla de guerra, etc.
+- `activeEffects` - Hechizos activos en el mundo
+- `adventureLore` - Lore de la aventura y secretos
+- `skillCheckResult` - Resultados de tiradas ya resueltas deterministamente
+- `party` - Fichas e inventario de la party
+- `narrativeDirectives` - Directivas del motor de reglas
+
+**Prompt completo:**
+```
+You are an expert D&D 5e Dungeon Master specializing in **EXPLORATION and ATMOSPHERE**.
+You MUST ALWAYS reply in Spanish from Spain.
+... [Consultar cuerpo completo en src/ai/flows/experts/exploration-expert.ts]
+```
+
+---
+
+### Interaction Expert (Capa 3 - Social)
+
+**Ubicación:** `src/ai/flows/experts/interaction-expert.ts` e `interaction-expert-stream.ts`
+
+**Propósito:** Experto encargado de generar diálogos de NPCs e interacciones sociales con ellos.
+
+**Variables del prompt:**
+- `playerAction` - Acción del jugador
+- `npcContext` - Información del NPC (personality, goals, secrets, etc.)
+- `conversationHistory` - Historial
+- `interpretedAction` - Intención interpretada
+- `party` - Miembros de la party e inventarios
+- `activeEffects` - Hechizos activos (ej: speak_with_animals)
+- `skillCheckResult` - Tirada social resuelta en Capa 2
+- `narrativeDirectives` - Directivas obligatorias
+
+**Prompt completo:**
+```
+You are an expert D&D 5e Dungeon Master specializing in **SOCIAL INTERACTION and NPC PSYCHOLOGY**.
+You MUST ALWAYS reply in Spanish from Spain.
+
+**BARRERA DE COMUNICACIÓN CRÍTICA (REGLA DE ORO DE LA BESTIA):**
+- Si un NPC es un animal o bestia y el efecto "speak_with_animals" NO está en el array 'activeEffects', ese NPC BAJO NINGUNA CIRCUNSTANCIA puede pronunciar palabras...
+... [Consultar cuerpo completo en src/ai/flows/experts/interaction-expert.ts]
+```
+
+---
+
+### Skill Check Expert (Auxiliar Mecánico)
+
+**Ubicación:** `src/ai/flows/experts/skill-check-expert.ts`
+
+**Propósito:** Ayuda al motor de reglas a determinar dinámicamente qué habilidad, dificultad (DC) y modificadores corresponden a una acción del jugador antes de que la Capa 2 resuelva la tirada.
+
+**Prompt completo:**
+```
+You are an expert D&D 5e Dungeon Master acting as a **MECHANICAL REFEREE**.
+Your goal is to translate a player's narrative intention into a concrete D&D 5e Skill Check.
+... [Consultar cuerpo completo en src/ai/flows/experts/skill-check-expert.ts]
 ```
 
 ---

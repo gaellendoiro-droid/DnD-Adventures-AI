@@ -15,6 +15,16 @@ vi.mock('@/lib/logger', () => ({
     }
 }));
 
+vi.mock('@/lib/dice/dice-engine', () => ({
+    rollD20: vi.fn().mockReturnValue({
+        die1: 10,
+        die2: null,
+        kept: 10,
+        naturalCrit: false,
+        naturalFail: false,
+    }),
+}));
+
 vi.mock('../companion-reaction-manager', () => ({
     processCompanionReactions: vi.fn().mockResolvedValue({ messages: [], debugLogs: [] }),
     processCompanionReactionsStreaming: vi.fn().mockImplementation(async function* () {

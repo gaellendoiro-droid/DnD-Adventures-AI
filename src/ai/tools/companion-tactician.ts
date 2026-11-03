@@ -78,29 +78,7 @@ const companionTacticianPrompt = ai.definePrompt({
 **OUTPUT FORMAT (CRITICAL):**
 - You MUST return ONLY a valid JSON object. Do NOT wrap it in markdown code blocks (\`\`\`json\`\`\`).
 - Do NOT include any text before or after the JSON.
-- The JSON must match this exact structure:
-
-Example output for an attack with a mace:
-{
-  "actionDescription": "Ataque con Maza",
-  "targetId": "enemy-1",
-  "diceRolls": []
-}
-
-Example output for healing:
-{
-  "actionDescription": "Curar a Galador",
-  "targetId": "player-1",
-  "diceRolls": [
-    {
-      "roller": "Elara",
-      "rollNotation": "1d8+3",
-      "description": "Curación",
-      "attackType": "healing"
-    }
-  ]
-}
-
+Return a valid JSON object matching the schema. Do NOT include any markdown code blocks. The JSON must contain "actionDescription", "targetId", and "diceRolls" (an array of rolls).
 Return ONLY the JSON object, nothing else.`,
 });
 

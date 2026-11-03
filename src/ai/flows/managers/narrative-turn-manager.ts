@@ -587,6 +587,13 @@ export async function* executeNarrativeTurnStreaming(
             }
         }).join('\n');
 
+    const narrativeDirectives = generateNarrativeDirectives(
+        allEvents,
+        interpretation,
+        systemFeedback,
+        activeEffects
+    );
+
     const narrativeInput = {
         phase: (isAdventureStart ? 'combat_initiation' : 'normal') as 'combat_initiation' | 'normal',
         playerAction,
@@ -604,7 +611,8 @@ export async function* executeNarrativeTurnStreaming(
         activeEffects,
         skillCheckResult: skillCheckResultData,
         party,
-        eventsLog: eventsLogText
+        eventsLog: eventsLogText,
+        narrativeDirectives: narrativeDirectives
     };
 
     let narrativeResult: any = { dmNarration: "", debugLogs: [] };
@@ -703,4 +711,85 @@ export async function executeNarrativeTurn(input: NarrativeTurnInput): Promise<N
     }
     return result.value as NarrativeTurnOutput;
 }
+
+/**
+ * Traduce los eventos de juego del motor de reglas, el feedback del sistema y la intención de la acción
+ * en directivas narrativas imperativas y genéricas para la IA del DM.
+ */
+export function generateNarrativeDirectives(
+    events: any[],
+    interpretation: any,
+    systemFeedback?: string,
+    activeEffects: string[] = []
+): string[] {
+    const directives: string[] = [];
+
+    // 1. Procesar eventos registrados por los sistemas del core (TypeScript)
+    events.forEach(e => {
+        switch (e.type) {
+            case 'PlayerMoved':
+                directives.push(`Describe que el grupo viaja o se desplaza a la localización '${e.payload.toLocationId}'.`);
+                break;
+            case 'DoorOpened':
+                directives.push(`Describe que se abre la puerta/verja en dirección '${e.payload.direction}' con éxito usando el método '${e.payload.method}'.`);
+                break;
+            case 'DoorClosed':
+                directives.push(`Describe que se cierra la puerta/verja en dirección '${e.payload.direction}'.`);
+                break;
+            case 'ItemCollected':
+                directives.push(`Describe que ${e.payload.characterName} recoge el objeto '${e.payload.itemName}' (cantidad: ${e.payload.quantity}) y lo guarda en su inventario. El objeto permanece inactivo en su mochila; no activa ninguna magia ni consume recursos.`);
+                break;
+            case 'DamageApplied':
+                directives.push(`Describe que ${e.payload.targetName} sufre daño físico/mágico por valor de ${e.payload.amount} HP.`);
+                break;
+            case 'HealApplied':
+                directives.push(`Describe que ${e.payload.targetName} recupera ${e.payload.amount} HP de salud.`);
+                break;
+            case 'SkillCheckResolved': {
+                const { skill, dc, rollTotal, isSuccess, characterName } = e.payload;
+                const targetId = interpretation.targetId || '';
+                const isScrollUse = (interpretation.actionType === 'interact' || interpretation.actionType === 'skill_check') && /pergamino|scroll/i.test(targetId);
+                
+                if (isScrollUse) {
+                    if (isSuccess) {
+                        directives.push(`Describe que ${characterName} lee el pergamino mágico y canaliza su energía con éxito (Arcanas CD ${dc}, resultado final: ${rollTotal}). La magia se activa y el efecto de comunicación animal o mágico entra en vigor.`);
+                    } else {
+                        directives.push(`Describe que ${characterName} intenta leer el pergamino mágico pero falla al canalizar la energía (Arcanas CD ${dc}, resultado final: ${rollTotal}). La magia no se activa, el pergamino no se consume y el efecto sigue inactivo.`);
+                    }
+                } else {
+                    directives.push(`Describe que ${characterName} realiza una tirada de ${skill} (CD ${dc}) obteniendo un total de ${rollTotal}, resultando en ${isSuccess ? 'ÉXITO' : 'FALLO'}. Narra las consecuencias físicas o mentales en perfecta concordancia con este resultado.`);
+                }
+                break;
+            }
+            case 'CombatTriggered':
+                directives.push(`Describe que la tensión de la escena escala y estalla el combate debido a: ${e.payload.reason}.`);
+                break;
+            case 'CharacterDied':
+                directives.push(`Describe de forma trágica que ${e.payload.characterName} ha caído en combate o ha muerto.`);
+                break;
+            case 'EnemyDied':
+                directives.push(`Describe que el enemigo '${e.payload.enemyName}' ha sido derrotado.`);
+                break;
+        }
+    });
+
+    // 2. Procesar intenciones de inventario no capturadas en los eventos de arriba
+    if (directives.length === 0) {
+        if (interpretation.actionType === 'give') {
+            directives.push(`Describe que ${interpretation.assignedCompanion || 'el personaje'} le da o transfiere el objeto '${interpretation.targetId}' a ${interpretation.recipient || 'su compañero'}. El objeto NO se lee, NO se activa y sus propiedades mágicas permanecen latentes.`);
+        } else if (interpretation.actionType === 'drop') {
+            directives.push(`Describe que ${interpretation.assignedCompanion || 'el personaje'} suelta el objeto '${interpretation.targetId}' en el suelo. El objeto permanece inerte en el suelo y su magia sigue latente.`);
+        } else if (interpretation.actionType === 'interact' && /pergamino|scroll/i.test(interpretation.targetId || '')) {
+            directives.push(`Describe que el personaje examina o manipula el pergamino de forma meramente física. No lo lee, no lo activa y no hay efectos mágicos en vigor.`);
+        }
+    }
+
+    // 3. Integrar feedback del sistema (ej: "No puedes ir allí")
+    if (systemFeedback) {
+        directives.push(`Describe la restricción o impedimento físico: ${systemFeedback}`);
+    }
+
+    return directives;
+}
+
 
