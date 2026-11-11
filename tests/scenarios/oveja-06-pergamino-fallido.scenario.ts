@@ -23,7 +23,9 @@ export const scenario: ScenarioDefinition = {
     id: 'oveja-06-pergamino-fallido',
     title: 'Galador falla al leer el pergamino y Merryl lo activa',
     adventure: OVEJA_ADVENTURE,
-    seed: 6617,
+    seed: 6677,
+    // Las tiradas de la partida manual: Galador 18 (descifrar), Galador 5 (leer, falla), Merryl 9 (+6, éxito).
+    forcedD20: [18, 5, 9],
     steps: [
         {
             action: 'Cojo el pergamino que lleva la oveja en la boca',
@@ -77,9 +79,7 @@ export const scenario: ScenarioDefinition = {
     ],
 };
 
-// Pendiente de grabar: el 11-11-2026 Groq y Gemini agotaron la cuota diaria antes de poder
-// grabarlo. Para activarlo: quitar el `.skip` y `npm run test:scenarios:record -- oveja-06`.
-describe.skip('Escenario narrativo', () => {
+describe('Escenario narrativo', () => {
     it(`${scenario.id}: ${scenario.title}`, async () => {
         await expectScenarioToPass(scenario);
     });
