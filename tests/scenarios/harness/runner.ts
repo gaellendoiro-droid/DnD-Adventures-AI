@@ -86,6 +86,11 @@ export interface ScenarioDefinition {
     adventure: string;
     /** Semilla de los dados: fija las tiradas de todo el escenario. */
     seed: number;
+    /**
+     * Resultados del d20 (sin modificadores) que se usarán en orden en las pruebas de habilidad,
+     * para reproducir una partida concreta. Cuando se agotan, se vuelve a tirar con la semilla.
+     */
+    forcedD20?: number[];
     steps: ScenarioStep[];
     /** En combate, enviar "continuar turno" automáticamente mientras jueguen las IAs (como la UI). */
     autoContinueCombat?: boolean;
@@ -230,6 +235,7 @@ export async function runScenario(def: ScenarioDefinition): Promise<ScenarioRepo
     const recorder = new CassetteRecorder(mode, def.id, cassette);
     recorder.install();
     const determinism = enableDeterminism(cassette?.seed ?? def.seed, mode === 'replay');
+    (globalThis as any).__forcedD20 = def.forcedD20 ? [...def.forcedD20] : undefined;
     resetMessageCounter();
 
     const failures: string[] = [];
@@ -388,6 +394,7 @@ export async function runScenario(def: ScenarioDefinition): Promise<ScenarioRepo
         failures.push(`Error al ejecutar el escenario: ${err?.stack ?? err}`);
     } finally {
         determinism.restore();
+        (globalThis as any).__forcedD20 = undefined;
         recorder.uninstall();
     }
 

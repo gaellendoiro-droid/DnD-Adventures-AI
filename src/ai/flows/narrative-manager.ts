@@ -33,6 +33,7 @@ import {
     isBehindCommunicationBarrier,
     loadActiveAdventureHiddenTerms,
     maskEntityBehindBarrier,
+    stripBarrierConfig,
 } from '@/lib/game/communication-barrier';
 
 // --- Internal Schemas ---
@@ -370,9 +371,11 @@ export const narrativeManagerFlow = ai.defineFlow(
             // (roleplay.hiddenIdentityTerms), nunca de nombres fijos en código.
             const hiddenTerms = hasSpeakWithAnimalsActive ? [] : await loadActiveAdventureHiddenTerms();
             const sanitizeEntitiesForAnimalBarrier = (entities?: any[]) => {
-                if (!Array.isArray(entities) || hasSpeakWithAnimalsActive) return entities;
+                if (!Array.isArray(entities)) return entities;
                 return entities.map((ent: any) =>
-                    isBehindCommunicationBarrier(ent) ? maskEntityBehindBarrier(ent, hiddenTerms) : ent
+                    !hasSpeakWithAnimalsActive && isBehindCommunicationBarrier(ent)
+                        ? maskEntityBehindBarrier(ent, hiddenTerms)
+                        : stripBarrierConfig(ent)
                 );
             };
 

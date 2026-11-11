@@ -11,6 +11,7 @@ import { ActionInterpreterInputSchema, ActionInterpreterOutputSchema, type Actio
 import { getAdventureData } from '@/app/game-state-actions';
 import { log } from '@/lib/logger';
 import { executePromptWithRetry } from './retry-utils';
+import { parseAIProviderError } from '@/lib/ai/ai-error-handler';
 
 // This prompt no longer needs tools. All context is provided directly.
 const actionInterpreterPrompt = ai.definePrompt({
@@ -207,6 +208,12 @@ export const actionInterpreterFlow = ai.defineFlow(
                     { flowName: 'actionInterpreter' }
                 );
             } catch (retryError: any) {
+                // Si el proveedor de IA no está disponible (cuota diaria, límite por minuto, clave,
+                // red…), el problema no es la frase del jugador: se propaga para que el stream muestre
+                // el error real en vez de "No se ha podido interpretar tu acción".
+                if (parseAIProviderError(retryError).code !== 'UNKNOWN_AI_ERROR') {
+                    throw retryError;
+                }
                 // All retries exhausted - implement intelligent fallback
                 log.error('All retry attempts failed, using intelligent fallback', {
                     module: 'AIFlow',
@@ -330,6 +337,7 @@ export const actionInterpreterFlow = ai.defineFlow(
             return { interpretation: output, debugLogs };
 
         } catch (e: any) {
+            if (parseAIProviderError(e).code !== 'UNKNOWN_AI_ERROR') throw e;
             const msg = `ActionInterpreter: Flow failed. Error: ${e.message}. Defaulting to 'narrate'.`;
             log.error(msg, { module: 'AIFlow', flow: 'actionInterpreter' }, e);
             debugLogs.push(msg);
