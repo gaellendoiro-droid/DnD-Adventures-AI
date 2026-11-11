@@ -75,7 +75,11 @@ export function useGameStream({
                 }
                 break;
             case 'error':
-                const err = new Error(event.payload.message);
+                const err: any = new Error(event.payload.message);
+                if (event.payload.details?.aiError) {
+                    err.aiError = event.payload.details.aiError;
+                }
+                err.code = event.payload.code;
                 setLastError(err);
                 setCurrentStatus('Error');
                 if (onError) onError(err);

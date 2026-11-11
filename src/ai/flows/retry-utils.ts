@@ -5,6 +5,8 @@
 
 import { log } from '../../lib/logger';
 import { persistentFetch } from '../../lib/http/persistent-client';
+import { extractRetryAfterSeconds } from '../../lib/ai/ai-error-handler';
+import { GEMINI_MODEL_NAME } from '../model-config';
 
 /**
  * Retry a function with exponential backoff
@@ -75,20 +77,25 @@ export async function retryWithExponentialBackoff<T>(
                 log.debug(`Error not considered retryable: ${msg}`, { module: 'RetryUtils', errorName: error.name, fullError: error });
             }
 
-            if (!isRetryableError || attempt === maxRetries) {
-                // Don't retry non-network errors or if we've exhausted retries
-                // Surface the original error to simplify test expectations
+            // Si es una cuota diaria agotada (ej. > 60s de espera o "requests per day"), no reintentar en bucle
+            const suggestedWaitSec = extractRetryAfterSeconds(errorStr) ?? extractRetryAfterSeconds(msg);
+            const isDailyQuotaExhausted =
+                msg.includes('requests per day') ||
+                msg.includes('tokens per day') ||
+                msg.includes('free_tier_requests') ||
+                (suggestedWaitSec !== undefined && suggestedWaitSec > 60);
+
+            if (!isRetryableError || isDailyQuotaExhausted || attempt === maxRetries) {
+                // Don't retry non-network errors, daily quota exhaustion, or if we've exhausted retries
                 throw error;
             }
 
             let delay = initialDelayMs * Math.pow(2, attempt);
             
-            // Check if API specifies a precise retry delay (standard Gemini API behavior for 429)
-            const retryInMatch = errorStr.match(/please retry in ([\d.]+)\s*s/i) || msg.match(/please retry in ([\d.]+)\s*s/i);
-            if (retryInMatch) {
-                const seconds = parseFloat(retryInMatch[1]);
-                delay = Math.ceil(seconds * 1000) + 500; // Add 500ms safety buffer
-                log.info(`API Rate Limit (429) details: API requested wait time of ${seconds}s. Adjusting retry delay to ${delay}ms.`, {
+            // Check if API specifies a precise retry delay (supports both Gemini "retry in Xs" and Groq "try again in Xs")
+            if (suggestedWaitSec !== undefined && suggestedWaitSec <= 60) {
+                delay = Math.ceil(suggestedWaitSec * 1000) + 500; // Add 500ms safety buffer
+                log.info(`API Rate Limit (429) details: API requested wait time of ${suggestedWaitSec}s. Adjusting retry delay to ${delay}ms.`, {
                     module: 'RetryUtils',
                     flow: flowName
                 });
@@ -203,8 +210,9 @@ export async function executePromptWithRetry<TInput, TOutput>(
         flowName?: string;
     }
 ): Promise<{ output: TOutput }> {
-    // Pre-warm Gemini API en el primer uso para reducir timeouts iniciales
-    if (!geminiPrewarmed) {
+    // Pre-warm Gemini API solo si no se está usando Groq
+    const activeModel = GEMINI_MODEL_NAME;
+    if (!geminiPrewarmed && !activeModel.startsWith('groq/')) {
         await prewarmConnection(
             'https://generativelanguage.googleapis.com',
             '/v1beta/models',
@@ -213,6 +221,8 @@ export async function executePromptWithRetry<TInput, TOutput>(
         ).catch(() => {
             // Ignorar errores - el pre-warm es best-effort
         });
+        geminiPrewarmed = true;
+    } else if (activeModel.startsWith('groq/')) {
         geminiPrewarmed = true;
     }
 

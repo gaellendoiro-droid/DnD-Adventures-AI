@@ -26,6 +26,7 @@ import { searchCompendium } from "@/app/actions/compendium";
 import { SearchResult } from "@/app/actions/compendium";
 import { formatCompendiumEntry, formatNotFoundMessage } from "@/lib/game/compendium-formatter";
 import { useGameStream } from "@/hooks/use-game-stream";
+import { parseAIProviderError } from "@/lib/ai/ai-error-handler";
 
 
 interface GameViewProps {
@@ -395,6 +396,7 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     }
     if (result.worldState) {
       setWorldState(result.worldState);
+      worldStateRef.current = result.worldState;
       syncDerivedStateFromWorldState(result.worldState);
     }
 
@@ -482,11 +484,25 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
     setIsDMThinking(false);
   }, []);
 
+  const lastPlayerActionRef = useRef<string>('');
+  const handleSendMessageRef = useRef<((content: string, options?: { isRetry?: boolean; isContinuation?: boolean }) => Promise<void>) | null>(null);
+
   const handleStreamError = useCallback((error: Error) => {
     logClient.uiError('GameView', 'Stream Error', error);
+    const aiError = parseAIProviderError(error);
+    const lastAction = lastPlayerActionRef.current;
+
     addMessage({
       sender: 'Error',
-      content: `Error de conexión: ${error.message}. Intenta de nuevo.`,
+      senderName: `Aviso de IA (${aiError.provider})`,
+      content: `${aiError.title}: ${aiError.userMessage}`,
+      aiError,
+      onRetry:
+        aiError.isRetryable && lastAction
+          ? () => {
+              handleSendMessageRef.current?.(lastAction, { isRetry: true });
+            }
+          : undefined,
     });
     setIsDMThinking(false);
     setAutoAdvancing(false);
@@ -503,6 +519,7 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
   const handleSendMessage = useCallback(async (content: string, options: { isRetry?: boolean, isContinuation?: boolean } = {}) => {
     const { isRetry = false, isContinuation = false } = options;
     const wasInCombat = inCombatRef.current; // Capture state before action
+    lastPlayerActionRef.current = content;
 
     if (!isRetry && !isContinuation) {
       // Use active combatant name in combat, otherwise use selected character
@@ -684,10 +701,12 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
         action: content,
         inCombat: inCombatRef.current,
       });
-      // addDebugMessages([`CRITICAL ERROR: ${error.message}`, `DETAILS: ${JSON.stringify(error)}`]);
+      const aiError = parseAIProviderError(error);
       addMessage({
         sender: 'Error',
-        content: `El Dungeon Master está confundido. Error: ${error.message}. Revisa la consola para más detalles.`,
+        senderName: `Aviso de IA (${aiError.provider})`,
+        content: `${aiError.title}: ${aiError.userMessage}`,
+        aiError,
         onRetry: () => handleSendMessage(content, { isRetry: true }),
       });
 
@@ -698,6 +717,8 @@ export function GameView({ initialData, onSaveGame, onGoToMenu, adventureName, a
       setIsDMThinking(false);
     }
   }, [addMessage, addMessages, buildConversationHistory, addDiceRolls, sendStreamMessage, handleStateUpdate]);
+
+  handleSendMessageRef.current = handleSendMessage;
 
   const handleDiceRoll = useCallback((roll: { result: number, sides: number }) => {
     addDiceRolls([{

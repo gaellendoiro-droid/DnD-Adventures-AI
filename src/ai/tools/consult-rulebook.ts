@@ -5,9 +5,6 @@ import { log } from '@/lib/logger';
 import { retryWithExponentialBackoff } from '../flows/retry-utils';
 import { GEMINI_MODEL_NAME } from '../model-config';
 
-// Cache simple para evitar lecturas recurrentes del mismo file object
-// (No se usa actualmente ya que usamos URI persistente, pero se deja por si acaso)
-
 const ConsultRulebookSchema = z.object({
     query: z.string().describe("La pregunta específica sobre reglas, hechizos, objetos o mecánicas de D&D."),
     context: z.string().optional().describe("Contexto adicional (ej: 'Nivel 3', 'Clase Paladín')."),
@@ -21,6 +18,26 @@ export const consultRulebookTool = ai.defineTool(
         outputSchema: z.string(),
     },
     async (input) => {
+        if (GEMINI_MODEL_NAME.startsWith('groq/')) {
+            log.info(`Consultando Biblioteca Arcana vía Groq (${GEMINI_MODEL_NAME})`, { module: 'ConsultRulebook', query: input.query });
+            try {
+                const response = await ai.generate({
+                    model: GEMINI_MODEL_NAME,
+                    prompt: `Eres el Sabio de las Reglas (Dungeon Master Assistant) experto en D&D 5e (Manual del Jugador y Manual de Monstruos).
+Consulta: "${input.query}"
+Contexto Adicional: ${input.context || "Sin contexto"}
+Instrucciones:
+1. Responde con precisión mecánica exacta (daños, alcances, CDs, espacios de conjuro, estadísticas oficiales de D&D 5e).
+2. Cita el manual oficial correspondiente (PHB o MM).
+3. Responde siempre en español de España en formato Markdown limpio.`,
+                });
+                return response.text;
+            } catch (error: any) {
+                log.error("Error consultando reglas vía Groq", { error: error.message });
+                return "Lo siento, no pude consultar el tomo sagrado en este momento.";
+            }
+        }
+
         const apiKey = process.env.GOOGLE_GENAI_API_KEY;
         if (!apiKey) throw new Error("API Key no configurada.");
 

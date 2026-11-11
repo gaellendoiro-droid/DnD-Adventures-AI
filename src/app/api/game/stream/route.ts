@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { gameStreamCoordinator } from '@/ai/streaming/game-stream-coordinator';
 import { GameStateSchema } from '@/ai/flows/schemas';
 import { createStreamEncoder } from '@/lib/streaming/protocol';
+import { parseAIProviderError } from '@/lib/ai/ai-error-handler';
 
 export const maxDuration = 60; // Allow longer execution for streaming
 
@@ -33,13 +34,15 @@ export async function POST(req: NextRequest) {
                     }
                 } catch (error: any) {
                     console.error('Stream processing error:', error);
+                    const aiError = parseAIProviderError(error);
                     encoder.write({
                         type: 'error',
                         id: `err-${Date.now()}`,
                         timestamp: Date.now(),
                         payload: {
-                            code: 'INTERNAL_ERROR',
-                            message: error.message || 'Unknown error during streaming',
+                            code: aiError.code || 'INTERNAL_ERROR',
+                            message: aiError.userMessage || error.message || 'Unknown error during streaming',
+                            details: { aiError },
                             isFatal: true
                         }
                     });
