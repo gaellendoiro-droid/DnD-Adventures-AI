@@ -32,7 +32,7 @@ import '@/ai/tools/location-lookup.ts';
 
 import { genkit, z } from 'genkit';
 const ai = genkit({
-    model: 'googleai/gemini-2.5-flash', // Default para dev
+    model: 'googleai/gemini-3.5-flash', // Default para dev
 });
 
 export const testRulebookFlow = ai.defineFlow(

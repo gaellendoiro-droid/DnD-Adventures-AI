@@ -5,9 +5,6 @@ import { log } from '@/lib/logger';
 import { retryWithExponentialBackoff } from '../flows/retry-utils';
 import { GEMINI_MODEL_NAME } from '../model-config';
 
-// Cache simple para evitar lecturas recurrentes del mismo file object
-// (No se usa actualmente ya que usamos URI persistente, pero se deja por si acaso)
-
 const ConsultRulebookSchema = z.object({
     query: z.string().describe("La pregunta específica sobre reglas, hechizos, objetos o mecánicas de D&D."),
     context: z.string().optional().describe("Contexto adicional (ej: 'Nivel 3', 'Clase Paladín')."),
@@ -21,32 +18,31 @@ export const consultRulebookTool = ai.defineTool(
         outputSchema: z.string(),
     },
     async (input) => {
+        if (GEMINI_MODEL_NAME.startsWith('groq/')) {
+            log.info(`Consultando Biblioteca Arcana vía Groq (${GEMINI_MODEL_NAME})`, { module: 'ConsultRulebook', query: input.query });
+            try {
+                const response = await ai.generate({
+                    model: GEMINI_MODEL_NAME,
+                    prompt: `Eres el Sabio de las Reglas (Dungeon Master Assistant) experto en D&D 5e (Manual del Jugador y Manual de Monstruos).
+Consulta: "${input.query}"
+Contexto Adicional: ${input.context || "Sin contexto"}
+Instrucciones:
+1. Responde con precisión mecánica exacta (daños, alcances, CDs, espacios de conjuro, estadísticas oficiales de D&D 5e).
+2. Cita el manual oficial correspondiente (PHB o MM).
+3. Responde siempre en español de España en formato Markdown limpio.`,
+                });
+                return response.text;
+            } catch (error: any) {
+                log.error("Error consultando reglas vía Groq", { error: error.message });
+                return "Lo siento, no pude consultar el tomo sagrado en este momento.";
+            }
+        }
+
         const apiKey = process.env.GOOGLE_GENAI_API_KEY;
         if (!apiKey) throw new Error("API Key no configurada.");
 
-        // URIs Persistentes: PHB + MM Part 1 + MM Part 2
-        // Idealmente cargaríamos esto de una variable de entorno GOOGLE_GENAI_KNOWLEDGE_URIS separada por comas
-        // Por ahora, usaremos estos defaults hardcodeados + la variable de entorno simple
-        const defaultUris = [
-            "https://generativelanguage.googleapis.com/v1beta/files/7ji2goimrnvb", // PHB
-            "https://generativelanguage.googleapis.com/v1beta/files/41odl5mikhz8", // MM Part 1
-            "https://generativelanguage.googleapis.com/v1beta/files/re3mt0rgvvi6"  // MM Part 2
-        ];
-
-        let fileUris: string[] = defaultUris;
-
-        if (process.env.GOOGLE_GENAI_MANUAL_URI) {
-            // Si hay variable de entorno, intentamos ver si son varias separadas por coma, o si agregamos a la lista
-            // Para simplificar, si el usuario define la variable, le damos prioridad, pero idealmente concatenamos.
-            // Aquí asumiremos que la variable puede contener una lista separada por comas.
-            const envUris = process.env.GOOGLE_GENAI_MANUAL_URI.split(',').map(u => u.trim()).filter(u => u.length > 0);
-            if (envUris.length > 0) {
-                // Opción: Sobrescribir o añadir. Añadiremos para no perder el PHB si el usuario solo pone el MM.
-                // Pero chequearemos duplicados.
-                const unique = new Set([...defaultUris, ...envUris]);
-                fileUris = Array.from(unique);
-            }
-        }
+        const { RulebookManager } = await import('@/lib/game/rulebook-manager');
+        const fileUris = await RulebookManager.getOrUploadManuals(apiKey);
 
         const manualMimeType = "application/pdf";
 
@@ -88,15 +84,16 @@ Instrucciones:
                 const result = await model.generateContent(contentParts);
 
                 const text = result.response.text();
-                console.log("\n🐉 [DEBUG CONSULTA PDF] Respuesta cruda de Gemini (Primeras 500 letras):");
-                console.log(text.substring(0, 500));
-                console.log("... [Fin del snippet] 🐉\n");
+                log.debug(`🐉 [DEBUG CONSULTA PDF] Respuesta cruda de Gemini (Primeras 500 letras):\n${text.substring(0, 500)}\n... [Fin del snippet] 🐉`, { module: 'ConsultRulebook' });
 
                 return text;
             }, 3, 1000, 'ConsultRulebookTool'); // 3 reintentos, 1s delay inicial
 
         } catch (error: any) {
-            console.error("RAW ERROR (SDK) CONSULTING RULEBOOK (FINAL):", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+            log.error("RAW ERROR (SDK) CONSULTING RULEBOOK (FINAL)", {
+                module: 'ConsultRulebook',
+                error: JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
+            });
             log.error("Error consultando manual via SDK tras reintentos", {
                 error: error.message,
                 details: error

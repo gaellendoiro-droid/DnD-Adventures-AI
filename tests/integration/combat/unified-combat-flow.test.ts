@@ -48,7 +48,7 @@ describe('Unified Combat Flow Integration', () => {
           spells: [],
           proficiencyBonus: 2,
           controlledBy: 'Player',
-        } as Character,
+        } as unknown as Character,
       ];
 
       const enemies = [
@@ -151,7 +151,7 @@ describe('Unified Combat Flow Integration', () => {
           inventory: [],
           spells: [],
           controlledBy: 'Player',
-        } as Character,
+        } as unknown as Character,
       ];
 
       const enemies = [

@@ -17,7 +17,10 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 vi.mock('../companion-reaction-manager', () => ({
-    processCompanionReactions: vi.fn().mockResolvedValue({ messages: [], debugLogs: [] })
+    processCompanionReactions: vi.fn().mockResolvedValue({ messages: [], debugLogs: [] }),
+    processCompanionReactionsStreaming: async function* () {
+        // Yield empty
+    }
 }));
 
 vi.mock('../navigation-manager', () => ({
@@ -96,7 +99,10 @@ const mockParty: Character[] = [{
     inventory: [],
     hp: { current: 10, max: 10 },
     ac: 15,
-    conditions: []
+    proficiencyBonus: 2,
+    controlledBy: 'Player',
+    spells: [],
+    isDead: false
 }];
 
 describe('NarrativeTurnManager - Skill Checks Integration', () => {
@@ -121,10 +127,9 @@ describe('NarrativeTurnManager - Skill Checks Integration', () => {
             }
         });
 
-        // Narrative Expert (should NOT be called if we use skill check narration override)
-        // Pero el codigo dice: IF skillCheckNarration AND !isLocationChange, skip it.
+        // Narrative Expert (should be called to generate the final narration with the roll result)
         vi.mocked(narrativeManager.narrativeExpert).mockResolvedValue({
-            dmNarration: 'Generic room description',
+            dmNarration: 'Generic room description based on roll success',
             debugLogs: []
         });
 
@@ -159,19 +164,24 @@ describe('NarrativeTurnManager - Skill Checks Integration', () => {
         expect(roll.skillCheckDetails?.skillName).toBe('athletics');
         expect(roll.skillCheckDetails?.difficultyClass).toBe(10);
 
-        // c. Verify Narration Override
-        // Expected: "Intentas escalar...\n\nSubes con exito." (assuming roll was > 10)
-        // Since dice logic is real and random, result could be success or failure,
-        // but the MESSAGE content should match one of the aiDecision narrations.
+        // c. Verify Narrative Expert was called with the skillCheckResult
+        expect(narrativeManager.narrativeExpert).toHaveBeenCalledTimes(1);
+        expect(narrativeManager.narrativeExpert).toHaveBeenCalledWith(expect.objectContaining({
+            skillCheckResult: expect.objectContaining({
+                skill: 'athletics',
+                dc: 10,
+                isSuccess: expect.any(Boolean),
+                rollTotal: expect.any(Number)
+            })
+        }));
+
+        // d. Verify Narration is from Narrative Expert
         expect(result.messages).toHaveLength(1); // Assuming companion reactions skipped or empty
         const dmMessage = result.messages.find(m => m.sender === 'DM');
         expect(dmMessage).toBeDefined();
 
         const content = dmMessage!.content;
-        expect(content).toContain('Intentas escalar...');
-
-        // d. Verify Narrative Expert was SKIPPED (optimization)
-        expect(narrativeManager.narrativeExpert).not.toHaveBeenCalled();
+        expect(content).toContain('Generic room description based on roll success');
     });
 
     it('should fallback to narrative expert if skill check fails or is not triggered', async () => {

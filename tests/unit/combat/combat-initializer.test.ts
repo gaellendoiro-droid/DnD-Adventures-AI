@@ -96,6 +96,7 @@ describe('CombatInitializer', () => {
             processAICombatantRolls: vi.fn(),
             enemyTacticianTool: vi.fn(),
             companionTacticianTool: vi.fn(),
+            combatNarrationExpertTool: vi.fn(),
             createCombatEndDiceRoll: vi.fn(),
             localLog: mockLocalLog
         });
@@ -129,6 +130,7 @@ describe('CombatInitializer', () => {
             processAICombatantRolls: vi.fn(),
             enemyTacticianTool: vi.fn(),
             companionTacticianTool: vi.fn(),
+            combatNarrationExpertTool: vi.fn(),
             createCombatEndDiceRoll: vi.fn(),
             localLog: mockLocalLog
         });

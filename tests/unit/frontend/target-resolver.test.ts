@@ -14,18 +14,24 @@ describe('resolveEnemyId', () => {
       characterName: 'Goblin 1',
       initiative: 15,
       isPlayer: false,
+      controlledBy: 'AI',
+      type: 'enemy',
     },
     {
       id: 'goblin-2',
       characterName: 'Goblin 2',
       initiative: 12,
       isPlayer: false,
+      controlledBy: 'AI',
+      type: 'enemy',
     },
     {
       id: 'player-1',
       characterName: 'Galador',
       initiative: 10,
       isPlayer: true,
+      controlledBy: 'Player',
+      type: 'player',
     },
   ];
 
@@ -63,9 +69,11 @@ describe('resolveEnemyId', () => {
     const singleInitiative: Combatant[] = [
       {
         id: 'goblin-1',
-        characterName: 'Goblin 1',
+        characterName: 'Goblin',
         initiative: 15,
         isPlayer: false,
+        controlledBy: 'AI',
+        type: 'enemy',
       },
     ];
     const result = resolveEnemyId('Goblin', singleEnemy, singleInitiative, mockParty);
@@ -88,9 +96,11 @@ describe('resolveEnemyId', () => {
     const initiativeWithAccent: Combatant[] = [
       {
         id: 'manticora-1',
-        characterName: 'Mantícora 1',
+        characterName: 'Mantícora',
         initiative: 15,
         isPlayer: false,
+        controlledBy: 'AI',
+        type: 'enemy',
       },
     ];
     const result = resolveEnemyId('manticora', enemiesWithAccent, initiativeWithAccent, mockParty);
@@ -117,4 +127,3 @@ describe('resolveEnemyId', () => {
     expect(result.ambiguous).toBe(false);
   });
 });
-

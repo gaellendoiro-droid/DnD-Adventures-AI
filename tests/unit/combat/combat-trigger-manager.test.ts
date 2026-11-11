@@ -1,4 +1,5 @@
 
+import { describe, it, expect } from 'vitest';
 import { CombatTriggerEvaluator as CombatTriggerManager, ExplorationTriggerInput } from '@/lib/combat/trigger/combat-trigger-evaluator';
 import { Location } from '@/lib/types';
 

@@ -26,6 +26,9 @@ interface ChatPanelProps {
   isMuted?: boolean;
   onVolumeChange?: (channel: keyof VolumeSettings, value: number) => void;
   onToggleMute?: () => void;
+  streamedContent?: string;
+  isStreaming?: boolean;
+  currentStatus?: string | null; // New prop
 }
 
 export function ChatPanel({
@@ -44,6 +47,9 @@ export function ChatPanel({
   isMuted = false,
   onVolumeChange,
   onToggleMute,
+  streamedContent,
+  isStreaming,
+  currentStatus,
 }: ChatPanelProps) {
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
@@ -54,7 +60,7 @@ export function ChatPanel({
         behavior: "smooth",
       });
     }
-  }, [messages, isThinking]);
+  }, [messages, isThinking, streamedContent]); // Added streamedContent dependency for auto-scroll
 
   const effectiveNarratorVolume = isMuted ? 0 : volumeSettings.master * volumeSettings.narrator;
 
@@ -65,20 +71,8 @@ export function ChatPanel({
           {messages.map((msg) => (
             <ChatMessage key={msg.id} message={msg} volume={effectiveNarratorVolume} />
           ))}
-          {isThinking && (
-            <div className="flex gap-3 my-4 justify-start">
-              <Bot className="h-6 w-6 flex-shrink-0 mt-1 text-primary" />
-              <div className="flex flex-col max-w-[75%] items-start">
-                <div className="p-3 rounded-lg shadow-sm w-fit bg-card rounded-br-none space-y-2">
-                  <Skeleton className="h-4 w-[250px]" />
-                  <Skeleton className="h-4 w-[200px]" />
-                </div>
-                <span className="text-xs text-muted-foreground mt-1 px-1">
-                  Dungeon Master está pensando...
-                </span>
-              </div>
-            </div>
-          )}
+          {/* Thinking state hidden per user request */}
+          {/* Streaming/Writing state hidden per user request to avoid duplication */}
         </div>
       </ScrollArea>
       <Separator />

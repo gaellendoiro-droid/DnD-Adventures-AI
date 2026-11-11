@@ -26,7 +26,7 @@ export const characterLookupTool = ai.defineTool(
             id: c.id,
             name: c.name,
             race: c.race,
-            class: c.class,
+            class: c.characterClass,
             sex: c.sex,
             personality: c.personality,
             controlledBy: c.controlledBy,

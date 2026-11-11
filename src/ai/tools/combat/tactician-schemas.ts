@@ -16,6 +16,7 @@ export const EnemyTacticianInputSchema = z.object({
     enemies: z.array(z.object({ name: z.string(), id: z.string(), hp: z.string() })).describe("A list of all hostile NPCs/monsters currently in combat and their HP status (e.g., 'Healthy', 'Wounded', 'Badly Wounded')."),
     locationDescription: z.string().describe('A description of the current location.'),
     conversationHistory: z.string().describe("A transcript of the last few turns of combat to provide immediate context."),
+    availableActions: z.array(z.object({ name: z.string(), desc: z.string().optional() })).optional(),
 });
 export type EnemyTacticianInput = z.infer<typeof EnemyTacticianInputSchema>;
 
@@ -40,6 +41,7 @@ export const CompanionTacticianInputSchema = z.object({
     enemies: z.array(z.object({ name: z.string(), id: z.string(), hp: z.string() })).describe("A list of all hostile NPCs/monsters currently in combat and their HP status (e.g., 'Healthy', 'Wounded', 'Badly Wounded')."),
     locationDescription: z.string().describe('A description of the current location.'),
     conversationHistory: z.string().describe("A transcript of the last few turns of combat to provide immediate context."),
+    availableActions: z.array(z.object({ name: z.string(), desc: z.string().optional() })).optional(),
     availableSpells: z.array(z.object({
         id: z.string(),
         name: z.string(),
@@ -96,6 +98,7 @@ export const CombatNarrationExpertInputSchema = z.object({
     // Context for richer narration
     locationDescription: z.string().optional().describe("Brief description of the current location for environmental context."),
     conversationHistory: z.string().optional().describe("Recent combat events for context continuity."),
+    combatantsContext: z.string().optional().describe("Dynamic text listing names, class/race, and sex of characters in combat to enforce grammatical gender agreement in Spanish, e.g., 'Galador (Paladín Humano, Varón), Merryl (Mago Mediano, Varón)'."),
 });
 export type CombatNarrationExpertInput = z.infer<typeof CombatNarrationExpertInputSchema>;
 

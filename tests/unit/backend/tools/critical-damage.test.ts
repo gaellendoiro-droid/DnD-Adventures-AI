@@ -2,15 +2,6 @@
  * Unit tests for critical damage calculation (Issue #50)
  * Tests the getCriticalDamageNotation function that doubles damage dice for critical hits
  * according to D&D 5e rules
- */
-
-import { describe, it, expect } from 'vitest';
-import { getCriticalDamageNotation } from '../../../../src/lib/combat/rules-engine';
-
-/**
- * Unit tests for critical damage calculation (Issue #50)
- * Tests the getCriticalDamageNotation function that doubles damage dice for critical hits
- * according to D&D 5e rules
  * 
  * Note: This test now uses the unified getCriticalDamageNotation from rules-engine.ts
  * after Issue #117 unified the combat architecture.
@@ -28,11 +19,11 @@ describe('getCriticalDamageNotation - Unified (rules-engine)', () => {
     });
 
     it('should handle zero modifier on non-critical', () => {
-      expect(getCriticalDamageNotation('1d8', 0, false)).toBe('1d8+0');
+      expect(getCriticalDamageNotation('1d8', 0, false)).toBe('1d8');
     });
 
     it('should handle negative modifier on non-critical', () => {
-      expect(getCriticalDamageNotation('1d6', -1, false)).toBe('1d6+-1');
+      expect(getCriticalDamageNotation('1d6', -1, false)).toBe('1d6-1');
     });
   });
 
@@ -48,11 +39,11 @@ describe('getCriticalDamageNotation - Unified (rules-engine)', () => {
     });
 
     it('should double die but not modifier on critical with zero modifier', () => {
-      expect(getCriticalDamageNotation('1d8', 0, true)).toBe('2d8+0');
+      expect(getCriticalDamageNotation('1d8', 0, true)).toBe('2d8');
     });
 
     it('should handle negative modifier correctly on critical', () => {
-      expect(getCriticalDamageNotation('1d6', -1, true)).toBe('2d6+-1');
+      expect(getCriticalDamageNotation('1d6', -1, true)).toBe('2d6-1');
     });
   });
 

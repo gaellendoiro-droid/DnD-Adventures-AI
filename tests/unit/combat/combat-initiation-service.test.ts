@@ -30,7 +30,7 @@ describe('CombatInitiationService', () => {
             stats: { strength: 16, dexterity: 14, constitution: 14, intelligence: 10, wisdom: 12, charisma: 10 },
             abilities: [],
             equipment: { weapons: [], armor: [], items: [] },
-        },
+        } as any,
         {
             id: 'companion-1',
             name: 'Companion',
@@ -43,7 +43,7 @@ describe('CombatInitiationService', () => {
             stats: { strength: 10, dexterity: 12, constitution: 12, intelligence: 14, wisdom: 16, charisma: 12 },
             abilities: [],
             equipment: { weapons: [], armor: [], items: [] },
-        },
+        } as any,
     ];
 
     const createMockLocation = (overrides?: Partial<Location>): Location => ({
@@ -538,12 +538,182 @@ describe('CombatInitiationService', () => {
                     adventureData,
                     playerAction: 'Ataco',
                     interpretedAction: { actionType: 'attack', targetId: 'goblin-1' },
-                    // No enemiesByLocation provided
                 };
 
                 const result = await CombatInitiationService.prepareCombatInitiation(request);
 
                 expect(result.combatantIds).toContain('goblin-1');
+            });
+
+            it('should filter out NPCs (type: npc) when loading enemies from adventureData by fallback', async () => {
+                const adventureData = {
+                    entities: [
+                        createMockEnemy('goblin-1', 'Goblin'),
+                        {
+                            id: 'npc-sheep',
+                            name: 'Oveja',
+                            type: 'npc',
+                            hp: { current: 10, max: 10 },
+                            ac: 10
+                        }
+                    ],
+                    locations: [
+                        createMockLocation({ id: 'test-location', entitiesPresent: ['goblin-1', 'npc-sheep'] }),
+                    ],
+                };
+
+                const request: CombatInitiationRequest = {
+                    initiationType: 'player_attack',
+                    party: createMockParty(),
+                    locationId: 'test-location',
+                    locationData: createMockLocation({ entitiesPresent: ['goblin-1', 'npc-sheep'] }),
+                    adventureData,
+                    playerAction: 'Ataco',
+                    interpretedAction: { actionType: 'attack', targetId: 'goblin-1' },
+                };
+
+                const result = await CombatInitiationService.prepareCombatInitiation(request);
+
+                // Should include goblin-1
+                expect(result.combatantIds).toContain('goblin-1');
+                // Should NOT include npc-sheep
+                expect(result.combatantIds).not.toContain('npc-sheep');
+            });
+
+            it('should include NPCs (type: npc) when they are the direct target of the attack', async () => {
+                const adventureData = {
+                    entities: [
+                        {
+                            id: 'guz',
+                            name: 'Guz',
+                            type: 'npc',
+                            hp: { current: 30, max: 30 },
+                            ac: 12
+                        }
+                    ],
+                    locations: [
+                        createMockLocation({ id: 'test-location', entitiesPresent: ['guz'] }),
+                    ],
+                };
+
+                const request: CombatInitiationRequest = {
+                    initiationType: 'player_attack',
+                    party: createMockParty(),
+                    locationId: 'test-location',
+                    locationData: createMockLocation({ entitiesPresent: ['guz'] }),
+                    adventureData,
+                    playerAction: 'Ataco a Guz',
+                    interpretedAction: { actionType: 'attack', targetId: 'guz' },
+                };
+
+                const result = await CombatInitiationService.prepareCombatInitiation(request);
+
+                expect(result.combatantIds).toContain('guz-1');
+            });
+
+            it('should include NPCs (type: npc) when they are in triggeringEntityIds', async () => {
+                const adventureData = {
+                    entities: [
+                        {
+                            id: 'guz',
+                            name: 'Guz',
+                            type: 'npc',
+                            hp: { current: 30, max: 30 },
+                            ac: 12
+                        }
+                    ],
+                    locations: [
+                        createMockLocation({ id: 'test-location', entitiesPresent: ['guz'] }),
+                    ],
+                };
+
+                const request: CombatInitiationRequest = {
+                    initiationType: 'dynamic_trigger',
+                    party: createMockParty(),
+                    locationId: 'test-location',
+                    locationData: createMockLocation({ entitiesPresent: ['guz'] }),
+                    adventureData,
+                    playerAction: 'Nos atacan',
+                    interpretedAction: { actionType: 'attack', targetId: 'dynamic_trigger' },
+                    triggerResult: {
+                        shouldStartCombat: true,
+                        reason: 'provocation',
+                        message: '¡Guz os ataca!',
+                        triggeringEntityIds: ['guz']
+                    } as any
+                };
+
+                const result = await CombatInitiationService.prepareCombatInitiation(request);
+
+                expect(result.combatantIds).toContain('guz-1');
+            });
+
+            it('should include NPCs (type: npc) when mentioned in playerAction', async () => {
+                const adventureData = {
+                    entities: [
+                        {
+                            id: 'sheep',
+                            name: 'Oveja',
+                            type: 'npc',
+                            hp: { current: 10, max: 10 },
+                            ac: 10
+                        }
+                    ],
+                    locations: [
+                        createMockLocation({ id: 'test-location', entitiesPresent: ['sheep'] }),
+                    ],
+                };
+
+                const request: CombatInitiationRequest = {
+                    initiationType: 'player_attack',
+                    party: createMockParty(),
+                    locationId: 'test-location',
+                    locationData: createMockLocation({ entitiesPresent: ['sheep'] }),
+                    adventureData,
+                    playerAction: 'Protejo a la oveja',
+                    interpretedAction: { actionType: 'attack', targetId: 'other-target' },
+                };
+
+                const result = await CombatInitiationService.prepareCombatInitiation(request);
+
+                expect(result.combatantIds).toContain('sheep-1');
+            });
+
+            it('should include NPCs (type: npc) when mentioned in triggerResult message', async () => {
+                const adventureData = {
+                    entities: [
+                        {
+                            id: 'sheep',
+                            name: 'Oveja',
+                            type: 'npc',
+                            hp: { current: 10, max: 10 },
+                            ac: 10
+                        }
+                    ],
+                    locations: [
+                        createMockLocation({ id: 'test-location', entitiesPresent: ['sheep'] }),
+                    ],
+                };
+
+                const request: CombatInitiationRequest = {
+                    initiationType: 'dynamic_trigger',
+                    party: createMockParty(),
+                    locationId: 'test-location',
+                    locationData: createMockLocation({ entitiesPresent: ['sheep'] }),
+                    adventureData,
+                    playerAction: 'Esperamos',
+                    interpretedAction: { actionType: 'attack', targetId: 'dynamic_trigger' },
+                    triggerResult: {
+                        shouldStartCombat: true,
+                        reason: 'provocation',
+                        message: '¡Guz exige la oveja!',
+                        triggeringEntityIds: ['guz']
+                    } as any
+                };
+
+                const result = await CombatInitiationService.prepareCombatInitiation(request);
+
+                expect(result.combatantIds).toContain('sheep-1');
             });
         });
     });
@@ -583,7 +753,7 @@ describe('CombatInitiationService', () => {
         it('should trigger ambush for undetected ambush hazard with no visible enemies', () => {
             const location = createMockLocation({
                 hazards: [
-                    { id: 'ambush-1', type: 'ambush', active: true, triggerDescription: '¡Emboscada!' },
+                    { id: 'ambush-1', type: 'ambush', active: true, triggerDescription: '¡Emboscada!' } as any,
                 ],
             });
 
@@ -601,7 +771,7 @@ describe('CombatInitiationService', () => {
         it('should not trigger ambush if ambush hazard is detected', () => {
             const location = createMockLocation({
                 hazards: [
-                    { id: 'ambush-1', type: 'ambush', active: true },
+                    { id: 'ambush-1', type: 'ambush', active: true } as any,
                 ],
             });
 
@@ -660,6 +830,54 @@ describe('CombatInitiationService', () => {
 
             expect(result.shouldStartCombat).toBe(true);
             expect(result.reason).toBe('provocation');
+        });
+    });
+
+    describe('enrichCombatantsWithSmartNPCs', () => {
+        it('should add NPC to recommended combatants if mentioned in player action', () => {
+            const recommendedIds = ['player-1', 'guz'];
+            const entitiesPresent = ['guz', 'sheep'];
+            const adventureData = {
+                entities: [
+                    { id: 'guz', name: 'Guz', type: 'npc' },
+                    { id: 'sheep', name: 'Oveja', type: 'npc' }
+                ]
+            };
+
+            const result = CombatInitiationService.enrichCombatantsWithSmartNPCs(
+                recommendedIds,
+                entitiesPresent,
+                adventureData,
+                'Salvo a la oveja'
+            );
+
+            expect(result).toContain('player-1');
+            expect(result).toContain('guz');
+            expect(result).toContain('sheep');
+        });
+
+        it('should not add unrelated NPCs to recommended combatants', () => {
+            const recommendedIds = ['player-1', 'guz'];
+            const entitiesPresent = ['guz', 'sheep', 'bystander'];
+            const adventureData = {
+                entities: [
+                    { id: 'guz', name: 'Guz', type: 'npc' },
+                    { id: 'sheep', name: 'Oveja', type: 'npc' },
+                    { id: 'bystander', name: 'Lugareño', type: 'npc' }
+                ]
+            };
+
+            const result = CombatInitiationService.enrichCombatantsWithSmartNPCs(
+                recommendedIds,
+                entitiesPresent,
+                adventureData,
+                'Ataco a Guz'
+            );
+
+            expect(result).toContain('player-1');
+            expect(result).toContain('guz');
+            expect(result).not.toContain('sheep');
+            expect(result).not.toContain('bystander');
         });
     });
 });

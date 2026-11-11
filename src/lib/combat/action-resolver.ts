@@ -246,7 +246,7 @@ export class CombatActionResolver {
             strMod,
             dexMod,
             player.attacks, // Pass explicit attacks array from Character
-            weapon?.description // Pass inventory description
+            weapon?.description ?? undefined // Pass inventory description
         );
 
         const abilityMod = attributeUsed === 'DES' ? dexMod : strMod;
@@ -265,7 +265,7 @@ export class CombatActionResolver {
         // 5. Create Dice Requests
         const diceRollRequests: DiceRollRequest[] = [
             {
-                rollNotation: `1d20+${attackBonus}`,
+                rollNotation: `1d20${attackBonus >= 0 ? '+' : ''}${attackBonus}`,
                 description: `Ataque con ${actualWeaponName} a ${targetName}`,
                 roller: player.name,
                 attackType: 'attack_roll',
@@ -273,7 +273,7 @@ export class CombatActionResolver {
                 attackRange: attackRange
             },
             {
-                rollNotation: `${damageDie}+${damageBonus}`,
+                rollNotation: `${damageDie}${damageBonus >= 0 ? '+' : ''}${damageBonus}`,
                 description: `Daño de ${actualWeaponName}`,
                 roller: player.name,
                 attackType: 'damage_roll',
@@ -400,7 +400,7 @@ export class CombatActionResolver {
                 success: true,
                 diceRollRequests: [
                     {
-                        rollNotation: `1d20+${attackBonus}`,
+                        rollNotation: `1d20${attackBonus >= 0 ? '+' : ''}${attackBonus}`,
                         description: `Ataque básico a ${targetName}`,
                         roller: rollerName || enemy.name,
                         attackType: 'attack_roll',
@@ -408,7 +408,7 @@ export class CombatActionResolver {
                         attackRange: attackRange
                     },
                     {
-                        rollNotation: `1d4+${strMod}`,
+                        rollNotation: `1d4${strMod >= 0 ? '+' : ''}${strMod}`,
                         description: `Daño básico`,
                         roller: rollerName || enemy.name,
                         attackType: 'damage_roll',
@@ -463,7 +463,7 @@ export class CombatActionResolver {
         
         const diceRollRequests: DiceRollRequest[] = [
             {
-                rollNotation: `1d20+${attackBonus}`,
+                rollNotation: `1d20${attackBonus >= 0 ? '+' : ''}${attackBonus}`,
                 description: `Ataque con ${displayWeaponName} a ${targetName}`,
                 roller: rollerName || enemy.name,
                 attackType: 'attack_roll',

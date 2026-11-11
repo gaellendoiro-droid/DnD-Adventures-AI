@@ -68,13 +68,22 @@ export const combatInitiationExpertTool = ai.defineTool(
     // Issue #27: Filter out dead enemies from entitiesPresent
     // locationContext.entitiesPresent permanece intacto (incluye cadáveres)
     // Filtramos SOLO para selección de combatientes
-    const allEntityIds = Array.isArray(locationContext.entitiesPresent) ? locationContext.entitiesPresent : [];
+    const rawEntityRefs = Array.isArray(locationContext.entitiesPresent) ? locationContext.entitiesPresent : [];
+    const allEntityIds: string[] = rawEntityRefs
+        .map((ref: any) => (typeof ref === 'string' ? ref : ref?.entityId))
+        .filter(Boolean);
     const aliveEntityIds = updatedEnemies 
-        ? allEntityIds.filter(id => {
-            const enemy = updatedEnemies.find((e: any) => e.id === id || (e as any).uniqueId === id);
-            // Si el enemigo existe en updatedEnemies, verificar HP
-            // Si NO existe, asumir vivo (nuevo enemigo o primer combate)
-            return !enemy || (enemy.hp && enemy.hp.current > 0);
+        ? allEntityIds.filter((id: string) => {
+            const enemy = updatedEnemies.find((e: any) => e.id === id || (e as any).uniqueId === id || (e as any).adventureId === id);
+            if (!enemy) return true;
+            // Si el enemigo tiene información de hp, comprobar si está muerto
+            const hpCurrent = typeof enemy.hp === 'number'
+                ? enemy.hp
+                : enemy.hp?.current;
+            if (hpCurrent !== undefined) {
+                return hpCurrent > 0;
+            }
+            return true; // Si no tiene hp o hp.current, asumimos que está vivo
         })
         : allEntityIds; // Si no hay updatedEnemies, asumir todos vivos (primer combate)
     
@@ -98,14 +107,47 @@ export const combatInitiationExpertTool = ai.defineTool(
     const llmCombatantIds = llmResponse.output?.combatantIds || [];
     localLog(`IA recommended ${llmCombatantIds.length} combatants: [${llmCombatantIds.join(', ')}]`);
 
-    // IMPORTANT: The AI decides which combatants participate. We trust its decision.
-    // The final list includes party (always) + AI-recommended entities
-    const finalCombatantIds = new Set([...partyIds, ...llmCombatantIds]);
-    
-    localLog(`Final list of combatants includes party. Total: ${finalCombatantIds.size} participants.`);
+    // Expand recommendations: if the LLM recommended an entity ID (e.g. "lobo-polimorfo" or "lobo-polimorfo-1"),
+    // and that entity is present multiple times in the location, we want to include all instances that match.
+    // This resolves the bug where multiple copies of the same enemy in a location get collapsed.
+    const finalCombatantIds: string[] = [...partyIds];
+    const addedEntityIndexes = new Set<number>();
+
+    for (const recommendedId of llmCombatantIds) {
+      if (partyIds.includes(recommendedId)) continue;
+
+      // Find matching entities in location
+      entityIdsInLocation.forEach((locId: string, idx: number) => {
+        if (addedEntityIndexes.has(idx)) return;
+
+        const isExactMatch = locId === recommendedId;
+
+        const locBaseId = locId.split('-').slice(0, -1).join('-') || locId.split('-')[0] || locId;
+        const recBaseId = recommendedId.split('-').slice(0, -1).join('-') || recommendedId.split('-')[0] || recommendedId;
+        const isBaseMatch = locBaseId === recBaseId;
+
+        if (isExactMatch || isBaseMatch) {
+          finalCombatantIds.push(locId);
+          addedEntityIndexes.add(idx);
+          localLog(`Expanding combatant: added instance ${locId} from location at index ${idx}`);
+        }
+      });
+
+      // If not found in location entities at all, add it directly as a fallback
+      const locBaseIds = entityIdsInLocation.map((locId: string) => locId.split('-').slice(0, -1).join('-') || locId.split('-')[0] || locId);
+      const recBaseId = recommendedId.split('-').slice(0, -1).join('-') || recommendedId.split('-')[0] || recommendedId;
+      const hasAnyMatch = entityIdsInLocation.includes(recommendedId) || locBaseIds.includes(recBaseId);
+
+      if (!hasAnyMatch && !finalCombatantIds.includes(recommendedId)) {
+        finalCombatantIds.push(recommendedId);
+        localLog(`Fallback: added recommended ID ${recommendedId} directly as no match was found in location.`);
+      }
+    }
+
+    localLog(`Final list of combatants includes party and expanded enemies. Total: ${finalCombatantIds.length} participants: [${finalCombatantIds.join(', ')}]`);
 
     return {
-      combatantIds: Array.from(finalCombatantIds),
+      combatantIds: finalCombatantIds,
       debugLogs,
     };
   }

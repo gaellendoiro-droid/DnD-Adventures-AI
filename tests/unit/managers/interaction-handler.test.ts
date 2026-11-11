@@ -78,7 +78,7 @@ describe('InteractionHandler', () => {
 
                 const mockTriggerResult: CombatTriggerResult = {
                     shouldStartCombat: false,
-                    reason: 'none',
+                    reason: undefined,
                     message: '',
                 };
                 vi.mocked(CombatTriggerManager.evaluateInteraction).mockReturnValue(mockTriggerResult);
@@ -105,7 +105,7 @@ describe('InteractionHandler', () => {
 
                 const mockTriggerResult: CombatTriggerResult = {
                     shouldStartCombat: false,
-                    reason: 'none',
+                    reason: undefined,
                     message: '',
                 };
                 vi.mocked(CombatTriggerManager.evaluateInteraction).mockReturnValue(mockTriggerResult);
@@ -136,7 +136,7 @@ describe('InteractionHandler', () => {
 
                 const mockTriggerResult: CombatTriggerResult = {
                     shouldStartCombat: false,
-                    reason: 'none',
+                    reason: undefined,
                     message: '',
                 };
                 vi.mocked(CombatTriggerManager.evaluateInteraction).mockReturnValue(mockTriggerResult);
@@ -163,7 +163,7 @@ describe('InteractionHandler', () => {
 
                 const mockTriggerResult: CombatTriggerResult = {
                     shouldStartCombat: false,
-                    reason: 'none',
+                    reason: undefined,
                     message: '',
                 };
                 vi.mocked(CombatTriggerManager.evaluateInteraction).mockReturnValue(mockTriggerResult);
@@ -195,7 +195,7 @@ describe('InteractionHandler', () => {
 
                 const mockTriggerResult: CombatTriggerResult = {
                     shouldStartCombat: false,
-                    reason: 'none',
+                    reason: undefined,
                     message: '',
                 };
                 vi.mocked(CombatTriggerManager.evaluateInteraction).mockReturnValue(mockTriggerResult);
@@ -224,7 +224,7 @@ describe('InteractionHandler', () => {
 
                 const mockTriggerResult: CombatTriggerResult = {
                     shouldStartCombat: false,
-                    reason: 'none',
+                    reason: undefined,
                     message: '',
                 };
                 vi.mocked(CombatTriggerManager.evaluateInteraction).mockReturnValue(mockTriggerResult);
@@ -255,7 +255,7 @@ describe('InteractionHandler', () => {
 
                 const mockTriggerResult: CombatTriggerResult = {
                     shouldStartCombat: false,
-                    reason: 'none',
+                    reason: undefined,
                     message: '',
                 };
                 vi.mocked(CombatTriggerManager.evaluateInteraction).mockReturnValue(mockTriggerResult);
@@ -286,7 +286,7 @@ describe('InteractionHandler', () => {
 
                 const mockTriggerResult: CombatTriggerResult = {
                     shouldStartCombat: false,
-                    reason: 'none',
+                    reason: undefined,
                     message: '',
                 };
                 vi.mocked(CombatTriggerManager.evaluateInteraction).mockReturnValue(mockTriggerResult);
@@ -354,7 +354,7 @@ describe('InteractionHandler', () => {
 
                 const mockTriggerResult: CombatTriggerResult = {
                     shouldStartCombat: false,
-                    reason: 'none',
+                    reason: undefined,
                     message: '',
                 };
                 vi.mocked(CombatTriggerManager.evaluateInteraction).mockReturnValue(mockTriggerResult);
@@ -421,7 +421,7 @@ describe('InteractionHandler', () => {
 
                 const mockTriggerResult: CombatTriggerResult = {
                     shouldStartCombat: false,
-                    reason: 'none',
+                    reason: undefined,
                     message: '',
                 };
                 vi.mocked(CombatTriggerManager.evaluateInteraction).mockReturnValue(mockTriggerResult);
@@ -438,7 +438,7 @@ describe('InteractionHandler', () => {
 
     describe('updateConnectionsForOpenDoors', () => {
         it('should update connections with isOpen flag', () => {
-            const locationData = {
+            const locationData: any = {
                 connections: [
                     { direction: 'norte', targetId: 'loc-2' },
                     { direction: 'sur', targetId: 'loc-3' },
@@ -479,7 +479,7 @@ describe('InteractionHandler', () => {
         });
 
         it('should handle multiple open doors', () => {
-            const locationData = {
+            const locationData: any = {
                 connections: [
                     { direction: 'norte', targetId: 'loc-2' },
                     { direction: 'sur', targetId: 'loc-3' },

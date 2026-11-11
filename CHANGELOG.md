@@ -11,6 +11,228 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+### Added
+- **🧹 Fase 0 de estabilización (TASK-066 a TASK-070):**
+  - Integración continua en `.github/workflows/ci.yml` (`tsc --noEmit` + `vitest run --maxWorkers=4` en cada push a `main` y en cada PR).
+  - Build estricto: eliminado `ignoreBuildErrors` de `next.config.ts` (ESLint sigue ignorado en el build hasta que exista configuración).
+  - `uuid` declarado como dependencia directa (antes llegaba solo de forma transitiva).
+  - Eliminados `input.json` (fichero roto sin uso) y el componente `src/components/ui/chart.tsx` sin uso, junto con su declaración falsa de `recharts`, que no estaba instalado.
+  - Nuevo documento `docs/normas-de-trabajo.md` (ramas, commits, CI obligatoria, documentación y tratamiento de `knowledge/dnd-local.db`) y nueva hoja de ruta de estabilización en `docs/roadmap.md`.
+
+- **🛡️ Sistema de Gestión de Errores de Proveedores de IA en 3 Capas:**
+  - **Capa 1 (Detección y Normalización):** Creado `src/lib/ai/ai-error-handler.ts` (`parseAIProviderError`, `extractRetryAfterSeconds`) para detectar y tipificar errores 429 (Rate Limit / Quota TPM, RPM, OTPM), 413 (Payload Too Large) y 503 tanto de Groq como de Google AI Studio / Gemini, extrayendo tiempos exactos de espera sugeridos.
+  - **Capa 2 (Espera Activa y Reintentos Automáticos):** Actualizado `src/ai/groq-plugin.ts` con rotación multi-modelo dinámica (`openai/gpt-oss-20b`, `openai/gpt-oss-120b`, `qwen/qwen3.8-27b`), espera activa automática cuando el tiempo de cooldown es breve ($\le 15\text{ s}$), limitación adaptativa de `max_tokens` (tope 700 para modelos sensibles como Qwen con límite OTPM = 1000) y compactación balanceada de JSON inline (`compactBalancedInlineJson`). Se actualizó `src/ai/flows/retry-utils.ts` con backoff inteligente adaptado a las cabeceras de ambos proveedores.
+  - **Capa 3 (UI Diagnóstica y Resiliente):** Implementado el evento `ai_provider_error` en streaming y adaptados `src/hooks/use-game-stream.ts`, `src/components/game/game-view.tsx` y `src/components/game/chat-message.tsx` para mostrar tarjetas diagnósticas de error amigables con cuenta atrás en tiempo real y botón de reintento en un clic, eliminando bloqueos de pantalla o estados de carga infinitos.
+- **🤔 Acción `clarify` ante Erratas y Comandos Ininteligibles:** Integrado el tipo de acción `'clarify'` y el campo `clarificationQuestion` en `schemas.ts`, `action-interpreter.ts`, `game-stream-coordinator.ts` y `game-coordinator.ts`. Si el jugador introduce una orden ininteligible o con errores tipográficos evidentes (ej. *"Caojo el pergamino"*), el sistema no inventa acciones arbitrarias ni tiradas fuera de contexto (como Juego de Manos), sino que solicita amigablemente una aclaración o sugiere la acción correcta sin alterar el estado del juego.
+- **🧠 Inferencia Semántica de Objetos (`objectIntent`) y Resolución de Pronombres en Capa 1 (`schemas.ts`, `action-interpreter.ts`, `scroll-rules.ts`):** Añadido el campo estructurado `objectIntent` (`'take' | 'identify' | 'use' | 'give' | 'drop' | 'other'`) al esquema de salida de `actionInterpreter`. La IA ahora resuelve pronombres, elisiones y metáforas por contexto (*"descifrarlo"*, *"échale un vistazo"*, *"desentraña esos garabatos"*) asignando el `targetId` real del objeto y su sub-intención semántica, eliminando la dependencia de listas rígidas de verbos literales en `ScrollRuleModule`.
+- **✨ Sistema de Estados y Efectos Activos en Ficha y Panel de Grupo (`schemas.ts`, `effect-utils.ts`, `party-panel.tsx`, `character-sheet.tsx`):** Incorporado el esquema `CharacterEffectSchema` y el campo `activeEffects` en `CharacterSchema`, junto con el catálogo y utilidades en `src/lib/game/systems/effect-utils.ts`. Los conjuros activos (como *Hablar con los Animales*, *Detectar Magia*, *Comprender Idiomas*) y condiciones se asignan automáticamente al personaje que los activa en `SkillCheckSystem` y `ScrollRuleModule`, mostrándose como insignias visuales en tiempo real tanto en el `PartyPanel` como en el nuevo bloque **Estados Activos** de la `CharacterSheet`.
+
+### Changed
+- **⚡ Optimización de Tokens y Omisión de Director Redundante:** En `src/ai/flows/narrative-manager.ts`, las acciones clasificadas en un único experto puro (`EXPLORATION` o `INTERACTION`) devuelven directamente la narración del experto especializado, evitando una segunda llamada redundante de $\sim 4.200\text{ tokens}$ a `narrativeDirectorPrompt`. Esto reduce el consumo de cuota TPM a la mitad y previene que el director reescriba eventos o anticipe secretos de la trama.
+- **✂️ Brevedad y Eliminación de Meta-Narración en Acciones Simples:** Actualizadas las directivas en `exploration-expert.ts` y `narrative-turn-manager.ts` para forzar respuestas de 1-2 frases concisas (máximo 40 palabras) en acciones físicas cotidianas (recoger objetos, abrir puertas) y prohibir terminantemente frases meta como *"permanece inactivo"*, *"sin emitir brillos de magia"*, *"no consume energía"* o *"queda registrado en el inventario"*.
+
+### Fixed
+- **🔍 Correcciones críticas de la auditoría (P0):**
+  - **`ReferenceError` silencioso en `scroll-rules.ts`:** La rama "pergamino ya consumido" devolvía una variable `updatedParty` inexistente; el error lo absorbía `GameRulesEngine` y el mensaje nunca llegaba al jugador. Ahora `tsc --noEmit` vuelve a 0 errores. Actualizada la aserción del Test 8 de `narrative-turn-manager-effects.test.ts` al nuevo texto en tercera persona ("recoge el pergamino").
+  - **Barrera de comunicación genérica (`src/lib/game/communication-barrier.ts`):** `narrative-manager.ts` y `companion-expert.ts` ya no renombran cualquier bestia como "Oveja" ni contienen nombres fijos (Finethir, Ahmed Noke…). Las criaturas tras la barrera conservan su nombre y descripción de los datos, se ocultan su rol y sus secretos, y los términos de spoiler se declaran en el JSON de la aventura mediante el nuevo campo opcional `roleplay.hiddenIdentityTerms` (añadido a `EntityRoleplaySchema` y a las dos aventuras de la oveja).
+  - **Falsos positivos de `RestRuleModule`:** Palabras como *dormitorio*, *restos*, *restante* o *descansillo*, o terceras personas ("el oso duerme"), ya no provocan un descanso; tampoco se interceptan acciones `attack`, `clarify` u `ooc`. Nuevos tests de regresión en `rest-rules.test.ts`.
+  - **Modelo por defecto coherente y documentado:** `model-config.ts` usa `GEMINI_MODEL` si existe; si no, Groq solo cuando hay `GROQ_API_KEY`, y en otro caso `googleai/gemini-3.5-flash`. `retry-utils.ts` usa el modelo resuelto. Documentados `GEMINI_MODEL` y `GROQ_API_KEY` en `env.example`, `README.md` y `docs/inicio-rapido.md`.
+- **📜 Arbitraje de Delegación de Pergaminos a Compañeros (D&D 5e):** En `src/lib/game/rules/scroll-rules.ts`, al pasar un pergamino a un compañero y ordenarle leerlo en la misma acción (ej. *"Le paso el pergamino a Merryl y le digo: 'Merryl, tú eres mago, léelo por favor'"*), el objeto se transfiere de forma efectiva al inventario del compañero y la tirada de Arcanos (CD 10) la ejecuta dicho compañero (Merryl) según su clase. Las flags de identificación (`identified_scroll_*`) se posponen hasta la resolución exitosa de la tirada (`pendingWorldStateFlags`), impidiendo que un fallo revele prematuramente el conjuro. Si el conjuro ya está activo, informa sin repetir tiradas ni consumir pergaminos adicionales.
+- **🐑 Barrera Estricta de Comunicación Animal y Prevención de Spoilers:** Implementada la regla de oro de la bestia en `narrative-manager.ts`, `exploration-expert.ts`, `interaction-expert.ts` y `companion-expert.ts`: ningún animal o criatura polimorfada puede hablar en idioma Común ni revelar su identidad (*Finethir Shinebright*), antagonistas (*Ahmed Noke*) o artefactos (*Vara de Polimorfia Verdadera*) a menos que el efecto `speak_with_animals` figure como activo en `activeEffects`. Se sanitizaron `presentEntities` y `locationContext` en `companionExpertTool` para evitar que los aliados de la party hagan metajuego con notas internas del DM.
+- **💬 Desacoplamiento de Preguntas Informativas de Tiradas de Habilidad:** Actualizada la Prioridad 3 en `action-interpreter.ts` para que preguntas abiertas o exploratorias a NPCs y animales (*"¿Quién te persigue?"*, *"¿Qué nos traes aquí?"*) se clasifiquen como `interact` y nunca como `skill_check`. Las tiradas sociales quedan reservadas estrictamente a engaño, intimidación o persuasión frente a PNJs hostiles o reacios.
+- **🎯 Anclaje de Contexto en `skillCheckExpert`:** Prohibida la alucinación de escenarios ajenos en `src/ai/flows/experts/skill-check-expert.ts` (como inventar guardias o puertas inexistentes en el campo `reasoning`), forzando a que las dificultades y narraciones se fundamenten exclusivamente en la acción real del jugador y el entorno presente.
+- **🗣️ Coherencia Temporal y Diálogo Directo en Compañeros (`companion-reaction-manager.ts`, `companion-expert.ts`):** Suprimidas las interrupciones `before_dm` en interacciones físicas con objetos o NPCs del entorno (reservándolas a propuestas al grupo o interpelaciones directas a compañeros) y prohibido el estilo indirecto tipo comando (*"Le hablo a la oveja, preguntándole..."*), exigiendo diálogo directo en primera persona y respeto estricto a quién posee cada objeto en `inventory`.
+- **🔒 Nombre Oculto de Pergaminos sin Identificar en la UI de Inventario (`scroll-rules.ts`, `skill-check-system.ts`):** Al recoger un pergamino aún no identificado (`!identified_scroll_*`), se registra en el inventario de la ficha como **`Pergamino enrollado sellado`**, revelando su nombre real (**`Pergamino de Hablar con los Animales`**) únicamente tras superar la tirada de identificación o activación.
+- **🧹 Filtrado de Banderas Internas en `activeEffects` y Limpieza Dinámica de Escena (`narrative-turn-manager.ts`, `companion-expert.ts`):** Corregido el volcado de `globalFlags` hacia `activeEffects` mediante `isActiveMagicalOrStatusFlag` para excluir banderas técnicas (`took_scroll_*`, `identified_scroll_*`, `consumed_scroll_*`), evitando que los compañeros creyeran activo el conjuro `speak_with_animals` cuando el pergamino solo había sido identificado. Además, cuando el pergamino ya ha sido recogido por el grupo, se actualiza dinámicamente el `locationContext` de los compañeros para que no sigan diciendo que la oveja lo lleva en la boca.
+- **🛡️ Blindaje de Fidelidad a Tiradas y Enmascaramiento de Contexto Pre-Activación (`narrative-turn-manager.ts`, `narrative-manager.ts`, `exploration-expert.ts`, `interaction-expert.ts`, `scroll-rules.ts`, `skill-check-system.ts`):**
+  - **Sincronización de `systemFeedback` y exclusión condicional de prompts de fallo/éxito:** Al resolverse una tirada mecánica (`SkillCheckResolved`), las directivas narrativas resultantes se inyectan en `systemFeedback` y en `exploration-expert.ts` / `interaction-expert.ts` se bifurca con `{{#if skillCheckResult.isSuccess}} ... {{else}} ... {{/if}}` para que el modelo nunca reciba las instrucciones ni ejemplos de fallo cuando la tirada es un éxito (y viceversa), evitando que narrara fallo tras obtener 25 vs CD 10.
+  - **Resolución de acciones compuestas ("entregar + averiguar") y confirmaciones ("de acuerdo, adelante"):** En `scroll-rules.ts`, se evalúan las expresiones de identificación (`averiguar`, `de qué se trata`, `reconocer`, `descifrar`) incluso cuando `actionInterpreter` clasifica la acción inicial como `'give'` o `'other'`, y se reconocen confirmaciones conversacionales (*"de acuerdo, adelante"*) cuando un compañero acaba de ofrecerse a reconocer el sello o abrir el pergamino en el historial reciente.
+  - **Enmascaramiento de entidades animales (`sanitizeEntitiesForAnimalBarrier`):** En `narrativeManagerFlow`, mientras `speak_with_animals` no figure en `activeEffects`, se sanitizan `presentEntities`, `locationContext` y `adventureLore` en las llamadas a los expertos de narración para ocultar el nombre, diálogos articulados y secretos de Finethir Shinebright, garantizando que el animal solo emita balidos y gestos si la tirada de activación falla.
+  - **Normalización determinista de preguntas abiertas:** En `narrativeTurnManager`, si el jugador formula una pregunta abierta conversacional (*"Le pregunto a la oveja: '¿Quién eres...?'"*), se reclasifica deterministamente de `skill_check` a `interact`, evitando tiradas espurias de Trato con Animales cuando el conjuro ya está activo.
+
+### Added
+- **🏷️ NPCs y Criaturas Dinámicas Condicionales en Localizaciones:** Implementada la lógica de presencia dinámica de criaturas en el motor del mundo (`world-state-manager.ts`) y esquemas (`schemas.ts`). Permite que `entitiesPresent` de una sala admita tanto IDs directos de criatura como objetos condicionales estructurados con flags globales de presencia y ausencia (`presenceFlag` y `absenceFlag`), determinando su spawn físico de forma dinámica.
+- **🛡️ Soporte de Asignación Condicional en el Conversor PDF a JSON:** Actualizado el convertidor inteligente de aventuras (`pdf-to-json.ts`) con prompts instructivos para que la IA asocie NPCs clave de forma condicional a lo largo de las salas en base a los eventos e hitos de la historia (ej: situar a Guz en la torre solo si sobrevive o escapa del pueblo), y adaptado el postprocesador de entidades huérfanas para no eliminar objetos condicionales estructurados.
+- **🧪 Suite de Tests de Spawns Condicionales:** Desarrollada una suite de pruebas unitarias exhaustiva (`world-state-conditional-entities.test.ts`) que valida de forma aislada e integrada todos los escenarios lógicos del ciclo de vida y visibilidad de criaturas dinámicas según el estado del mundo.
+- **📜 Separación de Sinopsis (`summary`) y Narración de Apertura en Mesa (`introductoryNarration`):** Añadido soporte explícito en el convertidor de PDF a JSON (`pdf-to-json.ts`) para diferenciar el resumen breve de catálogo del texto inmersivo que el DM lee en voz alta al arrancar la partida, impidiendo revelaciones prematuras de la trama.
+- **🎭 Alineación de Spawns con el Guion Cronológico (`storyline`):** Integrado el guion de acontecimientos en `alignEntitiesToLocationsWithGemini` (`pdf-to-json.ts`) para situar a los monstruos de clímax y secuaces con flags dinámicos de presencia (`presenceFlag`) en lugar de ubicarlos prematuramente en la localización inicial.
+- **🗡️ Extracción de Acciones para NPCs Únicos:** Incorporada la extracción de `actions` en `statsOverrides` dentro de `pdf-to-json.ts` para que jefes y monstruos personalizados del PDF mantengan sus ataques y tiradas oficiales en el JSON generado.
+
+### Changed
+- **🚀 Actualización de Modelo de IA Principal a `gemini-3.5-flash`:** Migrado el modelo centralizado en `src/ai/model-config.ts` y Genkit de `gemini-2.5-flash` a `gemini-3.5-flash`, superando los límites de cuota diaria (20 req/día) del nivel gratuito de Google AI Studio. Incluido además un mecanismo de fallback automático a `gemini-2.5-flash-lite` ante posibles picos de demanda (errores 503/429).
+
+### Fixed
+- **🚫 Prevención de Spoilers en la Narración Inicial del DM:** Corregida la introducción inicial en los módulos de aventura (`la-caza-de-la-oveja-salvaje.json` y `la-persecucion-de-la-oveja-salvaje.json`) y en el flujo de inicialización (`game-initializer.ts`). Se eliminaron las revelaciones automáticas del mago elfo y su aprendiz, sustituyéndolas por una escena sensorial pura de mesa de rol donde la oveja irrumpe con el pergamino en la boca pidiendo auxilio.
+- **🐑 Spawn Limpio en la Escena Inicial:** Configurados Guz, los tres lobos y el oso pardo en `ciudad-o-pueblo` bajo el flag condicional `guz_aparece`, garantizando que en el segundo 0 la única criatura visible y presente sea la oveja Shinebright.
+- **🗺️ Sincronización Bidireccional de `WorldState` y `globalFlags` con Combate y Exploración:** Enlazada la persistencia de `worldState.locations[locId].enemies` con `enemiesByLocation` en `combatManagerTool`, y configurada la activación automática de flags `<baseId>_derrotado` y `<shortId>_derrotado` al morir enemigos tanto en el gestor de combate como en `StatsSystem`.
+- **🛑 Prevención de Doble Ejecución en `GameRulesEngine` + `EventDispatcher`:** Guardada la cola de eventos en `narrative-turn-manager.ts` para evitar duplicar acciones de interacción, drop o give cuando `rulesEngineResult.intercepted === true`. Añadida la emisión de `ItemCollected` en `ScrollRuleModule` y apertura efectiva de puertas en `worldState` y `openDoors` en `SkillCheckSystem` tras superar pruebas de forzado o derribo de cerraduras.
+- **🎯 Restricción Estricta de Acciones en `EnemyTactician`:** Preservadas las acciones oficiales y puntuaciones de características en `EnemyValidator` y transmitidas mediante `availableActions` en `TurnProcessor` a `enemyTacticianTool`, impidiendo que la IA enemiga alucine armas o acciones inventadas.
+- **🔢 Corrección de Sufijos Numéricos en Enemigos Únicos:** Ajustado `generateDifferentiatedNames` en `monster-name-manager.ts` para que enemigos con una única instancia activa (como Guz o una oveja solitaria) conserven su nombre base sin numerar ("Guz" en vez de "Guz 1").
+- **✅ Corrección Integral de Errores TypeScript (`tsc --noEmit`):** Resueltos todos los errores de tipado y discrepancias de esquemas en `src/`, `scripts/` y `tests/`, alcanzando 0 errores de compilación y pasando el 100% de la suite de pruebas unitarias (403 tests en verde).
+
+## [0.6.2] - 2026-07-02
+
+### Added
+- **📖 Buscador del Compendio Prioritario de la Aventura Activa:** Modificado el buscador universal (acción `searchCompendium` en `compendium.ts`) para que el comando `??` priorice y busque en las entidades e ítems de la aventura en curso antes de caer en la base de datos global de D&D o en consultas de IA externa.
+- **🏷️ Visualización de Fuente del Compendio:** Se agregó soporte visual en `compendium-formatter.ts` tanto para tarjetas de monstruos como de objetos para indicar de forma explícita **`Fuente: 📖 Aventura`** cuando los datos provienen del archivo JSON de la aventura en curso.
+- **🐏 Semilla de Criatura Oveja (`Sheep`):** Inyectada una semilla estática en la base de datos SQLite local para la criatura oveja con sus estadísticas del SRD para impedir lentitudes y fallos por hidratación de IA en caliente.
+- **🎙️ Integración de Gemini 3.1 Flash TTS:** Integrado el modelo `gemini-3.1-flash-tts-preview` como nuevo proveedor de Text-to-Speech (TTS) nativo y por defecto. Permite alternar dinámicamente entre Gemini y Eleven Labs mediante la variable de entorno `TTS_PROVIDER`.
+    - ✅ **Conversión Nativa a WAV:** Implementada una envoltura en el backend que añade una cabecera WAV de 44 bytes a las muestras PCM crudas (`audio/l16`) devueltas por Gemini, corrigiendo los errores `NotSupportedError` del navegador.
+    - ✅ **Dirección Artística por Prompt:** Integrado el soporte de directrices mediante "Audio Profile" y "Director's Notes" (`GEMINI_TTS_PROFILE`, `GEMINI_TTS_STYLE`, `GEMINI_TTS_PACE`, `GEMINI_TTS_ACCENT` en `.env`) que formatean el prompt del transcriptor de forma estructurada sin interferir con la narración, permitiendo modular la voz (ej: voz de Enceladus, anciana y profunda).
+- **📚 Resubida Automática de Manuales (File API):** Creado el servicio `RulebookManager` que valida el estado de los archivos de manuales subidos en Gemini y, si han caducado (error 403/404), resube automáticamente los PDFs locales ubicados en `knowledge/source_books/` a Google AI Studio. Guarda la configuración en `knowledge/file-api-cache.json` y maneja bloqueos de subidas concurrentes.
+
+### Fixed
+- **🗣️ Estabilización del Flujo de Interacción Social (Genkit + Gemini):** Eliminadas las herramientas redundantes `dndApiLookupTool` y `adventureLookupTool` de `interactionExpertPrompt` (`interaction-expert.ts`) para evitar el bug conocido en la API de Gemini que devolvía `null` y rompía la validación del esquema estructurado de Genkit al realizar llamadas a funciones. Se adaptaron las directivas del prompt para obligar al Dungeon Master a buscar datos y rumores exclusivamente en el `npcContext` y el `adventureLore` ya provistos por el backend en lugar de recurrir a herramientas.
+- **🛡️ Resolución de NPCs de Combate en el Conversor:** Modificado el conversor automático de PDF a JSON (`pdf-to-json.ts`) para que resuelva estadísticas y aplique overrides también a entidades de tipo `'npc'` (como Guz o Noke).
+- **🚫 Desactivación de Fallback RAG para Criaturas Únicas:** Implementado el parámetro `allowAiFallback = false` en `getMonsterStatsFromDndApi` y `DataService.getMonster` para desactivar la hidratación por IA mediante RAG en manuales si la criatura no tiene un tipo base oficial (`baseType` ausente), previniendo que NPCs únicos de aventura como Guz se confundan con monstruos oficiales no relacionados (como el Gusano Púrpura).
+- **🔤 Corrección en Normalización de Búsqueda de Criaturas (`normalizeQuery`):** Corregido el motor de traducción en `text-utils.ts` ordenando las claves del mapa español-inglés de forma descendente por longitud antes de procesar coincidencias parciales con `includes()`, evitando colisiones donde términos compuestos ("Oso Pardo Polimorfo") hacían match parcial erróneo con palabras más cortas ("oso" -> Hombre Oso).
+- **📜 Fallback y Continuidad en el Motor de Reglas (GameRulesEngine):** Corregido un fallo crítico en el bucle de evaluación de `GameRulesEngine` (`rules-engine.ts`) donde cualquier módulo que coincidiera en `canHandle` detenía la cadena de evaluación incluso si retornaba `intercepted: false`. Esto hacía que acciones como "dar el pergamino a Merryl" fueran pre-seleccionadas por `ScrollRuleModule` (al mencionar la palabra "pergamino") pero no interceptadas por este, impidiendo que `InventoryRuleModule` se evaluase y bloqueando la transferencia física del pergamino entre inventarios. Ahora el motor de reglas continúa con el resto de módulos de la lista si el módulo actual no intercepta la acción.
+- **🤖 Solución a Fallos de Validación de Esquema en Interacción (Gemini structured outputs):** Simplificado el campo `attitudeChange` en `InteractionExpertOutputSchema` (`schemas.ts`) para evitar uniones complejas con `z.union`, `z.literal` y `nullable()` que causaban fallos de validación en la API de Gemini (devolviendo `null` y produciendo caídas de conexión) al utilizar herramientas. Se eliminó la herramienta redundante `characterLookupTool` del prompt de interacción, se actualizaron las instrucciones del prompt en `interaction-expert.ts` para que la IA omita el campo en lugar de devolver `null` si no hay cambios, y se normalizaron los valores no definidos a `null` para conservar compatibilidad con el backend.
+- **🛡️ Inclusión Inteligente de NPCs en Combate:** Corregido el bug por el cual Guz (semiorco) y la oveja Shinebright (ambos de tipo `npc` en el esquema de la aventura) eran excluidos del orden de iniciativa y combate al inicio de sus encuentros. Implementada la **Opción de Diseño B** mediante un filtro de post-procesamiento (`enrichCombatantsWithSmartNPCs`) que corre después de la evaluación de la IA Experta para asegurar que NPCs clave se añadan al combate si son objetivo de agresión, son desencadenantes de trigger, o si son mencionados en el texto de acción del jugador o en la descripción de escena del DM.
+- **⚔️ Sincronización del Inicio del Combate:** Se ha inyectado el delta de estado completo (`party`, `enemies`, `enemiesByLocation`, `diceRolls`) en los eventos `state_delta` de inicialización del combate, resolviendo bugs que impedían ver la iniciativa en el frontend y bloqueaban la actualización de HP de monstruos y personajes.
+- **🎲 Daño Crítico en Modificadores Negativos:** Modificado `action-resolver.ts` para formatear de forma limpia las tiradas con modificadores negativos (evitando dobles signos como `+-`) y robustecida la sanitización previa a la evaluación de críticos en `action-executor.ts` (eliminando espacios y normalizando signos).
+- **🗣️ Redundancia Narrativa de DM al Iniciar Combate:** Actualizado el prompt `combatInitiationPrompt` con instrucciones críticas estrictas para impedir que el DM de combate repita o parafrasee descripciones del entorno y monstruos ya leídas en el último turno de exploración del historial.
+- **👩‍🎤 Concordancia de Género del Dungeon Master:** Añadida inyección dinámica de contexto `combatantsContext` en combate e instrucciones explícitas en los prompts de exploración (`narrativeDirectorPrompt`) e inicio de combate (`combatInitiationPrompt`) para respetar estrictamente la concordancia gramatical en español basada en la propiedad `sex` ("Varón"/"Mujer") de las fichas de personajes (corrigiendo el trato en femenino para Merryl).
+
+## [0.6.1] - 2026-06-28
+
+### Added
+- **🗝️ Enriquecimiento de Hechos Mecánicos en Apertura de Puertas con Llaves:** Añadido soporte de metadatos (`method`, `keyName`) al evento `DoorOpened` para registrar el uso exacto de llaves. El formateador de hechos para el narrador (`eventsLogText`) se adaptó para describir el método de apertura (llave, forzado de cerradura, fuerza bruta), de modo que el DM narre la acción física correcta en lugar de asumir que se empuja la puerta.
+
+### Fixed
+- **🚪 Visibilidad de Puertas y Verjas Cerradas en Modo Exploración:** Modificada la lógica de `exploration-context-builder.ts` para que las puertas cerradas y bloqueadas de carácter no secreto sean siempre visibles por defecto. Esto permite que el Dungeon Master las mencione en la descripción inicial de las salas en lugar de ignorarlas.
+- **🎯 Corrección de Cálculo de Daño Crítico para Modificadores Negativos (2026-06-27):**
+  - **Problema:** Los personajes y monstruos con modificador de daño neto negativo (como el bastón de Merryl, con daño `1d6-1` debido a su modificador de fuerza de `-1`) no duplicaban sus dados de daño al realizar golpes críticos debido a un fallo en la expresión regular de parseo.
+  - **Solución:** Corregida la expresión regular en `action-executor.ts` para aceptar el signo menos (`-`) y calcular el modificador final de forma correcta. Además, se mejoró `getCriticalDamageNotation` en `rules-engine.ts` para dar un formato limpio como `2d6-1` (en lugar de `2d6+-1`) y evitar concatenar `+0` cuando el modificador es nulo.
+- **🤫 Exclusión del Personaje Activo de las Reacciones Autónomas de Compañeros (2026-06-27):**
+  - **Mejora:** El compañero seleccionado actualmente en el frontend (`selectedCharacterName`) se propaga al array de exclusiones (`excludeCharacters`) para que la IA no genere comentarios síncronos ni en streaming para ese personaje mientras el jugador lo esté controlando de manera activa en ese turno.
+
+### Added
+- **🌐 Unificación de Contexto de los Expertos (Single Source of Truth) [Fase 1] (2026-06-27):**
+  - **Mejora:** Inyección del inventario estructurado y estado de la party a todos los expertos de la IA conversacional.
+  - **Características:**
+    - ✅ **Esquemas Zod**: Añadida la propiedad `party` a `NarrativeExpertInputSchema`, `ExplorationExpertInputSchema` e `InteractionExpertInputSchema`.
+    - ✅ **Propagación**: Modificados `NarrativeTurnManager` y `NarrativeManager` para propagar el contexto dinámico de los personajes e inventarios al orquestador, experto de exploración, interacción y director de escena.
+    - ✅ **Prompts Directivos**: Añadida la directiva de **Verdad de Posesión (Inventario de la Party)** en `exploration-expert.ts`, `interaction-expert.ts` y `narrative-manager.ts` para que la IA valide los inventarios estructurados antes de alucinar u ocultar la posesión de un objeto.
+- **🚫 Delimitación de Interacciones Físicas y Bloqueo de Contenedores Cerrados [Fase 2] (2026-06-27):**
+  - **Mejora:** Robustecimiento interactivo y control lógico de saqueos y manipulación de contenedores.
+  - **Características:**
+    - ✅ **Bloqueo de Cofre Cerrado**: Se impide el saqueo (`isLootAction`) de contenedores en estado `'closed'` en el `worldState`. Devolviendo el feedback específico: *"The container [Chest] is closed. You must open it first."*
+    - ✅ **Delegación Física de Interactuables**: Si el jugador intenta llevarse o coger el mueble contenedor físico completo (ej. *"Cojo el cofre"*), la acción no vacía el cofre ni altera los inventarios del juego, devolviendo una indicación al DM para narrar libremente el esfuerzo físico.
+    - ✅ **Tests Coherentes**: Añadidos tests unitarios para verificar el bloqueo de cofres cerrados y el control de transporte físico, y actualizados los tests existentes para abrir los cofres de forma coherente antes de realizar saqueos.
+- **🔒 Soporte Global de Acciones de Cierre y Resolución de Sinónimos Físicos (2026-06-26):**
+  - **Mejora:** Soporte determinista en `InteractionHandler` para cerrar contenedores, puertas e interactuables genéricos, y resolución robusta de sinónimos narrativos en los expertos de IA.
+  - **Características:**
+    - ✅ **Acciones de Cierre**: Agregada detección de `isCloseAction` y el método privado `handleDoorClosing` para persistir lógicamente el cierre de puertas, cofres e interactuables genéricos de la sala en `worldState` e `updatedOpenDoors`.
+    - ✅ **Mapeo Semántico Inverso**: Modificados los prompts de `exploration-expert.ts` e `interaction-expert.ts` para resolver descripciones conversacionales (ej. "poción burbujeante") a sus IDs formales ("Poción de Curación") a pesar del recorte del historial de chat.
+    - ✅ **Consistencia de Contenedores Cerrados**: Asegurado que los ítems permanezcan localizados dentro del cofre en el prompt de la IA cuando esté lógicamente cerrado.
+    - ✅ **Tests de Cierre**: Creados tests específicos en `interaction-handler.test.ts` para validar cierres de cofres, puertas y objetos decorativos.
+- **📦 Saqueo Selectivo y Detallado de Contenedores (2026-06-26):**
+  - **Mejora:** Implementación de mecánicas de saqueo parcial a nivel de contenedor en el motor dinámico del mundo.
+  - **Características:**
+    - ✅ **Contenido Dinámico**: Modificados los esquemas y `WorldStateManager` para almacenar la lista de objetos restantes de un contenedor dentro del `worldState`.
+    - ✅ **Saqueo Parcial**: Permite al jugador retirar un ítem específico de un cofre (ej. "cojo la llave"), dejándolo abierto y con los otros objetos dentro.
+    - ✅ **Redirección de Mapeo**: El gestor resuelve peticiones de ítems huérfanos a sus contenedores padres correspondientes en la sala actual de forma automática.
+- **🗝️ Sistema de Llaves y Forzado de Puertas / Cerraduras (2026-06-26):**
+  - **Mejora:** Integración del control determinista de apertura y forzado de cerraduras bajo D&D 5e.
+  - **Características:**
+    - ✅ **Apertura Determinista**: Abre automáticamente conexiones si algún miembro de la party posee la llave requerida (`requiredKeyId`) sin pedir tiradas de dados.
+    - ✅ **Reglas de Forzado**: Añadido `KeyRuleModule` que redirige a tiradas de *Juegos de Manos* (`lockpickDC`) o *Atletismo* (`breakDC`) ante intentos de forzar cerraduras o forzar físicamente la puerta, o bloquea la acción si es impenetrable.
+- **💾 Consolidación, Reactividad y Robustez de WorldState (2026-06-26):**
+  - **Mejora:** Consolidación de la arquitectura del estado del mundo con sincronización visual en tiempo real en el frontend y tolerancia a fallos ortográficos del modelo.
+  - **Características:**
+    - ✅ **Reactividad en Cliente**: Migrado `worldStateRef` a estado reactivo de React (`worldState`/`useState`) en `game-view.tsx`, solucionando cierres obsoletos en los callbacks asíncronos de streaming.
+    - ✅ **Memoria de Eventos**: Implementación de `event-manager.ts` para registrar sucesos y alimentar prompts de los compañeros.
+    - ✅ **Tolerancia a Erratas en IA**: Añadido preprocesamiento Zod en `schemas.ts` para corregir automáticamente claves mal escritas del LLM (ej. `explorationNaration` -> `explorationNarration`), previniendo caídas del stream.
+- **💾 Integración del WorldState y Consumo de Inventario en Tiradas de Habilidad (2026-06-22):**
+  - **Mejora:** Integración dinámica del estado del mundo (`worldState`) y los inventarios de personajes con el motor de resolución de tiradas de habilidad.
+  - **Características:**
+    - ✅ **Consumo Físico de Objetos:** Implementación del método auxiliar `consumeScrollFromPartyInventory` en `NarrativeTurnManager` para remover automáticamente los pergaminos (como pergaminos de conjuros) del inventario del personaje del grupo tras una tirada de identificación y activación exitosa.
+    - ✅ **Persistencia de Flags en WorldState:** El éxito en tiradas asocia directamente la activación de efectos mágicos y marcas circunstanciales en `globalFlags` dentro del `worldState`.
+    - ✅ **Propagación Dinámica de Efectos:** Los efectos mágicos resultantes de tiradas exitosas (ej. `"speak_with_animals"`) se propagan inmediatamente a `activeEffects` para habilitar o restringir mecánicas sociales o de exploración en tiempo real.
+
+- **📚 Simplificación y Consolidación del Sistema de Documentación (2026-06-22):**
+  - **Mejora:** Rediseño completo de la estructura de documentación del proyecto, consolidando más de 20 archivos fragmentados en 5 archivos únicos de "fuente de verdad" para reducir la redundancia y facilitar el mantenimiento.
+  - **Características:**
+    - ✅ **Arquitectura Consolidada:** Fusión de 11 documentos de arquitectura en `docs/arquitectura.md`.
+    - ✅ **Inicio Rápido y Visión:** Fusión de `inicio-rapido.md`, `vision-diseno.md` y la guía de setup de Eleven Labs en un único `docs/inicio-rapido.md`.
+    - ✅ **Testing y QA:** Fusión del manual de Vitest y las pautas de QA manual en `docs/testing.md`.
+    - ✅ **Roadmap y Bugs:** Unificación de issues pendientes y el roadmap estratégico en `docs/roadmap.md`.
+    - ✅ **Borrador de Notas:** Fusión de notas informales y frases de testeo en `docs/notas-desarrollo.md`.
+    - ✅ **Archivo Histórico:** Movidos todos los planes de desarrollo completados antiguos a la nueva carpeta `docs/referencias-historicas/` para mantener el repositorio limpio.
+    - ✅ **Eliminación de Redundancia:** Borrado de archivos redundantes como `issues/corregidos.md` (cuyo historial ya vive en el propio `CHANGELOG.md`).
+
+## [0.6.00] - 2026-06-09
+
+### Added
+- **🧙‍♂️ Sistema Genérico de Comunicación con Bestias y Efectos Activos (2026-06-09):**
+  - **Mejora:** Introducción de un sistema genérico para evaluar la capacidad de comunicación verbal de criaturas de tipo *Bestia* (o con barreras de comunicación) basado en los efectos mágicos activos del grupo.
+  - **Características:**
+    - ✅ **Detección de Efectos en Intérprete:** `ActionInterpreter` detecta cuando se lanzan conjuros o usan pergaminos de comunicación (ej. `"speak_with_animals"`) y los emite en `activatedEffects`.
+    - ✅ **Gestión de Estado Persistente:** `NarrativeTurnManager` almacena los efectos activos en los `globalFlags` del `worldState` y compila `activeEffects`.
+    - ✅ **Filtro de Barrera en Diálogos:** `InteractionExpert` y `InteractionExpertStream` impiden hablar en común a criaturas del tipo *Bestia* si el efecto `"speak_with_animals"` no está activo en `activeEffects` (describiendo solo balidos, gruñidos y gestos). Permiten el habla normal una vez activado.
+    - ✅ **Tests de Integración:** Suite completa de tests unitarios y de integración para validar el ciclo de vida del estado de efectos y su propagación.
+  - **Archivos creados/modificados:**
+    - `src/ai/flows/schemas.ts`
+    - `src/ai/flows/action-interpreter.ts`
+    - `src/ai/flows/managers/narrative-turn-manager.ts`
+    - `src/ai/streaming/game-stream-coordinator.ts`
+    - `src/ai/flows/game-coordinator.ts`
+    - `src/ai/flows/experts/interaction-expert.ts`
+    - `src/ai/flows/experts/interaction-expert-stream.ts`
+    - `src/ai/flows/managers/__tests__/narrative-turn-manager-effects.test.ts`
+
+- **🗺️ Visor de Mapa Táctico Interactivo (2026-06-09):**
+  - **Mejora:** Añadido un botón en la interfaz del juego que permite al jugador abrir un modal con el mapa táctico de la ubicación actual, facilitando la visualización espacial durante la exploración y combate.
+  - **Características:**
+    - ✅ **Controles de Navegación:** Paneo mediante click-and-drag, zoom interactivo mediante la rueda del ratón y botones de zoom in/zoom out/restablecer.
+    - ✅ **Escala y Fallback Táctico:** Muestra la escala táctica real si está definida en la aventura. Si una sala específica en modo exploración o mazmorra no posee un mapa asignado, el visor busca automáticamente y muestra de forma inteligente el mapa general de la aventura para evitar fallos.
+  - **Archivos modificados:**
+    - `src/components/game/game-view.tsx`
+
+- **📄 Conversor Automatizado de PDF a JSON (2026-06-09):**
+  - **Mejora:** Creación de un script ejecutable que utiliza Genkit IA (Gemini) para transformar PDFs de aventuras oficiales de D&D 5e al formato JSON compatible del juego.
+  - **Características:**
+    - ✅ **Extracción Completa:** Procesa de forma automatizada el lore global, todas las habitaciones (con sus conexiones y coordenadas), criaturas (con sus stats, posesiones, iniciativa y barreras de comunicación) y la tabla de contenidos inicial.
+    - ✅ **Robustez y Reintentos:** Manejo de cuotas mediante backoff exponencial y ordenación de entidades huérfanas en la sala inicial de forma limpia.
+  - **Archivos creados/modificados:**
+    - `scripts/pdf-to-json.ts` (Nuevo)
+
+## [0.5.99] - 2025-12-16
+
+### Added
+- **⚡ IA Conversacional Reactiva (Streaming) (Fase 4) (2025-12-16):**
+  - **Mejora:** Implementación de arquitectura de streaming para reducir drásticamente la latencia percibida en interacciones sociales.
+  - **Características:**
+    - ✅ **Streaming de Texto:** `InteractionExpertStream` ahora envía tokens de texto inmediatamente al cliente, eliminando la espera de "Pensando...".
+    - ✅ **Pipeline Reactivo:** `useGameStream` gestiona la conexión persistente y actualiza la UI letra a letra.
+    - ✅ **Cambio de Actitud en 2º Plano:** Nueva herramienta `updateAttitudeTool` permite a la IA modificar la actitud de los NPCs sin interrumpir el flujo de texto con JSONs bloqueantes.
+    - ✅ **Protocolo de Eventos:** Sistema robusto de eventos (`token`, `tool_call`, `debug`) para comunicación servidor-cliente.
+  - **Archivos modificados:**
+    - `src/ai/streaming/` (Nueva carpeta con lógica de streaming)
+    - `src/ai/flows/experts/interaction-expert-stream.ts` (Nuevo experto)
+    - `src/hooks/use-game-stream.ts` (Nuevo hook)
+  - **Referencia:** [Plan Completado](../docs/planes-desarrollo/en-curso/ia-conversacional-avanzada.md)
+
+### Fixed
+- **🐛 Corrección de "Impersonación" en Chat (Red Box Glitch) (2025-12-16):**
+  - **Problema:** En ocasiones, la IA generaba reacciones para el personaje del jugador (PC), mostrando mensajes con el borde rojo (estilo "Enemigo/AI") y texto que el jugador no había escrito.
+  - **Causa:** El `CompanionReactionManager` no filtraba explícitamente a las entidades controladas por el jugador (`controlledBy: 'Player'`).
+  - **Solución:** Añadida guardia estricta en `processCompanionReactionsStreaming` y `entity-status-utils.ts` para ignorar PCs.
+  - **Archivos modificados:** `src/ai/flows/managers/companion-reaction-manager.ts`, `src/lib/game/entity-status-utils.ts`.
+
+- **🕷️ Corrección de Triggers de Combate en Arquitectura de Streaming (2025-12-16):**
+  - **Problema:** Las emboscadas y triggers de combate por "acercarse" no interrumpían la narración en modo streaming. El sistema detectaba el combate internamente pero el coordinador ignoraba la señal, continuando la descripción pacífica.
+  - **Solución Arquitectónica:**
+    - **Event-Driven:** `NarrativeTurnManager` ahora emite un evento prioritario `logic_update` con `combatTriggerResult` en lugar de devolverlo silenciosamente al final.
+    - **Interrupción de Stream:** `GameStreamCoordinator` escucha este evento específico, detiene inmediatamente la generación de texto narrativo e invoca al `CombatManager`.
+    - **Datos Robustos:** Corrección en `CombatTriggerEvaluator` para manejar propiedades `active` indefinidas como `true` por defecto, más actualización del JSON para ser explícito.
+  - **Archivos modificados:**
+    - `src/ai/streaming/game-stream-coordinator.ts`
+    - `src/ai/flows/managers/narrative-turn-manager.ts`
+    - `src/lib/combat/trigger/combat-trigger-evaluator.ts`
+    - `JSON_adventures/el-dragon-del-pico-agujahelada_short.json`
+
 ## [0.5.97] - 2025-12-08
 
 ### Added
@@ -110,9 +332,6 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 - Estado real de enemigos en exploración: `ExplorationContextBuilder` usa primero `enemiesByLocation` (hp actualizado, muertos) antes de recurrir al JSON, eliminando combates fantasma con enemigos ya derrotados.
 - Ajuste de ambush en sala visible: Retirado el hazard de emboscada en la sala sur (goblin visible) para que el combate inicie por proximidad sin sorpresa.
 
-
-
-## [Unreleased]
 
 ### Added
 - **📚 Integración de Google File Search (RAG Automatizado) (2025-12-14):**
@@ -2049,6 +2268,22 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ### Docs
 - **Actualización del Plan de Combate:** Actualizado el plan de desarrollo (`docs/planes-desarrollo/combate-turnos.md`) para marcar el Paso 3 como completado, reflejando la exitosa implementación y depuración de la lógica táctica de la IA.
 - **Plan de Refactorización de Esquemas:** Creado el documento `docs/planes-desarrollo/refactor-esquemas.md` para guiar la refactorización de la arquitectura de esquemas y asegurar que todos los objetivos se cumplieran de forma estructurada.
+
+---
+
+## [0.5.99] - 2025-12-16
+### Changed
+- **Interacción de Compañeros Refinada:**
+  - El intérprete de acciones ahora distingue entre órdenes directas de movimiento ("Vamos a...") y propuestas sociales ("¿Qué os parece si vamos a...?").
+  - Las propuestas al grupo ahora garantizan una respuesta de los compañeros (100% probabilidad) antes de cualquier narración.
+  - Implementada deduplicación estricta: un compañero que habla antes del DM no volverá a hablar después en el mismo turno.
+- **Supresión de Narrador (DM):**
+  - El DM ahora mantiene un "voto de silencio" estricto durante interacciones puramente sociales con compañeros si no hay cambio de ubicación ni combate. Esto evita descripciones redundantes y mejora la fluidez del chat.
+- **UI Limpia:**
+  - Eliminado el indicador visual "Dungeon Master está pensando..." (Red Box) para evitar parpadeos y molestias visuales durante las respuestas rápidas o silencios intencionales del sistema.
+- **Streaming AI:** 
+  - Implementada arquitectura híbrida Request/Response + Event Streaming para narrativa y reacciones.
+  - Solucionado 'Echo Glitch' donde el input del usuario se duplicaba.
 
 ---
 

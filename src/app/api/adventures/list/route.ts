@@ -61,8 +61,13 @@ async function buildAdventureTree(dir: string, baseDir: string, relativePath: st
 
 export async function GET() {
   try {
-    const jsonDirectory = path.join(process.cwd(), 'JSON_adventures');
-    const tree = await buildAdventureTree(jsonDirectory, jsonDirectory);
+    const publicDirectory = path.join(process.cwd(), 'public', 'adventures');
+    let tree: AdventureNode[] = [];
+    try {
+      tree = await buildAdventureTree(publicDirectory, publicDirectory, 'public/adventures');
+    } catch (e) {
+      log.warn('API: Failed to scan public/adventures directory', { error: e });
+    }
 
     return NextResponse.json({ tree });
   } catch (error) {

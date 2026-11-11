@@ -47,8 +47,7 @@ export async function getAdventureData(): Promise<any> {
   }
 
   // 2. Prepare Default File Info (for validation)
-  const jsonDirectory = path.join(process.cwd(), 'JSON_adventures');
-  const defaultFilePath = path.join(jsonDirectory, 'el-dragon-del-pico-agujahelada.json');
+  const defaultFilePath = path.join(process.cwd(), 'public', 'adventures', 'el-dragon-del-pico-agujahelada', 'el-dragon-del-pico-agujahelada.json');
   let defaultFileContent: string | null = null;
   let defaultFileHash: string | null = null;
 

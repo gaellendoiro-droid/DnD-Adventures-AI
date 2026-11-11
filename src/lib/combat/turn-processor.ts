@@ -259,7 +259,7 @@ export class TurnProcessor {
                     if (aliveEnemies.length === 1) {
                         targetIdToUse = aliveEnemies[0].uniqueId;
                         // Add message to clarify auto-selection
-                        const autoSelectedName = getVisualName(targetIdToUse, initiativeOrder, initialEnemies);
+                        const autoSelectedName = getVisualName(targetIdToUse || '', initiativeOrder, initialEnemies);
                         messages.push({
                             sender: 'DM',
                             content: `${combatant.characterName} ataca a ${autoSelectedName}.`
@@ -292,7 +292,7 @@ export class TurnProcessor {
                 // Resolve targetId (can be visual name or uniqueId)
                 const resolved = resolveEnemyId(targetIdToUse, initialEnemies, initiativeOrder, initialParty);
                 if (resolved.ambiguous) {
-                    const baseName = targetIdToUse.split(/\s+\d+$/)[0] || targetIdToUse;
+                    const baseName = (targetIdToUse || '').split(/\s+\d+$/)[0] || targetIdToUse || '';
                     const clarificationMessage = `Hay múltiples ${baseName}. ¿A cuál te refieres? ${resolved.matches.join(' o ')}`;
                     return {
                         success: false,
@@ -306,13 +306,13 @@ export class TurnProcessor {
                     };
                 }
 
-                const resolvedTargetId = resolved.uniqueId || targetIdToUse;
+                const resolvedTargetId = resolved.uniqueId || targetIdToUse || '';
 
                 // Validate that target is alive (Issue #38)
                 // We must check this BEFORE calculating rolls to avoid "zombie dodging" narrations
                 const targetEnemy = initialEnemies.find(e => e.uniqueId === resolvedTargetId || e.id === resolvedTargetId);
                 if (targetEnemy && targetEnemy.hp.current <= 0) {
-                    const targetName = getVisualName(resolvedTargetId, initiativeOrder, initialEnemies);
+                    const targetName = getVisualName(resolvedTargetId || '', initiativeOrder, initialEnemies);
                     return {
                         success: false,
                         messages: [{ sender: 'DM', content: `${targetName} ya está muerto. ¿Qué quieres hacer?` }],
@@ -343,10 +343,11 @@ export class TurnProcessor {
                 // Check for consumable/items first (before spell validation)
                 // This handles cases like "uso mi pergamino de fuego" where it's an item, not a spell
                 const consumableKeywords = ['pergamino', 'scroll', 'poción', 'pocion', 'objeto'];
-                const hasConsumableKeyword = consumableKeywords.some(k => playerAction.toLowerCase().includes(k));
+                const actionText = playerAction || '';
+                const hasConsumableKeyword = consumableKeywords.some(k => actionText.toLowerCase().includes(k));
                 
                 if (hasConsumableKeyword) {
-                    const itemQuery = extractItemName(playerAction) || extractWeaponName(playerAction);
+                    const itemQuery = extractItemName(actionText) || extractWeaponName(actionText);
                     if (itemQuery) {
                         const itemValidation = CombatActionResolver.validateItem(playerChar, itemQuery);
                         if (!itemValidation.success) {
@@ -366,7 +367,7 @@ export class TurnProcessor {
 
                 // Validate spells if mentioned in the action (but not if it's a consumable item)
                 if (!hasConsumableKeyword) {
-                    const spellQuery = extractSpellName(playerAction);
+                    const spellQuery = extractSpellName(actionText);
                     if (spellQuery) {
                         const spellValidation = CombatActionResolver.validateSpell(playerChar, spellQuery);
                         if (!spellValidation.success) {
@@ -387,7 +388,7 @@ export class TurnProcessor {
                 // Only validate items when the action is not a direct attack.
                 // Weapon handling below will surface WEAPON_NOT_IN_INVENTORY when appropriate.
                 if (interpretedAction.actionType !== 'attack' && !hasConsumableKeyword) {
-                    const itemQuery = extractItemName(playerAction);
+                    const itemQuery = extractItemName(actionText);
                     if (itemQuery) {
                         const itemValidation = CombatActionResolver.validateItem(playerChar, itemQuery);
                         if (!itemValidation.success) {
@@ -407,9 +408,9 @@ export class TurnProcessor {
 
                 // Use CombatActionResolver to calculate rolls
                 // This ensures consistency with the new robust system
-                const targetName = getVisualName(resolvedTargetId, initiativeOrder, initialEnemies);
+                const targetName = getVisualName(resolvedTargetId || '', initiativeOrder, initialEnemies);
                 // Extract weapon name from player action using helper function
-                const weaponQuery = extractWeaponName(playerAction) || 'ataque';
+                const weaponQuery = extractWeaponName(actionText) || 'ataque';
 
                 // Note: Consumable validation is now done earlier in the function (before spell validation)
 
@@ -461,10 +462,13 @@ export class TurnProcessor {
                 const aliveParty = initialParty.filter(p => p.hp.current > 0);
                 const aliveEnemies = initialEnemies.filter(e => e.hp.current > 0);
 
-                // Get full character data for companions
+                // Get full character data for companions or active enemy data for enemies
                 const isCompanion = initialParty.some(p => p.id === combatant.id);
                 const activeCombatantFullData = isCompanion
                     ? aliveParty.find(p => p.id === combatant.id)
+                    : null;
+                const activeEnemyData = !isCompanion
+                    ? initialEnemies.find(e => e.id === combatant.id || e.uniqueId === combatant.id || e.name === combatant.characterName)
                     : null;
 
                 // Format conversation history
@@ -477,6 +481,14 @@ export class TurnProcessor {
                     return '';
                 };
 
+                const rawEnemyActions = activeEnemyData?.actions || activeEnemyData?.stats?.actions || [];
+                const availableActions = Array.isArray(rawEnemyActions)
+                    ? rawEnemyActions.map((a: any) => ({
+                        name: String(a.name || 'Ataque'),
+                        desc: a.desc ? String(a.desc) : undefined,
+                    }))
+                    : undefined;
+
                 const tacticianInput = {
                     activeCombatant: combatant.characterName,
                     party: aliveParty,
@@ -488,7 +500,8 @@ export class TurnProcessor {
                     locationDescription: locationContext?.description || "An unknown battlefield",
                     conversationHistory: conversationHistory.map(formatMessageForTranscript).join('\n'),
                     availableSpells: activeCombatantFullData?.spells || [],
-                    inventory: activeCombatantFullData?.inventory || []
+                    inventory: activeCombatantFullData?.inventory || [],
+                    availableActions: availableActions && availableActions.length > 0 ? availableActions : undefined,
                 };
 
                 const tacticianResponse = await dependencies.tactician(tacticianInput);
@@ -580,7 +593,7 @@ export class TurnProcessor {
 
                 // Resolve action using CombatActionResolver.resolveAttack
                 // Find the combatant data (Character or EnemyWithStats)
-                const targetName = getVisualName(resolvedTargetId, initiativeOrder, initialEnemies);
+                const targetName = getVisualName(resolvedTargetId || '', initiativeOrder, initialEnemies);
                 
                 // Extract weapon/action name from action description
                 const actionLowerForWeapon = finalActionDescription.toLowerCase();
@@ -620,7 +633,21 @@ export class TurnProcessor {
                 }
 
                 let resolution;
-                if (combatantData) {
+                if ((actionType === 'heal' || actionType === 'spell') && requestedRolls.length > 0) {
+                    // Hotfix: For healing or spells, trust and pass the AI's requested rolls directly to avoid overriding with weapon attacks
+                    resolution = {
+                        success: true,
+                        diceRollRequests: requestedRolls.map((r: any) => ({
+                            rollNotation: r.rollNotation,
+                            description: r.description || (actionType === 'heal' ? 'Curación' : 'Conjuro'),
+                            roller: r.roller || combatant.characterName,
+                            attackType: (r.attackType || (actionType === 'heal' ? 'healing' : 'saving_throw')) as any,
+                            attributeUsed: r.attributeUsed,
+                            attackRange: r.attackRange
+                        })),
+                        actionDescription: finalActionDescription
+                    };
+                } else if (combatantData) {
                     resolution = CombatActionResolver.resolveAttack(
                             combatantData,
                             weaponQuery,
@@ -659,7 +686,7 @@ export class TurnProcessor {
 
                 plannedAction = {
                     type: actionType,
-                    targetId: resolvedTargetId,
+                    targetId: resolvedTargetId || '',
                     actionDescription: resolution.actionDescription || finalActionDescription,
                     diceRollRequests: resolution.diceRollRequests,
                 };
@@ -736,11 +763,16 @@ export class TurnProcessor {
                     narrativeAttackResult = 'hit';
                 }
 
+                const combatantsContext = updatedParty
+                    .map(p => `${p.name} (${p.characterClass || ''} ${p.race || ''}, ${p.sex || 'Varón'})`)
+                    .join(', ');
+
                 const narrationInput: any = {
                     attackerName: combatant.characterName,
                     targetName: targetVisualName,
                     actionDescription: plannedAction.actionDescription,
                     attackResult: narrativeAttackResult,
+                    combatantsContext,
                 };
 
                 // Add damage and HP information if attack hit

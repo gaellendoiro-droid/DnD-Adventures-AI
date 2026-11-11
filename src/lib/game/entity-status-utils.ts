@@ -135,7 +135,7 @@ export function filterDeadEntities<T extends Character | any>(entities: T[]): T[
  * @returns Array con los nombres de las entidades muertas
  */
 export function getDeadEntityNames<T extends Character | any>(entities: T[]): string[] {
-    return filterDeadEntities(entities).map(entity => entity.name || entity.id || 'Unknown entity');
+    return filterDeadEntities(entities).map((entity: any) => entity.name || entity.id || 'Unknown entity');
 }
 
 /**
@@ -150,7 +150,7 @@ export function areAllEntitiesOutOfCombat<T extends Character | any>(entities: T
     }
 
     // LÓGICA EXACTA MOVIDA DESDE game-coordinator.ts (línea 60)
-    return entities.every(entity => entity.hp && (entity.hp.current <= 0 || entity.isDead === true));
+    return entities.every((entity: any) => entity.hp && (entity.hp.current <= 0 || entity.isDead === true));
 }
 
 /**
@@ -165,5 +165,5 @@ export function areAllEntitiesDead<T extends Character | any>(entities: T[]): bo
     }
 
     // LÓGICA EXACTA MOVIDA DESDE game-coordinator.ts (línea 63)
-    return entities.every(entity => entity.isDead === true);
+    return entities.every((entity: any) => entity.isDead === true);
 }

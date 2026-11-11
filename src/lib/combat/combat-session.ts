@@ -82,7 +82,9 @@ export class CombatSession {
   /** Flags for turn processing state */
   private lastProcessedTurnWasAI: boolean;
   private lastProcessedTurnIndex: number;
-  
+  private playerActionCompleted: boolean = false;
+  private turnCompleted: boolean = false;
+
   /** Current phase of the combat turn */
   private phase: CombatPhase;
 
@@ -144,7 +146,7 @@ export class CombatSession {
    * @returns A new CombatSession instance
    * @throws Error if input is invalid (e.g., inCombat=true but missing required data)
    */
-  static fromInput(input: CombatManagerInput): CombatSession {
+  static fromInput(input: Partial<CombatManagerInput> & Record<string, any>): CombatSession {
     const party = input.party || [];
     const enemies = input.enemies || [];
     const initiativeOrder = input.initiativeOrder || [];
@@ -360,12 +362,12 @@ export class CombatSession {
     // Initialization succeeded - update state
     this.addMessages(initResult.messages.map(m => ({ ...m, sender: m.sender as 'DM' | 'Player' | 'System' | 'Character' | 'Error' })));
     this.addDiceRolls(initResult.diceRolls);
-    
+
     // Handle firstTurnData if provided (for backward compatibility with tests and old behavior)
     const firstTurnData = (initResult as any).firstTurnData;
     const initialTurnIndex = firstTurnData?.turnIndex ?? 0;
     const initialPhase = firstTurnData ? CombatPhase.ACTION_RESOLVED : CombatPhase.SETUP;
-    
+
     this.updateState({
       party: initResult.updatedParty,
       enemies: initResult.enemies,
@@ -387,7 +389,7 @@ export class CombatSession {
     if (!firstTurnData) {
       await this.transitionTo(CombatPhase.TURN_START, deps, { location: locationContext, history: conversationHistory });
     }
-    
+
     this.log('info', 'Combat initialization completed (FSM started)');
   }
 
@@ -430,45 +432,45 @@ export class CombatSession {
     // Handle "continue_turn" action
     if (interpretedAction?.actionType === 'continue_turn') {
       // Relaxed check: Allow continuing from TURN_START (fallback hydration), ACTION_RESOLVED, WAITING_FOR_ACTION, or SETUP (if phase is lost)
-      if (this.phase === CombatPhase.ACTION_RESOLVED || 
-          this.phase === CombatPhase.TURN_START || 
-          this.phase === CombatPhase.WAITING_FOR_ACTION ||
-          this.phase === CombatPhase.SETUP) {
-          
-         this.log('info', 'Processing continue_turn action', { phase: this.phase });
-         // Always transition to TURN_END to advance the combat (never re-enter handleTurnStart)
-         await this.transitionTo(CombatPhase.TURN_END, deps, { location: locationContext, history: conversationHistory });
+      if (this.phase === CombatPhase.ACTION_RESOLVED ||
+        this.phase === CombatPhase.TURN_START ||
+        this.phase === CombatPhase.WAITING_FOR_ACTION ||
+        this.phase === CombatPhase.SETUP) {
+
+        this.log('info', 'Processing continue_turn action', { phase: this.phase });
+        // Always transition to TURN_END to advance the combat (never re-enter handleTurnStart)
+        await this.transitionTo(CombatPhase.TURN_END, deps, { location: locationContext, history: conversationHistory });
       } else {
-         this.log('warn', 'Received continue_turn but phase is invalid for advancement', { phase: this.phase });
+        this.log('warn', 'Received continue_turn but phase is invalid for advancement', { phase: this.phase });
       }
       return;
     }
 
     // Handle Player Action
     if (this.phase === CombatPhase.WAITING_FOR_ACTION) {
-       if (activeCombatant.controlledBy === 'Player') {
-           await this.transitionTo(CombatPhase.PROCESSING_ACTION, deps);
-           const success = await this.executeTurnLogic(activeCombatant, interpretedAction, playerAction, locationContext, conversationHistory, deps);
-           if (success) {
-               await this.transitionTo(CombatPhase.ACTION_RESOLVED, deps);
-           } else {
-               await this.transitionTo(CombatPhase.WAITING_FOR_ACTION, deps);
-           }
-           return;
-       } else {
-           // AI stuck check
-           this.log('warn', 'In WAITING phase for AI turn - retrying execution');
-           await this.transitionTo(CombatPhase.PROCESSING_ACTION, deps);
-           await this.executeTurnLogic(activeCombatant, undefined, undefined, locationContext, conversationHistory, deps);
-           await this.transitionTo(CombatPhase.ACTION_RESOLVED, deps);
-           return;
-       }
+      if (activeCombatant.controlledBy === 'Player') {
+        await this.transitionTo(CombatPhase.PROCESSING_ACTION, deps);
+        const success = await this.executeTurnLogic(activeCombatant, interpretedAction, playerAction, locationContext, conversationHistory, deps);
+        if (success) {
+          await this.transitionTo(CombatPhase.ACTION_RESOLVED, deps);
+        } else {
+          await this.transitionTo(CombatPhase.WAITING_FOR_ACTION, deps);
+        }
+        return;
+      } else {
+        // AI stuck check
+        this.log('warn', 'In WAITING phase for AI turn - retrying execution');
+        await this.transitionTo(CombatPhase.PROCESSING_ACTION, deps);
+        await this.executeTurnLogic(activeCombatant, undefined, undefined, locationContext, conversationHistory, deps);
+        await this.transitionTo(CombatPhase.ACTION_RESOLVED, deps);
+        return;
+      }
     }
-    
+
     // Fallback for hydration (restarting FSM if lost)
     if (this.phase === CombatPhase.SETUP || this.phase === CombatPhase.TURN_START) {
-        await this.handleTurnStart(deps, { location: locationContext, history: conversationHistory });
-        return;
+      await this.handleTurnStart(deps, { location: locationContext, history: conversationHistory });
+      return;
     }
 
     this.log('warn', 'Ignored action due to phase mismatch', { phase: this.phase, action: interpretedAction?.actionType });
@@ -616,10 +618,10 @@ export class CombatSession {
     // This prevents UI lockups if the flag was accidentally reset or not set
     let finalLastProcessedTurnWasAI = this.lastProcessedTurnWasAI;
     if (this.phase === CombatPhase.ACTION_RESOLVED) {
-        const active = this.getActiveCombatant();
-        if (active && active.controlledBy === 'AI') {
-            finalLastProcessedTurnWasAI = true;
-        }
+      const active = this.getActiveCombatant();
+      if (active && active.controlledBy === 'AI') {
+        finalLastProcessedTurnWasAI = true;
+      }
     }
 
     return {
@@ -650,7 +652,7 @@ export class CombatSession {
    * Transitions the combat state machine to a new phase.
    */
   private async transitionTo(
-    newPhase: CombatPhase, 
+    newPhase: CombatPhase,
     deps?: CombatManagerDependencies,
     context?: { location?: any, history?: any }
   ): Promise<void> {
@@ -665,7 +667,7 @@ export class CombatSession {
       case CombatPhase.TURN_START:
         await this.handleTurnStart(deps, context);
         break;
-        
+
       case CombatPhase.PROCESSING_ACTION:
         // Automatically handled by logic calling transitionTo
         break;
@@ -677,7 +679,7 @@ export class CombatSession {
       case CombatPhase.TURN_END:
         await this.handleTurnEnd(deps, context);
         break;
-        
+
       case CombatPhase.COMBAT_END:
         this.inCombat = false;
         break;
@@ -690,55 +692,55 @@ export class CombatSession {
   ): Promise<void> {
     const combatant = this.getActiveCombatant();
     if (!combatant) {
-        await this.transitionTo(CombatPhase.COMBAT_END, deps);
-        return;
+      await this.transitionTo(CombatPhase.COMBAT_END, deps);
+      return;
     }
 
     // 1. Check End of Combat
     const endCheck = this.checkEndOfCombat();
     if (endCheck.combatEnded) {
-        // Emit a clear end-of-combat message once the last enemy cae
-        this.addMessage({
-            sender: 'DM',
-            content: endCheck.reason
-              ? `El combate ha terminado (${endCheck.reason}). ¡Victoria!`
-              : '¡Victoria! El combate ha terminado.',
-        });
-        await this.transitionTo(CombatPhase.COMBAT_END, deps);
-        return;
+      // Emit a clear end-of-combat message once the last enemy cae
+      this.addMessage({
+        sender: 'DM',
+        content: endCheck.reason
+          ? `El combate ha terminado (${endCheck.reason}). ¡Victoria!`
+          : '¡Victoria! El combate ha terminado.',
+      });
+      await this.transitionTo(CombatPhase.COMBAT_END, deps);
+      return;
     }
 
     // 2. Check Surprise
     if (SurpriseManager.isSurprised(combatant)) {
-         this.addMessage({ sender: 'DM', content: `${combatant.characterName} está sorprendido y pierde su turno.` });
-         
-         const index = this.initiativeOrder.findIndex(c => c.id === combatant.id);
-         if (index !== -1) {
-             this.initiativeOrder[index] = SurpriseManager.clearSurpriseFlag(this.initiativeOrder[index]);
-         }
-         
-         this.updateState({
-             lastProcessedTurnWasAI: combatant.controlledBy === 'AI',
-             lastProcessedTurnIndex: this.turnIndex
-         });
+      this.addMessage({ sender: 'DM', content: `${combatant.characterName} está sorprendido y pierde su turno.` });
 
-         await this.transitionTo(CombatPhase.ACTION_RESOLVED, deps);
-         return;
+      // Fix: Do NOT clear surprise flag here. Clear it in handleTurnEnd to ensure state consistency.
+      // If we clear it here, a re-check of the turn (e.g. hydrate) would think the player is no longer shocked.
+
+      // Mark as AI turn for UI purposes so turn advance buttons appear
+      // Even though it's a player being skipped, we want the UI to show advance controls
+      this.updateState({
+        lastProcessedTurnWasAI: true, // Changed: Force true so UI shows advance buttons
+        lastProcessedTurnIndex: this.turnIndex
+      });
+
+      await this.transitionTo(CombatPhase.ACTION_RESOLVED, deps);
+      return;
     }
 
     // 3. Check Status (Dead/Unconscious)
     const entity = this.findEntity(combatant);
     if (entity && isUnconsciousOrDead(entity)) {
-        const status = entity.isDead ? 'muerto' : 'inconsciente';
-        this.addMessage({ sender: 'DM', content: `${combatant.characterName} está ${status} y no puede actuar.` });
-        
-        this.updateState({
-             lastProcessedTurnWasAI: combatant.controlledBy === 'AI',
-             lastProcessedTurnIndex: this.turnIndex
-        });
+      const status = entity.isDead ? 'muerto' : 'inconsciente';
+      this.addMessage({ sender: 'DM', content: `${combatant.characterName} está ${status} y no puede actuar.` });
 
-        await this.transitionTo(CombatPhase.ACTION_RESOLVED, deps);
-        return;
+      this.updateState({
+        lastProcessedTurnWasAI: combatant.controlledBy === 'AI',
+        lastProcessedTurnIndex: this.turnIndex
+      });
+
+      await this.transitionTo(CombatPhase.ACTION_RESOLVED, deps);
+      return;
     }
 
     // 4. Normal Turn
@@ -746,17 +748,17 @@ export class CombatSession {
 
     // 5. If AI, auto-process
     if (combatant.controlledBy === 'AI') {
-        // Mark that we're processing an AI turn BEFORE execution (in case it fails)
-        this.updateState({
-            lastProcessedTurnWasAI: true,
-            lastProcessedTurnIndex: this.turnIndex
-        });
-        
-        await this.transitionTo(CombatPhase.PROCESSING_ACTION, deps);
-        // We need to pass undefined for player action inputs
-        // context.location and context.history should be passed if available
-        await this.executeTurnLogic(combatant, undefined, undefined, context?.location, context?.history, deps);
-        await this.transitionTo(CombatPhase.ACTION_RESOLVED, deps);
+      // Mark that we're processing an AI turn BEFORE execution (in case it fails)
+      this.updateState({
+        lastProcessedTurnWasAI: true,
+        lastProcessedTurnIndex: this.turnIndex
+      });
+
+      await this.transitionTo(CombatPhase.PROCESSING_ACTION, deps);
+      // We need to pass undefined for player action inputs
+      // context.location and context.history should be passed if available
+      await this.executeTurnLogic(combatant, undefined, undefined, context?.location, context?.history, deps);
+      await this.transitionTo(CombatPhase.ACTION_RESOLVED, deps);
     }
   }
 
@@ -764,8 +766,19 @@ export class CombatSession {
     deps?: CombatManagerDependencies,
     context?: { location?: any, history?: any }
   ): Promise<void> {
-      this.advanceTurn();
-      await this.transitionTo(CombatPhase.TURN_START, deps, context);
+    const currentCombatant = this.getActiveCombatant();
+
+    // Clear Surprise Flag at the END of the turn
+    if (currentCombatant && SurpriseManager.isSurprised(currentCombatant)) {
+      const index = this.initiativeOrder.findIndex(c => c.id === currentCombatant.id);
+      if (index !== -1) {
+        this.initiativeOrder[index] = SurpriseManager.clearSurpriseFlag(this.initiativeOrder[index]);
+        this.log('debug', `Cleared surprise flag for ${currentCombatant.characterName} at end of turn`);
+      }
+    }
+
+    this.advanceTurn();
+    await this.transitionTo(CombatPhase.TURN_START, deps, context);
   }
 
   private findEntity(combatant: Combatant): any {
@@ -830,7 +843,7 @@ export class CombatSession {
       ];
 
       if (turnResult.error && retryableErrors.includes(turnResult.error)) {
-          return false; // Retryable error, stay in WAITING phase
+        return false; // Retryable error, stay in WAITING phase
       }
       return true; // Non-retryable error, consume turn
     }
@@ -1001,6 +1014,7 @@ export class CombatSession {
     nextLocationId?: string | null;
     lastProcessedTurnWasAI?: boolean;
     lastProcessedTurnIndex?: number;
+    playerActionCompleted?: boolean;
     phase?: CombatPhase;
   }): void {
     if (updates.party !== undefined) this.party = updates.party;
@@ -1038,7 +1052,7 @@ export class CombatSession {
    * 
    * @param diceRoll - Dice roll to add
    */
-  private addDiceRoll(diceRoll: Omit<DiceRoll, 'id' | 'timestamp'>): void {
+  private addDiceRoll(diceRoll: Omit<DiceRoll, 'id' | 'timestamp'> & { id?: string; timestamp?: Date }): void {
     this.diceRolls.push(diceRoll);
   }
 

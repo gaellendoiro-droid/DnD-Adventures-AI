@@ -1,9 +1,10 @@
 import { z } from 'zod';
-import { CharacterSchema, PartySchema, LocationSchema, ConnectionSchema, GameStateSchema, WorldStateSchema, SkillNameSchema, RollModeSchema, SkillCheckResultSchema } from './schemas';
+import { CharacterSchema, CharacterEffectSchema, PartySchema, LocationSchema, ConnectionSchema, GameStateSchema, WorldStateSchema, SkillNameSchema, RollModeSchema, SkillCheckResultSchema } from './schemas';
 import { D20RollResult } from './dice/dice-engine';
 
 // Infer the TypeScript types from the Zod schemas
 export type Character = z.infer<typeof CharacterSchema>;
+export type CharacterEffect = z.infer<typeof CharacterEffectSchema>;
 export type Party = z.infer<typeof PartySchema>;
 export type Location = z.infer<typeof LocationSchema>;
 export type Connection = z.infer<typeof ConnectionSchema>;
@@ -23,6 +24,7 @@ export interface GameMessage {
   originalContent?: string; // Store the raw markdown here
   timestamp: string;
   onRetry?: () => void;
+  aiError?: import('./ai/ai-error-handler').AIProviderErrorInfo;
 }
 
 export type DiceRollOutcome = 'crit' | 'success' | 'fail' | 'pifia' | 'neutral' | 'initiative' | 'victory' | 'defeat';
@@ -66,9 +68,11 @@ export interface InitiativeRoll {
   characterName: string;
   roll: number;
   modifier: number;
-  total: number;
+  total?: number;
   id: string;
-  type: 'player' | 'npc';
+  type?: 'player' | 'npc' | 'enemy' | 'ally';
+  initiative?: number;
+  isPlayer?: boolean;
 }
 
 export enum CombatPhase {
@@ -84,9 +88,11 @@ export enum CombatPhase {
 export interface Combatant {
   id: string;
   characterName: string;
-  total: number;
-  type: 'player' | 'npc';
-  controlledBy: "Player" | "AI";
+  total?: number;
+  type?: 'player' | 'npc' | 'enemy' | 'ally';
+  initiative?: number;
+  isPlayer?: boolean;
+  controlledBy?: "Player" | "AI";
   status?: 'active' | 'unconscious' | 'dead';
   isSurprised?: boolean; // If true, this combatant loses their first turn
 }

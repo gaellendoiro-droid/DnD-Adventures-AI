@@ -97,7 +97,7 @@ describe('CombatTurnManager', () => {
             { id: 'p1', hp: { current: 10, max: 10 }, isDead: false },
             { id: 'p2', hp: { current: 0, max: 10 }, isDead: true },
         ];
-        const mockEnemies = [];
+        const mockEnemies: any[] = [];
 
         it('should return true for AI combatant', () => {
             const combatant: Combatant = { id: 'e1', characterName: 'E1', type: 'npc', controlledBy: 'AI', total: 10 };

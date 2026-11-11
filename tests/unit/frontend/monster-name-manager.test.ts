@@ -13,12 +13,12 @@ import {
 import type { Combatant } from '@/lib/types';
 
 describe('generateDifferentiatedNames', () => {
-  it('should generate numbered names for single enemy', () => {
+  it('should keep unnumbered name for single enemy', () => {
     const enemies = [
       { uniqueId: 'goblin-1', name: 'Goblin' },
     ];
     const result = generateDifferentiatedNames(enemies);
-    expect(result.get('goblin-1')).toBe('Goblin 1');
+    expect(result.get('goblin-1')).toBe('Goblin');
   });
 
   it('should generate numbered names for multiple enemies of same type', () => {
@@ -39,8 +39,8 @@ describe('generateDifferentiatedNames', () => {
       { uniqueId: 'orc-1', name: 'Orc' },
     ];
     const result = generateDifferentiatedNames(enemies);
-    expect(result.get('goblin-1')).toBe('Goblin 1');
-    expect(result.get('orc-1')).toBe('Orc 1');
+    expect(result.get('goblin-1')).toBe('Goblin');
+    expect(result.get('orc-1')).toBe('Orc');
   });
 
   it('should handle enemies without name property (extract from uniqueId)', () => {
@@ -49,7 +49,7 @@ describe('generateDifferentiatedNames', () => {
     ];
     const result = generateDifferentiatedNames(enemies);
     // When id is provided, it extracts base name from id (goblin-1 -> goblin)
-    expect(result.get('goblin-1')).toBe('goblin 1');
+    expect(result.get('goblin-1')).toBe('goblin');
   });
 
   it('should handle case-insensitive grouping', () => {
@@ -123,6 +123,8 @@ describe('getVisualName', () => {
         characterName: 'Goblin 1',
         initiative: 15,
         isPlayer: false,
+        controlledBy: 'AI',
+        type: 'enemy',
       },
     ];
     const enemies: any[] = [];
@@ -134,7 +136,7 @@ describe('getVisualName', () => {
     const enemies = [
       { uniqueId: 'goblin-1', name: 'Goblin' },
     ];
-    expect(getVisualName('goblin-1', initiativeOrder, enemies)).toBe('Goblin 1');
+    expect(getVisualName('goblin-1', initiativeOrder, enemies)).toBe('Goblin');
   });
 
   it('should fallback to enemy name if no differentiated name available', () => {
@@ -143,7 +145,7 @@ describe('getVisualName', () => {
       { uniqueId: 'goblin-1', name: 'Goblin' },
     ];
     // This will use the enemy name directly
-    expect(getVisualName('goblin-1', initiativeOrder, enemies)).toBe('Goblin 1');
+    expect(getVisualName('goblin-1', initiativeOrder, enemies)).toBe('Goblin');
   });
 
   it('should return combatantId if not found anywhere', () => {
@@ -152,4 +154,3 @@ describe('getVisualName', () => {
     expect(getVisualName('unknown-id', initiativeOrder, enemies)).toBe('unknown-id');
   });
 });
-

@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "../ui/button";
 import { logClient } from "@/lib/logger-client";
 import { sanitizeHtml } from "@/lib/sanitize-html";
+import { parseAIProviderError } from "@/lib/ai/ai-error-handler";
 
 interface ChatMessageProps {
   message: GameMessage;
@@ -50,9 +51,30 @@ const senderInfo = {
 };
 
 export function ChatMessage({ message, volume = 1.0 }: ChatMessageProps) {
-  const { sender, senderName, content, timestamp, characterColor, originalContent, onRetry } = message;
+  const { sender, senderName, content, timestamp, characterColor, originalContent, onRetry, aiError } = message;
   const info = senderInfo[sender];
   const Icon = info.icon;
+
+  const resolvedAiError = React.useMemo(() => {
+    if (sender !== "Error") return undefined;
+    if (aiError) return aiError;
+    if (typeof content === "string") return parseAIProviderError(content);
+    return undefined;
+  }, [sender, aiError, content]);
+
+  const initialWait =
+    resolvedAiError?.retryAfterSeconds && resolvedAiError.retryAfterSeconds <= 60
+      ? resolvedAiError.retryAfterSeconds
+      : 0;
+  const [remainingSeconds, setRemainingSeconds] = useState<number>(initialWait);
+
+  React.useEffect(() => {
+    if (remainingSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setRemainingSeconds((prev) => (prev > 1 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [remainingSeconds]);
 
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
@@ -90,10 +112,11 @@ export function ChatMessage({ message, volume = 1.0 }: ChatMessageProps) {
       setAudioDataUri(response.audioDataUri);
     } catch (error: any) {
       logClient.uiError('ChatMessage', 'Error generating narration audio', error);
+      const audioErrInfo = parseAIProviderError(error);
       toast({
         variant: "destructive",
-        title: "Error de audio",
-        description: "No se pudo generar la narración de audio.",
+        title: audioErrInfo.title || "Error de audio",
+        description: audioErrInfo.userMessage || "No se pudo generar la narración de audio.",
       });
     } finally {
       setIsGeneratingAudio(false);
@@ -185,16 +208,45 @@ export function ChatMessage({ message, volume = 1.0 }: ChatMessageProps) {
           >
             {sender === 'DM' ? (
               <div className="leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeHtml(content as string) }} />
+            ) : sender === 'Error' && resolvedAiError ? (
+              <div className="flex flex-col gap-2 not-prose text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center rounded-md bg-destructive/20 px-2 py-0.5 text-xs font-semibold text-destructive">
+                    {resolvedAiError.provider}
+                  </span>
+                  {resolvedAiError.model && (
+                    <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-mono text-muted-foreground">
+                      {resolvedAiError.model}
+                    </span>
+                  )}
+                </div>
+                <div className="font-semibold text-foreground">
+                  {resolvedAiError.title}
+                </div>
+                <p className="text-muted-foreground leading-relaxed m-0">
+                  {resolvedAiError.userMessage}
+                </p>
+                {resolvedAiError.suggestion && (
+                  <p className="text-xs text-muted-foreground/90 italic m-0">
+                    💡 {resolvedAiError.suggestion}
+                  </p>
+                )}
+              </div>
             ) : React.isValidElement(renderedContent) ? (
               renderedContent
             ) : (
               <p className="leading-relaxed">{content as string}</p>
             )}
             {sender === 'Error' && onRetry && (
-              <div className="mt-3 text-right">
+              <div className="mt-3 flex items-center justify-end gap-2 not-prose">
+                {remainingSeconds > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    Cupo disponible en {remainingSeconds}s...
+                  </span>
+                )}
                 <Button variant="destructive" size="sm" onClick={onRetry}>
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Reintentar
+                  Reintentar acción
                 </Button>
               </div>
             )}

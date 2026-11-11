@@ -119,7 +119,7 @@ describe('Combat Rules Engine', () => {
         });
 
         it('should handle invalid notation gracefully', () => {
-            expect(getCriticalDamageNotation('invalid', 0, true)).toBe('invalid+0');
+            expect(getCriticalDamageNotation('invalid', 0, true)).toBe('invalid');
         });
     });
 

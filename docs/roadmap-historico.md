@@ -141,6 +141,92 @@ Para consultar las iniciativas en curso y planificadas, utiliza el documento pri
 
 ---
 
+## 📅 Entregas de Junio de 2026
+
+### 1. Sistema de Combate y Reglas (Hito 1) ✅ COMPLETADO
+* **Revisión del inicio del combate:** Sincronización del delta de estado completo al inicializar el combate (`party`, `enemies`, `enemiesByLocation`, `diceRolls`) solucionando problemas de visualización de tiradas de iniciativa e HP de enemigos en el frontend.
+* **Cálculo de Daño Crítico:** Corrección de notación de modificadores negativos (`1d6-1` en vez de `1d6+-1`) y sanitización robusta en la comprobación de golpes críticos.
+* **Al arrancar un combate el dm repite la última narración que hizo:** Modificación del prompt de inicio de combate para evitar redundancias físicas con el último mensaje del historial de conversación.
+* **Estado:** ✅ **COMPLETADO** (2026-06-28)
+
+### 2. Automatización y Autocuración de Manuales (Hito 2) ✅ COMPLETADO
+* **Detección y Resubida de Manuales Expirados (File API):** Creado el gestor dinámico `RulebookManager` con caché persistente local en disco (`file-api-cache.json`) para detectar y resubir automáticamente manuales expirados a Google AI Studio en caso de error 403/404.
+* **Estado:** ✅ **COMPLETADO** (2026-06-28)
+
+### 3. Arquitectura Reactiva Dirigida por Eventos (Hito 3) ✅ COMPLETADO
+* **Definición de Esquemas de Eventos de Juego (GameEvents):** Diseñar y tipar con Zod los eventos estructurados de bajo nivel (ej: `PlayerMoved`, `DoorOpened`, `ItemCollected`, `TrapTriggered`, `DamageApplied`).
+* **Migración de Managers Procedurales a Sistemas Reactivos:** Refactorizar la secuencia de `narrative-turn-manager.ts` para usar un despachador/cola de eventos, extrayendo la lógica de navegación, interacción y tiradas de habilidad a sistemas aislados.
+* **Adaptación del Narrador conversacional (`narrativeExpert`):** Rediseñar el prompt del narrador para que reciba la lista de eventos reales ocurridos en el turno, limitando su labor a narrar literariamente hechos consumados en vez de intentar calcular qué ha pasado.
+* **Aislamiento del Estado (State Isolation):** Asegurar que el `worldState` y el estado de la `party` solo puedan ser mutados a través del procesamiento de eventos validados por los sistemas de reglas.
+* **Estado:** ✅ **COMPLETADO** (2026-06-27)
+
+### 4. Consistencia Física del Mundo e IA Conversacional (Hito 4) ✅ COMPLETADO
+* **Refactorización Genérica de Estado (Property Override System):** Migrado y unificado el `worldState` actual a mutaciones dinámicas en `WorldStateManager` para persistir estados físicos (abierto/cerrado, saqueado) e ítems de contenedores, puertas e interactuables genéricos.
+* **Unificación de Contexto de los Expertos (Single Source of Truth) [Fase 1]:** Estructuración e inyección del inventario de la party y personajes actualizados a todos los agentes de la IA conversacional, eliminando la ceguera de posesiones.
+* **Delimitación de Interacciones Físicas [Fase 2]:** Bloqueo automático de saqueo de contenedores cerrados y delegación limpia de interacciones físicas con muebles contenedores (moverlos/cargarlos) al DM.
+* **Validación de Llaves al Abrir Puertas:** Extender `handleDoorOpening` en `InteractionHandler` para validar si la conexión correspondiente a la puerta requiere una llave (`requiredKeyId`) y si algún miembro del grupo dispone de ella en su inventario antes de autorizar la apertura.
+* **Estado:** ✅ **COMPLETADO** (2026-06-26)
+
+### 5. Conversador OOC Mejorado ✅ COMPLETADO
+* **Descripción:** Permitir el uso del chat fuera de personaje (Out of Character - OOC) para resolver dudas sobre monstruos o reglas oficiales mediante el interceptor de prefijo `//` o `ooc`.
+* **Estado:** ✅ **COMPLETADO** (2026-06-25)
+
+### 6. Mejoras de Interfaz (UX) ✅ COMPLETADO
+* **Mejora de Fichas en UI:** Secciones colapsables o pestañas (Atributos, Inventario, Hechizos) para reducir la sobrecarga de información y visualización de modificadores activos mediante acordeones Radix UI.
+* **Estado:** ✅ **COMPLETADO** (2026-06-24)
+
+### 7. Corrección de Inconsistencia de Género (DM) ✅ COMPLETADO
+* **Descripción:** Implementación de reglas estrictas de concordancia de género gramatical en español de España en los prompts principales del Dungeon Master (`narrativeDirectorPrompt`, `combatInitiationPrompt`). Adicionalmente, se creó la inyección dinámica de contexto `combatantsContext` en el procesador de turnos de combate para que el narrador de combate asocie correctamente el género de cualquier personaje (incluyendo personajes personalizados).
+* **Estado:** ✅ **COMPLETADO** (2026-06-28)
+
+---
+
+## 📅 Entregas Recientes (v0.6.1 - v0.6.2 / Noviembre de 2026)
+
+### 1. Ideas Rápidas y Pulido de Partida ✅ COMPLETADO
+* **[TASK-047] Desactivación de comentarios del compañero activo:** Desactivar los comentarios automáticos del compañero que esté activo como personaje seleccionado.
+  * **Estado:** ✅ **COMPLETADO en v0.6.1**
+* **[TASK-048] Fichas de monstruos automáticas en conversor PDF a JSON:** Inclusión de fichas de monstruos no catalogados durante la conversión para evitar llamadas a la API en medio de la partida.
+  * **Estado:** ✅ **COMPLETADO en v0.6.2**
+* **[TASK-049] Nombres limpios en orden de combate:** Evitar numeración redundante en nombres únicos (ej. una sola oveja o un solo Guz) cuando no existan duplicados en la batalla.
+  * **Estado:** ✅ **COMPLETADO**
+
+### 2. Conversor de Aventuras y Datos ✅ COMPLETADO
+* **[TASK-050] Prevención de Spoilers en Narración Inicial y Conversión:** Separación estricta de `summary` (catálogo) e `introductoryNarration` (mesa de rol en segunda persona) en `scripts/pdf-to-json.ts`, con saneamiento de spawns condicionales en el minuto 0 para evitar revelar la trama o entidades antes de tiempo.
+  * **Estado:** ✅ **COMPLETADO**
+* **[TASK-051] Actualización a Gemini 3.5 Flash:** Migración del modelo principal del proyecto en `src/ai/model-config.ts` y Genkit de `gemini-2.5-flash` a `gemini-3.5-flash`, con fallback automático a `gemini-2.5-flash-lite` para evitar caídas por límites diarios de cuota en el Free Tier de Google AI Studio.
+  * **Estado:** ✅ **COMPLETADO**
+* **[TASK-052] Robustecimiento del Conversor PDF a JSON:** Adaptado el script `scripts/pdf-to-json.ts` para resolver estadísticas y aplicar overrides a monstruos y NPCs, desactivar IA RAG en PNJs únicos, y validar el JSON generado contra el esquema Zod `AdventureDataSchema`.
+  * **Estado:** ✅ **COMPLETADO en v0.6.2**
+* **[TASK-053] Entidades Condicionales Simplificadas:** Integrar el soporte para NPCs con presencia condicional en localizaciones mediante flags de presencia y ausencia (`presenceFlag` y `absenceFlag`), permitiendo que el conversor de PDF a JSON sitúe de forma dinámica y temporal a las criaturas a lo largo del mapa y la Capa 2 (TypeScript) evalúe su presencia física basándose en el estado global del juego.
+  * **Estado:** ✅ **COMPLETADO en v0.6.2**
+
+### 3. Arquitectura y Flujos de IA ✅ COMPLETADO
+* **[TASK-054] Rediseño a Arquitectura Neuro-Simbólica de 3 Capas (Robustez):** Desacoplar completamente la lógica dura del juego de la narración creativa:
+  1. *Capa 1 (IA Árbitro):* Un agente interpretativo traduce la acción creativa y libre del jugador a un JSON que propone cambios físicos y mecánicos en el estado.
+  2. *Capa 2 (Código TypeScript):* El motor de reglas de TypeScript procesa y valida este JSON, gestionando estados, inventarios, tiradas de dados reales y actualizando la base de datos de forma robusta y determinista, generando un JSON final de "Hechos Absolutos del Turno".
+  3. *Capa 3 (IA Narradora/DM):* Un prompt de DM simplificado toma el JSON de Hechos Absolutos del Turno y se limita a vestirlo de gala literaria en prosa evocadora de D&D, previniendo alucinaciones lógicas, double-binds y colapsos de esquema.
+  * **Estado:** ✅ **COMPLETADO en v0.6.1**
+
+### 4. Sistema de Combate y Reglas ✅ COMPLETADO
+* **[TASK-055] Sincronización Bidireccional de WorldState y Reglas de Combate:** Sincronización completa entre `enemiesByLocation` y `worldState.locations[locId].enemies`, activación automática de flags globales de victoria (`<id>_derrotado`) en `combatManagerTool` y `StatsSystem`, y desbloqueo bidireccional de puertas en `SkillCheckSystem`.
+  * **Estado:** ✅ **COMPLETADO**
+* **[TASK-056] Prevención de Doble Ejecución en GameRulesEngine:** Bloqueo de reencolado de eventos en `narrative-turn-manager.ts` cuando la regla intercepta la acción, y emisión de eventos `ItemCollected` en `ScrollRuleModule`.
+  * **Estado:** ✅ **COMPLETADO**
+* **[TASK-057] Alucinaciones del Tactician Enemigo (Acciones inventadas):** Evitar que la IA del tactician enemigo (`enemyTacticianTool`) alucine acciones o armas inexistentes, pasando las acciones disponibles directamente en el prompt del tactician o forzándolo a consultar las estadísticas oficiales antes de elegir la acción.
+  * **Estado:** ✅ **COMPLETADO**
+
+### 5. Mecánicas de Magia y Economía ✅ COMPLETADO
+* **[TASK-058] Ciclo de Vida y Uso de Pergaminos Mágicos:** Integrar con el inventario físico el uso de consumibles mágicos (restar el pergamino al activarlo, validar si el personaje tiene la habilidad de usarlo y realizar la transferencia correcta entre mochilas de compañeros sin duplicidades).
+  * **Estado:** ✅ **COMPLETADO en v0.6.1**
+* **[TASK-059] Unificación de Inventarios Iniciales:** Homologar los inventarios de las fichas iniciales de personajes para que utilicen exactamente los mismos IDs y estructuras estándar sincronizadas con `adventureData.items`.
+  * **Estado:** ✅ **COMPLETADO en v0.6.1**
+* **[TASK-060] Mapeo de Sinónimos de Inventario Personal:** Añadir reglas específicas en los prompts de los expertos conversacionales de la IA para que apliquen la misma tabla de sinónimos a las pertenencias de los personajes.
+  * **Estado:** ✅ **COMPLETADO en v0.6.1**
+
+---
+
 > Las iniciativas completadas seguirán moviéndose a este archivo para mantener el roadmap principal enfocado exclusivamente en trabajo proactivo.
+
 
 

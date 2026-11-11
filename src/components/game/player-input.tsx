@@ -9,6 +9,7 @@ import type { VolumeSettings } from "@/lib/types";
 
 interface PlayerInputProps {
   onSendMessage: (content: string) => void;
+  onDiceRoll?: (roll: any) => void;
   disabled?: boolean;
   isPlayerTurn?: boolean;
   waitingForTurnAdvance?: boolean;

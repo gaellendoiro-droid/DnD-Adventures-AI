@@ -16,6 +16,18 @@ export const CharacterSummarySchema = z.object({
 });
 
 /**
+ * Representa un estado o efecto activo sobre un personaje (conjuro activo, condición de D&D 5e, bendición, etc.).
+ */
+export const CharacterEffectSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string().optional(),
+    type: z.enum(['buff', 'debuff', 'condition']).default('buff'),
+    source: z.string().optional(),
+    duration: z.string().optional(),
+});
+
+/**
  * The single source of truth for the FULL Character data structure.
  * Used for validation in AI tools and flows that need all details.
  */
@@ -45,7 +57,7 @@ export const CharacterSchema = z.object({
         sabiduría: z.number(),
         carisma: z.number(),
     }).optional(),
-    proficiencyBonus: z.number().optional().default(2), // Bono de competencia (default +2 para nivel 1)
+    proficiencyBonus: z.number().optional(), // Bono de competencia (default +2 para nivel 1)
     skills: z.array(z.object({
         name: z.string(),
         proficient: z.boolean(),
@@ -56,7 +68,7 @@ export const CharacterSchema = z.object({
     controlledBy: z.enum(["Player", "AI"]),
     inventory: z.array(z.object({ id: z.string(), name: z.string(), quantity: z.number(), description: z.string().optional().nullable() })),
     spells: z.array(z.object({ id: z.string(), name: z.string(), level: z.number(), description: z.string().nullable() })),
-    isDead: z.boolean().optional().default(false), // Sistema de muerte masiva D&D 5e
+    isDead: z.boolean().optional(), // Sistema de muerte masiva D&D 5e
 
     // Campos adicionales para ficha completa de D&D 5e
     alignment: z.string().optional(), // Alineamiento (ej: "Legal Bueno", "Caótico Neutral")
@@ -110,6 +122,7 @@ export const CharacterSchema = z.object({
         successes: z.number().default(0),
         failures: z.number().default(0),
     }).optional(), // Tiradas de salvación contra la muerte
+    activeEffects: z.array(CharacterEffectSchema).optional(), // Estados y efectos mágicos activos
 });
 
 /**
@@ -142,7 +155,8 @@ export const HazardSchema = z.object({
     description: z.string().describe("Lo que se narra si se detecta"),
     triggerDescription: z.string().describe("Lo que se narra si se activa"),
     effect: z.string().optional().describe("Efecto mecánico simplificado (ej: '2d6 daño fuego' o 'Ataque +5')"),
-    active: z.boolean().default(true)
+    active: z.boolean().default(true),
+    linkedEntityId: z.string().optional().describe("ID del monstruo/entidad que se invoca cuando se activa (para ambushes)")
 });
 
 /**
@@ -161,12 +175,30 @@ export const ConnectionSchema = z.object({
     // Restricciones Lógicas (El problema de la "Puerta Cerrada")
     isLocked: z.boolean().default(false),
     requiredKeyId: z.string().optional(), // Item necesario para pasar
+    lockpickDC: z.number().optional().describe("CD para forzar la cerradura (Juegos de Manos)"),
+    breakDC: z.number().optional().describe("CD para romper o forzar físicamente la puerta (Atletismo)"),
     isBlocked: z.boolean().default(false), // Camino derrumbado/cortado
     blockedReason: z.string().optional(),   // Narración del bloqueo
     isOpen: z.boolean().optional(), // Si la puerta/pasaje está abierto (false = cerrado, true = abierto, undefined = sin puerta)
 
     // Visibilidad (Fase 2: Exploración)
-    visibility: z.enum(['restricted', 'open']).default('restricted').describe("Si 'open', se ve el destino desde el origen")
+    visibility: z.enum(['restricted', 'open']).default('restricted').describe("Si 'open', se ve el destino desde el origen"),
+
+    // Disparador de Combate (Para interceptar viajes y detonar encuentros en conexiones)
+    combatTrigger: z.object({
+        shouldStartCombat: z.boolean().default(false),
+        reason: z.enum(['ambush', 'proximity', 'stealth_fail', 'mimic', 'provocation', 'player_surprise']).default('ambush'),
+        message: z.string().optional().describe("Descripción de la interrupción en el viaje"),
+        triggeringEntityIds: z.array(z.string()).optional().describe("IDs de las entidades enemigas que inician la agresión (ej: ['guz', 'lobo-polimorfo'])")
+    }).optional()
+});
+
+
+
+export const ConditionalEntitySchema = z.object({
+    entityId: z.string(),
+    presenceFlag: z.string().optional().describe("ID del flag global que DEBE estar activo (true) para que la entidad aparezca"),
+    absenceFlag: z.string().optional().describe("ID del flag global que NO debe estar activo (o ser false/undefined) para que la entidad aparezca")
 });
 
 /**
@@ -200,12 +232,51 @@ export const LocationSchema = z.object({
     // Additional fields can be added here as needed based on the JSON structure
     encounters: z.array(z.any()).optional(), // Placeholder for encounters
     items: z.array(z.any()).optional(), // Placeholder for items found in location
-    entitiesPresent: z.array(z.any()).optional(),
+    entitiesPresent: z.array(z.union([z.string(), ConditionalEntitySchema])).optional(),
     interactables: z.array(z.any()).optional(),
     dmNotes: z.string().optional(),
 }).refine(data => data.name || data.title, {
     message: "Location must have either a name or a title",
     path: ["name"]
+});
+
+/**
+ * Schema for an Entity's roleplay profile.
+ */
+export const EntityRoleplaySchema = z.object({
+    personality: z.string(),
+    voiceAndMannerisms: z.string(),
+    goals: z.string(),
+    secretsKnown: z.array(z.string()).optional(),
+    communicationBarrier: z.string().optional(),
+    /** Términos que la IA no debe ver mientras la barrera de comunicación siga activa (ej. la identidad real de una criatura). */
+    hiddenIdentityTerms: z.array(z.object({
+        term: z.string(),
+        replacement: z.string(),
+    })).optional(),
+    possessions: z.array(z.string()).optional(),
+});
+
+/**
+ * Schema for an Entity's combat tactics profile.
+ */
+export const EntityCombatTacticsSchema = z.object({
+    battleStyle: z.string(),
+    triggers: z.array(z.object({
+        condition: z.string(),
+        reaction: z.string(),
+    })).optional(),
+});
+
+/**
+ * Schema for an Entity's true identity profile (Perception Identity State)
+ */
+export const EntityTrueIdentitySchema = z.object({
+    name: z.string(),
+    description: z.string().optional(),
+    roleplay: EntityRoleplaySchema.optional(),
+    combatTactics: EntityCombatTacticsSchema.optional(),
+    dmNotes: z.string().optional(),
 });
 
 /**
@@ -217,7 +288,12 @@ export const EntitySchema = z.object({
     description: z.string().optional(),
     type: z.string().optional(), // e.g., "enemy", "npc"
     stats: z.any().optional(), // Flexible for now, can be tightened later
+    dmNotes: z.string().optional(),
+    roleplay: EntityRoleplaySchema.optional(),
+    combatTactics: EntityCombatTacticsSchema.optional(),
+    trueIdentity: EntityTrueIdentitySchema.optional(),
 });
+
 
 /**
  * Schema for a Narrative Scene (Cutscene).
@@ -266,6 +342,22 @@ export const ItemSchema = z.object({
 });
 
 /**
+ * Schema for the global Adventure Lore.
+ */
+export const AdventureLoreSchema = z.object({
+    background: z.string(),
+    adventureHooks: z.array(z.string()),
+    secretsAndClues: z.array(z.string()),
+    runningTheAdventure: z.string().optional(),
+    storyline: z.array(z.object({
+        eventName: z.string().describe("Nombre descriptivo del hito o acontecimiento clave"),
+        triggerCondition: z.string().describe("Condición o acción que desencadena este acontecimiento"),
+        description: z.string().describe("Descripción detallada del suceso y guion de cómo presentarlo y resolverlo"),
+        consequences: z.string().optional().describe("Consecuencias lógicas o progresiones sugeridas tras su resolución"),
+    })).optional().describe("Secuencia de acontecimientos o guion lógico de la aventura"),
+});
+
+/**
  * Schema for the full Adventure Data structure.
  */
 export const AdventureDataSchema = z.object({
@@ -281,6 +373,7 @@ export const AdventureDataSchema = z.object({
     startingLocationId: z.string().optional(), // Optional explicit starting location
     narrativeScenes: z.array(NarrativeSceneSchema).optional(),
     events: z.array(EventSchema).optional(),
+    adventureLore: AdventureLoreSchema.optional(),
     settings: z.object({
         startingLocationId: z.string().optional(),
         initialPartySize: z.number().optional(),
@@ -295,6 +388,7 @@ export const AdventureDataSchema = z.object({
     }).optional(),
     system: z.string().optional(),
 });
+
 
 // --- World State Persistence Schemas ---
 
@@ -329,7 +423,8 @@ export const ConnectionStateSchema = z.object({
 export const InteractableStateSchema = z.object({
     id: z.string(),
     state: z.string(),
-    usedTimes: z.number().default(0)
+    usedTimes: z.number().default(0),
+    items: z.array(z.string()).optional()
 });
 
 /**
@@ -344,7 +439,25 @@ export const LocationStateSchema = z.object({
     connections: z.record(z.string(), ConnectionStateSchema).optional(),
     interactables: z.record(z.string(), InteractableStateSchema).optional(),
     markers: z.array(z.string()).optional(),
-    temporaryDescriptionOverride: z.string().optional()
+    temporaryDescriptionOverride: z.string().optional(),
+    droppedItems: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        quantity: z.number(),
+        description: z.string().optional().nullable()
+    })).optional()
+});
+
+/**
+ * Representa un evento reciente en la memoria del juego con TTL
+ */
+export const GameEventSchema = z.object({
+    id: z.string(),
+    type: z.string(), // ej: 'combat_end', 'trap_triggered', 'npc_met'
+    turnNumber: z.number(),
+    locationId: z.string(),
+    description: z.string(),
+    metadata: z.record(z.string(), z.any()).optional()
 });
 
 /**
@@ -357,7 +470,8 @@ export const WorldStateSchema = z.object({
         minute: z.number().default(0)
     }).optional(),
     locations: z.record(z.string(), LocationStateSchema),
-    globalFlags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])).default({})
+    globalFlags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])).default({}),
+    recentEvents: z.array(GameEventSchema).default([])
 });
 
 // --- Skill & Dice Mechanics Schemas (New Phase) ---
@@ -404,4 +518,5 @@ export const GameStateSchema = z.object({
     turnIndex: z.number().optional(),
     openDoors: z.record(z.string(), z.boolean()).optional(), // Map of "locationId:direction" -> isOpen
     worldState: WorldStateSchema.optional(), // New state schema
+    selectedCharacterId: z.string().optional(),
 });

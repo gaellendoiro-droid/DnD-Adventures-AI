@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { CharacterSchema, CharacterSummarySchema, SkillNameSchema, RollModeSchema } from '@/lib/schemas';
+import { CharacterSchema, CharacterSummarySchema, SkillNameSchema, RollModeSchema, WorldStateSchema } from '@/lib/schemas';
 import { type GameMessage, type Combatant, CombatPhase } from '@/lib/types';
 
 // Schema for the action interpreter
@@ -18,11 +18,31 @@ export const ActionInterpreterInputSchema = z.object({
 export type ActionInterpreterInput = z.infer<typeof ActionInterpreterInputSchema>;
 
 export const ActionInterpreterOutputSchema = z.object({
-  actionType: z.enum(['move', 'interact', 'attack', 'narrate', 'ooc', 'continue_turn', 'skill_check']).describe("The interpreted type of the player's action. 'continue_turn' is used for step-by-step combat to advance to the next AI turn. 'skill_check' is for actions requiring a dice roll (climbing, persuading, hiding)."),
-  targetId: z.string().optional().nullable().describe("The ID of the target for the action. For 'move', it's the destination ID. For 'attack', the entity ID. For 'interact', it's the specific interaction action name (e.g., 'Leer Misión de la Colina del Resentimiento') or the character name (e.g., 'Elara')."),
+  actionType: z.enum(['move', 'interact', 'attack', 'narrate', 'ooc', 'continue_turn', 'skill_check', 'drop', 'give', 'clarify']).describe("The interpreted type of the player's action. 'continue_turn' is used for step-by-step combat to advance to the next AI turn. 'skill_check' is for actions requiring a dice roll. 'drop' is for dropping an item. 'give' is for transferring an item to another character. 'clarify' is used when the action is unrecognizable, gibberish, or too ambiguous to interpret safely without guessing."),
+  targetId: z.string().optional().nullable().describe("The ID of the target for the action. For 'move', it's the destination ID. For 'attack', the entity ID. For 'interact', it's the specific interaction action name. For 'drop'/'give', it's the item ID or name."),
   stealthIntent: z.boolean().optional().describe("If true, the player explicitly expressed an intent to be stealthy, hide, or move quietly (e.g., 'I sneak to the door', 'Move quietly', 'Me escondo')."),
+  activatedEffects: z.array(z.string()).optional().describe("Magical effects or spells activated by the action (e.g., ['speak_with_animals'])."),
+  assignedCompanion: z.string().optional().nullable().describe("The name of the party companion assigned or ordered to perform this action (e.g., 'Merryl', 'Elara'), if the player explicitly delegated it to them. Otherwise null or undefined."),
+  recipient: z.string().optional().nullable().describe("The name of the party companion receiving the item in 'give' actions (e.g., 'Merryl', 'Elara'). Otherwise null or undefined."),
+  objectIntent: z.enum(['take', 'identify', 'use', 'give', 'drop', 'other']).optional().nullable().describe("When the action involves an object, item, or scroll (explicitly named or implied via pronouns/context like 'descifrarlo', 'échale un ojo', 'úsalo'), the semantic intent over that object: 'take' (pick up, accept, grab), 'identify' (examine, decipher, study, figure out what it is without activating/consuming it), 'use' (read aloud to cast, activate, invoke, channel, consume), 'give' (hand over without using), or 'drop' (discard)."),
+  clarificationQuestion: z.string().optional().nullable().describe("When actionType is 'clarify', a brief, polite message in Spanish (Spain) explaining what was not understood and asking the player to clarify their intended action."),
 });
+
 export type ActionInterpreterOutput = z.infer<typeof ActionInterpreterOutputSchema>;
+
+export const SkillCheckResultSchema = z.object({
+  skill: z.string().describe("Nombre de la habilidad (ej. 'investigation', 'stealth')."),
+  dc: z.number().describe("Dificultad de la prueba (CD)."),
+  isSuccess: z.boolean().describe("true si la tirada superó la CD."),
+  rollTotal: z.number().describe("Resultado total del dado d20 más los modificadores del personaje."),
+  isCriticalSuccess: z.boolean().describe("true si fue un 20 natural."),
+  isCriticalFailure: z.boolean().describe("true si fue un 1 natural."),
+  reasoning: z.string().describe("Razonamiento del árbitro sobre la elección de la prueba."),
+  characterName: z.string().optional().describe("Nombre del personaje que realizó la tirada (ej. 'Galador', 'Merryl')."),
+});
+
+export type SkillCheckResult = z.infer<typeof SkillCheckResultSchema>;
+
 
 
 // Schema for the narrative expert
@@ -45,14 +65,30 @@ export const NarrativeExpertInputSchema = z.object({
     presentEntities: z.array(z.object({}).passthrough()).optional(), // EntitySchema
     deadEntitiesInConnectedLocations: z.record(z.string(), z.array(z.string())).optional().describe("Map of locationId -> array of dead entity names in connected locations")
   }).optional().describe("Context for dungeon exploration: atmosphere, visibility, and hazards."),
+  adventureLore: z.string().optional().describe("A JSON string containing the global adventure lore background, hooks, secrets, and guidelines."),
+  activeEffects: z.array(z.string()).optional().describe("List of active magical/world effects (e.g., ['speak_with_animals'])."),
+  skillCheckResult: SkillCheckResultSchema.optional().describe("Optional result of a mechanical skill check resolved prior to narration."),
+  party: z.array(z.any()).optional().describe("The array of characters in the party, representing their status and inventory."),
+  eventsLog: z.string().optional().describe("Un registro de texto plano con los hechos mecánicos exactos que acaban de ocurrir en el backend y que deben ser descritos en la narración."),
+  narrativeDirectives: z.array(z.string()).optional().describe("Lista de directivas narrativas obligatorias que guían la resolución lógica de este turno y que el DM/experto debe seguir en su prosa."),
 });
 export type NarrativeExpertInput = z.infer<typeof NarrativeExpertInputSchema>;
 
-export const NarrativeExpertOutputSchema = z.object({
+export const NarrativeExpertOutputSchema = z.preprocess((val: any) => {
+  if (val && typeof val === 'object') {
+    if ('dmNaration' in val && !('dmNarration' in val)) {
+      return {
+        ...val,
+        dmNarration: val.dmNaration
+      };
+    }
+  }
+  return val;
+}, z.object({
   dmNarration: z.string().describe("The AI Dungeon Master's primary narration in response to the player's action, formatted in Markdown. This should describe the companion dialogue here."),
   updatedCharacterStats: z.string().optional().nullable().describe("A valid JSON string representing partial updates for any character involved. For example, if a character takes damage, this would be '[{\"id\":\"char-1\", \"hp\": {\"current\": 5}}]'. It should be an array of partial character objects."),
   debugLogs: z.array(z.string()).optional(),
-});
+}));
 export type NarrativeExpertOutput = z.infer<typeof NarrativeExpertOutputSchema>;
 
 
@@ -128,6 +164,8 @@ export const GameStateSchema = z.object({
   }).optional(),
   exploration: ExplorationStateSchema.optional(), // Estado de exploración (Niebla de Guerra)
   openDoors: z.record(z.string(), z.boolean()).optional(), // Map of "locationId:direction" -> isOpen
+  worldState: WorldStateSchema.optional(),
+  selectedCharacterId: z.string().optional(),
 });
 export type GameState = z.infer<typeof GameStateSchema>;
 
@@ -140,6 +178,7 @@ export const ExplorationExpertInputSchema = z.object({
   deadEntities: z.string().optional().describe("Comma-separated list of entity names that have been defeated/killed in this location. The location description may mention them as alive, but they should be described as dead bodies."),
   isKeyMoment: z.boolean().optional().describe("Whether this is a key narrative moment (location change, death, rest)."),
   systemFeedback: z.string().optional().describe("Feedback from the game system, such as movement failure reasons."),
+  conversationHistory: z.string().optional().describe("The recent conversation history containing DM narration and system notes."),
   explorationContext: z.object({
     mode: z.enum(['safe', 'dungeon', 'wilderness']),
     lightLevel: z.enum(['bright', 'dim', 'dark']),
@@ -149,13 +188,28 @@ export const ExplorationExpertInputSchema = z.object({
     presentEntities: z.array(z.object({}).passthrough()).optional(), // EntitySchema
     deadEntitiesInConnectedLocations: z.record(z.string(), z.array(z.string())).optional().describe("Map of locationId -> array of dead entity names in connected locations")
   }).optional().describe("Context for dungeon exploration: atmosphere, visibility, and hazards."),
+  adventureLore: z.string().optional().describe("A JSON string containing the global adventure lore background, hooks, secrets, and guidelines."),
+  activeEffects: z.array(z.string()).optional().describe("List of active magical/world effects (e.g., ['speak_with_animals'])."),
+  skillCheckResult: SkillCheckResultSchema.optional().describe("Optional result of a mechanical skill check resolved prior to narration."),
+  party: z.array(z.any()).optional().describe("The array of characters in the party, representing their status and inventory."),
+  narrativeDirectives: z.array(z.string()).optional().describe("Lista de directivas narrativas obligatorias que guían la resolución lógica de este turno y que el DM/experto debe seguir en su prosa."),
 });
 export type ExplorationExpertInput = z.infer<typeof ExplorationExpertInputSchema>;
 
-export const ExplorationExpertOutputSchema = z.object({
+export const ExplorationExpertOutputSchema = z.preprocess((val: any) => {
+  if (val && typeof val === 'object') {
+    if ('explorationNaration' in val && !('explorationNarration' in val)) {
+      return {
+        ...val,
+        explorationNarration: val.explorationNaration
+      };
+    }
+  }
+  return val;
+}, z.object({
   explorationNarration: z.string().describe("The descriptive narration of the environment and the result of the exploration action."),
   debugLogs: z.array(z.string()).optional(),
-});
+}));
 export type ExplorationExpertOutput = z.infer<typeof ExplorationExpertOutputSchema>;
 
 // Schema for the interaction expert
@@ -164,12 +218,18 @@ export const InteractionExpertInputSchema = z.object({
   npcContext: z.string().describe('A JSON string with the data of the NPCs present, including their personality, attitude, and secrets.'),
   conversationHistory: z.string().optional().describe("A transcript of the last few turns of conversation."),
   interpretedAction: z.string().describe("A JSON string of the structured interpretation of the player's action."),
+  activeEffects: z.array(z.string()).optional().describe("List of active magical/world effects (e.g., ['speak_with_animals'])."),
+  isKeyMoment: z.boolean().optional().describe("Whether this is a key narrative moment."),
+  adventureLore: z.string().optional().describe("A JSON string containing the global adventure lore background, hooks, secrets, storyline, and guidelines."),
+  skillCheckResult: SkillCheckResultSchema.optional().describe("Optional result of a mechanical skill check resolved prior to narration."),
+  party: z.array(z.any()).optional().describe("The array of characters in the party, representing their status and inventory."),
+  narrativeDirectives: z.array(z.string()).optional().describe("Lista de directivas narrativas obligatorias que guían la resolución lógica de este turno y que el DM/experto debe seguir en su prosa."),
 });
 export type InteractionExpertInput = z.infer<typeof InteractionExpertInputSchema>;
 
 export const InteractionExpertOutputSchema = z.object({
   npcResponse: z.string().describe("The dialogue and actions of the NPC(s) in response to the player."),
-  attitudeChange: z.string().nullable().optional().describe("If the NPC's attitude changed, describe the new attitude and why."),
+  attitudeChange: z.enum(['improved', 'worsened']).nullable().optional().describe("If the NPC's attitude changed, 'improved' or 'worsened'. Null means no change."),
   debugLogs: z.array(z.string()).optional(),
 });
 export type InteractionExpertOutput = z.infer<typeof InteractionExpertOutputSchema>;
@@ -180,6 +240,8 @@ export const SkillCheckExpertInputSchema = z.object({
   characterName: z.string().describe('The name of the character attempting the action.'),
   locationContext: z.string().describe('Brief description of the environment/situation.'),
   targetEntity: z.string().optional().describe('Name of entity being targeted (if any).'),
+  adventureLore: z.string().optional().describe('A JSON string containing the global adventure lore background, secrets, hooks, and guidelines.'),
+  conversationHistory: z.string().optional().describe('The recent conversation history to provide immediate context for pronouns, ellipsis, and actions.'),
 });
 export type SkillCheckExpertInput = z.infer<typeof SkillCheckExpertInputSchema>;
 
@@ -188,6 +250,7 @@ export const SkillCheckExpertOutputSchema = z.object({
   difficultyClass: z.number().min(5).max(30).describe("The DC for the check (5=Very Easy, 10=Easy, 15=Med, 20=Hard, 25=Very Hard, 30=Impossible)."),
   suggestedMode: RollModeSchema.describe("Whether the check has Advantage (favorable conditions), Disadvantage (unfavorable), or is Normal."),
   reasoning: z.string().describe("Brief explanation of why this skill/DC/Mode was chosen."),
+  combatOnFailure: z.boolean().optional().describe("If true, a failure on this check should immediately trigger combat (e.g. hostiles attacking upon failing to sneak or intimidate)."),
   narrations: z.object({
     attempt: z.string().describe("Narration of the character STARTING the attempt (before rolling)."),
     success: z.string().describe("Narration of what happens if they SUCCEED."),

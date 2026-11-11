@@ -24,6 +24,7 @@ import { combatInitiationExpertTool } from '../tools/combat-initiation-expert';
 import { log } from '@/lib/logger';
 import { EnemyStateManager } from '@/lib/game/enemy-state-manager';
 import { CombatInitiationService } from '@/lib/combat/combat-initiation-service';
+import { WorldStateManager } from '@/lib/game/world-state-manager';
 
 
 
@@ -134,7 +135,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
         log.debug('Location found in adventure data', {
             module: 'GameCoordinator',
             locationId,
-            locationTitle: currentLocationData.title || 'unknown',
+            locationTitle: currentLocationData.name || currentLocationData.title || 'unknown',
         });
 
         // Log openDoors state for debugging
@@ -177,7 +178,23 @@ export const gameCoordinatorFlow = ai.defineFlow(
             // Context Enrichment: Add implicit destinations for Hubs
             // Send full location context - actionInterpreter needs complete information
             // Only trim very large fields if needed (like huge inventories)
-            const enrichedLocationData = { ...currentLocationData };
+            let enrichedLocationData = { ...currentLocationData };
+            if (input.worldState) {
+                try {
+                    const effectiveContext = WorldStateManager.getEffectiveLocationContext(adventureData, input.worldState, locationId);
+                    enrichedLocationData = effectiveContext.location;
+                    if (effectiveContext.enemies && effectiveContext.enemies.length > 0) {
+                        const existingIds = new Set(currentLocationEnemies.map((e: any) => e.id));
+                        for (const effEnemy of effectiveContext.enemies) {
+                            if (effEnemy?.id && !existingIds.has(effEnemy.id)) {
+                                currentLocationEnemies.push(effEnemy);
+                            }
+                        }
+                    }
+                } catch (err: any) {
+                    log.error('Failed to get effective location context in gameCoordinatorFlow', { error: err.message });
+                }
+            }
             if (currentLocationData.regionId) {
                 const implicitDestinations = adventureData.locations
                     .filter((l: any) => l.regionId === currentLocationData.regionId && l.id !== currentLocationData.id)
@@ -212,6 +229,23 @@ export const gameCoordinatorFlow = ai.defineFlow(
             });
             interpretation = result.interpretation;
             interpreterLogs = result.debugLogs;
+        }
+
+        if (interpretation.actionType === 'clarify') {
+            const clarificationMsg =
+                (interpretation as any).clarificationQuestion ||
+                `No he podido reconocer con seguridad tu acción («${playerAction}»). ¿Podrías aclararla o escribirla de otra forma?`;
+            return {
+                messages: [{
+                    sender: 'System',
+                    senderName: 'DM',
+                    content: `🤔 ${clarificationMsg}`,
+                }],
+                debugLogs: [...debugLogs, ...interpreterLogs, `ActionInterpreter requested clarification: ${clarificationMsg}`],
+                updatedParty: party,
+                inCombat,
+                turnIndex,
+            };
         }
 
         if (inCombat) {
@@ -358,7 +392,14 @@ export const gameCoordinatorFlow = ai.defineFlow(
             // Check if we have valid opponents (anyone not in the party)
             // initiationResult.combatantIds contains IDs of ALL participants (party + enemies)
             const partyIds = party.map(p => (p as any).id);
-            const combatantIds = initiationResult.combatantIds || [];
+            let combatantIds = initiationResult.combatantIds || [];
+            combatantIds = CombatInitiationService.enrichCombatantsWithSmartNPCs(
+                combatantIds,
+                currentLocationData.entitiesPresent,
+                adventureData,
+                playerAction,
+                interpretation.targetId || ''
+            );
 
             // An opponent is anyone in combatantIds who is NOT in partyIds
             const hasOpponents = combatantIds.some(id => !partyIds.includes(id));
@@ -402,7 +443,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
             enemiesByLocation: input.enemiesByLocation,
             enemies: input.enemies,
             explorationState: input.exploration, // Pass current exploration state
-            openDoors: input.openDoors // Pass current door states
+            openDoors: input.openDoors, // Pass current door states
+            worldState: input.worldState
         });
 
         // Merge logs
@@ -460,7 +502,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
                     updatedExplorationState: narrativeResult.updatedExplorationState,
                     updatedOpenDoors: narrativeResult.updatedOpenDoors,
                     diceRolls: narrativeResult.diceRolls,
-                    updatedEnemiesByLocation: combatInitiation.updatedEnemiesByLocation
+                    updatedEnemiesByLocation: combatInitiation.updatedEnemiesByLocation,
+                    worldState: narrativeResult.updatedWorldState
                 };
             }
 
@@ -489,6 +532,7 @@ export const gameCoordinatorFlow = ai.defineFlow(
                     ...(narrativeResult.diceRolls || []),
                     ...(combatResult.diceRolls || [])
                 ],
+                worldState: narrativeResult.updatedWorldState
             };
         }
 
@@ -502,7 +546,8 @@ export const gameCoordinatorFlow = ai.defineFlow(
             updatedWorldTime: narrativeResult.updatedWorldTime,
             updatedExplorationState: narrativeResult.updatedExplorationState, // Return updated state
             updatedOpenDoors: narrativeResult.updatedOpenDoors, // Return updated door states
-            diceRolls: narrativeResult.diceRolls // Propagate dice rolls from narrative turn
+            diceRolls: narrativeResult.diceRolls, // Propagate dice rolls from narrative turn
+            worldState: narrativeResult.updatedWorldState
         };
     }
 );

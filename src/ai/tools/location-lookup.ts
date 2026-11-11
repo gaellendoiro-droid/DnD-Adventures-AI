@@ -35,30 +35,30 @@ export const locationLookupTool = ai.defineTool(
         const entities = adventureData.entities || [];
         const normalizedQuery = query.toLowerCase().trim();
 
-        // Layer 1: Exact match by ID or title. Highest priority.
+        // Layer 1: Exact match by ID or title/name. Highest priority.
         let match = locations.find((loc: any) => 
             (loc.id && loc.id.toLowerCase() === normalizedQuery) || 
-            (loc.title && loc.title.toLowerCase() === normalizedQuery)
+            ((loc.name || loc.title) && (loc.name || loc.title).toLowerCase() === normalizedQuery)
         );
         if (match) {
             log.aiTool('locationLookupTool', 'Location found (exact match)', { 
                 query,
                 locationId: match.id,
-                locationTitle: match.title,
+                locationTitle: match.name || match.title,
             });
             return JSON.stringify(match);
         }
 
-        // Layer 2: Location title *includes* the query.
+        // Layer 2: Location title/name *includes* the query.
         // This is great for "Escudo de Leon" matching "Bazar Escudo de Leon".
         match = locations.find((loc: any) => 
-          loc.title && loc.title.toLowerCase().includes(normalizedQuery)
+          (loc.name || loc.title) && (loc.name || loc.title).toLowerCase().includes(normalizedQuery)
         );
         if (match) {
             log.aiTool('locationLookupTool', 'Location found (partial match)', { 
                 query,
                 locationId: match.id,
-                locationTitle: match.title,
+                locationTitle: match.name || match.title,
             });
             return JSON.stringify(match);
         }
@@ -84,13 +84,13 @@ export const locationLookupTool = ai.defineTool(
         const queryWords = normalizedQuery.split(' ').filter(w => w.length > 2); // ignore small words
         if(queryWords.length > 0) {
             match = locations.find((loc: any) => 
-              loc.title && queryWords.some(word => loc.title.toLowerCase().includes(word))
+              (loc.name || loc.title) && queryWords.some(word => (loc.name || loc.title).toLowerCase().includes(word))
             );
             if (match) {
                 log.aiTool('locationLookupTool', 'Location found (fuzzy match)', { 
                     query,
                     locationId: match.id,
-                    locationTitle: match.title,
+                    locationTitle: match.name || match.title,
                 });
                 return JSON.stringify(match);
             }

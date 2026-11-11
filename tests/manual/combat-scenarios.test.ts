@@ -83,7 +83,7 @@ describe.skip('Manual Combat Scenario', () => {
                 sabiduría: 12,
                 carisma: 10
             },
-            skills: [{ name: 'Atletismo', proficient: true }],
+            skills: [{ name: 'Atletismo', proficient: true, modifier: 5 }],
             proficiencyBonus: 2,
             isDead: false,
             hp: { current: 20, max: 20 },

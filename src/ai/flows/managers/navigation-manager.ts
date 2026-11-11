@@ -2,6 +2,7 @@ import { GameState } from '@/ai/flows/schemas';
 import { Location, Connection, Character } from '@/lib/types';
 import { AdventureDataSchema } from '@/lib/schemas';
 import { z } from 'zod';
+import { EnemyStateManager } from '@/lib/game/enemy-state-manager';
 
 type AdventureData = z.infer<typeof AdventureDataSchema>;
 
@@ -17,7 +18,15 @@ export interface MovementResult {
         minutes: number;
     };
     error?: string;
+    combatTrigger?: {
+        shouldStartCombat: boolean;
+        reason: 'ambush' | 'proximity' | 'stealth_fail' | 'mimic' | 'provocation' | 'player_surprise';
+        message?: string;
+        triggeringEntityIds?: string[];
+    };
 }
+
+
 
 interface ValidationResult {
     allowed: boolean;
@@ -34,6 +43,7 @@ export class NavigationManager {
 
     /**
      * Resolves a movement request from the current location to a target location.
+
      * Supports direct connections, hub movement, and multi-hop pathfinding.
      */
     static async resolveMovement(
@@ -55,12 +65,12 @@ export class NavigationManager {
                 success: false,
                 status: 'already_here',
                 error: `Ya estás en ${targetLocation.name || targetLocation.title}.`,
-                // Don't set newLocationId - we're staying in the same place
             };
         }
 
         // 1. Check for Implicit Hub Movement (Same Region)
         if (currentLocation.regionId && targetLocation.regionId && currentLocation.regionId === targetLocation.regionId) {
+
             return {
                 success: true,
                 status: 'ok',
@@ -97,14 +107,49 @@ export class NavigationManager {
                     status: 'blocked',
                     newLocationId: finalLocationId !== currentLocationId ? finalLocationId : undefined,
                     error: `No puedes continuar: ${validation.reason}`,
-                    // Return partial time passed? For simplicity, we might just say "you get stuck here"
-                    // But if we moved some steps, we should probably update time.
-                    // For now, let's treat it as a hard stop.
+                };
+            }
+
+            // Check for combat trigger in the connection (ambush/interruption)
+            if (step.connection.combatTrigger && step.connection.combatTrigger.shouldStartCombat) {
+                const stepTime = this.calculateTravelTime(step.connection);
+                totalDays += stepTime.days;
+                totalHours += stepTime.hours;
+                totalMinutes += stepTime.minutes;
+
+                const triggerMsg = step.connection.combatTrigger.message || "¡El viaje es interrumpido!";
+                pathNarrationParts.push(triggerMsg);
+
+                finalLocationId = step.toId;
+
+                while (totalMinutes >= 60) {
+                    totalMinutes -= 60;
+                    totalHours += 1;
+                }
+                while (totalHours >= 24) {
+                    totalHours -= 24;
+                    totalDays += 1;
+                }
+
+                return {
+                    success: true, // We successfully reached the location where the combat triggers
+                    status: 'ok',
+                    newLocationId: finalLocationId,
+                    narration: pathNarrationParts.join(" "),
+                    timePassed: { days: totalDays, hours: totalHours, minutes: totalMinutes },
+                    combatTrigger: {
+                        shouldStartCombat: true,
+                        reason: step.connection.combatTrigger.reason as any,
+                        message: step.connection.combatTrigger.message,
+                        triggeringEntityIds: step.connection.combatTrigger.triggeringEntityIds
+                    }
+
                 };
             }
 
             // Accumulate time
             const stepTime = this.calculateTravelTime(step.connection);
+
             totalDays += stepTime.days;
             totalHours += stepTime.hours;
             totalMinutes += stepTime.minutes;

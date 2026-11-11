@@ -38,6 +38,7 @@ export interface CombatTriggerResult {
     surpriseSide?: 'player' | 'enemy';
     message?: string; // Optional narrative reason
     triggeringEntityId?: string; // ID of the entity that triggered combat (e.g. the mimic)
+    triggeringEntityIds?: string[]; // IDs of entities triggering the combat
 }
 
 /**
@@ -109,7 +110,8 @@ export class CombatTriggerEvaluator {
                         shouldStartCombat: true,
                         reason: 'ambush',
                         surpriseSide: 'enemy', // Enemy surprises player
-                        message: ambush.triggerDescription || "¡Emboscada! Enemigos surgen de las sombras."
+                        message: ambush.triggerDescription || "¡Emboscada! Enemigos surgen de las sombras.",
+                        triggeringEntityId: ambush.linkedEntityId || ambush.id
                     };
                 }
             }
@@ -122,7 +124,7 @@ export class CombatTriggerEvaluator {
      * Evaluates interaction results (talking to NPCs, touching objects)
      */
     static evaluateInteraction(input: InteractionTriggerInput): CombatTriggerResult {
-        const { interactionResult, targetId, locationEntities } = input;
+        const { interactionResult, targetId, locationEntities, locationHazards } = input;
 
         // 1. Check for Mimics (Hidden entities that reveal when interacted with)
         if (targetId && locationEntities) {
@@ -166,7 +168,33 @@ export class CombatTriggerEvaluator {
             }
         }
 
-        // 2. Check for social escalation
+        // 2. Check for Hazards triggered by interaction (e.g. Ochre Jelly above Altar)
+        if (targetId && locationHazards) {
+            console.log(`Debug EvalInteraction: Checking target '${targetId}' against ${locationHazards.length} hazards`);
+            const targetLower = targetId.toLowerCase();
+            const hazardTrigger = locationHazards.find(h => {
+                const isActive = h.active !== false; // strict check
+                const descriptionLower = h.description?.toLowerCase() || '';
+                const matches = descriptionLower.includes(targetLower);
+                console.log(` - Hazard '${h.id}': type=${h.type}, active=${h.active}(${isActive}), match=${matches} (desc: ${descriptionLower})`);
+
+                if (h.type !== 'ambush' || h.active === false) return false;
+                // Check if the hazard description mentions the target (e.g. "above the altar")
+                return matches;
+            });
+
+            if (hazardTrigger) {
+                return {
+                    shouldStartCombat: true,
+                    reason: 'ambush',
+                    surpriseSide: 'enemy',
+                    message: hazardTrigger.triggerDescription || "¡Al interactuar, activas una amenaza oculta!",
+                    triggeringEntityId: hazardTrigger.linkedEntityId || hazardTrigger.id
+                };
+            }
+        }
+
+        // 3. Check for social escalation
         if (interactionResult && (interactionResult.escalation || interactionResult.action === 'attack')) {
             return {
                 shouldStartCombat: true,

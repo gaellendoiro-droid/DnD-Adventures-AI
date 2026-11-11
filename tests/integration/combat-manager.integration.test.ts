@@ -2,11 +2,11 @@
 process.env.GOOGLE_API_KEY = 'dummy';
 import { combatManagerTool, executeCombatManager } from '../../src/ai/tools/combat-manager';
 import { describe, it, expect, vi, beforeEach } from 'vitest'; // Assuming vitest or jest
-import { Combatant } from '../../src/lib/types';
+import { Combatant, CombatPhase } from '../../src/lib/types';
 
 // Mock dependencies
-vi.mock('../../src/ai/tools/dice-roller', () => ({
-    diceRollerTool: vi.fn().mockImplementation(async (input) => {
+vi.mock('../../src/ai/tools/dice-roller', () => {
+    const mockFn = vi.fn().mockImplementation(async (input) => {
         if (input.rollNotation) {
             // Mock attack roll
             if (input.rollNotation.includes('1d20')) {
@@ -15,7 +15,8 @@ vi.mock('../../src/ai/tools/dice-roller', () => ({
                     outcome: 'success',
                     rollNotation: input.rollNotation,
                     individualRolls: [{ result: 18 }],
-                    attackType: 'attack_roll'
+                    attackType: 'attack_roll',
+                    attributeUsed: 'FUE'
                 };
             }
             // Mock damage roll
@@ -25,13 +26,18 @@ vi.mock('../../src/ai/tools/dice-roller', () => ({
                     outcome: 'success',
                     rollNotation: input.rollNotation,
                     individualRolls: [{ result: 5 }],
-                    attackType: 'damage_roll'
+                    attackType: 'damage_roll',
+                    attributeUsed: 'FUE'
                 };
             }
         }
-        return { totalResult: 10, outcome: 'success' };
-    })
-}));
+        return { totalResult: 10, outcome: 'success', attributeUsed: 'FUE' };
+    });
+    return {
+        diceRollerTool: mockFn,
+        rollDiceTool: mockFn
+    };
+});
 
 vi.mock('../../src/ai/flows/narrative-manager', () => ({
     narrativeExpert: vi.fn().mockResolvedValue({
@@ -289,5 +295,61 @@ describe('CombatManager Integration', () => {
         expect(result.messages).toBeDefined();
         // Combat may remain active depending on FSM path; just ensure defined
         expect(result.inCombat).toBeDefined();
+    });
+
+    it('should persist enemies status and hp in worldState during combat', async () => {
+        const initialWorldState = {
+            locations: {
+                'loc-1': {
+                    visited: true,
+                    visitedCount: 1,
+                    enemies: [
+                        {
+                            id: 'goblin-1',
+                            hp: { current: 10, max: 10 },
+                            status: 'active' as const
+                        }
+                    ]
+                }
+            },
+            globalFlags: {},
+            recentEvents: []
+        };
+
+        const input = {
+            playerAction: 'Ataco al goblin',
+            inCombat: true,
+            locationId: 'loc-1',
+            interpretedAction: {
+                actionType: 'attack' as const,
+                targetId: 'goblin-1',
+                detectedEntity: 'Goblin'
+            },
+            locationContext: { description: 'Arena' },
+            conversationHistory: [],
+            combatantIds: ['player-1', 'goblin-1'],
+            party: mockParty,
+            initiativeOrder: mockInitiativeOrder,
+            enemies: mockEnemies,
+            turnIndex: 0,
+            phase: CombatPhase.WAITING_FOR_ACTION,
+            worldState: initialWorldState
+        };
+
+        const result = await executeCombatManager(input);
+
+        // Verificar que el worldState devuelto no es undefined y tiene los enemigos actualizados
+        expect(result.worldState).toBeDefined();
+        expect(result.worldState.locations['loc-1']).toBeDefined();
+        expect(result.worldState.locations['loc-1'].enemies).toBeDefined();
+        
+        const worldStateEnemies = result.worldState.locations['loc-1'].enemies;
+        expect(worldStateEnemies.length).toBeGreaterThan(0);
+        
+        const goblinInWorldState = worldStateEnemies.find((e: any) => e.id === 'goblin-1');
+        expect(goblinInWorldState).toBeDefined();
+        // Dado que la tirada de ataque del mock es un éxito y hace 5 de daño, el goblin debería tener 5 HP
+        expect(goblinInWorldState.hp.current).toBe(5);
+        expect(goblinInWorldState.status).toBe('active');
     });
 });

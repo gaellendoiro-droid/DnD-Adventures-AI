@@ -1,7 +1,7 @@
 import type { Character } from "./types";
 
 // Default party preset used when no custom party is provided.
-export const initialParty: Character[] = [
+export const initialPartyLvl1: Character[] = [
   {
     id: "1",
     name: "Galador",
@@ -303,7 +303,14 @@ export const initialParty: Character[] = [
       successes: 0,
       failures: 0,
     },
-    spells: [],
+    spells: [
+      { id: "spell-m1", name: "Descarga de fuego", level: 0, description: "Lanzas una descarga de fuego a un objetivo. Ataque de conjuro a distancia." },
+      { id: "spell-m2", name: "Mano de mago", level: 0, description: "Creas una mano espectral flotante para manipular objetos." },
+      { id: "spell-m3", name: "Ilusión menor", level: 0, description: "Creas un sonido o una imagen de un objeto." },
+      { id: "spell-m4", name: "Proyectil mágico", level: 1, description: "Lanzas 3 dardos mágicos de fuerza que impactan automáticamente." },
+      { id: "spell-m5", name: "Manos ardientes", level: 1, description: "Un cono de fuego que inflige daño a los enemigos en su área." },
+      { id: "spell-m6", name: "Escudo", level: 1, description: "Como reacción, obtienes +5 a la CA y eres inmune a Proyectil Mágico." }
+    ],
   },
   {
     id: "3",
@@ -451,19 +458,125 @@ export const initialParty: Character[] = [
       successes: 0,
       failures: 0,
     },
-    spells: [],
-    // TEMPORALMENTE DESHABILITADO PARA TESTS DE ARMAS - Restaurar después
-    // spells: [
-    //     { id: "spell-1", name: "Luz", level: 0, description: "Haces que un objeto brille como una antorcha." },
-    //     { id: "spell-2", name: "Llama sagrada", level: 0, description: "Una llama divina desciende sobre una criatura, que debe superar una salvación de Destreza o recibir daño radiante." },
-    //     { id: "spell-3", name: "Orientación divina", level: 0, description: "Tocas a una criatura y le otorgas un d4 extra en una prueba de habilidad." },
-    //     // TEMPORALMENTE DESHABILITADO PARA TESTS - Restaurar después de los tests
-    //     // { id: "spell-4", name: "Curar heridas", level: 1, description: "Restauras puntos de golpe a una criatura que toques." },
-    //     { id: "spell-5", name: "Escudo de fe", level: 1, description: "Proteges a una criatura con un campo divino, otorgándole +2 a la CA." },
-    //     // TEMPORALMENTE DESHABILITADO PARA TESTS - Restaurar después de los tests
-    //     // { id: "spell-6", name: "Palabra de curación", level: 1, description: "Curación a distancia como una acción adicional." },
-    //     { id: "spell-7", name: "Infligir heridas", level: 1, description: "Un toque necrótico que causa un gran daño." },
-    // ]
+    spells: [
+      { id: "spell-1", name: "Luz", level: 0, description: "Haces que un objeto brille como una antorcha." },
+      { id: "spell-2", name: "Llama sagrada", level: 0, description: "Una llama divina desciende sobre una criatura, que debe superar una salvación de Destreza o recibir daño radiante." },
+      { id: "spell-3", name: "Orientación divina", level: 0, description: "Tocas a una criatura y le otorgas un d4 extra en una prueba de habilidad." },
+      { id: "spell-4", name: "Curar heridas", level: 1, description: "Restauras puntos de golpe a una criatura que toques." },
+      { id: "spell-5", name: "Escudo de fe", level: 1, description: "Proteges a una criatura con un campo divino, otorgándole +2 a la CA." },
+      { id: "spell-6", name: "Palabra de curación", level: 1, description: "Curación a distancia como una acción adicional." },
+      { id: "spell-7", name: "Infligir heridas", level: 1, description: "Un toque necrótico que causa un gran daño." }
+    ],
   },
 ];
+
+// Helper to deep clone presets
+const clonePreset = <T>(obj: T): T => JSON.parse(JSON.stringify(obj));
+
+// Create Level 4 Preset
+export const initialPartyLvl4: Character[] = clonePreset(initialPartyLvl1);
+
+// Upgrade Galador to Level 4
+const galador = initialPartyLvl4.find(p => p.id === "1");
+if (galador) {
+  galador.level = 4;
+  galador.hp = { current: 36, max: 36 };
+  galador.abilityScores.fuerza = 18;
+  galador.abilityModifiers!.fuerza = 4;
+  
+  const atletismo = galador.skills.find(s => s.name === "Atletismo");
+  if (atletismo) atletismo.modifier = 6;
+  
+  const mandobleAtk = galador.attacks!.find(a => a.name === "Mandoble");
+  if (mandobleAtk) {
+    mandobleAtk.attackBonus = 6;
+    mandobleAtk.damage = "2d6+4";
+  }
+  
+  galador.spellSlots = { level0: 999, level1: 3 };
+  galador.spells = [
+    { id: "p-spell-1", name: "Favor Divino", level: 1, description: "Tus ataques de arma hacen 1d4 de daño radiante adicional." },
+    { id: "p-spell-2", name: "Curar Heridas", level: 1, description: "Curas 1d8 + modificador a una criatura al tocarla." }
+  ];
+  galador.classFeatures!.push({
+    name: "Castigo Divino (Divine Smite)",
+    description: "Cuando golpeas a una criatura con un ataque de arma cuerpo a cuerpo, puedes gastar una ranura de conjuro para infligir 2d8 de daño radiante adicional."
+  });
+}
+
+// Upgrade Merryl to Level 4
+const merryl = initialPartyLvl4.find(p => p.id === "6");
+if (merryl) {
+  merryl.level = 4;
+  merryl.hp = { current: 26, max: 26 };
+  merryl.abilityScores.inteligencia = 19;
+  merryl.abilityModifiers!.inteligencia = 4;
+  
+  for (const s of merryl.skills) {
+    if (["Arcano", "Historia", "Investigación"].includes(s.name)) {
+      s.modifier = 6;
+    } else if (["Naturaleza", "Religión"].includes(s.name)) {
+      s.modifier = 4;
+    }
+  }
+  
+  merryl.spellSlots = { level0: 999, level1: 4, level2: 3 };
+  merryl.spellSaveDC = 14;
+  merryl.spellAttackBonus = 6;
+  
+  merryl.spells = [
+    { id: "spell-m1", name: "Descarga de fuego", level: 0, description: "Lanzas una descarga de fuego a un objetivo. Ataque de conjuro a distancia." },
+    { id: "spell-m2", name: "Mano de mago", level: 0, description: "Creas una mano espectral flotante para manipular objetos." },
+    { id: "spell-m3", name: "Ilusión menor", level: 0, description: "Creas un sonido o una imagen de un objeto." },
+    { id: "spell-m4", name: "Proyectil mágico", level: 1, description: "Lanzas 3 dardos mágicos de fuerza que impactan automáticamente." },
+    { id: "spell-m5", name: "Manos ardientes", level: 1, description: "Un cono de fuego que inflige daño a los enemigos en su área." },
+    { id: "spell-m6", name: "Escudo", level: 1, description: "Como reacción, obtienes +5 a la CA y eres inmune a Proyectil Mágico." },
+    { id: "m-spell-1", name: "Armadura de Mago", level: 1, description: "La CA del objetivo sin armadura pasa a ser 13 + DES mod." },
+    { id: "m-spell-3", name: "Paso Brumoso", level: 2, description: "Como acción adicional, te teletransportas hasta 30 pies a un espacio vacío que veas." },
+    { id: "m-spell-4", name: "Esfera Flameante", level: 2, description: "Invocas una esfera de fuego de 5 pies de diámetro que causa 2d6 de daño de fuego (salvación de DES)." }
+  ];
+}
+
+// Upgrade Elara to Level 4
+const elara = initialPartyLvl4.find(p => p.id === "3");
+if (elara) {
+  elara.level = 4;
+  elara.hp = { current: 31, max: 31 };
+  elara.abilityScores.sabiduría = 18;
+  elara.abilityModifiers!.sabiduría = 4;
+  
+  for (const s of elara.skills) {
+    if (["Perspicacia", "Medicina"].includes(s.name)) {
+      s.modifier = 6;
+    } else if (["Trato con Animales", "Percepción", "Supervivencia"].includes(s.name)) {
+      s.modifier = 4;
+    }
+  }
+  
+  elara.spellSlots = { level0: 999, level1: 4, level2: 3 };
+  elara.spellSaveDC = 14;
+  elara.spellAttackBonus = 6;
+  
+  elara.spells = [
+    { id: "spell-1", name: "Luz", level: 0, description: "Haces que un objeto brille como una antorcha." },
+    { id: "spell-2", name: "Llama sagrada", level: 0, description: "Una llama divina desciende sobre una criatura, que debe superar una salvación de Destreza o recibir daño radiante." },
+    { id: "spell-3", name: "Orientación divina", level: 0, description: "Tocas a una criatura y le otorgas un d4 extra en una prueba de habilidad." },
+    { id: "spell-4", name: "Curar heridas", level: 1, description: "Restauras puntos de golpe a una criatura que toques." },
+    { id: "spell-5", name: "Escudo de fe", level: 1, description: "Proteges a una criatura con un campo divino, otorgándole +2 a la CA." },
+    { id: "spell-6", name: "Palabra de curación", level: 1, description: "Curación a distancia como una acción adicional." },
+    { id: "spell-7", name: "Infligir heridas", level: 1, description: "Un toque necrótico que causa un gran daño." },
+    { id: "c-spell-3", name: "Arma Espiritual", level: 2, description: "Creas un arma flotante que ataca como acción adicional haciendo 1d8 + mod SAB de daño de fuerza." },
+    { id: "c-spell-4", name: "Plegaria de Curación", level: 2, description: "Curas a hasta 6 criaturas que veas 2d8 + mod SAB de vida (tiempo de lanzamiento: 10 minutos)." }
+  ];
+}
+
+// Active party (mutably populated based on selected adventure level)
+export const initialParty: Character[] = clonePreset(initialPartyLvl1);
+
+export function loadPartyPresetForLevel(startLevel: number) {
+  const preset = startLevel >= 4 ? initialPartyLvl4 : initialPartyLvl1;
+  initialParty.length = 0;
+  initialParty.push(...clonePreset(preset));
+  console.log(`[initial-party] Grupo cargado con el preset de Nivel ${startLevel >= 4 ? 4 : 1}`);
+}
 

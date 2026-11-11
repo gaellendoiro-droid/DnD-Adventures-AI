@@ -37,6 +37,13 @@ const combatNarrationPrompt = ai.definePrompt({
   },
   prompt: `You are a D&D 5e Dungeon Master narrating combat actions. Reply in Spanish from Spain.
 
+**CONCORDANCIA DE GÉNERO EN ESPAÑOL (CRÍTICO):**
+- Debes respetar estrictamente el género gramatical correcto en español para cada personaje implicado en el combate.
+- Consulta el listado en \`combatantsContext\` para saber el sexo de los personajes.
+- Si en \`combatantsContext\` se indica que el personaje es de sexo "Varón" (ej: "Varón", "Male"), utiliza adjetivos, pronombres y sustantivos masculinos (ej: "el mago", "silencioso", "herido", "él", "preparado").
+- Si en \`combatantsContext\` se indica que el personaje es de sexo "Mujer" (ej: "Mujer", "Female"), utiliza adjetivos, pronombres y sustantivos femeninos (ej: "la exploradora", "silenciosa", "herida", "ella", "preparada").
+- Presta especial atención a **Merryl** (que es "Varón" / mago) y **Galador** (que es "Varón" / paladín), y a **Elara** (que es "Mujer" / exploradora).
+
 **Generate Complete Combat Narration**
 
 Create a vivid, complete narration of {{{attackerName}}}'s action against {{{targetName}}}.
@@ -49,6 +56,7 @@ Create a vivid, complete narration of {{{attackerName}}}'s action against {{{tar
 **Context:**
 - Action: {{{actionDescription}}}
 - Result: {{{attackResult}}}
+- Combatants: {{{combatantsContext}}}
 {{#if targetKilled}}
 - Target was KILLED - integrate death into narration
 {{/if}}

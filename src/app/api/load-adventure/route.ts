@@ -6,18 +6,33 @@ import { log } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const filename = searchParams.get('filename') || 'el-dragon-del-pico-agujahelada.json';
+    const filename = searchParams.get('filename') || 'public/adventures/el-dragon-del-pico-agujahelada/el-dragon-del-pico-agujahelada.json';
 
     log.info('API: Loading adventure data', { module: 'API', endpoint: '/api/load-adventure', filename });
     
     // Prevent directory traversal
     const safeFilename = filename.replace(/^(\.\.[\/\\])+/, '');
-    const jsonDirectory = path.join(process.cwd(), 'JSON_adventures');
-    const filePath = path.join(jsonDirectory, safeFilename);
+    
+    // Map legacy filenames to new paths for backward compatibility
+    let resolvedFilename = safeFilename;
+    if (resolvedFilename === 'el-dragon-del-pico-agujahelada.json') {
+      resolvedFilename = 'public/adventures/el-dragon-del-pico-agujahelada/el-dragon-del-pico-agujahelada.json';
+    } else if (resolvedFilename === 'el-dragon-del-pico-agujahelada_short.json') {
+      resolvedFilename = 'public/adventures/el-dragon-del-pico-agujahelada/el-dragon-del-pico-agujahelada_short.json';
+    }
 
-    // Ensure the resolved path is within the JSON_adventures directory
+    let filePath: string;
+    const baseDirectory = path.join(process.cwd(), 'public', 'adventures');
+
+    if (resolvedFilename.startsWith('public/adventures/') || resolvedFilename.startsWith('public\\adventures\\')) {
+      filePath = path.join(process.cwd(), resolvedFilename);
+    } else {
+      filePath = path.join(baseDirectory, resolvedFilename);
+    }
+
+    // Ensure the resolved path is within the allowed directories
     const resolvedPath = path.resolve(filePath);
-    if (!resolvedPath.startsWith(path.resolve(jsonDirectory))) {
+    if (!resolvedPath.startsWith(path.resolve(baseDirectory))) {
         throw new Error('Invalid filename path');
     }
 

@@ -120,7 +120,7 @@ export function MusicManager({ locationId, inCombat, adventureData, volumeSettin
         if (advData && advData.locations) {
             const loc = advData.locations.find((l: any) => l.id === locId);
             if (loc) {
-                const text = (loc.title + ' ' + loc.description).toLowerCase();
+                const text = ((loc.name || loc.title || '') + ' ' + loc.description).toLowerCase();
                 if (text.includes('bosque')) return 'forest';
                 if (text.includes('ciudad') || text.includes('pueblo')) return 'city';
                 if (text.includes('cueva') || text.includes('mina')) return 'cave';

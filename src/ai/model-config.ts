@@ -15,4 +15,15 @@
  * @ai_warning ALWAYS use 'gemini-2.5-flash' or newer (e.g., 'gemini-3.0-pro').
  * @ai_warning Current Knowledge Cutoff: 2026+ (Simulated).
  */
-export const GEMINI_MODEL_NAME = 'googleai/gemini-2.5-flash';
+export const DEFAULT_GEMINI_MODEL = 'googleai/gemini-3.5-flash';
+export const DEFAULT_GROQ_MODEL = 'groq/qwen/qwen3.8-27b';
+
+/**
+ * Modelo activo. Orden de resolución:
+ *  1. `GEMINI_MODEL` en `.env` (admite `googleai/...` o `groq/...`).
+ *  2. Si hay `GROQ_API_KEY` configurada, el modelo por defecto de Groq.
+ *  3. En otro caso, Gemini (solo requiere `GOOGLE_GENAI_API_KEY`).
+ */
+export const GEMINI_MODEL_NAME =
+    process.env.GEMINI_MODEL ||
+    (process.env.GROQ_API_KEY ? DEFAULT_GROQ_MODEL : DEFAULT_GEMINI_MODEL);

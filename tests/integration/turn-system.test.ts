@@ -25,7 +25,7 @@ vi.mock('@/ai/tools/dice-roller', () => ({
 
 describe('Sistema de Turnos Paso a Paso - Integración', () => {
   // Mock data for tests
-  const mockParty: Character[] = [
+  const mockParty: any[] = [
     {
       id: 'player-1',
       name: 'Galador',
@@ -272,7 +272,7 @@ describe('Sistema de Turnos Paso a Paso - Integración', () => {
   describe('Orden de Iniciativa - Validación', () => {
     it('should maintain correct initiative order', () => {
       // Verify initiative order is descending
-      const initiatives = mockInitiativeOrder.map(c => c.initiative);
+      const initiatives = mockInitiativeOrder.map(c => c.initiative || 0);
       const sorted = [...initiatives].sort((a, b) => b - a);
       
       expect(initiatives).toEqual(sorted);

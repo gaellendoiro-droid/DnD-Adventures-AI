@@ -12,7 +12,7 @@ describe('persistentFetch', () => {
     const response: any = await fetchWithPool('https://example.com/data');
 
     expect(baseFetch).toHaveBeenCalledTimes(1);
-    const callInit = baseFetch.mock.calls[0][1] as RequestInit;
+    const callInit = baseFetch.mock.calls[0][1] as any;
     expect(callInit?.dispatcher).toBeDefined();
     expect(response.ok).toBe(true);
   });
@@ -27,10 +27,8 @@ describe('persistentFetch', () => {
     const response: any = await fetchWithPool('/api/internal');
 
     expect(baseFetch).toHaveBeenCalledTimes(1);
-    const callInit = baseFetch.mock.calls[0][1] as RequestInit;
+    const callInit = baseFetch.mock.calls[0][1] as any;
     expect(callInit?.dispatcher).toBeUndefined();
     expect(response.ok).toBe(true);
   });
 });
-
-

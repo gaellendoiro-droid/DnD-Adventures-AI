@@ -11,17 +11,18 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { generateAudioDirectWithRetry } from '@/lib/tts/eleven-labs-direct';
+import { generateGeminiAudioDirectWithRetry } from '@/lib/tts/gemini-tts-direct';
 
 const GenerateDmNarrationAudioInputSchema = z.object({
   narrationText: z.string().describe('The text to be converted to speech.'),
-  voiceId: z.string().optional().describe('Optional voice ID to use. If not provided, uses ELEVENLABS_VOICE_ID from environment.'),
+  voiceId: z.string().optional().describe('Optional voice ID to use for ElevenLabs or voiceName for Gemini. If not provided, uses defaults from environment.'),
 });
 export type GenerateDmNarrationAudioInput = z.infer<
   typeof GenerateDmNarrationAudioInputSchema
 >;
 
 const GenerateDmNarrationAudioOutputSchema = z.object({
-  audioDataUri: z.string().describe('The generated audio as a data URI (MP3 format).'),
+  audioDataUri: z.string().describe('The generated audio as a data URI.'),
 });
 export type GenerateDmNarrationAudioOutput = z.infer<
   typeof GenerateDmNarrationAudioOutputSchema
@@ -40,30 +41,38 @@ const generateDmNarrationAudioFlow = ai.defineFlow(
     outputSchema: GenerateDmNarrationAudioOutputSchema,
   },
   async (input) => {
-    // Obtener voice ID desde input o variable de entorno
-    // El usuario tiene la voz "GrandPa Spuds Oxley" - necesita configurar el ID en ELEVENLABS_VOICE_ID
-    const voiceId = input.voiceId || process.env.ELEVENLABS_VOICE_ID;
+    const provider = (process.env.TTS_PROVIDER || 'gemini').toLowerCase();
 
-    if (!voiceId) {
-      throw new Error('ELEVENLABS_VOICE_ID no está configurado. Por favor, configura la variable de entorno o proporciona voiceId en el input.');
+    if (provider === 'gemini') {
+      const voiceName = input.voiceId || process.env.GEMINI_TTS_VOICE || 'Aoede';
+      const response = await generateGeminiAudioDirectWithRetry(input.narrationText, {
+        voiceName,
+      });
+
+      return {
+        audioDataUri: response.audioDataUri,
+      };
+    } else {
+      // Por defecto fallback a Eleven Labs
+      const voiceId = input.voiceId || process.env.ELEVENLABS_VOICE_ID;
+
+      if (!voiceId) {
+        throw new Error('ELEVENLABS_VOICE_ID no está configurado. Por favor, configura la variable de entorno o proporciona voiceId en el input.');
+      }
+
+      // Configuración optimizada para narración de DM
+      const response = await generateAudioDirectWithRetry(input.narrationText, {
+        voiceId,
+        modelId: process.env.ELEVENLABS_MODEL_ID || 'eleven_multilingual_v2',
+        stability: 0.5,
+        similarityBoost: 0.75,
+        style: 0.0,
+        useSpeakerBoost: true,
+      });
+
+      return {
+        audioDataUri: response.audioDataUri,
+      };
     }
-
-    // Configuración optimizada para narración de DM
-    // Stability: 0.5 - Balance entre consistencia y expresividad
-    // Similarity Boost: 0.75 - Mantener características de la voz
-    // Style: 0.0 - Estilo neutral para narración objetiva
-    // Use Speaker Boost: true - Mejorar claridad y presencia
-    const response = await generateAudioDirectWithRetry(input.narrationText, {
-      voiceId,
-      modelId: process.env.ELEVENLABS_MODEL_ID || 'eleven_multilingual_v2',
-      stability: 0.5,
-      similarityBoost: 0.75,
-      style: 0.0,
-      useSpeakerBoost: true,
-    });
-
-    return {
-      audioDataUri: response.audioDataUri,
-    };
   }
 );

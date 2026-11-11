@@ -30,13 +30,21 @@ const enemyTacticianPrompt = ai.definePrompt({
   {{#each enemies}}
   - **{{this.name}}** (ID: {{this.id}}, Status: {{this.hp}})
   {{/each}}
+{{#if availableActions}}
+- **Your Available Statblock Actions (STRICT - ONLY USE THESE):**
+  {{#each availableActions}}
+  - **{{this.name}}**: {{this.desc}}
+  {{/each}}
+{{/if}}
 - **Recent Events:**
   \`\`\`
   {{{conversationHistory}}}
   \`\`\`
 
 **Your Task:**
-1.  **CRITICAL - You MUST choose a combat action:** You MUST select an action for **{{{activeCombatant}}}**. "No hacer nada" is FORBIDDEN unless the monster is dead or unconscious. You MUST attack, use an ability, or take another combat action. If you don't know the monster's abilities, use the \`dndApiLookupTool\` to look up **{{{activeCombatant}}}** and find its available actions (attacks, special abilities, etc.).
+1.  **CRITICAL - You MUST choose a combat action:** You MUST select an action for **{{{activeCombatant}}}**. "No hacer nada" is FORBIDDEN unless the monster is dead or unconscious. You MUST attack, use an ability, or take another combat action.
+    - **If "Your Available Statblock Actions" is listed above:** You MUST strictly pick one of those exact actions (e.g., if it lists "Espadón", use "Ataque con Espadón"). Do NOT invent spells, ranged weapons, or abilities that are not in that list, and do NOT call \`dndApiLookupTool\` if actions are already provided above.
+    - **Only if no available actions are listed above:** Use the \`dndApiLookupTool\` to look up **{{{activeCombatant}}}** and find its available actions.
 2.  **Analyze & Decide:** Choose the best tactical action. Usually, this means attacking the most injured or threatening player. For monsters like Mimics, use their Pseudopod attack. For goblins, use their scimitar. Always choose an aggressive action.
 3.  **Generate JSON Output:** Fill out the following fields based on your decision. The output MUST be a valid JSON object matching the required schema.
 
@@ -53,26 +61,12 @@ const enemyTacticianPrompt = ai.definePrompt({
 **OUTPUT FORMAT (CRITICAL):**
 - You MUST return ONLY a valid JSON object. Do NOT wrap it in markdown code blocks (\`\`\`json\`\`\`).
 - Do NOT include any text before or after the JSON.
-- The JSON must match this exact structure:
-
-Example output for a Goblin attacking with a scimitar:
-{
-  "actionDescription": "Ataque con Cimitarra",
-  "targetId": "player-1",
-  "diceRolls": []
-}
-
-Example output for a Mimic using its Pseudopod attack:
-{
-  "actionDescription": "Ataque con Pseudópodo",
-  "targetId": "player-1",
-  "diceRolls": []
-}
-
+Return a valid JSON object matching the schema. Do NOT include any markdown code blocks. The JSON must contain "actionDescription", "targetId", and "diceRolls" (an array of rolls).
+ 
 **FORBIDDEN OUTPUTS:**
 - "No hacer nada" - This is NEVER a valid action unless the monster is dead/unconscious.
 - Empty or null actionDescription - You MUST provide a combat action.
-
+ 
 Return ONLY the JSON object, nothing else.`,
 });
 

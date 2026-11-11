@@ -11,6 +11,13 @@ import { characterLookupTool } from './character-lookup';
 import { PartySchema, CharacterSchema } from '@/lib/schemas';
 import { log } from '@/lib/logger';
 import { executePromptWithRetry } from '../flows/retry-utils';
+import { SkillCheckResultSchema } from '../flows/schemas';
+import {
+    applyHiddenIdentityTerms,
+    isBehindCommunicationBarrier,
+    loadActiveAdventureHiddenTerms,
+    maskEntityBehindBarrier,
+} from '@/lib/game/communication-barrier';
 
 const CompanionExpertInputSchema = z.object({
     party: PartySchema.describe("The array of character objects for the entire party."),
@@ -19,6 +26,10 @@ const CompanionExpertInputSchema = z.object({
     inCombat: z.boolean().describe("Whether the party is currently in combat."),
     reactionTiming: z.enum(['before_dm', 'after_dm']).optional().describe("When this reaction is being generated: 'before_dm' (reacting to player's proposal) or 'after_dm' (reacting to what just happened)."),
     chatHistory: z.string().optional().describe("The recent chat history (last 8-10 messages) to provide context."),
+    locationContext: z.string().optional().describe("The description or details of the current location."),
+    presentEntities: z.array(z.any()).optional().describe("The list of entities (NPCs, items, monsters) present in the location."),
+    activeEffects: z.array(z.string()).optional().describe("The active world or magical effects (e.g. ['speak_with_animals'])."),
+    skillCheckResult: SkillCheckResultSchema.optional().describe("Optional result of a mechanical skill check resolved prior to narration."),
 });
 
 const CompanionExpertOutputSchema = z.object({
@@ -35,6 +46,10 @@ const reactionGenerationPrompt = ai.definePrompt({
             chatHistory: z.string().optional(),
             isBeforeDm: z.boolean().optional(),
             isAfterDm: z.boolean().optional(),
+            locationContext: z.string().optional(),
+            presentEntities: z.array(z.any()).optional(),
+            activeEffects: z.array(z.string()).optional(),
+            skillCheckResult: SkillCheckResultSchema.optional(),
         })
     },
     output: { schema: CompanionExpertOutputSchema },
@@ -47,6 +62,31 @@ const reactionGenerationPrompt = ai.definePrompt({
     {{{json character}}}
     \`\`\`
     
+    {{#if locationContext}}
+    **Current Location Context:**
+    {{{locationContext}}}
+    {{/if}}
+
+    {{#if presentEntities}}
+    **Entities Present in the Location (NPCs, Monsters, Items):**
+    \`\`\`json
+    {{{json presentEntities}}}
+    \`\`\`
+    {{/if}}
+
+    {{#if activeEffects}}
+    **Active Magical/World Effects:**
+    - {{{json activeEffects}}}
+    {{/if}}
+
+    {{#if skillCheckResult}}
+    **Prueba de Habilidad Mecánica Reciente:**
+    - Habilidad: {{skillCheckResult.skill}} (CD {{skillCheckResult.dc}})
+    - Realizada por: {{skillCheckResult.characterName}}
+    - Resultado: {{#if skillCheckResult.isSuccess}}ÉXITO{{else}}FALLO{{/if}} (Total: {{skillCheckResult.rollTotal}})
+    - Justificación: {{skillCheckResult.reasoning}}
+    {{/if}}
+
     **Current Situation:**
     "{{{context}}}"
 
@@ -81,8 +121,21 @@ const reactionGenerationPrompt = ai.definePrompt({
     - **CRITICAL: Do not use Markdown.** The output must be plain text.
     - Your output MUST be a valid JSON object matching the schema.
     - Keep actions concise (1-2 sentences maximum).
-    - If the character does nothing, return an empty string for the action inside the JSON object, like this: {"action": ""}.
+    - If the character does nothing, return an empty string for the "action" field inside the JSON object.
     - DO NOT repeat what was already said or narrated. Add something NEW.
+    - **ESTILO DE DIÁLOGO DIRECTO (PROHIBIDO EL ESTILO INDIRECTO):**
+      - Escribe siempre las palabras literales que pronuncia tu personaje en primera persona (puedes acompañarlas de un gesto físico breve si aporta valor, p. ej.: *Me acerco con cautela al animal. «Tranquila, pequeña, ¿qué intentas decirnos?»* o directamente el diálogo: *«Esa oveja parece aterrorizada, Galador. Abre ese pergamino a ver qué lleva.»*).
+      - **ESTÁ TERMINANTEMENTE PROHIBIDO** escribir resúmenes en estilo indirecto como si fueras un jugador dándole órdenes al DM (ej. NUNCA escribas *"Le hablo a la oveja, preguntándole qué mensaje lleva y cómo podemos ayudarla"*).
+    - **COHERENCIA FÍSICA Y DE POSESIÓN:**
+      - Respeta quién está ejecutando la acción y quién tiene cada objeto según 'Your Character's Details' ('inventory') y 'Current Situation'. Si otro miembro del grupo (como Galador) es quien coge o sostiene el pergamino y tú no lo tienes en tu inventario, NO hables como si lo tuvieras tú en las manos ni digas *"déjame leerlo con calma"* hasta que te lo entreguen.
+    - **SIN METAJUEGO NI SPOILERS (CRÍTICO):**
+      - NUNCA adivines ni reveles qué hechizo contiene un pergamino enrollado ni el nombre oculto de un animal/NPC a menos que ya se haya revelado explícitamente en el historial de conversación o mediante una tirada de habilidad exitosa en este turno (\`skillCheckResult.isSuccess === true\`).
+      - Si alguien simplemente recoge o sostiene un pergamino sin haberlo leído aún, refiérete a él únicamente como "el pergamino" o "ese pergamino".
+      - Si \`skillCheckResult\` indica **FALLO**, expresa duda o desconocimiento sin desvelar las propiedades del objeto.
+    - **ACTIVE EFFECTS & COMMUNICATION BARRIERS:**
+      - If "speak_with_animals" IS in 'Active Magical/World Effects', any communication barriers with animals are bypassed. You can understand them and converse with them fully.
+      - If "speak_with_animals" is **NOT** in 'Active Magical/World Effects', you **CANNOT** understand animal sounds (such as bleating or barking) yet. NEVER say *"Entiendo tu balido"* or pretend you understand what the animal says until "speak_with_animals" is active.
+      - Remember the difference between **deciphering/identifying** a scroll (learning its title while the scroll stays intact in inventory) vs **casting/reading** it aloud (consuming it and activating the spell). If someone already took the scroll from the animal's mouth (check party inventories or recent history), NEVER tell the animal to drop it from its mouth.
     `,
 });
 
@@ -126,6 +179,55 @@ export const companionExpertTool = ai.defineTool(
                 reactionTiming: input.reactionTiming || 'after_dm',
             });
 
+            const hasSpeakWithAnimals = Array.isArray(input.activeEffects) && input.activeEffects.includes('speak_with_animals');
+            const canRevealScrollIdentity = hasSpeakWithAnimals || Boolean(input.skillCheckResult?.isSuccess);
+            const scrollHolder = party.find((c) =>
+                c.inventory?.some((it) => /pergamino|scroll/i.test(`${it.id || ''} ${it.name || ''}`))
+            );
+            const isScrollAlreadyTakenFromAnimal = Boolean(scrollHolder) || hasSpeakWithAnimals;
+
+            // Términos de spoiler declarados en los datos de la aventura (roleplay.hiddenIdentityTerms)
+            const hiddenTerms = hasSpeakWithAnimals ? [] : await loadActiveAdventureHiddenTerms();
+
+            // Filtrar secretos de DM en presentEntities para que los compañeros de grupo no hagan metajuego ni spoilers
+            const sanitizedEntities = Array.isArray(input.presentEntities)
+                ? input.presentEntities.map((ent: any) => {
+                      if (!ent || typeof ent !== 'object') return ent;
+                      if (!hasSpeakWithAnimals && isBehindCommunicationBarrier(ent)) {
+                          const masked = maskEntityBehindBarrier(ent, hiddenTerms);
+                          return {
+                              id: masked.id,
+                              name: masked.name,
+                              type: masked.type,
+                              description: masked.description,
+                          };
+                      }
+                      return {
+                          id: ent.id,
+                          name: ent.name,
+                          type: ent.type,
+                          description: ent.description,
+                      };
+                  })
+                : input.presentEntities;
+
+            let sanitizedLocationContext = input.locationContext;
+            if (typeof sanitizedLocationContext === 'string') {
+                sanitizedLocationContext = applyHiddenIdentityTerms(sanitizedLocationContext, hiddenTerms);
+                if (!canRevealScrollIdentity) {
+                    sanitizedLocationContext = sanitizedLocationContext
+                        .replace(/Pergamino de Hablar con (los )?Animales/gi, 'pergamino enrollado')
+                        .replace(/Hablar con (los )?Animales/gi, 'magia desconocida')
+                        .replace(/Speak with Animals/gi, 'unknown magic');
+                }
+                if (isScrollAlreadyTakenFromAnimal) {
+                    sanitizedLocationContext = sanitizedLocationContext
+                        .replace(/y os ofrece un pergamino[^.]*fauces\./gi, `(el grupo ya ha recogido el pergamino que traía; actualmente lo tiene ${scrollHolder ? scrollHolder.name : 'el grupo'}).`)
+                        .replace(/sujeta firmemente entre sus fauces/gi, 'traía consigo (ya recogido por el grupo)')
+                        .replace(/sujeto en la boca/gi, 'ya entregado al grupo');
+                }
+            }
+
             // STEP 2: Call the LLM with all context provided. No tools needed.
             const response = await executePromptWithRetry(
                 reactionGenerationPrompt,
@@ -135,8 +237,12 @@ export const companionExpertTool = ai.defineTool(
                     chatHistory: input.chatHistory,
                     isBeforeDm: input.reactionTiming === 'before_dm',
                     isAfterDm: input.reactionTiming === 'after_dm' || !input.reactionTiming,
+                    locationContext: sanitizedLocationContext,
+                    presentEntities: sanitizedEntities,
+                    activeEffects: input.activeEffects,
+                    skillCheckResult: input.skillCheckResult,
                 },
-                { flowName: 'companionExpert' }
+                { flowName: 'companionExpert', maxRetries: 1 }
             );
             const { output } = response;
 

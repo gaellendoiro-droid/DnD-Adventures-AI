@@ -48,6 +48,7 @@ firestore-debug.log
 /public/sound/
 # debug output
 debug_output*.txt
+/scratch/
 
 # agent artifacts
 .agent/

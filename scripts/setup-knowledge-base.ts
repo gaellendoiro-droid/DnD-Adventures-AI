@@ -25,7 +25,7 @@ async function main() {
     try {
         // Debug: Check connectivity
         console.log("📡 Probando conexión con Gemini API...");
-        const genAI = new GoogleGenerativeAI(API_KEY);
+        const genAI = new GoogleGenerativeAI(API_KEY!);
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContent("Hola");
         console.log("✅ Conexión básica exitosa. Respuesta:", result.response.text());

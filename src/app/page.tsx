@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Character, GameMessage, DiceRoll, Combatant } from "@/lib/types";
-import { initialParty } from "@/lib/initial-party";
+import { initialParty, loadPartyPresetForLevel } from "@/lib/initial-party";
 import { AppHeader } from "@/components/layout/app-header";
 import { MainMenu } from "@/components/game/main-menu";
 import { GameView } from "@/components/game/game-view";
@@ -122,6 +122,10 @@ export default function Home() {
       }, 3, 100);
 
       setLoadStep('initializing');
+
+      // Cargar preset de nivel adecuado para la aventura
+      const startLevel = parsedAdventure.adventureData.levelRange?.start || 1;
+      loadPartyPresetForLevel(startLevel);
 
       // 4. Initialize Game (Cache + First Action)
       const { initializeGame } = await import('@/lib/adventure-loader/game-initializer');

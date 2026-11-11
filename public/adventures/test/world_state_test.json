@@ -1,0 +1,178 @@
+{
+    "adventureId": "world-state-test",
+    "title": "Campo de Pruebas de World State",
+    "summary": "Una aventura técnica diseñada específicamente para validar el comportamiento del World State: saqueo persistente de cofres, memoria de eventos de combate, identidades ocultas de NPCs y mecánicas de descanso temporal.",
+    "introductoryNarration": "Os encontráis en el Campamento Base, una pequeña zona despejada en el bosque antes de adentraros en las ruinas. El aire es tranquilo y es el lugar idóneo para descansar antes del peligro.",
+    "system": "D&D 5e",
+    "levelRange": {
+        "start": 1,
+        "end": 3
+    },
+    "settings": {
+        "startingLocationId": "campamento-base",
+        "initialPartySize": 3
+    },
+    "items": [
+        {
+            "id": "pocion-curacion",
+            "name": "Poción de Curación",
+            "type": "consumible",
+            "rarity": "común",
+            "description": "Un frasco de vidrio lleno de un líquido rojo brillante. Restaura 2d4 + 2 puntos de golpe al beberse."
+        },
+        {
+            "id": "llave-calabozo",
+            "name": "Llave del Calabozo",
+            "type": "objeto clave",
+            "rarity": "común",
+            "description": "Una llave de hierro pesada y oxidada con runas grabadas en la empuñadura."
+        },
+        {
+            "id": "pergamino-rayo-fuego",
+            "name": "Pergamino de Rayo de Fuego",
+            "type": "pergamino",
+            "rarity": "común",
+            "description": "Un rollo de pergamino que contiene el conjuro Rayo de Fuego."
+        }
+    ],
+    "entities": [
+        {
+            "id": "trasgo-guardian",
+            "name": "Trasgo Guardián",
+            "type": "monster",
+            "description": "Un trasgo pequeño armado con una cimitarra oxidada y un escudo de cuero.",
+            "dmNotes": "Tiene 7 HP, CA 15 y un ataque de cimitarra (+4 a golpear, 1d6 + 2 de daño)."
+        },
+        {
+            "id": "npc-misterioso",
+            "name": "Anciano Misterioso",
+            "type": "npc",
+            "description": "Un anciano encapuchado que viste túnicas desgastadas. Parece asustado y murmurar sobre magia de transmutación.",
+            "trueIdentity": {
+                "name": "Finethir Shinebright",
+                "description": "Un mago elfo de avanzada edad que ha sido transformado en oveja.",
+                "roleplay": {
+                    "personality": "Asustadizo, inteligente pero frustrado por su condición actual.",
+                    "voiceAndMannerisms": "Tono refinado y lenguaje culto, impropio de un anciano vagabundo.",
+                    "goals": "Recuperar su varita de transmutación para revertir el hechizo.",
+                    "secretsKnown": [
+                        "En realidad es un mago elfo que fue transformado en oveja por su aprendiz rebelde.",
+                        "Sabe dónde se esconde el aprendiz con la varita de transmutación."
+                    ]
+                }
+            },
+            "roleplay": {
+                "personality": "Parece asustado y murmurar sobre magia de transmutación.",
+                "voiceAndMannerisms": "Tono asustadizo, esquiva la mirada.",
+                "goals": "Encontrar ayuda."
+            },
+            "dmNotes": "Su verdadera identidad se revelará cuando los jugadores le pregunten por qué tiene conocimientos mágicos tan avanzados o usen perspicacia con éxito."
+        }
+    ],
+    "locations": [
+        {
+            "id": "campamento-base",
+            "title": "Campamento Base",
+            "description": "Un claro del bosque seguro y protegido del viento. Una hoguera apagada marca el centro de vuestro refugio improvisado. Es un lugar idóneo para tomar un respiro y descansar.",
+            "explorationMode": "safe",
+            "lightLevel": "bright",
+            "entitiesPresent": [],
+            "interactables": [],
+            "connections": [
+                {
+                    "targetId": "camara-del-cofre",
+                    "type": "direct",
+                    "direction": "norte",
+                    "description": "Un arco de piedra derrumbado sirve de entrada a una cámara oculta."
+                }
+            ],
+            "dmNotes": "Habitación segura donde los descansos cortos o largos no tienen riesgo de emboscadas."
+        },
+        {
+            "id": "camara-del-cofre",
+            "title": "Cámara del Cofre",
+            "description": "Una pequeña cripta de piedra húmeda. En el centro, sobre un altar agrietado, hay un cofre de madera reforzado. Hacia el este se oyen gruñidos y pasos pesados.",
+            "explorationMode": "dungeon",
+            "lightLevel": "dim",
+            "entitiesPresent": [],
+            "interactables": [
+                {
+                    "id": "cofre-tesoro",
+                    "name": "Cofre del Altar",
+                    "type": "container",
+                    "description": "Un cofre de madera reforzada con hierro, parcialmente cubierto de polvo.",
+                    "state": "closed",
+                    "items": [
+                        "pocion-curacion",
+                        "llave-calabozo"
+                    ]
+                }
+            ],
+            "connections": [
+                {
+                    "targetId": "campamento-base",
+                    "type": "direct",
+                    "direction": "sur",
+                    "description": "El arco de piedra que regresa al campamento base exterior."
+                },
+                {
+                    "targetId": "sala-de-guardia",
+                    "type": "direct",
+                    "direction": "este",
+                    "description": "Una puerta entreabierta de donde provienen los ruidos de pasos."
+                },
+                {
+                    "targetId": "santuario-oculto",
+                    "type": "direct",
+                    "direction": "norte",
+                    "description": "Una gran verja de hierro reforzado que bloquea el paso hacia una sala con velas.",
+                    "isLocked": true,
+                    "requiredKeyId": "llave-calabozo",
+                    "lockpickDC": 15,
+                    "breakDC": 20
+                }
+            ],
+            "dmNotes": "El cofre contiene la llave del calabozo necesaria para abrir la verja de hierro al norte."
+        },
+        {
+            "id": "sala-de-guardia",
+            "title": "Sala de Guardia",
+            "description": "Una estancia militar en ruinas repleta de basura y huesos roídos. Un trasgo vigila la zona distraídamente.",
+            "explorationMode": "dungeon",
+            "lightLevel": "dim",
+            "entitiesPresent": [
+                "trasgo-guardian"
+            ],
+            "interactables": [],
+            "connections": [
+                {
+                    "targetId": "camara-del-cofre",
+                    "type": "direct",
+                    "direction": "oeste",
+                    "description": "El pasaje de vuelta a la cámara del cofre."
+                }
+            ],
+            "dmNotes": "Al entrar los personajes aquí, se iniciará el combate contra el trasgo."
+        },
+        {
+            "id": "santuario-oculto",
+            "title": "Santuario Oculto",
+            "description": "Una tranquila capilla iluminada por velas parpadeantes de color azul. Un anciano encapuchado reza arrodillado frente a un altar cubierto de flores secas.",
+            "explorationMode": "safe",
+            "lightLevel": "bright",
+            "entitiesPresent": [
+                "npc-misterioso"
+            ],
+            "interactables": [],
+            "connections": [
+                {
+                    "targetId": "camara-del-cofre",
+                    "type": "direct",
+                    "direction": "sur",
+                    "description": "La verja de hierro que conecta con la cámara del cofre."
+                }
+            ],
+            "dmNotes": "Aquí aguarda el mago disfrazado para probar la revelación de identidades (PIB)."
+        }
+    ]
+}

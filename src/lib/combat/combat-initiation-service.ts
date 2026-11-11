@@ -327,9 +327,68 @@ export class CombatInitiationService {
 
         // 2. Fallback: Load from adventureData if not in state
         if (combatEnemies.length === 0 && locationData.entitiesPresent) {
-            combatEnemies = locationData.entitiesPresent.map((id: string) =>
-                adventureData.entities?.find((e: any) => e.id === id)
-            ).filter((e: any) => e);
+            const enemyGroups = new Map<string, number>(); // Map<baseId, currentIndex>
+            combatEnemies = locationData.entitiesPresent.map((rawEntry: any) => {
+                const id = typeof rawEntry === 'string' ? rawEntry : rawEntry?.entityId;
+                if (!id) return null;
+                const entity = adventureData.entities?.find((e: any) => e.id === id);
+                if (!entity) return null;
+
+                // Allow enemies and monsters by default
+                let shouldInclude = entity.type === 'enemy' || entity.type === 'monster';
+
+                // Smart check for NPCs to avoid pulling ambient/unrelated NPCs into combat
+                if (!shouldInclude && entity.type === 'npc') {
+                    const targetId = request.interpretedAction?.targetId;
+                    const triggeringIds = request.triggerResult?.triggeringEntityIds || [];
+                    const triggeringId = triggeringEntityId || request.triggerResult?.triggeringEntityId;
+
+                    const isTarget = targetId ? (
+                        targetId === entity.id ||
+                        targetId.toLowerCase().includes(entity.id.toLowerCase()) ||
+                        entity.id.toLowerCase().includes(targetId.toLowerCase()) ||
+                        (entity.name && (
+                            targetId.toLowerCase().includes(entity.name.toLowerCase()) ||
+                            entity.name.toLowerCase().includes(targetId.toLowerCase())
+                        ))
+                    ) : false;
+
+                    const isTrigger = (triggeringId && triggeringId === entity.id) ||
+                                     triggeringIds.includes(entity.id);
+
+                    const playerActionLower = request.playerAction?.toLowerCase() || '';
+                    const triggerMsgLower = request.triggerResult?.message?.toLowerCase() || '';
+                    const entityNameLower = entity.name?.toLowerCase() || '';
+                    const entityIdLower = entity.id?.toLowerCase() || '';
+
+                    const isMentionedInPlayerAction = playerActionLower && (
+                        (entityNameLower && playerActionLower.includes(entityNameLower)) ||
+                        playerActionLower.includes(entityIdLower)
+                    );
+
+                    const isMentionedInTriggerMsg = triggerMsgLower && (
+                        (entityNameLower && triggerMsgLower.includes(entityNameLower)) ||
+                        triggerMsgLower.includes(entityIdLower)
+                    );
+
+                    if (isTarget || isTrigger || isMentionedInPlayerAction || isMentionedInTriggerMsg) {
+                        shouldInclude = true;
+                    }
+                }
+
+                if (!shouldInclude) return null;
+
+                const baseId = entity.id.split('-').slice(0, -1).join('-') || entity.id.split('-')[0] || entity.id;
+                const currentIndex = enemyGroups.get(baseId) || 1;
+                enemyGroups.set(baseId, currentIndex + 1);
+
+                return {
+                    ...entity,
+                    id: `${baseId}-${currentIndex}`,
+                    uniqueId: `${baseId}-${currentIndex}`,
+                    adventureId: entity.id, // Preserve original adventure entity ID
+                };
+            }).filter((e: any) => e !== null);
             localLog(`Loaded ${combatEnemies.length} enemies from adventure data for location ${locationId}`);
         }
 
@@ -479,6 +538,75 @@ export class CombatInitiationService {
             locationEntities,
             interactionResult
         });
+    }
+
+    /**
+     * Enriches recommended combatant IDs with relevant NPCs based on smart inclusion criteria.
+     * Prevents key NPCs (like the sheep) from being excluded by the AI expert's hostile-only rules.
+     */
+    static enrichCombatantsWithSmartNPCs(
+        recommendedIds: string[],
+        entitiesPresent: Array<string | { entityId: string }> | undefined,
+        adventureData: any,
+        playerAction: string,
+        targetId?: string,
+        triggerResult?: any,
+        triggeringEntityId?: string
+    ): string[] {
+        if (!entitiesPresent || !adventureData) return recommendedIds;
+
+        const enrichedIds = [...recommendedIds];
+
+        entitiesPresent.forEach((rawEntry: any) => {
+            const id = typeof rawEntry === 'string' ? rawEntry : rawEntry?.entityId;
+            if (!id) return;
+            // Check if the entity is already in combatantIds (base ID check to prevent duplicates)
+            const locBaseId = id.split('-').slice(0, -1).join('-') || id.split('-')[0] || id;
+            const isAlreadyIncluded = enrichedIds.some(recId => {
+                const recBaseId = recId.split('-').slice(0, -1).join('-') || recId.split('-')[0] || recId;
+                return recBaseId.toLowerCase() === locBaseId.toLowerCase();
+            });
+            if (isAlreadyIncluded) return;
+
+            const entity = adventureData.entities?.find((e: any) => e.id === id);
+            if (!entity || entity.type !== 'npc') return;
+
+            // Apply smart inclusion criteria
+            const isTarget = targetId ? (
+                targetId === entity.id ||
+                targetId.toLowerCase().includes(entity.id.toLowerCase()) ||
+                entity.id.toLowerCase().includes(targetId.toLowerCase()) ||
+                (entity.name && (
+                    targetId.toLowerCase().includes(entity.name.toLowerCase()) ||
+                    entity.name.toLowerCase().includes(targetId.toLowerCase())
+                ))
+            ) : false;
+
+            const triggeringIds = triggerResult?.triggeringEntityIds || [];
+            const trigId = triggeringEntityId || triggerResult?.triggeringEntityId;
+            const isTrigger = (trigId && trigId === entity.id) || triggeringIds.includes(entity.id);
+
+            const playerActionLower = playerAction?.toLowerCase() || '';
+            const triggerMsgLower = triggerResult?.message?.toLowerCase() || '';
+            const entityNameLower = entity.name?.toLowerCase() || '';
+            const entityIdLower = entity.id?.toLowerCase() || '';
+
+            const isMentionedInPlayerAction = playerActionLower && (
+                (entityNameLower && playerActionLower.includes(entityNameLower)) ||
+                playerActionLower.includes(entityIdLower)
+            );
+
+            const isMentionedInTriggerMsg = triggerMsgLower && (
+                (entityNameLower && triggerMsgLower.includes(entityNameLower)) ||
+                triggerMsgLower.includes(entityIdLower)
+            );
+
+            if (isTarget || isTrigger || isMentionedInPlayerAction || isMentionedInTriggerMsg) {
+                enrichedIds.push(id);
+            }
+        });
+
+        return enrichedIds;
     }
 }
 

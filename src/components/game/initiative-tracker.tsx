@@ -61,7 +61,9 @@ export function InitiativeTracker({
                           <Activity className="h-3.5 w-3.5 text-orange-500" />
                         )}
                         {isSurprised && !isDead && !isUnconscious && (
-                          <AlertTriangle className="h-3.5 w-3.5 text-yellow-500" title="Sorprendido" />
+                          <span title="Sorprendido">
+                            <AlertTriangle className="h-3.5 w-3.5 text-yellow-500" />
+                          </span>
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
