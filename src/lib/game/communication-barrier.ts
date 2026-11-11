@@ -63,6 +63,20 @@ export function applyHiddenIdentityTerms<T extends string | undefined>(text: T, 
 }
 
 /**
+ * Quita la configuración interna de la barrera antes de mandar la entidad a la IA.
+ *
+ * `hiddenIdentityTerms` contiene pares término → reemplazo ("Ahmed Noke" → "un antagonista
+ * oculto"). Si llega al modelo, este lo interpreta como una orden de ocultar los nombres y usa
+ * los reemplazos incluso con el conjuro activo (detectado en la prueba manual del 11-11-2026).
+ */
+export function stripBarrierConfig<T>(ent: T): T {
+    const e: any = ent;
+    if (!e || typeof e !== 'object' || !e.roleplay?.hiddenIdentityTerms) return ent;
+    const { hiddenIdentityTerms: _omit, ...roleplay } = e.roleplay;
+    return { ...e, roleplay } as T;
+}
+
+/**
  * Devuelve una versión enmascarada de la entidad: conserva lo que el grupo puede ver
  * (id, nombre, tipo y descripción de los datos) y sustituye su rol por una barrera genérica.
  */

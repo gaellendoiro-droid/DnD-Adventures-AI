@@ -806,9 +806,11 @@ export function generateNarrativeDirectives(
             case 'SkillCheckResolved': {
                 const { skill, dc, rollTotal, isSuccess, characterName, reasoning } = e.payload;
                 const targetId = String(interpretation.targetId || '');
-                const isScrollRelated = /^identify-scroll-|^cast-scroll-|pergamino|scroll/i.test(targetId) || /pergamino|scroll/i.test(String(reasoning || '')) || /pergamino|scroll/i.test(String(systemFeedback || ''));
-                const isScrollCast = /^cast-scroll-/i.test(targetId) || (isScrollRelated && activeEffects.includes('speak_with_animals') && !/^identify-scroll-/i.test(targetId));
-                const isScrollIdentify = /^identify-scroll-/i.test(targetId) || (isScrollRelated && !isScrollCast);
+                // Solo el objetivo de la tirada decide si es del pergamino. Antes bastaba con que el
+                // razonamiento mencionara "pergamino" y el conjuro estuviera activo: una tirada de
+                // Trato con Animales sobre la oveja se narraba como "Merryl lee el pergamino y se consume".
+                const isScrollCast = /^cast-scroll-/i.test(targetId);
+                const isScrollIdentify = /^identify-scroll-/i.test(targetId) || (!isScrollCast && /pergamino|scroll/i.test(targetId));
                 const isScrollUse = isScrollIdentify || isScrollCast;
                 
                 const resolveScrollSpellTitle = (tId: string) => {
@@ -818,18 +820,21 @@ export function generateNarrativeDirectives(
                     return 'Pergamino de Hablar con los Animales';
                 };
                 const spellScrollTitle = resolveScrollSpellTitle(targetId);
+                // Quién tenía el pergamino y quién lo recibe (lo prepara ScrollRuleModule).
+                const handoff = String(reasoning || '').match(/^(.*?le pasa el pergamino a [^.]+\.|.*?coge el pergamino que sujetaba la criatura\.)/)?.[1];
+                const handoffDirective = handoff ? ` Antes de la tirada: ${handoff.trim()} Respeta este traspaso al narrar.` : '';
 
                 if (isScrollIdentify) {
                     if (isSuccess) {
-                        directives.push(`RESULTADO OBLIGATORIO (ÉXITO DE TIRADA): Describe en 1-2 frases que ${characterName} examina detenidamente las inscripciones arcanas del pergamino y las descifra con éxito (Arcanos CD ${dc}, resultado final: ${rollTotal}), descubriendo explícitamente que se trata de un '${spellScrollTitle}'. Aclara con naturalidad que ${characterName} sostiene aún el pergamino intacto en sus manos, listo por si decide leerlo en voz alta para activar el conjuro. PROHIBIDO decir que falla o que los símbolos se resisten.`);
+                        directives.push(`RESULTADO OBLIGATORIO (ÉXITO DE TIRADA): Describe en 1-2 frases que ${characterName} examina detenidamente las inscripciones arcanas del pergamino y las descifra con éxito (Arcanos CD ${dc}, resultado final: ${rollTotal}), descubriendo explícitamente que se trata de un '${spellScrollTitle}'. Aclara con naturalidad que ${characterName} sostiene aún el pergamino intacto en sus manos, listo por si decide leerlo en voz alta para activar el conjuro. PROHIBIDO decir que falla o que los símbolos se resisten.${handoffDirective}`);
                     } else {
-                        directives.push(`RESULTADO OBLIGATORIO (FALLO DE TIRADA): Describe en 1-2 frases que ${characterName} examina las runas del pergamino pero le resultan indescifrables y NO consigue averiguar qué hechizo contiene (Arcanos CD ${dc}, resultado final: ${rollTotal}). El pergamino sigue siendo un misterio.`);
+                        directives.push(`RESULTADO OBLIGATORIO (FALLO DE TIRADA): Describe en 1-2 frases que ${characterName} examina las runas del pergamino pero le resultan indescifrables y NO consigue averiguar qué hechizo contiene (Arcanos CD ${dc}, resultado final: ${rollTotal}). El pergamino sigue siendo un misterio.${handoffDirective}`);
                     }
                 } else if (isScrollUse) {
                     if (isSuccess) {
-                        directives.push(`RESULTADO OBLIGATORIO (ÉXITO DE TIRADA): Describe en 1-2 frases que ${characterName} lee en voz alta el '${spellScrollTitle}' y canaliza su energía con éxito (Arcanos CD ${dc}, resultado final: ${rollTotal}). El pergamino se consume y el conjuro entra en vigor permitiendo hablar con los animales.`);
+                        directives.push(`RESULTADO OBLIGATORIO (ÉXITO DE TIRADA): Describe en 1-2 frases que ${characterName} lee en voz alta el '${spellScrollTitle}' y canaliza su energía con éxito (Arcanos CD ${dc}, resultado final: ${rollTotal}). El pergamino se consume y el conjuro entra en vigor permitiendo hablar con los animales.${handoffDirective}`);
                     } else {
-                        directives.push(`RESULTADO OBLIGATORIO (FALLO DE TIRADA): Describe en 1-2 frases que ${characterName} intenta leer el pergamino mágico pero falla al canalizar la energía (Arcanos CD ${dc}, resultado final: ${rollTotal}). La magia no se activa, el pergamino no se consume y su contenido sigue inactivo.`);
+                        directives.push(`RESULTADO OBLIGATORIO (FALLO DE TIRADA): Describe en 1-2 frases que ${characterName} intenta leer el pergamino mágico pero falla al canalizar la energía (Arcanos CD ${dc}, resultado final: ${rollTotal}). La magia no se activa, pero el pergamino NO se pierde: sigue intacto en manos de ${characterName} y se puede volver a intentar (o dárselo a otro). PROHIBIDO decir que las palabras o la magia se desvanecen o se borran.${handoffDirective}`);
                     }
                 } else {
                     directives.push(`Describe que ${characterName} realiza una tirada de ${skill} (CD ${dc}) obteniendo un total de ${rollTotal}, resultando en ${isSuccess ? 'ÉXITO' : 'FALLO'}. Narra las consecuencias físicas o mentales en perfecta concordancia con este resultado.`);

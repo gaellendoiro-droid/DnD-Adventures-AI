@@ -458,6 +458,7 @@ export class ScrollRuleModule implements RuleModule {
 
             // Si lo tenía otro miembro del grupo, transferirlo al lector activo
             let transferredScrollItem: any = null;
+            let previousHolderName: string | undefined;
             for (const c of updatedParty) {
                 if (c.inventory) {
                     const idx = c.inventory.findIndex((it: any) =>
@@ -465,10 +466,18 @@ export class ScrollRuleModule implements RuleModule {
                     );
                     if (idx !== -1) {
                         transferredScrollItem = c.inventory.splice(idx, 1)[0];
+                        previousHolderName = c.name;
                         break;
                     }
                 }
             }
+            // Contexto para el narrador: de dónde sale el pergamino (antes lo inventaba, p. ej.
+            // "lo toma de las fauces de la oveja" cuando lo tenía Galador).
+            const handoffNote = !transferredScrollItem
+                ? `${activeChar.name} coge el pergamino que sujetaba la criatura. `
+                : previousHolderName && previousHolderName.toLowerCase() !== activeChar.name.toLowerCase()
+                    ? `${previousHolderName} le pasa el pergamino a ${activeChar.name}. `
+                    : '';
             const readerInParty = updatedParty.find((c: any) => c.name?.toLowerCase() === activeChar.name.toLowerCase());
             if (readerInParty) {
                 if (!readerInParty.inventory) readerInParty.inventory = [];
@@ -494,7 +503,7 @@ export class ScrollRuleModule implements RuleModule {
                         overrideDC: 10,
                         activatedEffects: []
                     },
-                    systemFeedback: `${activeChar.name} examina el pergamino enrollado para intentar descifrar qué conjuro contiene mediante una tirada de Arcanos (CD 10).`,
+                    systemFeedback: `${handoffNote}${activeChar.name} examina el pergamino enrollado para intentar descifrar qué conjuro contiene mediante una tirada de Arcanos (CD 10).`,
                     updatedWorldState,
                     updatedParty,
                     intercepted: true,
@@ -531,7 +540,7 @@ export class ScrollRuleModule implements RuleModule {
                         assignedCompanion: activeChar.name,
                         activatedEffects: [scrollSpellEffect]
                     },
-                    systemFeedback: `${activeChar.name} lee el '${canonicalScrollName}' con fluidez y activa su magia con éxito de forma automática ya que pertenece a su lista de clase de ${activeChar.characterClass || 'Lanzador'}.`,
+                    systemFeedback: `${handoffNote}${activeChar.name} lee el '${canonicalScrollName}' con fluidez y activa su magia con éxito de forma automática ya que pertenece a su lista de clase de ${activeChar.characterClass || 'Lanzador'}.`,
                     updatedWorldState,
                     updatedParty,
                     intercepted: true
@@ -548,7 +557,7 @@ export class ScrollRuleModule implements RuleModule {
                         overrideDC: 10,
                         activatedEffects: [] // Se elimina de la interpretación inmediata
                     },
-                    systemFeedback: `${activeChar.name} toma el pergamino e intenta leerlo para activar su conjuro. Como no pertenece directamente a su lista de clase de ${activeChar.characterClass || 'Aventurero'}, ${activeChar.name} realiza una tirada de Arcanos (CD 10) para canalizar la magia.`,
+                    systemFeedback: `${handoffNote}${activeChar.name} intenta leer el pergamino para activar su conjuro. Como no pertenece directamente a su lista de clase de ${activeChar.characterClass || 'Aventurero'}, ${activeChar.name} realiza una tirada de Arcanos (CD 10) para canalizar la magia.`,
                     updatedWorldState,
                     updatedParty,
                     intercepted: true,
