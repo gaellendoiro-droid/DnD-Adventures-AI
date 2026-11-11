@@ -1,112 +1,135 @@
 # Roadmap y Control de Issues Completo
 
-Este documento centraliza toda la planificación futura, características pendientes e issues identificados en el proyecto, organizados por prioridad para evitar la pérdida de cualquier tarea.
-
----
-
-## 💡 Ideas Rápidas (Gael)
-
-1. **Selección de presets de party al iniciar partida.**
-2. **Diferenciación entre inventario (mochila) y equipamiento equipado.**
-3. **[COMPLETADO en v0.6.1] Desactivar los comentarios automáticos del compañero que esté activo como personaje seleccionado.**
-4. **[COMPLETADO en v0.6.2] Incluir fichas de monstruos automáticas en el conversor de PDF a JSON.** Cuando se hace la conversión de un pdf a un JSON podríamos incluír las fichas de los monstruos que no estén incluídos para evitar hacer llamadas a la API en medio de la partida.
-5. **Revisar el sistema de tiradas de skill checks** Hay veces en que no son necesarias aunque el jugador diga "Necesito hacer una tirada de [skill]".
-6. **Pensar como gestionar las situaciones en las que un jugador describe cosas que no debería haber conocido aún** Mere la pena? Por ejemplo al empezar una partida el jugador puede ir a un sitio que aún no se le ha revelado?.
-7. **Añadir flechas de desplazamiento lateral en la ficha de personaje (donde está el nombre) para poder cambiar de personaje**
-8. **La acciones que requieren tirada de habilidad en grupo solo lo hace el personaje activo** Habría que arreglar esto y hacer que si por ejemplo el jugador dice, entramos con sigilo, todos los personajes hagan su tirada de habilidad.
-9. **A veces el DM dice detalles mecánicos que creo que es mejor que no lo haga** Por ejemplo en una prueba me ha dicho: "No tenéis la llave correspondiente. Para abrirla, tendréis que intentar forzar la cerradura (Juego de Manos CD 15) o derribarla por la fuerza (Atletismo CD 20)." Yo no creo que sea necesario que el DM de los detalles mecánicos, debería decirlos solo si el jugador pregunta o si es relevante para la historia.
-10. **Quizás haya acciones sencillas que no necesiten de una narración del DM** Algo como coger una llave o algún objeto simple no necesita de una narración del DM. Quizás haya más puntos donde podamos ahorrar narraciones innecesarias.
-11. **Sustituir el texto "Para hablar con el DM fuera de personaje, empieza tu mensaje con //." por una barra de mensajes de sistema que nos de información de que está pasando** El mensaje que antes teníamos ahí podría aparecer como tooltip del input text o algo parecido.
-12. **La carga automática de los libros de reglas debería comprobarse, si es necesaria, al iniciar cada partida** para evitar pausas demasiado largas en medio de una partida.
-13. **Asignar diferentes configuraciones de voz para los personajes** Sería cuestión de configurar en cada ficha de personajes unos atributos de voz únicos para cada uno. 
-14. **Desarrollar una forma de visualizar el daño que tiene los personajes del orden de combate** pero que no sea numérica para que funcione como una pista visual más bien sin revelar el daño exacto. Quizás algo como ir tiñendo el nombre del personaje de blanco-> rosa-> rojo-> marrón ->negro->tachado. (Obviamente si se llega al último paso el personaje muere).
-15. **Selección de personajes** Cuando la selección del personaje cambia debería ser solo para mostrar la ficha de personaje, pero los mensajes que escribe el jugador deberían ser siempre para el personaje que es controlado por el jugador. No se debería poder enviar mensajes en nombre de personajes controlados por IA.
-16. **[COMPLETADO] Nombres de personajes en el orden de combate** Cuando comienza el combate aunque no haya monstruos o personajes duplicados siempre salen con una numeración acompañando al nombre. Esto lo podríamos corregir para que si solo hay una oveja o un Guz no se le añada la numeración.
-17. **Replantear el sistema para hablar con el DM fuera del personaje** Quizás sea mejor que cualquier consulta que se haga fuera de personaje se muestre en unmodel, ahí se mostrarian fichas, reglas etc. Así no sobrecargamos el chat.
+Este documento centraliza toda la planificación futura, características pendientes e issues identificados en el proyecto, organizados por prioridad para evitar la pérdida de cualquier tarea. Cada tarea cuenta con un identificador permanente (`[TASK-XXX]`) para facilitar su trazabilidad en commits, branches y conversaciones.
 
 ---
 
 ## 🔴 Prioridad Muy Alta (Críticos y Bloqueantes)
 
 ### Características Clave:
-- **Herramienta de Sanitización de Aventuras JSON:** Crear un script CLI para validar y actualizar archivos JSON de aventuras antiguos a los nuevos esquemas Zod (inyección de campos de FSM, luces, trampas, etc.).
-- **Sistema de Etiquetado Global de Entidades (Fase 5):** Diseñar e implementar un sistema de etiquetado en el `worldState` de las aventuras bajo cuatro ejes clave (Epistémico, Perceptivo, Físico y Operativo), destacando las etiquetas `unrevealed` y `revealed` para gobernar la "niebla de guerra". Esto permitirá que el DM conozca de antemano la ubicación de secretos y trampas para arbitrar e introducir pistas contextuales, pero impidiendo estrictamente su revelación prematura hasta que el jugador realice la acción desencadenante.
+- **[TASK-015] Herramienta de Sanitización de Aventuras JSON:** Crear un script CLI para validar y actualizar archivos JSON de aventuras antiguos a los nuevos esquemas Zod (inyección de campos de FSM, luces, trampas, etc.).
+- **[TASK-016] Sistema de Etiquetado Global de Entidades (Fase 5):** Diseñar e implementar un sistema de etiquetado en el `worldState` de las aventuras bajo cuatro ejes clave (Epistémico, Perceptivo, Físico y Operativo), destacando las etiquetas `unrevealed` y `revealed` para gobernar la "niebla de guerra". Esto permitirá que el DM conozca de antemano la ubicación de secretos y trampas para arbitrar e introducir pistas contextuales, impidiendo estrictamente su revelación prematura hasta que el jugador realice la acción desencadenante.
 
 ---
 
 ## 🔴 Prioridad Alta (Mejoras Core y UX)
 
-### Sistema de Conversión y Datos:
-- **[COMPLETADO] Prevención de Spoilers en Narración Inicial y Conversión:** Separación estricta de `summary` (catálogo) e `introductoryNarration` (mesa de rol en segunda persona) en `scripts/pdf-to-json.ts`, con saneamiento de spawns condicionales en el minuto 0 para evitar revelar la trama o entidades antes de tiempo.
-- **[COMPLETADO] Actualización a Gemini 3.5 Flash:** Migración del modelo principal del proyecto en `src/ai/model-config.ts` y Genkit de `gemini-2.5-flash` a `gemini-3.5-flash`, con fallback automático a `gemini-2.5-flash-lite` para evitar caídas por límites diarios de cuota en el Free Tier de Google AI Studio.
-- **[COMPLETADO en v0.6.2] Robustecimiento del Conversor PDF a JSON:** Adaptado el script `scripts/pdf-to-json.ts` para resolver estadísticas y aplicar overrides a monstruos y NPCs, desactivar IA RAG en PNJs únicos, y validar el JSON generado contra el esquema Zod `AdventureDataSchema`.
-- **[COMPLETADO en v0.6.2] Entidades Condicionales Simplificadas:** Integrar el soporte para NPCs con presencia condicional en localizaciones mediante flags de presencia y ausencia (`presenceFlag` y `absenceFlag`), permitiendo que el conversor de PDF a JSON sitúe de forma dinámica y temporal a las criaturas a lo largo del mapa y la Capa 2 (TypeScript) evalúe su presencia física basándose en el estado global del juego.
-
-### Arquitectura y Flujos de IA:
-- **[COMPLETADO en v0.6.1] Rediseño a Arquitectura Neuro-Simbólica de 3 Capas (Robustez):** Desacoplar completamente la lógica dura del juego de la narración creativa.
-  1. *Capa 1 (IA Árbitro):* Un agente interpretativo traduce la acción creativa y libre del jugador a un JSON que propone cambios físicos y mecánicos en el estado.
-  2. *Capa 2 (Código TypeScript):* El motor de reglas de TypeScript procesa y valida este JSON, gestionando estados, inventarios, tiradas de dados reales y actualizando la base de datos de forma robusta y determinista, generando un JSON final de "Hechos Absolutos del Turno".
-  3. *Capa 3 (IA Narradora/DM):* Un prompt de DM simplificado toma el JSON de Hechos Absolutos del Turno y se limita a vestirlo de gala literaria en prosa evocadora de D&D, previniendo alucinaciones lógicas, double-binds y colapsos de esquema.
-
 ### Sistema de Combate y Reglas:
-- **[COMPLETADO] Sincronización Bidireccional de WorldState y Reglas de Combate:** Sincronización completa entre `enemiesByLocation` y `worldState.locations[locId].enemies`, activación automática de flags globales de victoria (`<id>_derrotado`) en `combatManagerTool` y `StatsSystem`, y desbloqueo bidireccional de puertas en `SkillCheckSystem`.
-- **[COMPLETADO] Prevención de Doble Ejecución en GameRulesEngine:** Bloqueo de reencolado de eventos en `narrative-turn-manager.ts` cuando la regla intercepta la acción, y emisión de eventos `ItemCollected` en `ScrollRuleModule`.
-- **[COMPLETADO] Alucinaciones del Tactician Enemigo (Acciones inventadas):** Evitar que la IA del tactician enemigo (`enemyTacticianTool`) alucine acciones o armas inexistentes (ej. "Multiataque (Barba y Glaive)" para un Oso Pardo). Implementar que se pasen las acciones disponibles (`availableActions`) directamente en el prompt del tactician o forzarlo a consultar las estadísticas oficiales antes de elegir la acción.
+- **[TASK-003] [COMPLETADO] Revisión del Sistema de Tiradas de Skill Checks:** Ajustadas las comprobaciones automáticas en `ActionInterpreter` para clasificar preguntas abiertas o informativas ("¿Quién eres?", "¿Quién te persigue?") y la recogida de objetos ofrecidos como interacción pura y nunca como `skill_check`. Se impuso además un anclaje estricto en `SkillCheckExpert` para evitar inventar guardias o escenarios ajenos en el razonamiento de las tiradas. *(Origen: Ideas Rápidas)*
+- **[TASK-006] / [TASK-019] Tiradas de Habilidad Grupales (Group Checks):** Implementar tiradas colectivas de la party (ej. Sigilo grupal) donde el éxito de la mitad del grupo decida el resultado, corrigiendo el problema actual donde solo el personaje activo efectúa la tirada ante acciones declaradas para todo el grupo. *(Origen: Ideas Rápidas / Core)*
+- **[TASK-017] Visualización de Acciones Disponibles:** Mostrar gráficamente en la interfaz las acciones principales, bonus actions, reacciones y movimiento restantes del personaje activo en su turno.
+- **[TASK-018] Múltiples Acciones en Turno de Jugador:** Permitir realizar movimiento y acciones adicionales antes de que el turno pase obligatoriamente (reemplazar auto-avance por paso manual / fin de turno explícito).
+- **[TASK-020] Compañeros Agénticos Avanzados:** Dar proactividad a la IA de los compañeros para solicitar o realizar tiradas de habilidad automáticas basadas en su percepción y el peligro detectado.
+- **[TASK-021] Revisión del sistema de movimiento en salas en modo exploración:** Analizar y diseñar un sistema de foco de proximidad dinámico (`focusedTargetId` / `proximityFocus`) o puntos de interés (POIs) dentro de una localización para evitar la transición inmediata a la siguiente sala cuando el jugador declara "ir hacia" una puerta o verja, distinguiendo entre acercarse a interactuar y cruzar de habitación.
+- **[TASK-022] Soporte de Acciones Secuenciales/Compuestas:** Permitir al `ActionInterpreter` identificar y devolver un array de acciones ordenadas a realizar en un solo turno (ej: coger una llave de un cofre y seguidamente intentar abrir la verja) y ejecutar secuencialmente cada una de ellas actualizando el estado de la party entre pasos en el motor de reglas.
 
-- **Visualización de Acciones Disponibles:** Mostrar gráficamente en la interfaz las acciones principales, bonus actions, reacciones y movimiento restantes del personaje activo en su turno.
-- **Múltiples Acciones en Turno de Jugador:** Permitir realizar movimiento y acciones adicionales antes de que el turno pase obligatoriamente (reemplazar auto-avance por paso manual / fin de turno explícito).
-- **Tiradas de Habilidad Grupales (Group Checks):** Implementar tiradas colectivas de la party (ej. Sigilo grupal) donde el éxito de la mitad del grupo decide el resultado.
-- **Compañeros Agénticos Avanzados:** Dar proactividad a la IA de los compañeros para solicitar o realizar tiradas de habilidad automáticas basadas en su percepción y el peligro detectado.
-- **Revisión del sistema de movimiento en salas en modo exploración:** Analizar y diseñar un sistema de foco de proximidad dinámico (`focusedTargetId` / `proximityFocus`) o puntos de interés (POIs) dentro de una localización para evitar la transición inmediata a la siguiente sala cuando el jugador declara "ir hacia" una puerta o verja, distinguiendo entre acercarse a interactuar y cruzar de habitación.
-- **Soporte de Acciones Secuenciales/Compuestas:** Permitir al `ActionInterpreter` identificar y devolver un array de acciones ordenadas a realizar en un solo turno (ej: coger una llave de un cofre y seguidamente intentar abrir la verja) y ejecutar secuencialmente cada una de ellas actualizando el estado de la party entre pasos en el motor de reglas.
+### IA y Narrativa (Inmersión y Metajuego):
+- **[TASK-004] Gestión de Conocimiento Prematuro del Jugador:** Diseñar e implementar el control para situaciones donde el jugador describe o interactúa con cosas/localizaciones que su personaje no debería conocer todavía al inicio de la aventura (metajuego). *(Origen: Ideas Rápidas)*
+- **[TASK-007] Ocultación de Detalles Mecánicos en Narración del DM:** Evitar que el DM mencione explícitamente clases de dificultad numéricas (CD) o mecánicas internas en su narración (ej. "Para abrirla, tendréis que intentar forzar la cerradura (Juego de Manos CD 15)..."), reservando estos datos solo si el jugador pregunta o si es estrictamente necesario para la escena. *(Origen: Ideas Rápidas)*
 
 ### Interfaz y Fichas:
-- **Modos de Juego Diferenciados:** Adaptar explícitamente las reglas y acciones de interfaz según el modo activo: Exploración (movimiento por salas), Combate (turnos tácticos) o Interacción Social (diálogos).
+- **[TASK-012] Visualización Gráfica No Numérica del Daño:** Desarrollar una representación visual de la salud de los combatientes en el orden de combate (ej. tinte de color de nombre de blanco -> rosa -> rojo -> marrón -> negro -> tachado al morir) para actuar como pista intuitiva sin exponer puntos de vida numéricos exactos. *(Origen: Ideas Rápidas)*
+- **[TASK-044] [COMPLETADO] Sistema Visual de Estados y Efectos Activos (`activeEffects`):** Implementado `CharacterEffectSchema` en `CharacterSchema`, catálogo de efectos en `effect-utils.ts` e indicadores visuales en `PartyPanel` y `CharacterSheet` para mostrar en tiempo real qué conjuros o estados (ej. *Hablar con los Animales*) tiene activos cada miembro del grupo, diferenciando claramente entre identificar un pergamino y tener su efecto activo.
+- **[TASK-013] Restricción de Envío de Mensajes en Selección de Personajes:** Asegurar que la selección de un personaje en la UI sirva exclusivamente para consultar su ficha; los mensajes enviados por el chat siempre deben corresponder al personaje controlado por el jugador, impidiendo enviar mensajes en nombre de compañeros IA. *(Origen: Ideas Rápidas)*
+- **[TASK-023] Modos de Juego Diferenciados:** Adaptar explícitamente las reglas y acciones de interfaz según el modo activo: Exploración (movimiento por salas), Combate (turnos tácticos) o Interacción Social (diálogos).
+
+### Estabilidad y RAG:
+- **[TASK-010] Verificación Temprana de Libros de Reglas:** Validar la disponibilidad y carga automática de los libros de reglas al iniciar la partida en lugar de a mitad de la sesión, evitando pausas o latencias prolongadas durante el juego. *(Origen: Ideas Rápidas)*
 
 ---
 
 ## 🟡 Prioridad Media (Mecánicas de Juego y Sistemas de IA)
 
 ### IA y Narrativa:
-- **Filtro de Diálogos Textuales del DM:** Evitar que el DM narre entre comillas las frases exactas de los compañeros cuando estos tienen su propio canal/burbuja de voz activa en el chat.
-- **Sistema de Influencia y Actitud de PNJs:** Guardar y persistir el estado de actitud de los PNJs (amistoso, neutral, hostil) influenciado por las interacciones del jugador y tiradas de persuasión/engaño.
+- **[TASK-008] [COMPLETADO] Omisión de Narraciones Redundantes en Acciones Simples:** Se forzó un límite de 1-2 frases concisas (máximo 40 palabras) en acciones físicas cotidianas (recoger objetos, abrir puertas) y se erradicó la meta-narración en `ExplorationExpert` y `NarrativeTurnManager` (prohibición de frases como *"permanece inactivo"*, *"sin emitir brillos de magia"* o *"queda registrado en su inventario"*). *(Origen: Ideas Rápidas)*
+- **[TASK-024] Filtro de Diálogos Textuales del DM:** Evitar que el DM narre entre comillas las frases exactas de los compañeros cuando estos tienen su propio canal/burbuja de voz activa en el chat.
+- **[TASK-025] Sistema de Influencia y Actitud de PNJs:** Guardar y persistir el estado de actitud de los PNJs (amistoso, neutral, hostil) influenciado por las interacciones del jugador y tiradas de persuasión/engaño.
+
+### Interfaz y UX:
+- **[TASK-014] Modal/Panel Dedicado para Consultas Fuera de Personaje (OOC):** Replantear las consultas OOC (mensajes con `//`) para presentarlas en un modal o ventana dedicada (fichas, reglas, aclaraciones) evitando sobrecargar el historial del chat principal. *(Origen: Ideas Rápidas)*
 
 ### 🔮 Sistema de Magia y Conjuros (D&D 5e):
 
 #### ⚔️ Magia en Combate
-- **Resolución Matemática de Conjuros y Curaciones (`resolveSpell` / `resolveHeal`):** Desarrollar la lógica en `CombatActionResolver` para calcular de manera formal las tiradas mágicas ofensivas y curativas utilizando las características reales del lanzador (modificador de aptitud mágica + competencia), sustituyendo el parche temporal.
-- **Sistema de Saving Throws Completo:** Implementar tirada de salvación del objetivo (1d20 + modificador vs Spell Save DC del lanzador) con aplicación de daño completo o mitad según el resultado del conjuro.
-- **Límites de Lanzamiento (Spell Slots):** Controlar y descontar las ranuras de conjuro disponibles por nivel de los personajes, evitando que se lancen hechizos de nivel sin recursos.
+- **[TASK-026] Resolución Matemática de Conjuros y Curaciones (`resolveSpell` / `resolveHeal`):** Desarrollar la lógica en `CombatActionResolver` para calcular de manera formal las tiradas mágicas ofensivas y curativas utilizando las características reales del lanzador (modificador de aptitud mágica + competencia), sustituyendo el parche temporal.
+- **[TASK-027] Sistema de Saving Throws Completo:** Implementar tirada de salvación del objetivo (1d20 + modificador vs Spell Save DC del lanzador) con aplicación de daño completo o mitad según el resultado del conjuro.
+- **[TASK-028] Límites de Lanzamiento (Spell Slots):** Controlar y descontar las ranuras de conjuro disponibles por nivel de los personajes, evitando que se lancen hechizos de nivel sin recursos.
 
 #### 📜 Magia Fuera de Combate y Utilidad
-- **[COMPLETADO en v0.6.1] Ciclo de Vida y Uso de Pergaminos Mágicos:** Integrar con el inventario físico el uso de consumibles mágicos (restar el pergamino al activarlo, validar si el personaje tiene la habilidad de usarlo y realizar la transferencia correcta entre mochilas de compañeros sin duplicidades).
-- **Registro de Efectos y Duración de Estados Mágicos:** Crear un sistema para registrar y persistir efectos temporales activos (ej: *Hablar con los animales* o *Invisibilidad*) en el `worldState`, manteniendo un contador de turnos/tiempo para que el DM arbitre congruentemente y la UI muestre el estado activo.
- 
+- **[TASK-029] Registro de Efectos y Duración de Estados Mágicos:** Crear un sistema para registrar y persistir efectos temporales activos (ej: *Hablar con los animales* o *Invisibilidad*) en el `worldState`, manteniendo un contador de turnos/tiempo para que el DM arbitre congruentemente y la UI muestre el estado activo.
+
 ### Mecánicas de Rol (D&D 5e):
-- **Sistema de Progresión y Niveles:** Implementar la ganancia de experiencia (XP) y subida de nivel de 1 a 5 con aumento de estadísticas de personaje.
-- **Sistema de Comercio y Tiendas:** Compras, ventas, regateos y dinero dinámico en bazares integrados mecánicamente.
-- **Simulación de Transacciones Físicas y Economía (Fase 4):**
-  - **Depósito de Objetos en Contenedores**: Extender `InventoryRuleModule` para soportar acciones de tipo `drop` con destino a interactuables de tipo contenedor (ej: *"meto la llave en el cofre"*). En lugar de tirar el ítem al suelo (`droppedItems`), se debe descontar del inventario del PJ y agregar al array `items` del contenedor correspondiente en el `worldState`.
-  - **Gestión Física y Deducción de Oro**: Implementar lógica en el motor de reglas para descontar oro dinámicamente de la ficha de personaje cuando el jugador realiza transacciones, decide depositar monedas en cofres o soltarlas (ej: *"dejo 20 monedas de oro en el cofre"*), previniendo que la acción solo sea un adorno narrativo de la IA y no afecte a las estadísticas reales.
-  - **[COMPLETADO en v0.6.1] Unificación de Inventarios Iniciales**: Homologar los inventarios de las fichas iniciales de personajes para que utilicen exactamente los mismos IDs y estructuras estándar sincronizadas con `adventureData.items` (ej: evitar IDs genéricos y resolver sinónimos semánticos de forma genérica).
-  - **[COMPLETADO en v0.6.1] Mapeo de Sinónimos de Inventario Personal**: Añadir reglas específicas en los prompts de los expertos conversacionales de la IA para que apliquen la misma tabla de sinónimos a las pertenencias de los personajes (ej: comprender que si el jugador pregunta por *"la llave"*, Merryl la tiene porque su ficha indica `llave-calabozo` o `key_1`).
-- **Sistema de Death Saving Throws y Revivencia:** Reglas de tiradas de salvación contra la muerte cuando un PJ cae a 0 HP.
-- **Sistema de Estados y Condiciones:** Soporte técnico y visual para estados como envenenado, bendecido, paralizado, aturdido, etc., y su impacto en las tiradas.
-- **Sistema de Foco de Objetivo:** Táctica inteligente de la IA enemiga para priorizar objetivos según distancia o nivel de HP.
-- **Hidratación de Entidades por Herencia (Data Hydration):** Permitir herencia de monstruos a partir de plantillas base en JSON para reducir el tamaño de las aventuras.
-- **Refactorización de Combate a Event-Driven Híbrido:** Migrar la resolución de turnos y acciones dentro del combate para usar el `EventDispatcher` y esquemas de `GameEvents`. Se mantendrá el FSM (`CombatSession`) para gobernar el ritmo de turnos, pero las acciones físicas, ataques y hechizos se procesarán reactivamente emitiendo y escuchando eventos, facilitando un log preciso para el narrador.
+- **[TASK-002] Diferenciación entre Inventario (Mochila) y Equipamiento Equipado:** Distinguir explícitamente entre el inventario general y los ítems equipados activamente (armaduras puestas, armas en mano, accesorios), calculando automáticamente su repercusión en la Clase de Armadura (CA) y tiradas. *(Origen: Ideas Rápidas)*
+- **[TASK-030] Sistema de Progresión y Niveles:** Implementar la ganancia de experiencia (XP) y subida de nivel de 1 a 5 con aumento de estadísticas de personaje.
+- **[TASK-031] Sistema de Comercio y Tiendas:** Compras, ventas, regateos y dinero dinámico en bazares integrados mecánicamente.
+- **[TASK-032] Depósito de Objetos en Contenedores (Fase 4):** Extender `InventoryRuleModule` para soportar acciones de tipo `drop` con destino a interactuables de tipo contenedor (ej: *"meto la llave en el cofre"*). En lugar de tirar el ítem al suelo (`droppedItems`), se debe descontar del inventario del PJ y agregar al array `items` del contenedor correspondiente en el `worldState`.
+- **[TASK-033] Gestión Física y Deducción de Oro (Fase 4):** Implementar lógica en el motor de reglas para descontar oro dinámicamente de la ficha de personaje cuando el jugador realiza transacciones, decide depositar monedas en cofres o soltarlas (ej: *"dejo 20 monedas de oro en el cofre"*), previniendo que la acción solo sea un adorno narrativo de la IA y no afecte a las estadísticas reales.
+- **[TASK-034] Sistema de Death Saving Throws y Revivencia:** Reglas de tiradas de salvación contra la muerte cuando un PJ cae a 0 HP.
+- **[TASK-035] Sistema de Estados y Condiciones:** Soporte técnico y visual para estados como envenenado, bendecido, paralizado, aturdido, etc., y su impacto en las tiradas.
+- **[TASK-036] Sistema de Foco de Objetivo:** Táctica inteligente de la IA enemiga para priorizar objetivos según distancia o nivel de HP.
+- **[TASK-037] Hidratación de Entidades por Herencia (Data Hydration):** Permitir herencia de monstruos a partir de plantillas base en JSON para reducir el tamaño de las aventuras.
+- **[TASK-038] Refactorización de Combate a Event-Driven Híbrido:** Migrar la resolución de turnos y acciones dentro del combate para usar el `EventDispatcher` y esquemas de `GameEvents`. Se mantendrá el FSM (`CombatSession`) para gobernar el ritmo de turnos, pero las acciones físicas, ataques y hechizos se procesarán reactivamente emitiendo y escuchando eventos, facilitando un log preciso para el narrador.
 
 ### Estabilidad y RAG:
-- **Sistema de Testing de Integración y E2E:** Ampliar la cobertura de pruebas a flujos completos del navegador usando Playwright.
+- **[TASK-039] Sistema de Testing de Integración y E2E:** Ampliar la cobertura de pruebas a flujos completos del navegador usando Playwright.
 
 ---
 
 ## 🟢 Prioridad Baja (Calidad de Vida y Extras)
 
-- **Historial de Comandos en Input:** Permitir recuperar las últimas acciones enviadas al chat usando las flechas arriba/abajo del teclado.
-- **Optimización y Escalabilidad del Motor de Reglas (GameRulesEngine):** Evolucionar el motor de reglas secuencial para soportar prioridades de ejecución (`priority`), mapeo indexado por tipo de acción (`actionType`) para evitar evaluar todos los módulos de forma plana, y carga dinámica de módulos por aventura para asegurar un escalado limpio ante docenas de reglas nuevas.
-- **Audio Dinámico Avanzado:** Colores de tirada específicos (ej. verde para curación) y un botón de toggle de pausa durante el avance automático de turnos.
-- **Personajes Predefinidos:** Soporte para que las aventuras JSON empaqueten personajes predefinidos con niveles específicos.
-- **Guardado Automático de Partidas:** Guardado incremental automático cada cierto número de turnos.
-- **Comandos de Voz:** Integración de Speech-to-Text para dictar acciones al DM.
-- **Automatización del Versionado:** Integración de herramientas para automatizar el changelog y el versionado semántico desde los commits.
+- **[TASK-001] Selección de Presets de Party al Iniciar Partida:** Permitir la elección de configuraciones y grupos de personajes preestablecidos al momento de comenzar una nueva partida. *(Origen: Ideas Rápidas)*
+- **[TASK-005] Flechas de Navegación Lateral en Ficha de Personaje:** Incorporar controles laterales en el encabezado de la ficha de personaje para conmutar ágilmente entre los miembros del grupo. *(Origen: Ideas Rápidas)*
+- **[TASK-009] Barra de Mensajes de Sistema en Tiempo Real:** Reemplazar el aviso estático del input por una barra de sistema dinámica que informe del estado del juego y motor de IA, moviendo la ayuda de comandos a un tooltip contextual. *(Origen: Ideas Rápidas)*
+- **[TASK-011] Configuraciones de Voz Personalizadas por Personaje:** Permitir parametrizar perfiles y voces sintéticas independientes para cada héroe y PNJ desde sus fichas. *(Origen: Ideas Rápidas)*
+- **[TASK-040] Historial de Comandos en Input:** Permitir recuperar las últimas acciones enviadas al chat usando las flechas arriba/abajo del teclado.
+- **[TASK-041] Optimización y Escalabilidad del Motor de Reglas (GameRulesEngine):** Evolucionar el motor de reglas secuencial para soportar prioridades de ejecución (`priority`), mapeo indexado por tipo de acción (`actionType`) para evitar evaluar todos los módulos de forma plana, y carga dinámica de módulos por aventura para asegurar un escalado limpio ante docenas de reglas nuevas.
+- **[TASK-042] Audio Dinámico Avanzado:** Colores de tirada específicos (ej. verde para curación) y un botón de toggle de pausa durante el avance automático de turnos.
+- **[TASK-043] Personajes Predefinidos:** Soporte para que las aventuras JSON empaqueten personajes predefinidos con niveles específicos.
+- **[TASK-044] Guardado Automático de Partidas:** Guardado incremental automático cada cierto número de turnos.
+- **[TASK-045] Comandos de Voz:** Integración de Speech-to-Text para dictar acciones al DM.
+- **[TASK-046] Automatización del Versionado:** Integración de herramientas para automatizar el changelog y el versionado semántico desde los commits.
+
+---
+
+## ✅ Tareas Completadas
+
+Esta sección centraliza las iniciativas y tareas del roadmap que han sido finalizadas con éxito, manteniendo su ID permanente para auditoría y trazabilidad histórica. El histórico completo y detallado de versiones anteriores puede consultarse también en [`docs/roadmap-historico.md`](./roadmap-historico.md).
+
+### 💡 Ideas Rápidas Finalizadas:
+- **[TASK-047] [COMPLETADO en v0.6.1] Desactivar los comentarios automáticos del compañero que esté activo como personaje seleccionado.** *(Antigua Idea #3)*
+- **[TASK-048] [COMPLETADO en v0.6.2] Incluir fichas de monstruos automáticas en el conversor de PDF a JSON:** Inclusión de fichas de monstruos no catalogados durante la conversión para evitar llamadas a la API en medio de la partida. *(Antigua Idea #4)*
+- **[TASK-049] [COMPLETADO] Nombres de personajes en el orden de combate:** Corrección para que si no hay duplicados de una entidad (ej. una sola oveja o un solo Guz), no se le añada sufijo numérico al nombre. *(Antigua Idea #16)*
+
+### 🔴 Prioridad Alta Finalizada:
+#### Sistema de Conversión y Datos:
+- **[TASK-050] [COMPLETADO] Prevención de Spoilers en Narración Inicial y Conversión:** Separación estricta de `summary` (catálogo) e `introductoryNarration` (mesa de rol en segunda persona) en `scripts/pdf-to-json.ts`, con saneamiento de spawns condicionales en el minuto 0 para evitar revelar la trama o entidades antes de tiempo.
+- **[TASK-051] [COMPLETADO] Actualización a Gemini 3.5 Flash:** Migración del modelo principal del proyecto en `src/ai/model-config.ts` y Genkit de `gemini-2.5-flash` a `gemini-3.5-flash`, con fallback automático a `gemini-2.5-flash-lite` para evitar caídas por límites diarios de cuota en el Free Tier de Google AI Studio.
+- **[TASK-052] [COMPLETADO en v0.6.2] Robustecimiento del Conversor PDF a JSON:** Adaptado el script `scripts/pdf-to-json.ts` para resolver estadísticas y aplicar overrides a monstruos y NPCs, desactivar IA RAG en PNJs únicos, y validar el JSON generado contra el esquema Zod `AdventureDataSchema`.
+- **[TASK-053] [COMPLETADO en v0.6.2] Entidades Condicionales Simplificadas:** Integrar el soporte para NPCs con presencia condicional en localizaciones mediante flags de presencia y ausencia (`presenceFlag` y `absenceFlag`), permitiendo que el conversor de PDF a JSON sitúe de forma dinámica y temporal a las criaturas a lo largo del mapa y la Capa 2 (TypeScript) evalúe su presencia física basándose en el estado global del juego.
+
+#### Arquitectura y Flujos de IA:
+- **[TASK-054] [COMPLETADO en v0.6.1] Rediseño a Arquitectura Neuro-Simbólica de 3 Capas (Robustez):** Desacoplar completamente la lógica dura del juego de la narración creativa:
+  1. *Capa 1 (IA Árbitro):* Un agente interpretativo traduce la acción creativa y libre del jugador a un JSON que propone cambios físicos y mecánicos en el estado.
+  2. *Capa 2 (Código TypeScript):* El motor de reglas de TypeScript procesa y valida este JSON, gestionando estados, inventarios, tiradas de dados reales y actualizando la base de datos de forma robusta y determinista, generando un JSON final de "Hechos Absolutos del Turno".
+  3. *Capa 3 (IA Narradora/DM):* Un prompt de DM simplificado toma el JSON de Hechos Absolutos del Turno y se limita a vestirlo de gala literaria en prosa evocadora de D&D, previniendo alucinaciones lógicas, double-binds y colapsos de esquema.
+- **[TASK-061] [COMPLETADO] Sistema de Gestión de Errores de Proveedores de IA en 3 Capas:**
+  1. *Capa 1 (Parsing Universal):* Detección y normalización de errores 429 (TPM/RPM/OTPM), 413 y 503 con extracción de tiempos exactos de espera para Groq y Google AI Studio / Gemini en `ai-error-handler.ts`.
+  2. *Capa 2 (Auto-Recuperación y Rotación):* Rotación multi-modelo dinámica en Groq, espera activa automática cuando el cooldown es breve ($\le 15\text{ s}$), compactación de JSON inline y limitación adaptativa de `max_tokens` (700 tokens) para evitar sobrepasar cuotas de salida.
+  3. *Capa 3 (UI Diagnóstica y Resiliente):* Evento `ai_provider_error` en streaming y componentes frontend con tarjeta explicativa amigable, cuenta atrás en tiempo real y botón de reintento en un clic.
+- **[TASK-062] [COMPLETADO] Acción 'clarify' y Prevención de Acciones Arbitrarias / Erratas:** Integración del tipo `'clarify'` y campo `clarificationQuestion` en `schemas.ts`, `action-interpreter.ts` y coordinadores de flujo. Ante acciones dudosas o con erratas evidentes (ej. *"Caojo el pergamino"*), el DM solicita amigablemente confirmación al jugador sin forzar tiradas de dados ni alterar el estado.
+- **[TASK-064] [COMPLETADO] Barrera Estricta de Comunicación Animal y Control de Spoilers:** Imposición de la regla de oro de la bestia en `narrative-manager.ts`, `exploration-expert.ts`, `interaction-expert.ts` y `companion-expert.ts`: ningún animal puede articular palabras en Común ni desvelar nombres propios (*Finethir Shinebright*, *Ahmed Noke*, *Vara de Polimorfia Verdadera*) si `speak_with_animals` no está activo. Sanitización de `presentEntities` y `locationContext` en `companionExpertTool` para evitar metajuego en los compañeros.
+- **[TASK-065] [COMPLETADO] Optimización de Tokens de Expertos (Bypass de Director Redundante):** En `narrative-manager.ts`, las acciones clasificadas en un solo experto devuelven directamente su narración sin invocar una segunda llamada de $\sim 4.200\text{ tokens}$ a `narrativeDirectorPrompt`, reduciendo el consumo a la mitad y evitando sobreescrituras con spoilers.
+
+#### Sistema de Combate y Reglas:
+- **[TASK-055] [COMPLETADO] Sincronización Bidireccional de WorldState y Reglas de Combate:** Sincronización completa entre `enemiesByLocation` y `worldState.locations[locId].enemies`, activación automática de flags globales de victoria (`<id>_derrotado`) en `combatManagerTool` y `StatsSystem`, y desbloqueo bidireccional de puertas en `SkillCheckSystem`.
+- **[TASK-056] [COMPLETADO] Prevención de Doble Ejecución en GameRulesEngine:** Bloqueo de reencolado de eventos en `narrative-turn-manager.ts` cuando la regla intercepta la acción, y emisión de eventos `ItemCollected` en `ScrollRuleModule`.
+- **[TASK-057] [COMPLETADO] Alucinaciones del Tactician Enemigo (Acciones inventadas):** Evitar que la IA del tactician enemigo (`enemyTacticianTool`) alucine acciones o armas inexistentes (ej. "Multiataque (Barba y Glaive)" para un Oso Pardo). Implementar que se pasen las acciones disponibles (`availableActions`) directamente en el prompt del tactician o forzarlo a consultar las estadísticas oficiales antes de elegir la acción.
+- **[TASK-063] [COMPLETADO] Delegación y Arbitraje de Pergaminos a Compañeros (D&D 5e):** Extensión de `ScrollRuleModule` para soportar acciones compuestas de entrega y orden de lectura en la misma frase (ej. *"Le paso el pergamino a Merryl y le digo: 'Merryl, léelo'"*), transfiriendo el pergamino al inventario del compañero y ejecutando la tirada de Arcanos (CD 10) con las estadísticas del compañero. Control de no-revelación de hechizos ante fallos de tirada.
+
+### 🟡 Prioridad Media Finalizada:
+#### 📜 Magia Fuera de Combate y Utilidad:
+- **[TASK-058] [COMPLETADO en v0.6.1] Ciclo de Vida y Uso de Pergaminos Mágicos:** Integrar con el inventario físico el uso de consumibles mágicos (restar el pergamino al activarlo, validar si el personaje tiene la habilidad de usarlo y realizar la transferencia correcta entre mochilas de compañeros sin duplicidades).
+
+#### Mecánicas de Rol (D&D 5e):
+- **[TASK-059] [COMPLETADO en v0.6.1] Unificación de Inventarios Iniciales:** Homologar los inventarios de las fichas iniciales de personajes para que utilicen exactamente los mismos IDs y estructuras estándar sincronizadas con `adventureData.items` (ej: evitar IDs genéricos y resolver sinónimos semánticos de forma genérica).
+- **[TASK-060] [COMPLETADO en v0.6.1] Mapeo de Sinónimos de Inventario Personal:** Añadir reglas específicas en los prompts de los expertos conversacionales de la IA para que apliquen la misma tabla de sinónimos a las pertenencias de los personajes (ej: comprender que si el jugador pregunta por *"la llave"*, Merryl la tiene porque su ficha indica `llave-calabozo` o `key_1`).

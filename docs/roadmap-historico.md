@@ -181,6 +181,52 @@ Para consultar las iniciativas en curso y planificadas, utiliza el documento pri
 
 ---
 
+## 📅 Entregas Recientes (v0.6.1 - v0.6.2 / Noviembre de 2026)
+
+### 1. Ideas Rápidas y Pulido de Partida ✅ COMPLETADO
+* **[TASK-047] Desactivación de comentarios del compañero activo:** Desactivar los comentarios automáticos del compañero que esté activo como personaje seleccionado.
+  * **Estado:** ✅ **COMPLETADO en v0.6.1**
+* **[TASK-048] Fichas de monstruos automáticas en conversor PDF a JSON:** Inclusión de fichas de monstruos no catalogados durante la conversión para evitar llamadas a la API en medio de la partida.
+  * **Estado:** ✅ **COMPLETADO en v0.6.2**
+* **[TASK-049] Nombres limpios en orden de combate:** Evitar numeración redundante en nombres únicos (ej. una sola oveja o un solo Guz) cuando no existan duplicados en la batalla.
+  * **Estado:** ✅ **COMPLETADO**
+
+### 2. Conversor de Aventuras y Datos ✅ COMPLETADO
+* **[TASK-050] Prevención de Spoilers en Narración Inicial y Conversión:** Separación estricta de `summary` (catálogo) e `introductoryNarration` (mesa de rol en segunda persona) en `scripts/pdf-to-json.ts`, con saneamiento de spawns condicionales en el minuto 0 para evitar revelar la trama o entidades antes de tiempo.
+  * **Estado:** ✅ **COMPLETADO**
+* **[TASK-051] Actualización a Gemini 3.5 Flash:** Migración del modelo principal del proyecto en `src/ai/model-config.ts` y Genkit de `gemini-2.5-flash` a `gemini-3.5-flash`, con fallback automático a `gemini-2.5-flash-lite` para evitar caídas por límites diarios de cuota en el Free Tier de Google AI Studio.
+  * **Estado:** ✅ **COMPLETADO**
+* **[TASK-052] Robustecimiento del Conversor PDF a JSON:** Adaptado el script `scripts/pdf-to-json.ts` para resolver estadísticas y aplicar overrides a monstruos y NPCs, desactivar IA RAG en PNJs únicos, y validar el JSON generado contra el esquema Zod `AdventureDataSchema`.
+  * **Estado:** ✅ **COMPLETADO en v0.6.2**
+* **[TASK-053] Entidades Condicionales Simplificadas:** Integrar el soporte para NPCs con presencia condicional en localizaciones mediante flags de presencia y ausencia (`presenceFlag` y `absenceFlag`), permitiendo que el conversor de PDF a JSON sitúe de forma dinámica y temporal a las criaturas a lo largo del mapa y la Capa 2 (TypeScript) evalúe su presencia física basándose en el estado global del juego.
+  * **Estado:** ✅ **COMPLETADO en v0.6.2**
+
+### 3. Arquitectura y Flujos de IA ✅ COMPLETADO
+* **[TASK-054] Rediseño a Arquitectura Neuro-Simbólica de 3 Capas (Robustez):** Desacoplar completamente la lógica dura del juego de la narración creativa:
+  1. *Capa 1 (IA Árbitro):* Un agente interpretativo traduce la acción creativa y libre del jugador a un JSON que propone cambios físicos y mecánicos en el estado.
+  2. *Capa 2 (Código TypeScript):* El motor de reglas de TypeScript procesa y valida este JSON, gestionando estados, inventarios, tiradas de dados reales y actualizando la base de datos de forma robusta y determinista, generando un JSON final de "Hechos Absolutos del Turno".
+  3. *Capa 3 (IA Narradora/DM):* Un prompt de DM simplificado toma el JSON de Hechos Absolutos del Turno y se limita a vestirlo de gala literaria en prosa evocadora de D&D, previniendo alucinaciones lógicas, double-binds y colapsos de esquema.
+  * **Estado:** ✅ **COMPLETADO en v0.6.1**
+
+### 4. Sistema de Combate y Reglas ✅ COMPLETADO
+* **[TASK-055] Sincronización Bidireccional de WorldState y Reglas de Combate:** Sincronización completa entre `enemiesByLocation` y `worldState.locations[locId].enemies`, activación automática de flags globales de victoria (`<id>_derrotado`) en `combatManagerTool` y `StatsSystem`, y desbloqueo bidireccional de puertas en `SkillCheckSystem`.
+  * **Estado:** ✅ **COMPLETADO**
+* **[TASK-056] Prevención de Doble Ejecución en GameRulesEngine:** Bloqueo de reencolado de eventos en `narrative-turn-manager.ts` cuando la regla intercepta la acción, y emisión de eventos `ItemCollected` en `ScrollRuleModule`.
+  * **Estado:** ✅ **COMPLETADO**
+* **[TASK-057] Alucinaciones del Tactician Enemigo (Acciones inventadas):** Evitar que la IA del tactician enemigo (`enemyTacticianTool`) alucine acciones o armas inexistentes, pasando las acciones disponibles directamente en el prompt del tactician o forzándolo a consultar las estadísticas oficiales antes de elegir la acción.
+  * **Estado:** ✅ **COMPLETADO**
+
+### 5. Mecánicas de Magia y Economía ✅ COMPLETADO
+* **[TASK-058] Ciclo de Vida y Uso de Pergaminos Mágicos:** Integrar con el inventario físico el uso de consumibles mágicos (restar el pergamino al activarlo, validar si el personaje tiene la habilidad de usarlo y realizar la transferencia correcta entre mochilas de compañeros sin duplicidades).
+  * **Estado:** ✅ **COMPLETADO en v0.6.1**
+* **[TASK-059] Unificación de Inventarios Iniciales:** Homologar los inventarios de las fichas iniciales de personajes para que utilicen exactamente los mismos IDs y estructuras estándar sincronizadas con `adventureData.items`.
+  * **Estado:** ✅ **COMPLETADO en v0.6.1**
+* **[TASK-060] Mapeo de Sinónimos de Inventario Personal:** Añadir reglas específicas en los prompts de los expertos conversacionales de la IA para que apliquen la misma tabla de sinónimos a las pertenencias de los personajes.
+  * **Estado:** ✅ **COMPLETADO en v0.6.1**
+
+---
+
 > Las iniciativas completadas seguirán moviéndose a este archivo para mantener el roadmap principal enfocado exclusivamente en trabajo proactivo.
+
 
 
