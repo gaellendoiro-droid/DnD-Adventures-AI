@@ -16,6 +16,7 @@ import { CombatInitiationService } from '@/lib/combat/combat-initiation-service'
 import { combatInitiationExpertTool } from '@/ai/tools/combat-initiation-expert';
 import { WorldStateManager } from '@/lib/game/world-state-manager';
 import { parseAIProviderError } from '@/lib/ai/ai-error-handler';
+import { resolveStartingLocationId } from '@/lib/adventure-loader/starting-location';
 
 /**
  * Helper generator to stream text with pacing.
@@ -50,7 +51,7 @@ export async function* gameStreamCoordinator(
         let activeLocationId = locationId;
         let currentLocationData = adventureData.locations.find((l: any) => l.id === activeLocationId);
         if (!currentLocationData) {
-            const fallbackId = adventureData.settings?.startingLocationId || adventureData.locations[0]?.id;
+            const fallbackId = resolveStartingLocationId(adventureData);
             log.warn(`Location ${activeLocationId} not found in adventure locations. Falling back to startingLocationId ${fallbackId}`, {
                 module: 'GameStreamCoordinator',
                 locationId: activeLocationId,

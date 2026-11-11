@@ -4,6 +4,7 @@ import { AdventureLoadError, AdventureLoadErrorType } from './error-handler';
 import { Party } from '@/lib/types';
 import { logClient } from '@/lib/logger-client';
 import { createInitialWorldState } from '@/lib/game/world-state-types';
+import { resolveStartingLocationId } from './starting-location';
 
 export interface InitializationResult {
     success: boolean;
@@ -38,7 +39,7 @@ export async function initializeGame(
 
         // 3. Preparar estado inicial para la primera acción
         // Buscamos la ubicación inicial (o la primera si no hay definida)
-        const startingLocationId = adventureData.startingLocationId || adventureData.locations[0]?.id;
+        const startingLocationId = resolveStartingLocationId(adventureData);
         const startingLocation = adventureData.locations.find((l: any) => l.id === startingLocationId) || adventureData.locations[0];
 
         if (!startingLocation) {

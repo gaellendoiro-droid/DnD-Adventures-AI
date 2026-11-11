@@ -14,6 +14,7 @@ import { CassetteRecorder, loadCassette, saveCassette, type ScenarioMode } from 
 import { enableDeterminism } from './determinism';
 import { applyStateDelta, nextMessageId, resetMessageCounter, type ClientState } from './client-state';
 import type { GameMessage } from '@/lib/types';
+import { resolveStartingLocationId } from '@/lib/adventure-loader/starting-location';
 
 // ---------------------------------------------------------------------------
 // Tipos públicos
@@ -248,7 +249,8 @@ export async function runScenario(def: ScenarioDefinition): Promise<ScenarioRepo
         const hiddenTerms = collectHiddenIdentityTerms(adventure.entities).map(t => t.term);
 
         // 3. Estado inicial, igual que game-initializer.ts con narración pregenerada.
-        const startId = adventure.startingLocationId || adventure.settings?.startingLocationId || adventure.locations[0].id;
+        // Misma función que usa el juego: el arnés no debe ser más listo que el código real.
+        const startId = resolveStartingLocationId(adventure)!;
         const party = clone(initialParty);
         const player = party.find((c: any) => c.controlledBy === 'Player') ?? party[0];
         const state: ClientState = {
