@@ -330,7 +330,7 @@ export class ScrollRuleModule implements RuleModule {
             hasIdentifyWords ||
             isConfirmationAction ||
             (interpretation.activatedEffects && interpretation.activatedEffects.length > 0) ||
-            (/\b(inténtalo|intentalo|hazlo|hazla)\b/i.test(actionLower));
+            (/\b(inténtalo|intentalo|intentarlo|hazlo|hazla|otra vez|de nuevo)\b/i.test(actionLower));
 
         // Si es una acción pura de soltar ('drop') o dar ('give') SIN orden de leerlo/identificarlo en el mismo turno, delegar a InventoryRuleModule
         if (
@@ -441,12 +441,17 @@ export class ScrollRuleModule implements RuleModule {
             const holderCompanion = party.slice(1).find((c: any) =>
                 c.inventory?.some((it: any) => it.id === `scroll-${scrollSpellEffect}` || /pergamino|scroll/i.test(it.name || ''))
             );
+            // Si el jugador no habla en primera persona ("lo leo", "activo el pergamino"), una orden
+            // como "¡Pues léelo!" va dirigida a quien tiene el pergamino. Antes el lector por defecto
+            // era siempre el jugador, que además se quedaba con el pergamino del compañero.
+            const playerActsHimself = /\b(leo|lo leo|activo|lo activo|recito|lo recito|uso|lo uso|descifro|lo descifro|examino|lo examino|intento (leer|activar|descifrar|usar))\b/i.test(actionLower);
             const activeCharName =
                 mentionedCompanion?.name ||
                 confirmedCompanionName ||
                 interpretation.recipient ||
                 interpretation.assignedCompanion ||
                 (isConfirmationAction && holderCompanion?.name) ||
+                (!playerActsHimself && holderCompanion?.name) ||
                 party[0]?.name;
             const activeChar = party.find(p => 
                 p.name && activeCharName && p.name.toLowerCase().trim() === activeCharName.toLowerCase().trim()
