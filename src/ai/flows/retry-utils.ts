@@ -210,9 +210,10 @@ export async function executePromptWithRetry<TInput, TOutput>(
         flowName?: string;
     }
 ): Promise<{ output: TOutput }> {
-    // Pre-warm Gemini API solo si no se está usando Groq
+    // Pre-warm de la API de Gemini solo si el modelo activo es de Gemini (no Groq ni local)
     const activeModel = GEMINI_MODEL_NAME;
-    if (!geminiPrewarmed && !activeModel.startsWith('groq/')) {
+    const isGoogleModel = activeModel.startsWith('googleai/');
+    if (!geminiPrewarmed && isGoogleModel) {
         await prewarmConnection(
             'https://generativelanguage.googleapis.com',
             '/v1beta/models',
@@ -222,7 +223,7 @@ export async function executePromptWithRetry<TInput, TOutput>(
             // Ignorar errores - el pre-warm es best-effort
         });
         geminiPrewarmed = true;
-    } else if (activeModel.startsWith('groq/')) {
+    } else if (!isGoogleModel) {
         geminiPrewarmed = true;
     }
 
