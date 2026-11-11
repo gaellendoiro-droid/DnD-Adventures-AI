@@ -7,10 +7,18 @@ export class RestRuleModule implements RuleModule {
         const { playerAction, interpretation } = input;
         const actionLower = playerAction.toLowerCase();
 
-        // Intercepta si la acción o interpretación menciona descanso o dormir
-        const hasRestKeywords = /\b(descans|dorm|rest|sleep)/i.test(actionLower);
-        return hasRestKeywords || interpretation.actionType === 'rest';
+        if (interpretation.actionType === 'rest') return true;
+        // Nunca convertir en descanso un ataque, una aclaración o una consulta fuera de personaje
+        if (['attack', 'clarify', 'ooc'].includes(interpretation.actionType)) return false;
+
+        // Solo palabras completas que expresan que el grupo descansa o duerme.
+        // Se evitan falsos positivos como "dormitorio", "restos", "restante", "descansillo"
+        // o terceras personas ("el oso duerme", "el guardia descansa").
+        return RestRuleModule.REST_INTENT_REGEX.test(actionLower);
     }
+
+    static readonly REST_INTENT_REGEX =
+        /(?<![\p{L}])(descanso|descansos|descansar|descansarnos|descansamos|descansemos|descansad|descansaremos|dormir|dormirnos|dormimos|dormid|dormiremos|duermo|durmamos|siesta|rest|resting|sleep|sleeping)(?![\p{L}])/iu;
 
     evaluate(input: RulesEngineInput): RulesEngineResult {
         const { playerAction, interpretation, party, worldState } = input;

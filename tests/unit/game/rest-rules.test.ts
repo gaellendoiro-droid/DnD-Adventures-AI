@@ -145,4 +145,43 @@ describe('RestRuleModule', () => {
         // Las flags permanentes de la aventura ('some_other_flag') deben persistir
         expect(result.updatedWorldState.globalFlags.some_other_flag).toBe(true);
     });
+
+    it('should not intercept actions that only contain rest-like fragments (regression)', () => {
+        const module = new RestRuleModule();
+        const make = (playerAction: string, actionType = 'interact') => ({
+            playerAction,
+            interpretation: { actionType },
+            party: [],
+            currentLocationId: 'loc-1',
+            adventureData: {},
+            worldState: {},
+            conversationHistory: []
+        }) as any;
+
+        const nonRest = [
+            'Examino el dormitorio',
+            'Registro los restos del naufragio',
+            '¿Cuántas flechas me quedan restantes?',
+            'Subo hasta el descansillo de la escalera',
+            'Me acerco sigilosamente al oso que duerme',
+            'Observo al guardia que descansa junto a la puerta',
+        ];
+        for (const action of nonRest) {
+            expect(module.canHandle(make(action)), action).toBe(false);
+        }
+
+        // Un ataque nunca debe convertirse en descanso
+        expect(module.canHandle(make('Ataco al guardia antes de que pueda descansar', 'attack'))).toBe(false);
+
+        const rest = [
+            'Descansamos un rato junto a la hoguera',
+            'Nos echamos una siesta',
+            'Vamos a dormir',
+            'Hacemos un descanso largo',
+            'We take a short rest',
+        ];
+        for (const action of rest) {
+            expect(module.canHandle(make(action, 'narrate')), action).toBe(true);
+        }
+    });
 });

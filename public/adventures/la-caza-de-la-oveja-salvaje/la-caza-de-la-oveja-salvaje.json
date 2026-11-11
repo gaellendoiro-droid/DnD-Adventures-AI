@@ -327,6 +327,13 @@
                 "voiceAndMannerisms": "Habla con un acento élfico culto, aunque con un ligero balido. Exuda un aire de intelectualidad pedante y maniática.",
                 "goals": "Necesita ayuda para recuperar un artefacto mágico de su antiguo aprendiz, Ahmed Noke, y así poder volver a su forma original.",
                 "communicationBarrier": "Lleva un Pergamino de Hablar con los Animales en la boca e intenta que los aventureros lo usen para comunicarse.",
+                "hiddenIdentityTerms": [
+                    { "term": "Finethir Shinebright", "replacement": "una criatura transformada" },
+                    { "term": "Finethir", "replacement": "la oveja" },
+                    { "term": "Ahmed Noke", "replacement": "un antagonista oculto" },
+                    { "term": "Noke", "replacement": "un perseguidor" },
+                    { "term": "Vara de Polimorfia Verdadera", "replacement": "un artefacto arcano" }
+                ],
                 "possessions": [
                     "Pergamino de Hablar con los Animales (Modificado)"
                 ],

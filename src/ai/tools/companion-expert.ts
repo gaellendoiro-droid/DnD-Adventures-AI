@@ -12,6 +12,12 @@ import { PartySchema, CharacterSchema } from '@/lib/schemas';
 import { log } from '@/lib/logger';
 import { executePromptWithRetry } from '../flows/retry-utils';
 import { SkillCheckResultSchema } from '../flows/schemas';
+import {
+    applyHiddenIdentityTerms,
+    isBehindCommunicationBarrier,
+    loadActiveAdventureHiddenTerms,
+    maskEntityBehindBarrier,
+} from '@/lib/game/communication-barrier';
 
 const CompanionExpertInputSchema = z.object({
     party: PartySchema.describe("The array of character objects for the entire party."),
@@ -117,10 +123,19 @@ const reactionGenerationPrompt = ai.definePrompt({
     - Keep actions concise (1-2 sentences maximum).
     - If the character does nothing, return an empty string for the "action" field inside the JSON object.
     - DO NOT repeat what was already said or narrated. Add something NEW.
-    - **FACTUALITY & IDENTIFICATION:** If the player asks your character to examine, read, or identify an object, item, or scroll in the scene (or carried by an NPC), and you have that information in "Entities Present", you can help. However:
-      - **CRITICAL (SKILL CHECKS):** If identifying or understanding the object requires a skill check (such as Arcana, Investigation, History, etc.) and the result of that check is a **FALLO** or **FALLO CRÍTICO** (as specified in \`skillCheckResult\`), you **MUST NOT** reveal the object's true identity, name, or properties. You must remain in character and express doubt, confusion, lack of knowledge, or offer an incorrect guess (e.g., "Parece algún tipo de pergamino antiguo, pero los símbolos me resultan indescifrables...", "No reconozco esa escritura, Galador").
-      - Only reveal the true identity (e.g., "Es un Pergamino de Hablar con los Animales") if a skill check is successful, or if no check was required.
-    - **ACTIVE EFFECTS & COMMUNICATION BARRIERS:** If a communication effect like "speak_with_animals" is in the 'Active Magical/World Effects', any communication barriers listed in the entities' descriptions (such as carrying a scroll in their mouth, barking/bleating, or needing a spell to speak) are now bypassed for you. You can understand them and converse with them fully. Do NOT act as if you cannot understand them or as if they still need the scroll/spell read.
+    - **ESTILO DE DIÁLOGO DIRECTO (PROHIBIDO EL ESTILO INDIRECTO):**
+      - Escribe siempre las palabras literales que pronuncia tu personaje en primera persona (puedes acompañarlas de un gesto físico breve si aporta valor, p. ej.: *Me acerco con cautela al animal. «Tranquila, pequeña, ¿qué intentas decirnos?»* o directamente el diálogo: *«Esa oveja parece aterrorizada, Galador. Abre ese pergamino a ver qué lleva.»*).
+      - **ESTÁ TERMINANTEMENTE PROHIBIDO** escribir resúmenes en estilo indirecto como si fueras un jugador dándole órdenes al DM (ej. NUNCA escribas *"Le hablo a la oveja, preguntándole qué mensaje lleva y cómo podemos ayudarla"*).
+    - **COHERENCIA FÍSICA Y DE POSESIÓN:**
+      - Respeta quién está ejecutando la acción y quién tiene cada objeto según 'Your Character's Details' ('inventory') y 'Current Situation'. Si otro miembro del grupo (como Galador) es quien coge o sostiene el pergamino y tú no lo tienes en tu inventario, NO hables como si lo tuvieras tú en las manos ni digas *"déjame leerlo con calma"* hasta que te lo entreguen.
+    - **SIN METAJUEGO NI SPOILERS (CRÍTICO):**
+      - NUNCA adivines ni reveles qué hechizo contiene un pergamino enrollado ni el nombre oculto de un animal/NPC a menos que ya se haya revelado explícitamente en el historial de conversación o mediante una tirada de habilidad exitosa en este turno (\`skillCheckResult.isSuccess === true\`).
+      - Si alguien simplemente recoge o sostiene un pergamino sin haberlo leído aún, refiérete a él únicamente como "el pergamino" o "ese pergamino".
+      - Si \`skillCheckResult\` indica **FALLO**, expresa duda o desconocimiento sin desvelar las propiedades del objeto.
+    - **ACTIVE EFFECTS & COMMUNICATION BARRIERS:**
+      - If "speak_with_animals" IS in 'Active Magical/World Effects', any communication barriers with animals are bypassed. You can understand them and converse with them fully.
+      - If "speak_with_animals" is **NOT** in 'Active Magical/World Effects', you **CANNOT** understand animal sounds (such as bleating or barking) yet. NEVER say *"Entiendo tu balido"* or pretend you understand what the animal says until "speak_with_animals" is active.
+      - Remember the difference between **deciphering/identifying** a scroll (learning its title while the scroll stays intact in inventory) vs **casting/reading** it aloud (consuming it and activating the spell). If someone already took the scroll from the animal's mouth (check party inventories or recent history), NEVER tell the animal to drop it from its mouth.
     `,
 });
 
@@ -164,6 +179,55 @@ export const companionExpertTool = ai.defineTool(
                 reactionTiming: input.reactionTiming || 'after_dm',
             });
 
+            const hasSpeakWithAnimals = Array.isArray(input.activeEffects) && input.activeEffects.includes('speak_with_animals');
+            const canRevealScrollIdentity = hasSpeakWithAnimals || Boolean(input.skillCheckResult?.isSuccess);
+            const scrollHolder = party.find((c) =>
+                c.inventory?.some((it) => /pergamino|scroll/i.test(`${it.id || ''} ${it.name || ''}`))
+            );
+            const isScrollAlreadyTakenFromAnimal = Boolean(scrollHolder) || hasSpeakWithAnimals;
+
+            // Términos de spoiler declarados en los datos de la aventura (roleplay.hiddenIdentityTerms)
+            const hiddenTerms = hasSpeakWithAnimals ? [] : await loadActiveAdventureHiddenTerms();
+
+            // Filtrar secretos de DM en presentEntities para que los compañeros de grupo no hagan metajuego ni spoilers
+            const sanitizedEntities = Array.isArray(input.presentEntities)
+                ? input.presentEntities.map((ent: any) => {
+                      if (!ent || typeof ent !== 'object') return ent;
+                      if (!hasSpeakWithAnimals && isBehindCommunicationBarrier(ent)) {
+                          const masked = maskEntityBehindBarrier(ent, hiddenTerms);
+                          return {
+                              id: masked.id,
+                              name: masked.name,
+                              type: masked.type,
+                              description: masked.description,
+                          };
+                      }
+                      return {
+                          id: ent.id,
+                          name: ent.name,
+                          type: ent.type,
+                          description: ent.description,
+                      };
+                  })
+                : input.presentEntities;
+
+            let sanitizedLocationContext = input.locationContext;
+            if (typeof sanitizedLocationContext === 'string') {
+                sanitizedLocationContext = applyHiddenIdentityTerms(sanitizedLocationContext, hiddenTerms);
+                if (!canRevealScrollIdentity) {
+                    sanitizedLocationContext = sanitizedLocationContext
+                        .replace(/Pergamino de Hablar con (los )?Animales/gi, 'pergamino enrollado')
+                        .replace(/Hablar con (los )?Animales/gi, 'magia desconocida')
+                        .replace(/Speak with Animals/gi, 'unknown magic');
+                }
+                if (isScrollAlreadyTakenFromAnimal) {
+                    sanitizedLocationContext = sanitizedLocationContext
+                        .replace(/y os ofrece un pergamino[^.]*fauces\./gi, `(el grupo ya ha recogido el pergamino que traía; actualmente lo tiene ${scrollHolder ? scrollHolder.name : 'el grupo'}).`)
+                        .replace(/sujeta firmemente entre sus fauces/gi, 'traía consigo (ya recogido por el grupo)')
+                        .replace(/sujeto en la boca/gi, 'ya entregado al grupo');
+                }
+            }
+
             // STEP 2: Call the LLM with all context provided. No tools needed.
             const response = await executePromptWithRetry(
                 reactionGenerationPrompt,
@@ -173,12 +237,12 @@ export const companionExpertTool = ai.defineTool(
                     chatHistory: input.chatHistory,
                     isBeforeDm: input.reactionTiming === 'before_dm',
                     isAfterDm: input.reactionTiming === 'after_dm' || !input.reactionTiming,
-                    locationContext: input.locationContext,
-                    presentEntities: input.presentEntities,
+                    locationContext: sanitizedLocationContext,
+                    presentEntities: sanitizedEntities,
                     activeEffects: input.activeEffects,
                     skillCheckResult: input.skillCheckResult,
                 },
-                { flowName: 'companionExpert' }
+                { flowName: 'companionExpert', maxRetries: 1 }
             );
             const { output } = response;
 

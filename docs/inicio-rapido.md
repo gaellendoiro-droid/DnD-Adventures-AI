@@ -6,7 +6,7 @@ Esta guía te ayudará a poner en marcha el proyecto **D&D Adventures AI** desde
 
 ## 🎯 Visión General
 
-**D&D Adventures AI** es una aplicación web que permite jugar aventuras oficiales de Dungeons & Dragons 5ª Edición con un Dungeon Master potenciado por IA (**Google Gemini 2.5 Flash**). El proyecto combina la flexibilidad narrativa de la IA con un motor neuro-simbólico determinista en TypeScript que aplica las reglas matemáticas oficiales de D&D 5e y mantiene un estado del mundo persistente (`WorldState`).
+**D&D Adventures AI** es una aplicación web que permite jugar aventuras oficiales de Dungeons & Dragons 5ª Edición con un Dungeon Master potenciado por IA (**Google Gemini 3.5 Flash** por defecto, o **Groq** como proveedor opcional). El proyecto combina la flexibilidad narrativa de la IA con un motor neuro-simbólico determinista en TypeScript que aplica las reglas matemáticas oficiales de D&D 5e y mantiene un estado del mundo persistente (`WorldState`).
 
 ### Características Principales:
 - **Arquitectura Neuro-Simbólica de 3 Capas:** Separación estricta entre interpretación de intenciones (Capa 1), resolución determinista de reglas y estado (Capa 2) y dirección narrativa (Capa 3).
@@ -37,7 +37,13 @@ Esta guía te ayudará a poner en marcha el proyecto **D&D Adventures AI** desde
    Crea un archivo `.env` en la raíz del proyecto y añade tu clave de API:
    ```env
    GOOGLE_GENAI_API_KEY=tu_api_key_aqui
+
+   # Opcional: modelo de IA (googleai/<modelo> o groq/<modelo>)
+   # GEMINI_MODEL=googleai/gemini-3.5-flash
+   # Opcional: proveedor Groq (rotación entre qwen3.8-27b, gpt-oss-120b y gpt-oss-20b)
+   # GROQ_API_KEY=tu_api_key_groq
    ```
+   Si no defines `GEMINI_MODEL`, la app usa `groq/qwen/qwen3.8-27b` cuando existe `GROQ_API_KEY` y, en caso contrario, `googleai/gemini-3.5-flash`. La `GOOGLE_GENAI_API_KEY` sigue siendo necesaria para la voz (TTS) y la consulta de manuales.
 
 3. **Ejecutar la aplicación en modo desarrollo:**
    ```bash

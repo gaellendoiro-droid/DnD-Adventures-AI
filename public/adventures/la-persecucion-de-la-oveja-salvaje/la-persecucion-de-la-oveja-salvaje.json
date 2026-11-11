@@ -256,6 +256,13 @@
                 "voiceAndMannerisms": "Cuando se comunica a través del pergamino, su balido se transforma en un Común culto con acento élfico, aunque con un ligero toque de balido. Exuda un aire de intelectualismo quisquilloso y libresco.",
                 "goals": "Recuperar su forma original de elfo y su Vara de Polimorfia Verdadera de su antiguo aprendiz, Ahmed Noke. Promete grandes recompensas a los aventureros.",
                 "communicationBarrier": "Lleva un Pergamino de Hablar con los Animales en la boca e intenta que los aventureros lo usen para comunicarse.",
+                "hiddenIdentityTerms": [
+                    { "term": "Finethir Shinebright", "replacement": "una criatura transformada" },
+                    { "term": "Finethir", "replacement": "la oveja" },
+                    { "term": "Ahmed Noke", "replacement": "un antagonista oculto" },
+                    { "term": "Noke", "replacement": "un perseguidor" },
+                    { "term": "Vara de Polimorfia Verdadera", "replacement": "un artefacto arcano" }
+                ],
                 "possessions": [
                     "Pergamino de Hablar con los Animales"
                 ],

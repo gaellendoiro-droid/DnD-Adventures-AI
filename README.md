@@ -11,7 +11,7 @@ El sistema combina la creatividad literaria de **Google Gemini** con una **Arqui
 - **Framework:** Next.js 15 (App Router, Server Actions y Streaming SSE)
 - **Lenguaje:** TypeScript (Tipado estricto con validación Zod)
 - **Estilos e Interfaz:** Tailwind CSS, Radix UI / shadcn/ui, Lucide Icons
-- **IA Generativa y Orquestación:** Google Genkit + Google Gemini (`gemini-2.5-flash` / `gemini-2.5-pro`)
+- **IA Generativa y Orquestación:** Google Genkit + Google Gemini (`gemini-3.5-flash` por defecto) o Groq opcional (`qwen3.8-27b` / `gpt-oss-120b` / `gpt-oss-20b`, con rotación automática ante límites de cuota). Se elige con `GEMINI_MODEL` / `GROQ_API_KEY`.
 - **Base de Conocimiento Híbrida (RAG + SQLite):** `better-sqlite3` (`knowledge/dnd-local.db`) + Google AI File API (`RulebookManager`) para consulta de manuales oficiales en PDF
 - **Conversor de Aventuras:** Pipeline automatizado de PDF a JSON (`scripts/pdf-to-json.ts`) con extracción de mapas tácticos mediante Gemini Vision
 - **Audio y Voz (TTS):** Síntesis de voz dual con **Gemini 3.1 Flash TTS** (por defecto) y **ElevenLabs**, con caché local en disco y gestor de música ambiental (`MusicManager`)
@@ -36,7 +36,11 @@ Para una guía paso a paso de instalación, configuración de variables de entor
    GOOGLE_GENAI_API_KEY=tu_api_key_aqui
    TTS_PROVIDER=gemini
    GEMINI_TTS_VOICE=Charon
+   # Opcional: elegir modelo o activar Groq
+   # GEMINI_MODEL=googleai/gemini-3.5-flash
+   # GROQ_API_KEY=tu_api_key_groq
    ```
+   Sin `GEMINI_MODEL`, se usa Groq si existe `GROQ_API_KEY` y, si no, `googleai/gemini-3.5-flash`.
 
 3. **Iniciar el servidor de desarrollo:**
    ```bash

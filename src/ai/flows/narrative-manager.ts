@@ -28,6 +28,12 @@ import { explorationExpert } from './experts/exploration-expert';
 import { interactionExpert } from './experts/interaction-expert';
 import { log } from '@/lib/logger';
 import { repairPunctuationSpacing } from '@/lib/utils/text-cleaner';
+import {
+    applyHiddenIdentityTerms,
+    isBehindCommunicationBarrier,
+    loadActiveAdventureHiddenTerms,
+    maskEntityBehindBarrier,
+} from '@/lib/game/communication-barrier';
 
 // --- Internal Schemas ---
 
@@ -125,6 +131,7 @@ export const narrativeDirectorPrompt = ai.definePrompt({
             party: z.array(z.any()).optional(),
             eventsLog: z.string().optional(),
             narrativeDirectives: z.array(z.string()).optional(),
+            isKeyMoment: z.boolean().optional(),
         })
     },
     output: {
@@ -142,6 +149,10 @@ You MUST ALWAYS speak and narrate in Spanish from Spain (Castellano culto, natur
 
 Your main responsibility is to act as the central orchestrator of the scene. You must synthesize the specialized inputs (environment descriptions and NPC dialogue) and guide the storyline.
 
+**BARRERA DE COMUNICACIÓN CRÍTICA (REGLA DE ORO DE LA BESTIA):**
+- Si un NPC es un animal o bestia (como la oveja) y el efecto \`"speak_with_animals"\` **NO** está presente en \`activeEffects\`, ese animal **BAJO NINGUNA CIRCUNSTANCIA** puede hablar en Común/castellano, pronunciar palabras articuladas, revelar su nombre real (*Finethir Shinebright*), ni mencionar la *Vara de Polimorfia* o a *Noke*. Solo puede emitir balidos y hacer gestos físicos.
+- Si una tirada de habilidad para leer el pergamino ha resultado en **FALLO** (en \`skillCheckResult\`), está TERMINANTEMENTE PROHIBIDO activar el efecto de hablar con los animales o disparar eventos del \`storyline\` que dependan de haber hablado con la oveja.
+
 **CRITICAL ROLE: STORYLINE INTERRUPTION AND EVENT DIRECTING (GENERIC)**
 1. Read and analyze the "storyline" array in the \`adventureLore\` JSON. It contains a list of scripted storyline milestones/events for this adventure. Each event has an "eventName", "triggerCondition", "description" (in Spanish), and "consequences".
 2. Read the \`conversationHistory\` to deduce which storyline events have already occurred. Identify the next uncompleted event in the list.
@@ -152,15 +163,14 @@ Your main responsibility is to act as the central orchestrator of the scene. You
    - **Do NOT trigger events out of order or too early**. For example, if a trigger condition requires a certain conversation to start or an item to be used, do NOT trigger the event until that condition is fully met.
 
 **RULES OF NARRATIVE INTEGRITY & SECRECY (CRITICAL)**
-0. **HECHOS MECÁNICOS DEL SISTEMA (CRÍTICO):** Si se provee un listado en \`eventsLog\`, debes incorporar obligatoriamente todos los hechos descritos en él en tu narración. Estos hechos son la única verdad matemática y mecánica de lo que ha sucedido (ej: si se abrió una puerta, si alguien sufrió daño, o si se falló una tirada). Viste estos hechos con tu prosa inmersiva.
-1. **PREVALENCIA DE LOS EXPERTOS (REGLA DE ORO):** Respeta estrictamente la información y descripciones generadas por los expertos especializados (\`explorationText\` e \`interactionText\`). Si los expertos ocultan información en sus fragmentos, no la reveles en tu síntesis final.
-2. **REGLA DE ORO: OBEDIENCIA ESTRICTA A DIRECTIVAS NARRATIVAS (CRÍTICO):**
-   Debes mantener una prosa inmersiva, literaria y evocadora en español de España, pero respetando estrictamente las pautas lógicas del juego:
-   - **LIBERTAD SENSORIAL Y ATMÓSFERA (PERMITIDO):** Tienes total libertad para describir los olores, sonidos, clima, gestos físicos y reacciones emocionales de los personajes o NPCs para mantener la inmersión narrativa.
-   - **OBEDIENCIA A DIRECTIVAS (OBLIGATORIO):** En el input se proporciona la lista 'narrativeDirectives'. Debes obedecer **estrictamente** y sin excepción cada una de las instrucciones de esta lista.
-     * Si una directiva dice que un objeto no se activa o que no se libera magia, descríbelo como un acto físico y no permitas que la oveja hable ni que el entorno reaccione mágicamente.
-     * Si una directiva indica que la magia se activa con éxito, narra la canalización mágica y describe el efecto activo (ej: el animal comenzando a hablar Común con acento élfico).
-     * Si una directiva dice que el intento falló, describe la frustración y el fracaso sin activar la magia.
+0. **HECHOS MECÁNICOS DEL SISTEMA (CRÍTICO):** Si se provee un listado en \`eventsLog\`, debes incorporar los hechos descritos en él en tu narración con naturalidad, sin usar lenguaje mecánico de videojuego.
+1. **PREVALENCIA DE LOS EXPERTOS Y CONTINUIDAD ESCÉNICA (REGLA DE ORO):**
+   - Respeta estrictamente la información generada por los expertos especializados (\`explorationText\` e \`interactionText\`). Si los expertos ocultan información en sus fragmentos, no la reveles en tu síntesis final.
+   - **CONTINUIDAD FÍSICA:** Si el jugador recoge o interactúa con un objeto que en el mensaje anterior del \`conversationHistory\` estaba sujeto por un NPC o animal (por ejemplo, una oveja ofreciendo un pergamino en sus fauces), narra que el personaje lo toma directamente de ese NPC/animal y su breve reacción física. NUNCA inventes que estaba en el suelo cubierto de polvo si alguien lo estaba ofreciendo.
+2. **REGLA DE ORO: OBEDIENCIA A DIRECTIVAS Y CERO META-LENGUAJE (CRÍTICO):**
+   - **OBEDIENCIA A DIRECTIVAS (OBLIGATORIO):** En el input se proporciona la lista 'narrativeDirectives'. Obedece cada instrucción narrativa.
+   - **PROHIBIDO NARRAR LO QUE NO OCURRE (CERO META-NARRACIÓN):** Las advertencias marcadas como \`[PROHIBICIÓN SILENCIOSA]\` son reglas internas para ti como IA. Está TERMINANTEMENTE PROHIBIDO escribir en la prosa frases como *"sin emitir ningún destello"*, *"permanece inactivo"*, *"no consume energía"*, *"sin ninguna restricción mágica"*, *"queda registrada como un paso más"* o *"guardado en su inventario"*. Si un objeto no se activa, simplemente narra el gesto físico natural de cogerlo o guardarlo en 1-2 frases y detente ahí.
+   - **SIN SPOILERS DE PERGAMINOS NO LEÍDOS:** Si el personaje solo coge o guarda un pergamino enrollado sin leerlo ni identificarlo, llámalo simplemente *"el pergamino enrollado"* o *"el pergamino"*, nunca reveles que es de *Hablar con los Animales* hasta que lo identifiquen o activen.
 3. **PREVENCIÓN DE SPOILERS DE IDENTIDAD:** No utilices los nombres propios o identidades de NPCs que figuren en los datos de la aventura si el NPC no se ha presentado formalmente en el chat de juego de rol. En su lugar, utiliza descriptores físicos genéricos (ej: "el semiorco", "la oveja", "el encapuchado").
 4. **CONSISTENCIA EN CONTENEDORES, SAQUEO SELECTIVO E INVENTARIOS (CRÍTICO):** Al narrar el saqueo, la posesión o interactuar con contenedores (cofres, alijos, baúles) u objetos físicos, debes guiarte estrictamente por el estado físico lógico proporcionado en el \`Location Context\` y por los inventarios del grupo en \`party\`.
    - **REGLA DE EXCLUSIÓN ABSOLUTA DE POSESIONES**: Si un ítem (ej: "Llave del Calabozo", "Poción de Curación", llaves, pociones, espadas) figura en el inventario (\`inventory\`) de cualquier personaje de la \`party\` en el input estructurado, **está TERMINANTEMENTE PROHIBIDO** narrar, insinuar o describir que dicho objeto sigue en el cofre, en el suelo, o en el entorno de la sala. Si la descripción literaria de la localización o el historial conversacional anterior afirman que el objeto sigue en el cofre, debes ignorarlos y corregir la narración de forma coherente reflejando la realidad lógicamente actualizada (el objeto está con su poseedor y el contenedor ya no lo contiene).
@@ -168,17 +178,11 @@ Your main responsibility is to act as the central orchestrator of the scene. You
    - NUNCA declares que un contenedor está vacío si el JSON del contexto indica que aún tiene objetos.
 5. **RESPETO AL RITMO DE LA HISTORIA (PROHIBIDO):** No anticipes hitos de la historia ('storyline') ni reacciones del entorno que dependan del uso o activación de un objeto hasta que el jugador decida usarlo o activarlo de forma explícitamente declarada.
 
-
-
-
-
-
-**FORMATTING AND NARRATIVE LENGTH (CRITICAL)**
-- **Max length**: Keep the DM narration direct, concise, and dynamic. **Never exceed 3 paragraphs, and keep each paragraph short (1-2 sentences)**. The total output must not exceed 4-5 sentences, even for dramatic storyline interruptions or key moments. Avoid long-winded monologues.
-- **Paragraph breaks**: Always separate distinct actions or events into separate paragraphs with double line breaks (\n\n). For example:
-  * Paragraph 1: Resolution of the player's immediate action/skill check.
-  * Paragraph 2: The sudden interruption or environmental occurrence (if triggered).
-  * Paragraph 3: The NPC dialogue or verbal reaction.
+**FORMATTING AND PROPORTIONAL NARRATIVE LENGTH (CRITICAL)**
+- **Proportionality to the Action**:
+  * **Simple / Routine Actions** (picking up an object, giving/dropping an item, opening a door, brief examination when NO storyline event is triggered): Keep it to **1 single short paragraph of 1 to 2 sentences maximum** (25-45 words). Be direct, vivid, and concise. Do NOT pad with philosophical or mechanical reflections.
+  * **Key Moments / Storyline Interruptions / Hybrid Dialogues**: Maximum **2 to 3 short paragraphs** (1-2 sentences each, 4-5 sentences total).
+- **Paragraph breaks**: When there are multiple distinct beats (e.g. action resolution + NPC dialogue), separate them with double line breaks (\n\n).
 - **No blocks of text**: Do NOT return a single massive block of text. Make the narration readable and well-spaced. You MUST separate the ambient/resolution narration from NPC dialogues using double line breaks (\n\n).
 - **ESPACIADO Y ORTOGRAFÍA (CRÍTICO):** Asegúrate de insertar siempre un espacio en blanco después de cada punto, coma, signo de interrogación o exclamación. NUNCA pegues el texto descriptivo tras un signo de puntuación (ej: "próximos.Un semiorco" es incorrecto; "próximos. Un semiorco" es correcto).
 - **DIÁLOGOS EN CURSIVA (CRÍTICO):** Todos los diálogos, frases literales o citas pronunciados por cualquier NPC deben ir en cursiva en Markdown (encerrados en asteriscos simples). Las rayas de diálogo en español (—) y el texto descriptivo circundante (los tags de diálogo como "dijo", "gruñe", etc.) no deben estar en cursiva. Ejemplo: —*¡Ahí está la oveja!* —gruñe el semiorco—.
@@ -322,25 +326,37 @@ export const narrativeManagerFlow = ai.defineFlow(
 
             const hasCommunicationEffect = interpreted.includes('speak_with_animals') || interpreted.includes('comprehend_languages');
             const hasNPCs = input.explorationContext?.presentEntities && input.explorationContext.presentEntities.length > 0;
+            const isScrollOrItemAction =
+                /pergamino|scroll/i.test(input.playerAction) ||
+                /pergamino|scroll/i.test(input.systemFeedback || '') ||
+                /pergamino|scroll/i.test(input.interpretedAction || '');
 
-            if (hasCommunicationEffect && hasNPCs) {
+            if (isScrollOrItemAction) {
+                localLog('NarrativeManager: Routing scroll/item action directly to EXPLORATION.');
+                classification = 'EXPLORATION';
+            } else if (hasCommunicationEffect && hasNPCs) {
                 localLog("NarrativeManager: Forcing HYBRID classification due to active/activated communication effect and present NPCs.");
                 classification = 'HYBRID';
             } else if (isObviousExploration && !looksSocial) {
                 localLog('NarrativeManager: Skipping router (obvious exploration).');
                 classification = 'EXPLORATION';
             } else {
-                const routerResponse = await executePromptWithRetry(
-                    narrativeRouterPrompt,
-                    {
-                        playerAction: input.playerAction,
-                        interpretedAction: input.interpretedAction,
-                        conversationHistory: input.conversationHistory
-                    },
-                    { flowName: 'narrativeRouter' }
-                );
-                classification = routerResponse.output?.classification || 'EXPLORATION'; // Default to exploration
-                localLog(`NarrativeManager: Classification = ${classification}`);
+                try {
+                    const routerResponse = await executePromptWithRetry(
+                        narrativeRouterPrompt,
+                        {
+                            playerAction: input.playerAction,
+                            interpretedAction: input.interpretedAction,
+                            conversationHistory: input.conversationHistory
+                        },
+                        { flowName: 'narrativeRouter', maxRetries: 1 }
+                    );
+                    classification = routerResponse.output?.classification || 'EXPLORATION'; // Default to exploration
+                    localLog(`NarrativeManager: Classification = ${classification}`);
+                } catch (routerErr: any) {
+                    classification = looksSocial ? 'INTERACTION' : 'EXPLORATION';
+                    localLog(`NarrativeManager: Router fallback due to error (${routerErr.message}) -> ${classification}`);
+                }
             }
 
             let finalNarration = "";
@@ -349,19 +365,40 @@ export const narrativeManagerFlow = ai.defineFlow(
             let explorationText: string | undefined = undefined;
             let interactionText: string | undefined = undefined;
 
+            const hasSpeakWithAnimalsActive = Array.isArray(input.activeEffects) && input.activeEffects.includes('speak_with_animals');
+            // Barrera de comunicación genérica: los términos de spoiler vienen de los datos de la aventura
+            // (roleplay.hiddenIdentityTerms), nunca de nombres fijos en código.
+            const hiddenTerms = hasSpeakWithAnimalsActive ? [] : await loadActiveAdventureHiddenTerms();
+            const sanitizeEntitiesForAnimalBarrier = (entities?: any[]) => {
+                if (!Array.isArray(entities) || hasSpeakWithAnimalsActive) return entities;
+                return entities.map((ent: any) =>
+                    isBehindCommunicationBarrier(ent) ? maskEntityBehindBarrier(ent, hiddenTerms) : ent
+                );
+            };
+
+            const safeExplorationContext = input.explorationContext
+                ? {
+                      ...input.explorationContext,
+                      presentEntities: sanitizeEntitiesForAnimalBarrier(input.explorationContext.presentEntities),
+                  }
+                : input.explorationContext;
+
+            const safeLocationContext = applyHiddenIdentityTerms(input.locationContext, hiddenTerms);
+            const safeAdventureLore = applyHiddenIdentityTerms(input.adventureLore, hiddenTerms);
+
             // 3. Execution
             if (classification === 'EXPLORATION') {
                 const expResult = await explorationExpert({
                     playerAction: input.playerAction,
                     locationId: input.locationId,
-                    locationContext: input.locationContext,
+                    locationContext: safeLocationContext,
                     interpretedAction: input.interpretedAction,
                     deadEntities: input.deadEntities,
                     isKeyMoment: (input as any).isKeyMoment,
                     systemFeedback: input.systemFeedback,
                     conversationHistory: input.conversationHistory,
-                    explorationContext: input.explorationContext, // Pass exploration context
-                    adventureLore: input.adventureLore,
+                    explorationContext: safeExplorationContext, // Pass exploration context
+                    adventureLore: safeAdventureLore,
                     activeEffects: input.activeEffects,
                     skillCheckResult: input.skillCheckResult,
                     party: input.party,
@@ -371,9 +408,9 @@ export const narrativeManagerFlow = ai.defineFlow(
                 if (expResult.debugLogs) debugLogs.push(...expResult.debugLogs);
 
             } else if (classification === 'INTERACTION') {
-                const resolvedNpcContext = input.explorationContext?.presentEntities && input.explorationContext.presentEntities.length > 0
-                    ? JSON.stringify(input.explorationContext.presentEntities)
-                    : input.locationContext;
+                const resolvedNpcContext = safeExplorationContext?.presentEntities && safeExplorationContext.presentEntities.length > 0
+                    ? JSON.stringify(safeExplorationContext.presentEntities)
+                    : safeLocationContext;
 
                 const intResult = await interactionExpert({
                     playerAction: input.playerAction,
@@ -382,7 +419,7 @@ export const narrativeManagerFlow = ai.defineFlow(
                     interpretedAction: input.interpretedAction,
                     isKeyMoment: (input as any).isKeyMoment,
                     activeEffects: input.activeEffects,
-                    adventureLore: input.adventureLore,
+                    adventureLore: safeAdventureLore,
                     skillCheckResult: input.skillCheckResult,
                     party: input.party,
                     narrativeDirectives: input.narrativeDirectives,
@@ -393,22 +430,22 @@ export const narrativeManagerFlow = ai.defineFlow(
 
             } else { // HYBRID
                 localLog("NarrativeManager: Executing Hybrid Mode (Parallel Calls)");
-                const resolvedNpcContext = input.explorationContext?.presentEntities && input.explorationContext.presentEntities.length > 0
-                    ? JSON.stringify(input.explorationContext.presentEntities)
-                    : input.locationContext;
+                const resolvedNpcContext = safeExplorationContext?.presentEntities && safeExplorationContext.presentEntities.length > 0
+                    ? JSON.stringify(safeExplorationContext.presentEntities)
+                    : safeLocationContext;
 
                 const [expResult, intResult] = await Promise.all([
                     explorationExpert({
                         playerAction: input.playerAction,
                         locationId: input.locationId,
-                        locationContext: input.locationContext,
+                        locationContext: safeLocationContext,
                         interpretedAction: input.interpretedAction,
                         deadEntities: input.deadEntities,
                         isKeyMoment: (input as any).isKeyMoment,
                         systemFeedback: input.systemFeedback,
                         conversationHistory: input.conversationHistory,
-                        explorationContext: input.explorationContext, // Pass exploration context
-                        adventureLore: input.adventureLore,
+                        explorationContext: safeExplorationContext, // Pass exploration context
+                        adventureLore: safeAdventureLore,
                         activeEffects: input.activeEffects,
                         skillCheckResult: input.skillCheckResult,
                         party: input.party,
@@ -421,7 +458,7 @@ export const narrativeManagerFlow = ai.defineFlow(
                         interpretedAction: input.interpretedAction,
                         isKeyMoment: (input as any).isKeyMoment,
                         activeEffects: input.activeEffects,
-                        adventureLore: input.adventureLore,
+                        adventureLore: safeAdventureLore,
                         skillCheckResult: input.skillCheckResult,
                         party: input.party,
                         narrativeDirectives: input.narrativeDirectives,
@@ -434,25 +471,54 @@ export const narrativeManagerFlow = ai.defineFlow(
                 if (intResult.debugLogs) debugLogs.push(...intResult.debugLogs);
             }
 
-            // Centralized Narrative Director call (unifying EXPLORATION, INTERACTION, and HYBRID)
-            localLog("NarrativeManager: Synthesizing final output with Narrative Director...");
-            const directorResponse = await executePromptWithRetry(
-                narrativeDirectorPrompt,
-                {
-                    playerAction: input.playerAction,
-                    explorationText,
-                    interactionText,
-                    conversationHistory: input.conversationHistory || "",
-                    adventureLore: input.adventureLore,
-                    systemFeedback: input.systemFeedback,
-                    activeEffects: input.activeEffects,
-                    skillCheckResult: input.skillCheckResult,
-                    party: input.party,
-                    narrativeDirectives: input.narrativeDirectives,
-                },
-                { flowName: 'narrativeDirector' }
-            );
-            const rawNarration = directorResponse.output?.finalNarration || `${explorationText || ''}\n\n${interactionText || ''}`.trim();
+            const fallbackExpertNarration = `${explorationText || ''}\n\n${interactionText || ''}`.trim();
+            let rawNarration = fallbackExpertNarration;
+
+            // Solo invocar al Narrative Director cuando hay que sintetizar AMBOS hilos (HYBRID)
+            // o cuando ningún experto devolvió texto. En EXPLORATION o INTERACTION puros, el experto
+            // ya ha aplicado todas las directivas, hechos mecánicos y estilo en español, ahorrando ~4.200 tokens/turno
+            // y evitando que el Director reescriba o destripe eventos futuros del storyline.
+            const needsDirectorSynthesis =
+                (classification === 'HYBRID' && Boolean(explorationText) && Boolean(interactionText)) ||
+                !fallbackExpertNarration;
+
+            if (needsDirectorSynthesis) {
+                localLog("NarrativeManager: Synthesizing hybrid output with Narrative Director...");
+                try {
+                    const directorResponse = await executePromptWithRetry(
+                        narrativeDirectorPrompt,
+                        {
+                            playerAction: input.playerAction,
+                            explorationText,
+                            interactionText,
+                            conversationHistory: input.conversationHistory || "",
+                            adventureLore: input.adventureLore,
+                            systemFeedback: input.systemFeedback,
+                            activeEffects: input.activeEffects,
+                            skillCheckResult: input.skillCheckResult,
+                            party: input.party,
+                            eventsLog: input.eventsLog,
+                            narrativeDirectives: input.narrativeDirectives,
+                            isKeyMoment: (input as any).isKeyMoment,
+                        },
+                        { flowName: 'narrativeDirector', maxRetries: fallbackExpertNarration ? 1 : 3 }
+                    );
+                    rawNarration = directorResponse.output?.finalNarration || fallbackExpertNarration;
+                } catch (directorError: any) {
+                    if (fallbackExpertNarration) {
+                        localLog(`NarrativeManager: Narrative Director failed (${directorError.message}), falling back gracefully to expert narration.`);
+                        log.warn('NarrativeDirector failed, using expert narration fallback', {
+                            module: 'NarrativeManager',
+                            error: directorError.message,
+                        });
+                        rawNarration = fallbackExpertNarration;
+                    } else {
+                        throw directorError;
+                    }
+                }
+            } else {
+                localLog(`NarrativeManager: Using direct ${classification} expert output (skipping redundant Director call).`);
+            }
             finalNarration = repairPunctuationSpacing(rawNarration);
 
             return {
