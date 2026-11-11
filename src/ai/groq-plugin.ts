@@ -12,6 +12,15 @@ import { Genkit, z } from 'genkit';
 import type { GenerateRequest, GenerateResponseData, Part } from 'genkit';
 import { log } from '../lib/logger';
 import { extractRetryAfterSeconds } from '../lib/ai/ai-error-handler';
+import {
+  DEFAULT_LOCAL_BASE_URL,
+  LOCAL_MAX_TOKENS,
+  LOCAL_TIMEOUT_MS,
+  getLocalLlmConfig,
+  localModelFromName,
+} from './local-llm';
+
+type Provider = 'groq' | 'local';
 
 export const GROQ_DEFAULT_MODEL = 'groq/qwen/qwen3.8-27b';
 
@@ -466,16 +475,17 @@ function toOpenAITools(tools?: any[], hasJsonSchema?: boolean): any[] | undefine
 }
 
 /**
- * Registra un modelo de Groq en la instancia de Genkit.
+ * Registra un modelo compatible con la API de OpenAI en Genkit: de Groq (con rotación entre sus
+ * modelos y, si está configurado, el modelo local como último recurso) o local (Ollama).
  */
-function defineGroqModel(ai: Genkit, modelId: string) {
-  const fullName = `groq/${modelId}`;
+function defineGroqModel(ai: Genkit, modelId: string, provider: Provider = 'groq') {
+  const fullName = `${provider}/${modelId}`;
 
   ai.defineModel(
     {
       apiVersion: 'v2',
       name: fullName,
-      label: `Groq - ${modelId}`,
+      label: provider === 'local' ? `Local - ${modelId}` : `Groq - ${modelId}`,
       configSchema: GroqConfigSchema,
       supports: {
         multiturn: true,
@@ -493,7 +503,11 @@ function defineGroqModel(ai: Genkit, modelId: string) {
         process.env.GROQ_API_KEY ||
         process.env.OPENAI_API_KEY;
 
-      if (!apiKey) {
+      const localConfig = provider === 'local'
+        ? { model: modelId, baseUrl: getLocalLlmConfig()?.baseUrl ?? DEFAULT_LOCAL_BASE_URL }
+        : getLocalLlmConfig();
+
+      if (provider === 'groq' && !apiKey && !localConfig) {
         throw new Error(
           'GROQ_API_KEY no está configurada en las variables de entorno (.env / .env.local).'
         );
@@ -504,7 +518,10 @@ function defineGroqModel(ai: Genkit, modelId: string) {
       const tools = toOpenAITools(request.tools, hasJsonSchema);
 
       const firstMsgPreview = messages.map((m) => m.content || '').join(' ').substring(0, 600);
-      const candidateModels = selectModelCandidates(modelId, firstMsgPreview);
+      // Sin clave de Groq (o con un modelo local como principal) se va directo al modelo local.
+      const candidateModels = provider === 'groq' && apiKey
+        ? selectModelCandidates(modelId, firstMsgPreview)
+        : [];
 
       let data: any = null;
       let lastStatus = 500;
@@ -512,7 +529,8 @@ function defineGroqModel(ai: Genkit, modelId: string) {
       let shortestWaitSec: number | undefined = undefined;
       let bestRetryModel: string = candidateModels[0];
 
-      const callGroqModel = async (currentModel: string) => {
+      const callGroqModel = async (currentModel: string, target: Provider = 'groq') => {
+        const isLocal = target === 'local';
         const body: Record<string, any> = {
           model: currentModel,
           messages,
@@ -522,31 +540,38 @@ function defineGroqModel(ai: Genkit, modelId: string) {
         if (request.config?.topP !== undefined) {
           body.top_p = request.config.topP;
         }
+        if (isLocal) {
+          // Qwen 3.8 en Ollama "piensa" antes de responder: desactivarlo reduce cada respuesta
+          // de ~5 s a ~2,5 s en una RTX 4090 sin perder calidad apreciable en la narración.
+          body.reasoning_effort = 'none';
+        }
         // Ajustar max_tokens según el modelo: qwen tiene límite OTPM=1000, mientras que gpt-oss admite hasta 1200 sin truncar JSON
         const isQwen = currentModel.toLowerCase().includes('qwen');
-        const defaultCap = isQwen ? 850 : 1200;
+        const defaultCap = isLocal ? LOCAL_MAX_TOKENS : isQwen ? 850 : 1200;
         body.max_tokens = Math.min(request.config?.maxOutputTokens || defaultCap, defaultCap);
 
         if (tools && tools.length > 0) {
           body.tools = tools;
           body.tool_choice = 'auto';
-        } else if (hasJsonSchema && !isQwen) {
+        } else if (hasJsonSchema && (isLocal || !isQwen)) {
           // En Qwen no forzamos response_format: json_object porque emite etiquetas <think> que hacen fallar al validador 400 de Groq;
           // nuestro post-procesador ya limpia <think> y extrae el JSON limpiamente.
           body.response_format = { type: 'json_object' };
         }
 
-        const timeoutSignal = AbortSignal.timeout(25000);
+        const timeoutSignal = AbortSignal.timeout(isLocal ? LOCAL_TIMEOUT_MS : 25000);
         const effectiveSignal = abortSignal
           ? AbortSignal.any([abortSignal, timeoutSignal])
           : timeoutSignal;
 
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const url = isLocal
+          ? `${localConfig!.baseUrl}/chat/completions`
+          : 'https://api.groq.com/openai/v1/chat/completions';
+        const response = await fetch(url, {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
+          headers: isLocal
+            ? { 'Content-Type': 'application/json' }
+            : { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
           signal: effectiveSignal,
         });
@@ -601,6 +626,41 @@ function defineGroqModel(ai: Genkit, modelId: string) {
         } else {
           lastStatus = retryAttempt.response.status;
           lastErrMsg = retryAttempt.parsed?.error?.message || JSON.stringify(retryAttempt.parsed);
+        }
+      }
+
+      // Último recurso: el modelo local (gratuito e ilimitado). También es el camino principal
+      // cuando el modelo activo es `local/...`.
+      if (!data && localConfig) {
+        if (provider === 'groq') {
+          log.warn(
+            candidateModels.length > 0
+              ? `Groq no disponible (${lastStatus}); usando el modelo local '${localConfig.model}'...`
+              : `Sin GROQ_API_KEY; usando el modelo local '${localConfig.model}'...`,
+            { module: 'GroqPlugin' }
+          );
+        }
+        try {
+          const local = await callGroqModel(localConfig.model, 'local');
+          if (local.response.ok) {
+            data = local.parsed;
+          } else {
+            const localMsg = local.parsed?.error?.message || JSON.stringify(local.parsed);
+            if (provider === 'local' || candidateModels.length === 0) {
+              lastStatus = local.response.status;
+              lastErrMsg = `Modelo local '${localConfig.model}': ${localMsg}`;
+            } else {
+              lastErrMsg += ` (respaldo local también falló: ${localMsg})`;
+            }
+          }
+        } catch (localErr: any) {
+          const reason = `no responde en ${localConfig.baseUrl} (${localErr?.message || localErr}). ¿Está Ollama abierto?`;
+          if (provider === 'local' || candidateModels.length === 0) {
+            lastStatus = 503;
+            lastErrMsg = `Modelo local '${localConfig.model}' ${reason}`;
+          } else {
+            lastErrMsg += ` (respaldo local ${reason})`;
+          }
         }
       }
 
@@ -709,5 +769,15 @@ export function registerGroqModels(ai: Genkit, activeModelName?: string) {
   ) {
     const customModelId = activeModelName.replace(/^groq\//, '');
     defineGroqModel(ai, customModelId);
+  }
+
+  // Modelo local: el configurado como respaldo y, si es distinto, el elegido como principal.
+  const localModels = new Set<string>();
+  const configured = getLocalLlmConfig();
+  if (configured) localModels.add(configured.model);
+  const activeLocal = localModelFromName(activeModelName);
+  if (activeLocal) localModels.add(activeLocal);
+  for (const m of localModels) {
+    defineGroqModel(ai, m, 'local');
   }
 }
