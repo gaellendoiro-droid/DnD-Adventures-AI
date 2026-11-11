@@ -22,10 +22,10 @@ Este documento centraliza toda la planificación futura, características pendie
 - [x] **[TASK-070] Normas de trabajo documentadas** en [`docs/normas-de-trabajo.md`](./normas-de-trabajo.md).
 
 ### Fase 1 — Banco de pruebas narrativo (semanas 1–2) ⭐ *prioridad principal*
-- [ ] **[TASK-071] Escenarios de referencia:** guiones de 10–30 acciones del jugador sobre la aventura de la oveja (encuentro, pergamino, persecución, combate con Guz, torre).
-- [ ] **[TASK-072] Comprobaciones de estado** tras cada paso: inventario, flags, localización y puntos de golpe esperados.
-- [ ] **[TASK-073] Comprobaciones de texto:** sin spoilers antes de tiempo (p. ej. *Finethir* antes de activar el pergamino), narración coherente con el resultado de la tirada, sin mencionar CDs.
-- [ ] **[TASK-074] Modo grabado** (respuestas de IA guardadas y reproducidas, determinista y gratuito, para la CI) y **modo en vivo** (modelo real, manual o nocturno) que además mide la latencia y el número de llamadas a la IA por turno.
+- [ ] **[TASK-071] Escenarios de referencia:** guiones de 10–30 acciones del jugador sobre la aventura de la oveja (encuentro, pergamino, persecución, combate con Guz, torre). *En curso:* hechos `oveja-01-encuentro` y `oveja-02-pergamino`; faltan persecución, combate con Guz y torre, y validar con el usuario los criterios de "turno correcto".
+- [x] **[TASK-072] Comprobaciones de estado** tras cada paso (inventario, flags, localización, tiradas) mediante el cliente simulado de `tests/scenarios/harness/`.
+- [x] **[TASK-073] Comprobaciones de texto:** invariantes en todos los turnos (sin spoilers declarados en la aventura, sin restos técnicos, sin errores), coherencia narración-tirada en el escenario del pergamino, y CD en la narración como aviso mientras TASK-007 siga abierta.
+- [x] **[TASK-074] Modo grabado y modo en vivo:** `npm run test:scenarios` (replay, en la CI), `test:scenarios:record` y `test:scenarios:live`, con llamadas a la IA y latencia por turno en el informe.
 
 ### Fase 2 — Un solo flujo de juego (semanas 2–3)
 - [ ] **[TASK-075] Unificar coordinadores:** `gameCoordinatorFlow` pasa a ser un envoltorio de `gameStreamCoordinator`.
