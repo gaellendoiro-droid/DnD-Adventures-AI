@@ -13,7 +13,10 @@ PDF original  ──(conversor)──▶  JSON de aventura  ──(núcleo)─�
    verdad                       copia estructurada               lo que ve el jugador
 ```
 
-- Si la partida contradice el PDF, es un fallo, aunque las reglas genéricas de D&D digan otra cosa.
+- **Por defecto se aplican las reglas oficiales de D&D 5e.** Cuando el PDF establece algo distinto
+  para su aventura, eso es una **excepción de la aventura**: va en los datos que genera el conversor
+  y prevalece solo dentro de esa aventura (decidido por el usuario el 2026-11-11).
+- Si la partida contradice el PDF, es un fallo.
 - Si el JSON no recoge algo del PDF, es un fallo del **conversor** y se arregla allí.
 - Cada expectativa de un escenario de prueba **cita el pasaje del PDF** que la justifica.
 
@@ -93,7 +96,9 @@ Objetivo: **2 llamadas por turno** (3 como máximo con corrección).
 - Lo específico de cada aventura vive en **datos que salen del conversor**:
   - **Objetos con mecánica:** el pergamino sería
     `{ spell: "speak_with_animals", activation: "read_aloud", requiresCheck: false, consumedOnUse: true, affects: "party" }`,
-    tal como lo describe el PDF. Un pergamino normal de 5e llevaría `requiresCheck` con su CD.
+    tal como lo describe el PDF. Si el JSON no dice nada, el pergamino sigue las **reglas oficiales**
+    (como ahora: tirada de Arcanos si el conjuro no es de la clase del lector). La excepción solo
+    existe porque el PDF de la oveja la describe.
   - **Barreras de comunicación:** "la oveja solo es comprensible con `speak_with_animals`".
   - **Conocimiento del grupo:** cada entidad tiene una cara pública y una secreta; la secreta solo
     llega al narrador cuando un flag la revela. Sustituye a los textos de reemplazo de
@@ -164,5 +169,5 @@ Cada paso termina con sus tests en verde y su merge, como hasta ahora.
    siquiera con 2 llamadas por turno. ¿Valoramos un plan de pago barato, aunque sea solo para grabar?
 2. **Idioma de las indicaciones del PDF.** El PDF está en inglés. Propuesta: el conversor las
    traduce al español una vez, al convertir, y guarda también el original para poder contrastar.
-3. **Reglas de D&D frente al PDF.** Propuesta: siempre manda el PDF, y las reglas genéricas de 5e
-   solo se aplican donde el PDF no dice nada.
+3. ~~**Reglas de D&D frente al PDF.**~~ **Decidido:** por defecto, reglas oficiales; lo que el PDF
+   establezca distinto es una excepción de esa aventura, expresada en sus datos.
