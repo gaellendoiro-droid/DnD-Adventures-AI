@@ -4,6 +4,46 @@ Este documento centraliza toda la planificación futura, características pendie
 
 ---
 
+## 🧭 Hoja de Ruta a Corto Plazo: Estabilización (≈ 6 semanas, desde 2026-11-11)
+
+> **Objetivo principal:** que el juego sea **fiable antes de crecer**, y poder demostrarlo con pruebas automáticas.
+>
+> **Hito de salida:** jugar *La caza de la oveja salvaje* completa y las 3 primeras localizaciones de *El Dragón del Pico Agujahelada* **sin escribir código específico de ninguna aventura**.
+>
+> **Congelado hasta superar el hito:** voz/TTS, música, mejoras del conversor PDF y mecánicas nuevas (ranuras de conjuro, comercio, niveles, acciones compuestas).
+>
+> **Cómo se trabaja:** una fase por rama, un PR por tarea, CI en verde para hacer merge (y, desde la Fase 1, también los escenarios de referencia). Revisión al final de cada fase para decidir si seguir o reordenar.
+
+### Fase 0 — Higiene del repositorio (1–2 días)
+- [x] **[TASK-066] Ordenar el trabajo sin commitear** en commits temáticos (rama `chore/fase-0-higiene`).
+- [ ] **[TASK-067] Build estricto:** quitar `ignoreBuildErrors` / `ignoreDuringBuilds` de `next.config.ts`.
+- [ ] **[TASK-068] Integración continua:** GitHub Actions con `tsc --noEmit` y `vitest run --maxWorkers=4`; si está en rojo, no se hace merge.
+- [ ] **[TASK-069] Limpieza de ficheros:** eliminar `input.json` y documentar el uso de `knowledge/dnd-local.db` (caché/semilla versionada).
+- [ ] **[TASK-070] Normas de trabajo documentadas:** un agente por zona de ficheros, una rama por tarea, la documentación se actualiza en el mismo commit que el código.
+
+### Fase 1 — Banco de pruebas narrativo (semanas 1–2) ⭐ *prioridad principal*
+- [ ] **[TASK-071] Escenarios de referencia:** guiones de 10–30 acciones del jugador sobre la aventura de la oveja (encuentro, pergamino, persecución, combate con Guz, torre).
+- [ ] **[TASK-072] Comprobaciones de estado** tras cada paso: inventario, flags, localización y puntos de golpe esperados.
+- [ ] **[TASK-073] Comprobaciones de texto:** sin spoilers antes de tiempo (p. ej. *Finethir* antes de activar el pergamino), narración coherente con el resultado de la tirada, sin mencionar CDs.
+- [ ] **[TASK-074] Modo grabado** (respuestas de IA guardadas y reproducidas, determinista y gratuito, para la CI) y **modo en vivo** (modelo real, manual o nocturno) que además mide la latencia y el número de llamadas a la IA por turno.
+
+### Fase 2 — Un solo flujo de juego (semanas 2–3)
+- [ ] **[TASK-075] Unificar coordinadores:** `gameCoordinatorFlow` pasa a ser un envoltorio de `gameStreamCoordinator`.
+- [ ] **[TASK-076] No perder estado al entrar en combate:** el combate debe arrancar con el grupo y el `worldState` ya actualizados por el turno narrativo (y con los enemigos de la sala de destino).
+- [ ] **[TASK-077] Invalidación genérica de la caché de aventura activa:** que funcione con cualquier aventura, no solo con la del Dragón.
+
+### Fase 3 — Que la Capa 2 sea de verdad la que decide (semanas 3–5)
+- [ ] **[TASK-078] Acciones tipadas:** el intérprete devuelve una unión discriminada de acciones (`take`, `use_item`, `rest`, `open`, `give`…) con IDs reales de la aventura.
+- [ ] **[TASK-079] Reglas sin regex sobre el texto del jugador:** los módulos de reglas trabajan solo sobre acciones tipadas (fuera "abr", "descans", "pergamino"…).
+- [ ] **[TASK-080] Todo lo específico de una aventura, en datos:** p. ej. pergaminos genéricos con campo `spellEffect` en el JSON en lugar de 3 conjuros fijos. Enlaza con [TASK-015].
+- [ ] **[TASK-081] De prompt a código:** cada norma tipo "PROHIBIDO…" eliminada de un prompt se sustituye por código y por un test o escenario que la cubra.
+
+### Fase 4 — Menos llamadas a la IA por turno (semanas 5–6)
+- [ ] **[TASK-082] Medir y recortar a ≤ 3 llamadas por turno:** integrar el router en el intérprete, generar las reacciones de los compañeros en la misma llamada que la narración (u opcionales) y reservar el director para escenas clave.
+- [ ] **[TASK-083] Revisar el plugin de Groq** (rotación, límite de tokens) una vez reducidas las llamadas: simplificarlo o mantenerlo según los datos.
+
+---
+
 ## 🔴 Prioridad Muy Alta (Críticos y Bloqueantes)
 
 ### Características Clave:
