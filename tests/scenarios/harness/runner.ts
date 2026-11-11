@@ -50,11 +50,32 @@ export interface ScenarioHelpers {
     flag(state: ClientState, name: string): unknown;
 }
 
+/**
+ * Comportamiento correcto que hoy NO se cumple por un problema ya registrado en el roadmap.
+ * No rompe el escenario: se informa como aviso mientras siga fallando, y avisa cuando empieza
+ * a cumplirse para convertirlo en una expectativa normal.
+ */
+export interface KnownIssue {
+    /** ID del roadmap, p. ej. "TASK-084". */
+    task: string;
+    description: string;
+    check: (turn: TurnResult, h: ScenarioHelpers) => void | Promise<void>;
+}
+
 export interface ScenarioStep {
     action: string;
     /** Descripción de lo que se espera, para el informe. */
     intent?: string;
     expect?: (turn: TurnResult, h: ScenarioHelpers) => void | Promise<void>;
+    knownIssues?: KnownIssue[];
+}
+
+/** Punto de partida distinto del inicio de la aventura (como cargar una partida guardada). */
+export interface ScenarioInitialState {
+    locationId?: string;
+    globalFlags?: Record<string, unknown>;
+    /** Mensajes previos del chat (se añaden tras la narración inicial). */
+    history?: { sender: 'DM' | 'Player' | 'Character'; senderName?: string; content: string }[];
 }
 
 export interface ScenarioDefinition {
@@ -67,6 +88,12 @@ export interface ScenarioDefinition {
     steps: ScenarioStep[];
     /** En combate, enviar "continuar turno" automáticamente mientras jueguen las IAs (como la UI). */
     autoContinueCombat?: boolean;
+    initial?: ScenarioInitialState;
+    /**
+     * Fallos de invariantes o expectativas ya registrados en el roadmap: si el mensaje del fallo
+     * encaja con `match`, se informa como aviso en vez de romper el escenario.
+     */
+    knownFailures?: { task: string; description: string; match: RegExp }[];
 }
 
 export interface ScenarioReport {
@@ -142,6 +169,22 @@ function checkInvariants(turn: TurnResult, hiddenTerms: string[]): { errors: str
         errors.push('Hay restos técnicos en el texto mostrado ("[object Object]", "undefined" o "NaN").');
     }
 
+    const rawCode = allText.match(/\b[A-Z]{3,}(?:_[A-Z]{2,})+\b/);
+    if (rawCode) {
+        errors.push(`Se muestra al jugador un código de error en bruto: "${rawCode[0]}".`);
+    }
+
+    if (/Hubo un error al procesar/i.test(allText)) {
+        errors.push(`El juego muestra un error interno al jugador: "${allText.match(/Hubo un error al procesar[^.]*\.?/i)?.[0]}"`);
+    }
+
+    for (const c of turn.state.party) {
+        const hp = (c as any).hp;
+        if (hp && (hp.current < 0 || hp.current > hp.max)) {
+            errors.push(`HP fuera de rango para ${c.name}: ${hp.current}/${hp.max}.`);
+        }
+    }
+
     const canTalkToAnimals = turn.state.worldState?.globalFlags?.speak_with_animals === true;
     if (!canTalkToAnimals) {
         for (const term of hiddenTerms) {
@@ -183,7 +226,7 @@ export async function runScenario(def: ScenarioDefinition): Promise<ScenarioRepo
 
     const recorder = new CassetteRecorder(mode, def.id, cassette);
     recorder.install();
-    const determinism = enableDeterminism(cassette?.seed ?? def.seed);
+    const determinism = enableDeterminism(cassette?.seed ?? def.seed, mode === 'replay');
     resetMessageCounter();
 
     const failures: string[] = [];
@@ -227,6 +270,13 @@ export async function runScenario(def: ScenarioDefinition): Promise<ScenarioRepo
             worldState: createInitialWorldState(),
             selectedCharacterId: player.id,
         };
+        if (def.initial?.locationId) state.locationId = def.initial.locationId;
+        if (def.initial?.globalFlags) {
+            state.worldState.globalFlags = { ...(state.worldState.globalFlags || {}), ...def.initial.globalFlags };
+        }
+        for (const m of def.initial?.history ?? []) {
+            state.messages.push({ id: nextMessageId(), timestamp: '19:00', ...m } as GameMessage);
+        }
 
         const runTurn = async (action: string, index: number, isContinuation: boolean): Promise<TurnResult> => {
             const callsBefore = { ...recorder.stats };
@@ -301,6 +351,15 @@ export async function runScenario(def: ScenarioDefinition): Promise<ScenarioRepo
                 }
             }
 
+            for (const issue of step.knownIssues ?? []) {
+                try {
+                    await issue.check(turn, helpers);
+                    turn.warnings.push(`✨ [${issue.task}] Parece resuelto: «${issue.description}». Conviértelo en una expectativa normal.`);
+                } catch {
+                    turn.warnings.push(`[${issue.task}] Problema conocido: ${issue.description}`);
+                }
+            }
+
             // Combate: la UI pide los turnos de la IA automáticamente.
             let guard = 0;
             while (def.autoContinueCombat && state.inCombat && state.lastProcessedTurnWasAI && guard++ < 12) {
@@ -332,15 +391,41 @@ export async function runScenario(def: ScenarioDefinition): Promise<ScenarioRepo
         saveCassette(recorder.toCassette(model, def.seed));
     }
 
-    printReport({ id: def.id, mode, model, turns, failures }, def);
-    return { id: def.id, mode, model, turns, failures };
+    // Fallos ya conocidos (registrados en el roadmap): pasan a aviso.
+    const known = def.knownFailures ?? [];
+    const realFailures: string[] = [];
+    const knownWarnings: string[] = [];
+    for (const f of failures) {
+        const k = known.find(kf => kf.match.test(f));
+        if (k) knownWarnings.push(`[${k.task}] Problema conocido (${k.description}): ${f}`);
+        else realFailures.push(f);
+    }
+    const unmatched = known.filter(kf => !failures.some(f => kf.match.test(f)));
+    for (const k of unmatched) {
+        knownWarnings.push(`✨ [${k.task}] Ya no aparece el fallo conocido «${k.description}». Si está resuelto, quítalo de knownFailures.`);
+    }
+
+    printReport({ id: def.id, mode, model, turns, failures: realFailures }, def, knownWarnings);
+    return { id: def.id, mode, model, turns, failures: realFailures };
 }
 
-function printReport(report: ScenarioReport, def: ScenarioDefinition): void {
+function printReport(report: ScenarioReport, def: ScenarioDefinition, knownWarnings: string[] = []): void {
     write();
     write(`━━ Escenario ${report.id} — ${def.title}`);
     write(`   modo: ${report.mode} · modelo: ${report.model} · semilla: ${def.seed}`);
     for (const t of report.turns) {
+        if (t.action === 'continuar turno') {
+            const who = t.state.initiativeOrder?.[t.state.turnIndex]?.characterName ?? '?';
+            write(`       ↳ turno IA → siguiente: ${who} · IA: ${t.llmCalls} llamadas · dados: ${t.diceRolls.length}`);
+            for (const w of t.warnings) write(`         ⚠ ${w}`);
+            if (process.env.SCENARIO_TRANSCRIPT) {
+                for (const m of t.newMessages) {
+                    const text = String(m.content).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+                    write(`           [${m.sender === 'Character' ? m.senderName : m.sender}] ${text}`);
+                }
+            }
+            continue;
+        }
         const dice = t.diceRolls.map(r => `${r.rollNotation ?? ''}=${r.totalResult ?? '?'}${r.outcome ? ` (${r.outcome})` : ''}`).join(', ');
         write(`   ${String(t.index).padStart(2)}. «${t.action.slice(0, 60)}»`);
         write(`       IA: ${t.llmCalls} llamadas · ${report.mode === 'replay' ? '-' : `${t.durationMs} ms`} · mensajes: ${t.newMessages.length}${dice ? ` · dados: ${dice}` : ''}`);
@@ -358,6 +443,7 @@ function printReport(report: ScenarioReport, def: ScenarioDefinition): void {
         const avg = calls.reduce((a, b) => a + b, 0) / calls.length;
         write(`   Llamadas a la IA por turno: media ${avg.toFixed(1)} · máximo ${Math.max(...calls)}`);
     }
+    for (const w of knownWarnings) write(`   ⚠ ${w}`);
     write(report.failures.length === 0 ? '   ✅ Sin fallos' : `   ❌ ${report.failures.length} fallo(s)`);
     for (const f of report.failures) write(`      - ${f}`);
 }

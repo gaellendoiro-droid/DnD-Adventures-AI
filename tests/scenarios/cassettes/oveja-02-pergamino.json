@@ -95,7 +95,7 @@
         "status": 429,
         "statusText": "Too Many Requests",
         "contentType": "application/json",
-        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01hw3843y3eqhbvbgxr67p59c7` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 4582, Requested 5140. Please try again in 12.915s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
+        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_REDACTED` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 4582, Requested 5140. Please try again in 12.915s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
       }
     },
     {
@@ -142,7 +142,7 @@
         "status": 429,
         "statusText": "Too Many Requests",
         "contentType": "application/json",
-        "body": "{\"error\":{\"message\":\"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01hw3843y3eqhbvbgxr67p59c7` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 3306, Requested 4269. Please try again in 4.928571428s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
+        "body": "{\"error\":{\"message\":\"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_REDACTED` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 3306, Requested 4269. Please try again in 4.928571428s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
       }
     },
     {
@@ -186,7 +186,7 @@
         "status": 429,
         "statusText": "Too Many Requests",
         "contentType": "application/json",
-        "body": "{\"error\":{\"message\":\"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01hw3843y3eqhbvbgxr67p59c7` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 6850, Requested 3702. Please try again in 30.445714285s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
+        "body": "{\"error\":{\"message\":\"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_REDACTED` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 6850, Requested 3702. Please try again in 30.445714285s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
       }
     },
     {
@@ -255,7 +255,7 @@
         "status": 429,
         "statusText": "Too Many Requests",
         "contentType": "application/json",
-        "body": "{\"error\":{\"message\":\"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01hw3843y3eqhbvbgxr67p59c7` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 6839, Requested 2560. Please try again in 20.562857142s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
+        "body": "{\"error\":{\"message\":\"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_REDACTED` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 6839, Requested 2560. Please try again in 20.562857142s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
       }
     },
     {
@@ -280,7 +280,7 @@
         "status": 429,
         "statusText": "Too Many Requests",
         "contentType": "application/json",
-        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01hw3843y3eqhbvbgxr67p59c7` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6981, Requested 2819. Please try again in 13.5s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
+        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-120b` in organization `org_REDACTED` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6981, Requested 2819. Please try again in 13.5s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
       }
     },
     {
@@ -327,7 +327,7 @@
         "status": 429,
         "statusText": "Too Many Requests",
         "contentType": "application/json",
-        "body": "{\"error\":{\"message\":\"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01hw3843y3eqhbvbgxr67p59c7` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 6731, Requested 2597. Please try again in 19.954285714s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
+        "body": "{\"error\":{\"message\":\"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_REDACTED` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 6731, Requested 2597. Please try again in 19.954285714s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
       }
     },
     {
@@ -352,7 +352,7 @@
         "status": 429,
         "statusText": "Too Many Requests",
         "contentType": "application/json",
-        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01hw3843y3eqhbvbgxr67p59c7` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6859, Requested 3339. Please try again in 16.485s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
+        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-120b` in organization `org_REDACTED` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6859, Requested 3339. Please try again in 16.485s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
       }
     },
     {
@@ -377,7 +377,7 @@
         "status": 429,
         "statusText": "Too Many Requests",
         "contentType": "application/json",
-        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01hw3843y3eqhbvbgxr67p59c7` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 5889, Requested 3473. Please try again in 10.215s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
+        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_REDACTED` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 5889, Requested 3473. Please try again in 10.215s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
       }
     },
     {
@@ -427,7 +427,7 @@
         "status": 429,
         "statusText": "Too Many Requests",
         "contentType": "application/json",
-        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01hw3843y3eqhbvbgxr67p59c7` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 7440, Requested 4865. Please try again in 32.287499999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
+        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_REDACTED` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 7440, Requested 4865. Please try again in 32.287499999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
       }
     },
     {
@@ -452,7 +452,7 @@
         "status": 429,
         "statusText": "Too Many Requests",
         "contentType": "application/json",
-        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01hw3843y3eqhbvbgxr67p59c7` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 5181, Requested 4542. Please try again in 12.9225s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
+        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-120b` in organization `org_REDACTED` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 5181, Requested 4542. Please try again in 12.9225s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
       }
     },
     {
@@ -474,7 +474,7 @@
         "status": 429,
         "statusText": "Too Many Requests",
         "contentType": "application/json",
-        "body": "{\"error\":{\"message\":\"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01hw3843y3eqhbvbgxr67p59c7` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 5244, Requested 4294. Please try again in 21.754285714s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
+        "body": "{\"error\":{\"message\":\"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_REDACTED` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 5244, Requested 4294. Please try again in 21.754285714s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
       }
     },
     {
@@ -499,7 +499,7 @@
         "status": 429,
         "statusText": "Too Many Requests",
         "contentType": "application/json",
-        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01hw3843y3eqhbvbgxr67p59c7` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 3367, Requested 5025. Please try again in 2.94s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
+        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-120b` in organization `org_REDACTED` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 3367, Requested 5025. Please try again in 2.94s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
       }
     },
     {
@@ -524,7 +524,7 @@
         "status": 429,
         "statusText": "Too Many Requests",
         "contentType": "application/json",
-        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01hw3843y3eqhbvbgxr67p59c7` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 5128, Requested 4865. Please try again in 14.9475s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
+        "body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_REDACTED` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 5128, Requested 4865. Please try again in 14.9475s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
       }
     },
     {

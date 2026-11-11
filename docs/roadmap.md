@@ -10,7 +10,9 @@ Este documento centraliza toda la planificación futura, características pendie
 >
 > **Hito de salida:** jugar *La caza de la oveja salvaje* completa y las 3 primeras localizaciones de *El Dragón del Pico Agujahelada* **sin escribir código específico de ninguna aventura**.
 >
-> **Congelado hasta superar el hito:** voz/TTS, música, mejoras del conversor PDF y mecánicas nuevas (ranuras de conjuro, comercio, niveles, acciones compuestas).
+> **Congelado hasta superar el hito:** voz/TTS, música y mecánicas nuevas (ranuras de conjuro, comercio, niveles, acciones compuestas).
+>
+> **El conversor PDF → JSON es primordial:** los JSON de aventura son su producto, así que los fallos de datos se corrigen en el conversor (y en el validador de TASK-015) y se regenera la aventura, no se parchea el JSON a mano. Los escenarios de la Fase 1 demostraron que el hito está **bloqueado por los datos** (TASK-084 y TASK-085), así que esos arreglos del conversor forman parte de este plan.
 >
 > **Cómo se trabaja:** una rama por tarea; antes del merge a `main` pasan en local `tsc`, los tests y los escenarios; merge directo sin PR y la CI de `main` en verde tras el push (ver [Normas de Trabajo](./normas-de-trabajo.md)). Revisión al final de cada fase para decidir si seguir o reordenar.
 
@@ -22,7 +24,7 @@ Este documento centraliza toda la planificación futura, características pendie
 - [x] **[TASK-070] Normas de trabajo documentadas** en [`docs/normas-de-trabajo.md`](./normas-de-trabajo.md).
 
 ### Fase 1 — Banco de pruebas narrativo (semanas 1–2) ⭐ *prioridad principal*
-- [ ] **[TASK-071] Escenarios de referencia:** guiones de 10–30 acciones del jugador sobre la aventura de la oveja (encuentro, pergamino, persecución, combate con Guz, torre). *En curso:* hechos `oveja-01-encuentro` y `oveja-02-pergamino`; faltan persecución, combate con Guz y torre. Criterios de "turno correcto" validados con el usuario el 2026-11-11 (ver `docs/testing.md` → *Qué se comprueba*).
+- [x] **[TASK-071] Escenarios de referencia:** cinco escenarios de la aventura de la oveja (`oveja-01-encuentro`, `oveja-02-pergamino`, `oveja-03-guz-aparece`, `oveja-04-combate-guz`, `oveja-05-viaje-torre`), con estados iniciales tipo "partida guardada" y registro de problemas conocidos enlazados a su tarea. Criterios de "turno correcto" validados con el usuario el 2026-11-11. Se eliminó la conversión duplicada `la-persecucion-de-la-oveja-salvaje` (menos completa que `la-caza-de-la-oveja-salvaje`). *Corregido de paso:* `MoveFailed` no llegaba al narrador y "acercarse" a algo de la sala contaba como viaje fallido.
 - [x] **[TASK-072] Comprobaciones de estado** tras cada paso (inventario, flags, localización, tiradas) mediante el cliente simulado de `tests/scenarios/harness/`.
 - [x] **[TASK-073] Comprobaciones de texto:** invariantes en todos los turnos (sin spoilers declarados en la aventura, sin restos técnicos, sin errores), coherencia narración-tirada en el escenario del pergamino, y CD en la narración como aviso mientras TASK-007 siga abierta.
 - [x] **[TASK-074] Modo grabado y modo en vivo:** `npm run test:scenarios` (replay, en la CI), `test:scenarios:record` y `test:scenarios:live`, con llamadas a la IA y latencia por turno en el informe.
@@ -31,16 +33,27 @@ Este documento centraliza toda la planificación futura, características pendie
 - [ ] **[TASK-075] Unificar coordinadores:** `gameCoordinatorFlow` pasa a ser un envoltorio de `gameStreamCoordinator`.
 - [ ] **[TASK-076] No perder estado al entrar en combate:** el combate debe arrancar con el grupo y el `worldState` ya actualizados por el turno narrativo (y con los enemigos de la sala de destino).
 - [ ] **[TASK-077] Invalidación genérica de la caché de aventura activa:** que funcione con cualquier aventura, no solo con la del Dragón.
+- [ ] **[TASK-088] Participantes del combate decididos por código:** hoy `combatInitiationExpertTool` (IA) mete a la oveja aliada en la iniciativa. Los combatientes deben salir de la disposición/hostilidad de las entidades, no de una recomendación del modelo. *Escenario:* `oveja-04-combate-guz`.
+- [ ] **[TASK-089] Error en el turno de Elara:** `Cannot read properties of undefined (reading 'split')` en `TurnProcessor`; se muestra "Hubo un error al procesar el turno" al jugador y un turno automático no produce mensaje. *Escenario:* `oveja-04-combate-guz`.
+- [ ] **[TASK-090] Objetivo no resuelto al volver a atacar:** "Vuelvo a atacar a Guz" devuelve `TARGET_NOT_FOUND`, que además se muestra en bruto como narración del DM. *Escenario:* `oveja-04-combate-guz`.
+- [ ] **[TASK-091] Estadísticas de combate de la aventura ignoradas:** al iniciar el combate se buscan las de "Guz" en la API de D&D y en la IA (que devuelve las de un Ghoul, rechazadas por el esquema) aunque el JSON ya trae sus estadísticas.
 
 ### Fase 3 — Que la Capa 2 sea de verdad la que decide (semanas 3–5)
 - [ ] **[TASK-078] Acciones tipadas:** el intérprete devuelve una unión discriminada de acciones (`take`, `use_item`, `rest`, `open`, `give`…) con IDs reales de la aventura.
 - [ ] **[TASK-079] Reglas sin regex sobre el texto del jugador:** los módulos de reglas trabajan solo sobre acciones tipadas (fuera "abr", "descans", "pergamino"…).
 - [ ] **[TASK-080] Todo lo específico de una aventura, en datos:** p. ej. pergaminos genéricos con campo `spellEffect` en el JSON en lugar de 3 conjuros fijos. Enlaza con [TASK-015].
-- [ ] **[TASK-081] De prompt a código:** cada norma tipo "PROHIBIDO…" eliminada de un prompt se sustituye por código y por un test o escenario que la cubra.
+- [ ] **[TASK-081] De prompt a código:** cada norma tipo "PROHIBIDO…" eliminada de un prompt se sustituye por código y por un test o escenario que la cubra. *Caso detectado:* aunque el narrador recibe la directiva de `MoveFailed`, el modelo narra igualmente que el grupo sale de la plaza (`oveja-05-viaje-torre`).
+- [ ] **[TASK-084] ⛔ Eventos de la historia que cambian el estado (bloquea el hito):** los flags de presencia (`guz_aparece`, `guz_persigue_a_torre`, `oso_en_retrete`, `noke_*`) no los activa nada: el `storyline` solo lo lee el prompt del director, que puede *narrar* la llegada de Guz sin que entre en escena. Hace falta que el conversor genere disparadores explícitos (evento → flags) y que la Capa 2 los evalúe. *Escenario:* `oveja-03-guz-aparece`.
+- [ ] **[TASK-085] ⛔ Conversor: mapa completo y estable (bloquea el hito):** en la aventura de la oveja no hay conexiones más allá de `la-casa-en-el-bosque` (la torre y sus plataformas son inalcanzables); sobra la localización genérica `ciudad-inicial`; y el `adventureId` depende de cómo se traduzca el título ("Chase" → caza/persecución), lo que generó dos versiones de la misma aventura. Corregir en `scripts/pdf-to-json.ts`, validar con TASK-015 y regenerar. *Escenario:* `oveja-05-viaje-torre`.
+- [ ] **[TASK-086] Conversor: generar `roleplay.hiddenIdentityTerms`:** hoy esos términos de spoiler se añadieron a mano al JSON de la oveja; deben salir del conversor (identidades ocultas, antagonistas, artefactos clave).
+- [ ] **[TASK-087] Nombres de clase con género:** las listas de clases de `scroll-rules.ts` no reconocen "Clériga" (Elara) ni otras variantes femeninas; normalizar la clase antes de compararla.
 
 ### Fase 4 — Menos llamadas a la IA por turno (semanas 5–6)
 - [ ] **[TASK-082] Medir y recortar a ≤ 3 llamadas por turno:** integrar el router en el intérprete, generar las reacciones de los compañeros en la misma llamada que la narración (u opcionales) y reservar el director para escenas clave.
-- [ ] **[TASK-083] Revisar el plugin de Groq** (rotación, límite de tokens) una vez reducidas las llamadas: simplificarlo o mantenerlo según los datos.
+- [ ] **[TASK-083] Revisar el plugin de Groq** (rotación, límite de tokens) una vez reducidas las llamadas: simplificarlo o mantenerlo según los datos. *Detectado:* la compactación recorta el centro de los prompts (`...[context compacted]...`), así que el modelo puede perder instrucciones o contexto.
+- [ ] **[TASK-092] Markdown → HTML sin IA:** cada turno hace una llamada al modelo solo para convertir la narración de Markdown a HTML; se puede hacer con código, sin coste ni latencia.
+
+> **Datos de partida medidos por los escenarios (2026-11-11, `groq/qwen/qwen3.8-27b`):** entre 3 y 14 llamadas a la IA por turno, con turnos de hasta 45 s.
 
 ---
 

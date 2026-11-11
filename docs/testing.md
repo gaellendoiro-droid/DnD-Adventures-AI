@@ -64,8 +64,23 @@ Variables útiles: `SCENARIO_TRANSCRIPT=1` imprime la transcripción completa de
 - **Avisos (no rompen el escenario):** problemas conocidos aún abiertos, como mencionar la CD en la narración (TASK-007).
 - **Expectativas de cada paso**, definidas en el propio escenario (`*.scenario.ts`).
 
+- **Invariantes adicionales:** HP de los personajes dentro de rango; ningún código de error en bruto visible (`TARGET_NOT_FOUND`…); ningún mensaje "Hubo un error al procesar…".
+
+### Problemas conocidos (no rompen la CI)
+Cuando un escenario detecta un bug ya registrado en el roadmap, se documenta en el propio escenario con su `TASK-XXX` en lugar de dejar la CI en rojo:
+- **`knownIssues` (en un paso):** comportamiento correcto que hoy no se cumple. Mientras falle, sale como aviso `[TASK-XXX] Problema conocido`; cuando empiece a cumplirse, avisa con ✨ para convertirlo en expectativa normal.
+- **`knownFailures` (en el escenario):** patrones de fallos de invariantes o expectativas que pasan a aviso.
+
+### Estado inicial (partidas guardadas)
+Un escenario puede empezar en mitad de la aventura con `initial` (localización, flags y mensajes previos). Los puntos de partida comunes de la oveja están en `tests/scenarios/harness/fixtures.ts` (`TRAS_LEER_PERGAMINO`, `GUZ_EN_LA_PLAZA`, `GUZ_DERROTADO`).
+
+### Seguridad de las grabaciones
+- No se guardan cabeceras ni el parámetro `key=` de las URL.
+- Los identificadores de cuenta que los proveedores incluyen en sus respuestas (por ejemplo `org_…` en los errores 429 de Groq) se sustituyen por `org_REDACTED` al grabar.
+- En replay, las esperas largas (reintentos tras un 429 grabado) se acortan a 10 ms.
+
 ### Cuándo volver a grabar
-Si cambias un prompt, el contexto que se envía a la IA o la lógica que va antes de una llamada, la reproducción fallará con *"Petición no grabada"*. Es el aviso de que tu cambio afecta a la narración: vuelve a grabar, **revisa la transcripción** (`SCENARIO_TRANSCRIPT=1`) y commitea el cassette junto con el cambio.
+Si cambias un prompt, el contexto que se envía a la IA o la lógica que va antes de una llamada, la reproducción fallará con *"Petición no grabada"*. La petición nueva se guarda en `<tmp>/dnd-scenarios/` para poder compararla con la grabada. Es el aviso de que tu cambio afecta a la narración: vuelve a grabar, **revisa la transcripción** (`SCENARIO_TRANSCRIPT=1`) y commitea el cassette junto con el cambio.
 
 ### Añadir un escenario
 Crea `tests/scenarios/<id>.scenario.ts` siguiendo los existentes (aventura, semilla y pasos con `action` y `expect`), grábalo con `npm run test:scenarios:record -- <id>` y commitea el escenario y su cassette.

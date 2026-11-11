@@ -145,6 +145,12 @@ export class NavigationSystem implements GameSystem {
         });
       }
     } else {
+      // "Acercarse" a algo que ya está en la localización actual (una criatura, un objeto)
+      // no es un viaje: el grupo no cambia de sala y no hay nada que haya fallado.
+      if (result.status === 'not_found' && isTargetInCurrentLocation(toLocationId, context)) {
+        return;
+      }
+
       // Movimiento fallido
       context.systemFeedback = result.error || 'No puedes ir allí.';
       context.enqueue({
@@ -156,4 +162,39 @@ export class NavigationSystem implements GameSystem {
       });
     }
   }
+}
+
+const normalize = (s: unknown) =>
+  String(s ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[-_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/**
+ * ¿El destino de un "move" es en realidad algo presente en la localización actual
+ * (una entidad o un interactuable)? Se compara por id y por nombre, sin tildes ni guiones.
+ */
+export function isTargetInCurrentLocation(target: string, context: Pick<SystemContext, 'adventureData' | 'currentLocationId'>): boolean {
+  const t = normalize(target);
+  if (t.length < 3) return false;
+  const location = context.adventureData?.locations?.find((l: any) => l.id === context.currentLocationId);
+  if (!location) return false;
+
+  const candidates: string[] = [];
+  for (const entry of location.entitiesPresent ?? []) {
+    const id = typeof entry === 'string' ? entry : entry?.entityId ?? entry?.id;
+    const entity = context.adventureData?.entities?.find((e: any) => e.id === id);
+    candidates.push(id, entity?.name);
+  }
+  for (const it of location.interactables ?? []) {
+    candidates.push(it?.id, it?.name);
+  }
+
+  return candidates
+    .map(normalize)
+    .filter(c => c.length >= 3)
+    .some(c => c === t || t.includes(c) || c.includes(t));
 }

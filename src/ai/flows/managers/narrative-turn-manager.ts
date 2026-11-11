@@ -573,6 +573,8 @@ export async function* executeNarrativeTurnStreaming(
             switch (e.type) {
                 case 'PlayerMoved':
                     return `- El grupo se desplazó de la localización '${e.payload.fromLocationId}' a '${e.payload.toLocationId}'.`;
+                case 'MoveFailed':
+                    return `- El grupo NO cambió de localización (destino solicitado: '${e.payload.locationId}'; motivo: ${e.payload.reason}). Sigue en '${currentLocationId}'.`;
                 case 'DoorOpened': {
                     const { direction, method, keyName } = e.payload;
                     if (method === 'key' && keyName) {
@@ -620,7 +622,11 @@ export async function* executeNarrativeTurnStreaming(
         activeEffects
     );
 
-    if (skillCheckResultData && narrativeDirectives.length > 0) {
+    // Los hechos que contradicen la intención del jugador (una tirada resuelta, un movimiento fallido)
+    // deben llegar al narrador como directivas explícitas: el feedback en bruto ("Ubicación no encontrada.")
+    // no basta y la IA tiende a narrar lo que el jugador quería en vez de lo que ocurrió.
+    const moveFailed = allEvents.some(e => e.type === 'MoveFailed');
+    if ((skillCheckResultData || moveFailed) && narrativeDirectives.length > 0) {
         systemFeedback = narrativeDirectives.join(' ');
     }
 
@@ -770,6 +776,11 @@ export function generateNarrativeDirectives(
         switch (e.type) {
             case 'PlayerMoved':
                 directives.push(`Describe que el grupo viaja o se desplaza a la localización '${e.payload.toLocationId}'.`);
+                break;
+            case 'MoveFailed':
+                directives.push(
+                    `El grupo NO cambia de localización (${e.payload.reason}). Narra brevemente el intento y por qué no logra avanzar, o pide al jugador que concrete el destino; está PROHIBIDO describir que el grupo llega o entra en otro lugar.`
+                );
                 break;
             case 'DoorOpened':
                 directives.push(`Describe que se abre la puerta/verja en dirección '${e.payload.direction}' con éxito usando el método '${e.payload.method}'.`);
