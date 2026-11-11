@@ -24,13 +24,23 @@ export interface DeterminismHandle {
     restore(): void;
 }
 
-export function enableDeterminism(seed: number): DeterminismHandle {
+/**
+ * @param fastWaits En replay, las esperas largas (reintentos tras un 429 grabado, backoff…) no aportan
+ *                  nada: se acortan a 10 ms para que la CI no espere decenas de segundos.
+ */
+export function enableDeterminism(seed: number, fastWaits = false): DeterminismHandle {
     const originalRandom = Math.random;
+    const originalSetTimeout = globalThis.setTimeout;
     Math.random = mulberry32(seed);
     vi.useFakeTimers({ toFake: ['Date'], now: FIXED_DATE });
+    if (fastWaits) {
+        globalThis.setTimeout = ((fn: any, ms?: number, ...args: any[]) =>
+            originalSetTimeout(fn, Math.min(ms ?? 0, 10), ...args)) as typeof setTimeout;
+    }
     return {
         restore() {
             Math.random = originalRandom;
+            globalThis.setTimeout = originalSetTimeout;
             vi.useRealTimers();
         },
     };

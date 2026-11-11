@@ -11,6 +11,7 @@
  */
 import { createHash } from 'crypto';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 export type ScenarioMode = 'replay' | 'record' | 'live';
@@ -45,6 +46,16 @@ export interface FetchStats {
 }
 
 const LLM_HOSTS = ['generativelanguage.googleapis.com', 'api.groq.com'];
+
+/**
+ * Datos de la cuenta que los proveedores incluyen en sus respuestas (p. ej. en los errores 429 de Groq)
+ * y que no deben acabar en el repositorio.
+ */
+export function redactAccountData(text: string): string {
+    return text
+        .replace(/\borg_[A-Za-z0-9]{6,}\b/g, 'org_REDACTED')
+        .replace(/\bproject_[A-Za-z0-9]{6,}\b/g, 'project_REDACTED');
+}
 
 /** Hosts a los que el juego llama solo para "precalentar" conexiones: no se graban. */
 const IGNORED_PREWARM = (url: string, method: string) =>
@@ -171,8 +182,13 @@ export class CassetteRecorder {
             const list = this.replayPool.get(key);
             const hit = list?.shift();
             if (!hit) {
+                // Se guarda la petición para poder compararla con las grabadas (diff del prompt).
+                const dumpDir = path.join(os.tmpdir(), 'dnd-scenarios');
+                fs.mkdirSync(dumpDir, { recursive: true });
+                const dumpFile = path.join(dumpDir, `${this.scenarioId}-${key}.json`);
+                fs.writeFileSync(dumpFile, JSON.stringify(parsedBody, null, 2), 'utf8');
                 throw new Error(
-                    `[cassette:${this.scenarioId}] Petición no grabada (${method} ${url}).\n` +
+                    `[cassette:${this.scenarioId}] Petición no grabada (${method} ${url}). Guardada en: ${dumpFile}\n` +
                     `Es normal si has cambiado un prompt, el contexto enviado a la IA o la lógica previa a la llamada.\n` +
                     `Vuelve a grabar con: npm run test:scenarios:record -- ${this.scenarioId}\n` +
                     `Inicio del cuerpo: ${body.slice(0, 400)}`
@@ -195,7 +211,7 @@ export class CassetteRecorder {
                 method,
                 url,
                 request: parsedBody,
-                response: { status: response.status, statusText: response.statusText, contentType, body: text },
+                response: { status: response.status, statusText: response.statusText, contentType, body: redactAccountData(text) },
             });
         }
 
