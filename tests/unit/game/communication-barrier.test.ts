@@ -44,10 +44,9 @@ describe('communication-barrier (genérico, sin datos fijos de aventura)', () =>
         expect(applyHiddenIdentityTerms('Texto sin spoilers', [])).toBe('Texto sin spoilers');
     });
 
-    it('las aventuras de la oveja declaran sus términos y siguen siendo válidas según el esquema', () => {
+    it('la aventura de la oveja declara sus términos y sigue siendo válida según el esquema', () => {
         const files = [
             'public/adventures/la-caza-de-la-oveja-salvaje/la-caza-de-la-oveja-salvaje.json',
-            'public/adventures/la-persecucion-de-la-oveja-salvaje/la-persecucion-de-la-oveja-salvaje.json',
         ];
         for (const file of files) {
             const data = JSON.parse(fs.readFileSync(path.resolve(file), 'utf8'));
