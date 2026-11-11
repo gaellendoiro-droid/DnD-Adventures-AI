@@ -18,8 +18,11 @@ export const consultRulebookTool = ai.defineTool(
         outputSchema: z.string(),
     },
     async (input) => {
-        if (GEMINI_MODEL_NAME.startsWith('groq/')) {
-            log.info(`Consultando Biblioteca Arcana vía Groq (${GEMINI_MODEL_NAME})`, { module: 'ConsultRulebook', query: input.query });
+        // Los PDF subidos a la File API solo los puede leer Gemini. Con cualquier otro modelo (Groq o
+        // local) se consulta al modelo directamente; antes, con `local/...`, se llamaba a Gemini con
+        // ese nombre de modelo y la consulta fallaba siempre con un 404.
+        if (!GEMINI_MODEL_NAME.startsWith('googleai/')) {
+            log.info(`Consultando Biblioteca Arcana sin PDF (${GEMINI_MODEL_NAME})`, { module: 'ConsultRulebook', query: input.query });
             try {
                 const response = await ai.generate({
                     model: GEMINI_MODEL_NAME,
@@ -33,7 +36,7 @@ Instrucciones:
                 });
                 return response.text;
             } catch (error: any) {
-                log.error("Error consultando reglas vía Groq", { error: error.message });
+                log.error("Error consultando reglas sin PDF", { error: error.message, model: GEMINI_MODEL_NAME });
                 return "Lo siento, no pude consultar el tomo sagrado en este momento.";
             }
         }
