@@ -16,10 +16,10 @@ Este documento centraliza toda la planificación futura, características pendie
 
 ### Fase 0 — Higiene del repositorio (1–2 días)
 - [x] **[TASK-066] Ordenar el trabajo sin commitear** en commits temáticos (rama `chore/fase-0-higiene`).
-- [ ] **[TASK-067] Build estricto:** quitar `ignoreBuildErrors` / `ignoreDuringBuilds` de `next.config.ts`.
-- [ ] **[TASK-068] Integración continua:** GitHub Actions con `tsc --noEmit` y `vitest run --maxWorkers=4`; si está en rojo, no se hace merge.
-- [ ] **[TASK-069] Limpieza de ficheros:** eliminar `input.json` y documentar el uso de `knowledge/dnd-local.db` (caché/semilla versionada).
-- [ ] **[TASK-070] Normas de trabajo documentadas:** un agente por zona de ficheros, una rama por tarea, la documentación se actualiza en el mismo commit que el código.
+- [x] **[TASK-067] Build estricto:** eliminado `ignoreBuildErrors` de `next.config.ts`; `next build` pasa con comprobación de tipos. *Pendiente:* activar ESLint en el build cuando exista configuración de ESLint.
+- [x] **[TASK-068] Integración continua:** GitHub Actions con `tsc --noEmit` y `vitest run --maxWorkers=4`; si está en rojo, no se hace merge. Declarado `uuid` y eliminado `chart.tsx` sin uso (con su declaración falsa de `recharts`) para que `npm ci` sea reproducible.
+- [x] **[TASK-069] Limpieza de ficheros:** eliminado `input.json`; documentado el uso de `knowledge/dnd-local.db` como semilla/caché versionada.
+- [x] **[TASK-070] Normas de trabajo documentadas** en [`docs/normas-de-trabajo.md`](./normas-de-trabajo.md).
 
 ### Fase 1 — Banco de pruebas narrativo (semanas 1–2) ⭐ *prioridad principal*
 - [ ] **[TASK-071] Escenarios de referencia:** guiones de 10–30 acciones del jugador sobre la aventura de la oveja (encuentro, pergamino, persecución, combate con Guz, torre).

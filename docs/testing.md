@@ -21,7 +21,12 @@ npm run test:run
 
 # Generar reporte de cobertura de código
 npm run test:coverage
+
+# Igual que en la CI (recomendado en Windows: evita timeouts de los workers)
+npx vitest run --maxWorkers=4
 ```
+
+> **Integración continua:** cada push a `main` y cada PR ejecutan `tsc --noEmit` y `vitest run --maxWorkers=4` (`.github/workflows/ci.yml`). Si la CI está en rojo, no se hace merge.
 
 ### Estructura del Directorio `tests/`
 - `tests/setup.ts`: Configura mocks de la API de Gemini/Genkit y silencia logs redundantes en consola.

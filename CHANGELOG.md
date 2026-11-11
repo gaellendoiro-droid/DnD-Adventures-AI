@@ -12,6 +12,13 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ## [Unreleased]
 
 ### Added
+- **🧹 Fase 0 de estabilización (TASK-066 a TASK-070):**
+  - Integración continua en `.github/workflows/ci.yml` (`tsc --noEmit` + `vitest run --maxWorkers=4` en cada push a `main` y en cada PR).
+  - Build estricto: eliminado `ignoreBuildErrors` de `next.config.ts` (ESLint sigue ignorado en el build hasta que exista configuración).
+  - `uuid` declarado como dependencia directa (antes llegaba solo de forma transitiva).
+  - Eliminados `input.json` (fichero roto sin uso) y el componente `src/components/ui/chart.tsx` sin uso, junto con su declaración falsa de `recharts`, que no estaba instalado.
+  - Nuevo documento `docs/normas-de-trabajo.md` (ramas, commits, CI obligatoria, documentación y tratamiento de `knowledge/dnd-local.db`) y nueva hoja de ruta de estabilización en `docs/roadmap.md`.
+
 - **🛡️ Sistema de Gestión de Errores de Proveedores de IA en 3 Capas:**
   - **Capa 1 (Detección y Normalización):** Creado `src/lib/ai/ai-error-handler.ts` (`parseAIProviderError`, `extractRetryAfterSeconds`) para detectar y tipificar errores 429 (Rate Limit / Quota TPM, RPM, OTPM), 413 (Payload Too Large) y 503 tanto de Groq como de Google AI Studio / Gemini, extrayendo tiempos exactos de espera sugeridos.
   - **Capa 2 (Espera Activa y Reintentos Automáticos):** Actualizado `src/ai/groq-plugin.ts` con rotación multi-modelo dinámica (`openai/gpt-oss-20b`, `openai/gpt-oss-120b`, `qwen/qwen3.8-27b`), espera activa automática cuando el tiempo de cooldown es breve ($\le 15\text{ s}$), limitación adaptativa de `max_tokens` (tope 700 para modelos sensibles como Qwen con límite OTPM = 1000) y compactación balanceada de JSON inline (`compactBalancedInlineJson`). Se actualizó `src/ai/flows/retry-utils.ts` con backoff inteligente adaptado a las cabeceras de ambos proveedores.

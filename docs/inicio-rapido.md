@@ -61,7 +61,7 @@ Esta guía te ayudará a poner en marcha el proyecto **D&D Adventures AI** desde
 - `src/lib/`: Motor determinista de reglas (`src/lib/game/rules/`), sistemas de eventos (`src/lib/game/systems/`), gestor de estado (`WorldStateManager`), motor de combate (`src/lib/combat/`) y base de datos local SQLite (`DataService`).
 - `public/adventures/`: Archivos JSON de aventuras listas para jugar junto con sus mapas tácticos extraídos (`maps/`).
 - `aventuras/`: Archivos fuente (PDFs y JSONs de trabajo) y documentación del conversor de aventuras (`aventuras/dev/`).
-- `knowledge/`: Base de datos SQLite local (`dnd-local.db`), caché de File API (`file-api-cache.json`) y manuales PDF en `knowledge/source_books/`.
+- `knowledge/`: Base de datos SQLite local (`dnd-local.db`), caché de File API (`file-api-cache.json`) y manuales PDF en `knowledge/source_books/`. La `.db` está versionada como semilla, pero la app la modifica al jugar: no commitees esos cambios (ver [Normas de Trabajo](./normas-de-trabajo.md)).
 - `scripts/`: Herramientas CLI, destacando el conversor `scripts/pdf-to-json.ts`.
 - `docs/`: Documentación técnica consolidada del sistema.
 
