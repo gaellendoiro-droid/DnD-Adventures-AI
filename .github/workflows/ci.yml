@@ -30,3 +30,7 @@ jobs:
 
       - name: Tests unitarios e integración
         run: npx vitest run --maxWorkers=4
+
+      # Escenarios narrativos reproducidos desde sus grabaciones: sin IA real, sin claves, deterministas.
+      - name: Escenarios narrativos (replay)
+        run: npm run test:scenarios

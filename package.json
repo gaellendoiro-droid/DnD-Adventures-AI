@@ -16,6 +16,9 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:scenarios": "node scripts/run-scenarios.mjs replay",
+    "test:scenarios:record": "node scripts/run-scenarios.mjs record",
+    "test:scenarios:live": "node scripts/run-scenarios.mjs live",
     "convert-adventure": "npx tsx scripts/pdf-to-json.ts"
   },
   "dependencies": {

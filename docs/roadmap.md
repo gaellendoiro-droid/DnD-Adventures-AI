@@ -12,7 +12,7 @@ Este documento centraliza toda la planificación futura, características pendie
 >
 > **Congelado hasta superar el hito:** voz/TTS, música, mejoras del conversor PDF y mecánicas nuevas (ranuras de conjuro, comercio, niveles, acciones compuestas).
 >
-> **Cómo se trabaja:** una fase por rama, un PR por tarea, CI en verde para hacer merge (y, desde la Fase 1, también los escenarios de referencia). Revisión al final de cada fase para decidir si seguir o reordenar.
+> **Cómo se trabaja:** una rama por tarea; antes del merge a `main` pasan en local `tsc`, los tests y los escenarios; merge directo sin PR y la CI de `main` en verde tras el push (ver [Normas de Trabajo](./normas-de-trabajo.md)). Revisión al final de cada fase para decidir si seguir o reordenar.
 
 ### Fase 0 — Higiene del repositorio (1–2 días)
 - [x] **[TASK-066] Ordenar el trabajo sin commitear** en commits temáticos (rama `chore/fase-0-higiene`).
@@ -22,10 +22,10 @@ Este documento centraliza toda la planificación futura, características pendie
 - [x] **[TASK-070] Normas de trabajo documentadas** en [`docs/normas-de-trabajo.md`](./normas-de-trabajo.md).
 
 ### Fase 1 — Banco de pruebas narrativo (semanas 1–2) ⭐ *prioridad principal*
-- [ ] **[TASK-071] Escenarios de referencia:** guiones de 10–30 acciones del jugador sobre la aventura de la oveja (encuentro, pergamino, persecución, combate con Guz, torre).
-- [ ] **[TASK-072] Comprobaciones de estado** tras cada paso: inventario, flags, localización y puntos de golpe esperados.
-- [ ] **[TASK-073] Comprobaciones de texto:** sin spoilers antes de tiempo (p. ej. *Finethir* antes de activar el pergamino), narración coherente con el resultado de la tirada, sin mencionar CDs.
-- [ ] **[TASK-074] Modo grabado** (respuestas de IA guardadas y reproducidas, determinista y gratuito, para la CI) y **modo en vivo** (modelo real, manual o nocturno) que además mide la latencia y el número de llamadas a la IA por turno.
+- [ ] **[TASK-071] Escenarios de referencia:** guiones de 10–30 acciones del jugador sobre la aventura de la oveja (encuentro, pergamino, persecución, combate con Guz, torre). *En curso:* hechos `oveja-01-encuentro` y `oveja-02-pergamino`; faltan persecución, combate con Guz y torre. Criterios de "turno correcto" validados con el usuario el 2026-11-11 (ver `docs/testing.md` → *Qué se comprueba*).
+- [x] **[TASK-072] Comprobaciones de estado** tras cada paso (inventario, flags, localización, tiradas) mediante el cliente simulado de `tests/scenarios/harness/`.
+- [x] **[TASK-073] Comprobaciones de texto:** invariantes en todos los turnos (sin spoilers declarados en la aventura, sin restos técnicos, sin errores), coherencia narración-tirada en el escenario del pergamino, y CD en la narración como aviso mientras TASK-007 siga abierta.
+- [x] **[TASK-074] Modo grabado y modo en vivo:** `npm run test:scenarios` (replay, en la CI), `test:scenarios:record` y `test:scenarios:live`, con llamadas a la IA y latencia por turno en el informe.
 
 ### Fase 2 — Un solo flujo de juego (semanas 2–3)
 - [ ] **[TASK-075] Unificar coordinadores:** `gameCoordinatorFlow` pasa a ser un envoltorio de `gameStreamCoordinator`.

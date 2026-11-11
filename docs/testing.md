@@ -26,12 +26,49 @@ npm run test:coverage
 npx vitest run --maxWorkers=4
 ```
 
-> **Integración continua:** cada push a `main` y cada PR ejecutan `tsc --noEmit` y `vitest run --maxWorkers=4` (`.github/workflows/ci.yml`). Si la CI está en rojo, no se hace merge.
+> **Integración continua:** cada push a `main` (y cada PR, si se abre alguno) ejecuta `tsc --noEmit`, `vitest run --maxWorkers=4` y los escenarios narrativos en modo replay (`.github/workflows/ci.yml`). Las mismas tres comprobaciones se ejecutan en local antes de hacer merge; si la CI de `main` sale en rojo, se arregla antes de seguir con otra tarea.
 
 ### Estructura del Directorio `tests/`
 - `tests/setup.ts`: Configura mocks de la API de Gemini/Genkit y silencia logs redundantes en consola.
 - `tests/unit/`: Pruebas de componentes aislados (backend, dados, utilidades, target-resolver).
 - `tests/integration/`: Escenarios multi-módulo (flujo unificado de combate, transiciones de turnos y sincronización).
+- `tests/scenarios/`: Escenarios narrativos que juegan partidas reales turno a turno (ver abajo).
+
+---
+
+## 🎭 Escenarios Narrativos (Banco de Pruebas de la Fase 1)
+
+Los escenarios ejecutan el **flujo real del juego** (`gameStreamCoordinator`, el mismo que usa `/api/game/stream`) con una lista de acciones del jugador, y comprueban tanto el **estado** (inventario, flags, localización, tiradas) como el **texto** que ve el jugador.
+
+### Comandos
+```bash
+# Reproducir las grabaciones (sin IA real, sin claves, determinista). Es lo que ejecuta la CI.
+npm run test:scenarios
+
+# Volver a grabar uno o varios escenarios con la IA real configurada en .env (gasta cuota)
+npm run test:scenarios:record -- oveja-01
+
+# Jugar contra la IA real sin grabar nada (para medir latencia y explorar)
+npm run test:scenarios:live
+```
+Variables útiles: `SCENARIO_TRANSCRIPT=1` imprime la transcripción completa de cada turno; `SCENARIO_VERBOSE=1` muestra los logs internos del juego.
+
+### Cómo funciona
+- **Cassettes (`tests/scenarios/cassettes/*.json`):** grabación de cada llamada de red del escenario (petición y respuesta). En modo replay, cada petición se busca por el hash de su contenido. **Nunca se guardan claves de API.**
+- **Determinismo:** los dados usan una semilla fija por escenario y la fecha queda congelada, así que una grabación siempre produce el mismo resultado.
+- **Cliente simulado (`harness/client-state.ts`):** aplica los `state_delta` del stream igual que `GameView`.
+- **Informe:** por cada turno muestra las llamadas a la IA, la latencia (en record/live), los dados y los avisos.
+
+### Qué se comprueba
+- **Invariantes en todos los turnos:** sin errores en el stream; algún mensaje en cada turno; sin restos técnicos (`undefined`, `[object Object]`); sin términos de `roleplay.hiddenIdentityTerms` mientras `speak_with_animals` no esté activo.
+- **Avisos (no rompen el escenario):** problemas conocidos aún abiertos, como mencionar la CD en la narración (TASK-007).
+- **Expectativas de cada paso**, definidas en el propio escenario (`*.scenario.ts`).
+
+### Cuándo volver a grabar
+Si cambias un prompt, el contexto que se envía a la IA o la lógica que va antes de una llamada, la reproducción fallará con *"Petición no grabada"*. Es el aviso de que tu cambio afecta a la narración: vuelve a grabar, **revisa la transcripción** (`SCENARIO_TRANSCRIPT=1`) y commitea el cassette junto con el cambio.
+
+### Añadir un escenario
+Crea `tests/scenarios/<id>.scenario.ts` siguiendo los existentes (aventura, semilla y pasos con `action` y `expect`), grábalo con `npm run test:scenarios:record -- <id>` y commitea el escenario y su cassette.
 
 ---
 

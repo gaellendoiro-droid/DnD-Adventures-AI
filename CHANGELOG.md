@@ -12,6 +12,11 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ## [Unreleased]
 
 ### Added
+- **🎭 Banco de pruebas narrativo (Fase 1, TASK-071 a TASK-074):**
+  - Motor de escenarios en `tests/scenarios/harness/` que juega partidas reales turno a turno con `gameStreamCoordinator` y un cliente simulado que aplica los `state_delta` como `GameView`.
+  - Grabación y reproducción de las llamadas de red (cassettes) a nivel de `fetch`, válida para Gemini y Groq, sin guardar claves; dados con semilla y fecha congelada para que la reproducción sea determinista.
+  - Invariantes en todos los turnos (sin errores, sin spoilers de `hiddenIdentityTerms`, sin restos técnicos) y avisos de problemas conocidos (CD en la narración, TASK-007).
+  - Escenarios `oveja-01-encuentro` y `oveja-02-pergamino` con sus grabaciones; comandos `npm run test:scenarios`, `test:scenarios:record` y `test:scenarios:live`; paso de replay añadido a la CI.
 - **🧹 Fase 0 de estabilización (TASK-066 a TASK-070):**
   - Integración continua en `.github/workflows/ci.yml` (`tsc --noEmit` + `vitest run --maxWorkers=4` en cada push a `main` y en cada PR).
   - Build estricto: eliminado `ignoreBuildErrors` de `next.config.ts` (ESLint sigue ignorado en el build hasta que exista configuración).
