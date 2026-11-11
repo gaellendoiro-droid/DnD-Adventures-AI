@@ -1,13 +1,15 @@
 /**
- * Escenario: la historia de la oveja y la llegada de Guz (evento "Pastores y Rufianes").
+ * Escenario: la historia de la oveja y la llegada de Guz. PDF p. 2, "Baaaa-d News" y
+ * "Shepherds, Crooks".
  *
- * Según el storyline de la aventura, Guz aparece "poco después de que Shinebright comience a
- * contar su historia, o al intentar salir de la zona inicial". Hoy nada en el juego activa el flag
- * `guz_aparece`, así que Guz nunca entra en escena (TASK-084): se registra como problema conocido.
+ * Según el PDF, poco después de que Shinebright empiece a contar su historia se oyen aullidos y
+ * llega Guz con tres lobos y un oso pardo. Hoy nada activa el flag `guz_aparece`, así que Guz nunca
+ * entra en escena (TASK-084): se registra como problema conocido.
  */
 import { describe, it, expect } from 'vitest';
 import { expectScenarioToPass, type ScenarioDefinition } from './harness/runner';
 import { OVEJA_ADVENTURE, TRAS_LEER_PERGAMINO } from './harness/fixtures';
+import { PDF, cite } from '../adventures/wild-sheep-chase.pdf-spec';
 
 export const scenario: ScenarioDefinition = {
     id: 'oveja-03-guz-aparece',
@@ -23,11 +25,12 @@ export const scenario: ScenarioDefinition = {
                 expect(turn.diceRolls).toHaveLength(0);
                 expect(h.flag(turn.state, 'speak_with_animals')).toBe(true);
                 expect(turn.state.locationId).toBe('ciudad-o-pueblo');
+                expect(turn.dmText, cite(PDF.opening.introducesHimself)).toMatch(/Finethir|Shinebright/);
             },
             knownIssues: [
                 {
                     task: 'TASK-084',
-                    description: 'el evento "Pastores y Rufianes" debería activar guz_aparece cuando la oveja empieza a contar su historia',
+                    description: `Guz debería llegar al empezar la historia: ${cite(PDF.opening.howlingInterrupts)}`,
                     check(turn, h) {
                         expect(h.flag(turn.state, 'guz_aparece')).toBe(true);
                     },
@@ -40,7 +43,7 @@ export const scenario: ScenarioDefinition = {
             knownIssues: [
                 {
                     task: 'TASK-084',
-                    description: 'al intentar salir de la plaza, Guz debería aparecer (guz_aparece) y el grupo seguir en ciudad-o-pueblo',
+                    description: `Guz y sus bestias deberían cortar la salida de la plaza: ${cite(PDF.guz.trackersKnow)}`,
                     check(turn, h) {
                         expect(h.flag(turn.state, 'guz_aparece')).toBe(true);
                         expect(turn.state.locationId).toBe('ciudad-o-pueblo');

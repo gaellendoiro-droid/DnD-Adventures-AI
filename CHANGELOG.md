@@ -12,6 +12,8 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ## [Unreleased]
 
 ### Added
+- **📜 El PDF como referencia de los tests (paso A del núcleo v2, TASK-093):** especificación de "The Wild Sheep Chase" con citas por página (`tests/adventures/wild-sheep-chase.pdf-spec.ts`), prueba de fidelidad del JSON frente al PDF (los huecos van con `it.fails` y su tarea) y escenarios de la oveja reescritos con citas, más dos nuevos: `oveja-07-noke` y `oveja-08-desenlace`. Todos grabados con el modelo local.
+- **🎲 Escenarios reproducibles con llamadas en paralelo:** cada punto del código que usa `Math.random` tiene su propia secuencia con semilla, así que el orden en que terminan las llamadas a la IA ya no cambia las tiradas entre grabar y reproducir.
 - **🖥️ IA local como respaldo (Ollama):** con `LOCAL_LLM_MODEL` (p. ej. `qwen3.8:27b`), cuando los modelos de Groq agotan su cuota la petición pasa a un modelo local, gratuito e ilimitado, en vez de fallar. `GEMINI_MODEL=local/<modelo>` usa solo el modelo local (útil para grabar escenarios). Nuevo `src/ai/local-llm.ts`; tests en `tests/unit/ai/local-llm-fallback.test.ts`.
 
 ### Fixed

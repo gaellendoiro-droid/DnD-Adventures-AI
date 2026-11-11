@@ -54,3 +54,36 @@ export const GUZ_DERROTADO: ScenarioInitialState = {
         },
     ],
 };
+
+/** El grupo ha llegado a la plataforma central de la torre y Noke está trabajando dentro. */
+export const ANTE_NOKE: ScenarioInitialState = {
+    // Hoy no se puede llegar caminando (TASK-085): se parte directamente de la plataforma central.
+    locationId: 'plataforma-central',
+    globalFlags: { ...PERGAMINO_LEIDO_FLAGS, 'guz-semiorco_derrotado': true },
+    history: [
+        ...HISTORIA_PERGAMINO!,
+        {
+            sender: 'DM',
+            content: 'Tras derrotar a Guz en la plaza, seguís a la oveja hasta la casa de los robles. Subís por la rampa de raíces y cruzáis la puerta de la plataforma central: entre estanterías desordenadas y mesas llenas de diagramas, un hombre joven de ojeras profundas levanta la vista de sus notas.',
+        },
+    ],
+};
+
+/** Noke ha sido derrotado y el grupo tiene la vara; Shinebright puede hablar (otro pergamino). */
+export const NOKE_DERROTADO: ScenarioInitialState = {
+    locationId: 'plataforma-central',
+    globalFlags: {
+        ...PERGAMINO_LEIDO_FLAGS,
+        'guz-semiorco_derrotado': true,
+        'ahmed-noke-mago-humano_derrotado': true,
+        noke_se_transforma_en_gibbering_mouther: true,
+        'boca-balbuceante_derrotado': true,
+    },
+    history: [
+        ...HISTORIA_PERGAMINO!,
+        {
+            sender: 'DM',
+            content: 'La boca balbuceante en que se convirtió Noke se deshace por fin en un charco informe. Entre los restos brilla una vara de roble agrietada, ceñida por un aro de hierro cubierto de runas. La oveja se acerca despacio, sin apartar la vista de ella.',
+        },
+    ],
+};

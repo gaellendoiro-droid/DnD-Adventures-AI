@@ -55,7 +55,9 @@ Variables útiles: `SCENARIO_TRANSCRIPT=1` imprime la transcripción completa de
 
 ### Cómo funciona
 - **Cassettes (`tests/scenarios/cassettes/*.json`):** grabación de cada llamada de red del escenario (petición y respuesta). En modo replay, cada petición se busca por el hash de su contenido. **Nunca se guardan claves de API.**
-- **Determinismo:** los dados usan una semilla fija por escenario y la fecha queda congelada, así que una grabación siempre produce el mismo resultado.
+- **Determinismo:** los dados usan una semilla fija por escenario y la fecha queda congelada, así que una grabación siempre produce el mismo resultado. Cada punto del código que usa `Math.random` tiene su propia secuencia (`harness/determinism.ts`), para que el orden en que terminan las llamadas en paralelo (distinto al grabar y al reproducir) no cambie las tiradas.
+- **Tiradas fijadas (`forcedD20`):** un escenario puede fijar en orden los resultados del d20 de las pruebas de habilidad para reproducir una partida concreta (p. ej. `oveja-06`).
+- **Modelo local:** se puede grabar con Ollama (`GEMINI_MODEL=local/qwen3.8:27b npm run test:scenarios:record`), sin cuotas; la grabación guarda el modelo y la reproducción en la CI no necesita Ollama.
 - **Cliente simulado (`harness/client-state.ts`):** aplica los `state_delta` del stream igual que `GameView`.
 - **Informe:** por cada turno muestra las llamadas a la IA, la latencia (en record/live), los dados y los avisos.
 
@@ -66,13 +68,20 @@ Variables útiles: `SCENARIO_TRANSCRIPT=1` imprime la transcripción completa de
 
 - **Invariantes adicionales:** HP de los personajes dentro de rango; ningún código de error en bruto visible (`TARGET_NOT_FOUND`…); ningún mensaje "Hubo un error al procesar…".
 
+### El PDF es la referencia
+Las expectativas de la aventura de la oveja citan el pasaje del PDF original que las justifica (`tests/adventures/wild-sheep-chase.pdf-spec.ts`). Hay dos niveles:
+- **Fidelidad de datos** (`tests/adventures/wild-sheep-chase.fidelity.test.ts`, sin IA): el JSON frente a los hechos del PDF. Lo que aún no coincide va con `it.fails` y su tarea: la CI sigue en verde y **falla cuando el conversor lo arregla**, para pasarlo a comprobación normal.
+- **Escenarios de juego** (`oveja-01` a `oveja-08`): cada expectativa o problema conocido incluye la cita del PDF.
+
+Por defecto se aplican las reglas oficiales de 5e; lo que el PDF establece distinto (p. ej. el pergamino que se activa solo con leerlo) es una excepción de esa aventura que debe llegar en sus datos.
+
 ### Problemas conocidos (no rompen la CI)
 Cuando un escenario detecta un bug ya registrado en el roadmap, se documenta en el propio escenario con su `TASK-XXX` en lugar de dejar la CI en rojo:
 - **`knownIssues` (en un paso):** comportamiento correcto que hoy no se cumple. Mientras falle, sale como aviso `[TASK-XXX] Problema conocido`; cuando empiece a cumplirse, avisa con ✨ para convertirlo en expectativa normal.
 - **`knownFailures` (en el escenario):** patrones de fallos de invariantes o expectativas que pasan a aviso.
 
 ### Estado inicial (partidas guardadas)
-Un escenario puede empezar en mitad de la aventura con `initial` (localización, flags y mensajes previos). Los puntos de partida comunes de la oveja están en `tests/scenarios/harness/fixtures.ts` (`TRAS_LEER_PERGAMINO`, `GUZ_EN_LA_PLAZA`, `GUZ_DERROTADO`).
+Un escenario puede empezar en mitad de la aventura con `initial` (localización, flags y mensajes previos). Los puntos de partida comunes de la oveja están en `tests/scenarios/harness/fixtures.ts` (`TRAS_LEER_PERGAMINO`, `GUZ_EN_LA_PLAZA`, `GUZ_DERROTADO`, `ANTE_NOKE`, `NOKE_DERROTADO`).
 
 ### Seguridad de las grabaciones
 - No se guardan cabeceras ni el parámetro `key=` de las URL.
