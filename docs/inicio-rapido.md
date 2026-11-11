@@ -42,7 +42,11 @@ Esta guía te ayudará a poner en marcha el proyecto **D&D Adventures AI** desde
    # GEMINI_MODEL=googleai/gemini-3.5-flash
    # Opcional: proveedor Groq (rotación entre qwen3.8-27b, gpt-oss-120b y gpt-oss-20b)
    # GROQ_API_KEY=tu_api_key_groq
+   # Opcional: IA local con Ollama como respaldo gratuito e ilimitado
+   # LOCAL_LLM_MODEL=qwen3.8:27b
    ```
+   **IA local (recomendado si tienes una GPU con ≥ 20 GB):** instala [Ollama](https://ollama.com), descarga el modelo con `ollama pull qwen3.8:27b` y define `LOCAL_LLM_MODEL=qwen3.8:27b`. Cuando Groq agota su cuota, la partida sigue con el modelo local en vez de dar error. Con `GEMINI_MODEL=local/qwen3.8:27b` se usa solo el modelo local (útil para grabar escenarios sin depender de cuotas).
+
    Si no defines `GEMINI_MODEL`, la app usa `groq/qwen/qwen3.8-27b` cuando existe `GROQ_API_KEY` y, en caso contrario, `googleai/gemini-3.5-flash`. La `GOOGLE_GENAI_API_KEY` sigue siendo necesaria para la voz (TTS) y la consulta de manuales.
 
 3. **Ejecutar la aplicación en modo desarrollo:**

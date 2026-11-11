@@ -11,6 +11,9 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+### Added
+- **🖥️ IA local como respaldo (Ollama):** con `LOCAL_LLM_MODEL` (p. ej. `qwen3.8:27b`), cuando los modelos de Groq agotan su cuota la petición pasa a un modelo local, gratuito e ilimitado, en vez de fallar. `GEMINI_MODEL=local/<modelo>` usa solo el modelo local (útil para grabar escenarios). Nuevo `src/ai/local-llm.ts`; tests en `tests/unit/ai/local-llm-fallback.test.ts`.
+
 ### Fixed
 - **🏁 La partida empieza en la sala correcta:** el conversor guarda la sala inicial en `settings.startingLocationId`, pero el juego solo leía `startingLocationId` en la raíz y empezaba en `locations[0]` (en la oveja, la sala vacía `ciudad-inicial`). Sin la oveja en la sala, el pergamino no entraba en el inventario y el narrador se inventaba su identidad. Ahora juego, coordinador del stream, cargador, validador y arnés de escenarios usan la misma función `resolveStartingLocationId`. Detectado en la prueba manual; tests de regresión incluidos.
 - **🧭 Movimientos fallidos coherentes con la narración:** el evento `MoveFailed` ya llega al narrador (registro de hechos y directiva que prohíbe narrar la llegada a otro lugar), y "acercarse" a una entidad u objeto de la sala ya no se trata como un viaje fallido (`isTargetInCurrentLocation` en `navigation-system.ts`). Tests de regresión incluidos.

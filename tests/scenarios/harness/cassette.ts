@@ -33,6 +33,8 @@ export interface CassetteInteraction {
 export interface Cassette {
     scenarioId: string;
     model: string;
+    /** Modelo local de respaldo activo al grabar (`LOCAL_LLM_MODEL`), si lo había. */
+    localModel?: string;
     seed: number;
     recordedAt: string;
     interactions: CassetteInteraction[];
@@ -153,6 +155,7 @@ export class CassetteRecorder {
         return {
             scenarioId: this.scenarioId,
             model,
+            ...(process.env.LOCAL_LLM_MODEL ? { localModel: process.env.LOCAL_LLM_MODEL } : {}),
             seed,
             recordedAt: new Date(Date.now()).toISOString(),
             interactions: this.interactions,
@@ -168,7 +171,8 @@ export class CassetteRecorder {
             return new Response(null, { status: 204 });
         }
 
-        const isLlm = LLM_HOSTS.some(h => url.includes(h));
+        // Groq, Gemini o un modelo local compatible con OpenAI (Ollama).
+        const isLlm = LLM_HOSTS.some(h => url.includes(h)) || /\/v1\/chat\/completions$/.test(url);
         if (isLlm) this.stats.llmCalls++;
         else this.stats.otherCalls++;
 
