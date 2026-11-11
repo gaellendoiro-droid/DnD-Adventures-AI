@@ -4,19 +4,21 @@ Reglas para mantener el proyecto estable mientras crece (TASK-070). Aplican a cu
 
 ---
 
-## 🌿 Ramas, commits y PRs
+## 🌿 Ramas, commits y merges
 
-- **Nunca se trabaja directamente en `main`.** Cada tarea va en su propia rama (`feat/…`, `fix/…`, `chore/…`, `docs/…`) y se integra mediante un PR.
-- **Una tarea por rama y un PR por tarea.** Si una tarea tiene un ID `[TASK-XXX]`, se cita en la rama, en el commit o en el PR.
+- **No se hacen commits directamente en `main`.** Cada tarea va en su propia rama (`feat/…`, `fix/…`, `chore/…`, `docs/…`).
+- **Integración sin PR (proyecto de un solo desarrollador):** cuando la tarea está terminada y pasa las comprobaciones locales, la rama se integra en `main` con `git merge --no-ff` y se hace push. No hace falta abrir un pull request.
+- **Una tarea por rama.** Si una tarea tiene un ID `[TASK-XXX]`, se cita en la rama o en el commit.
 - **Commits pequeños y temáticos**, con mensajes en español al estilo *Conventional Commits* (`feat(ai): …`, `fix(core): …`, `docs: …`).
 - **No se acumula trabajo sin commitear.** Al terminar una sesión, el trabajo queda commiteado en su rama, aunque esté a medias.
 - **Un solo agente modifica el proyecto.** Si en algún momento trabajan varios, cada uno tiene asignada una zona de ficheros distinta y nunca editan los mismos ficheros a la vez.
 
 ## ✅ Calidad mínima para hacer merge
 
-- **La CI tiene que estar en verde** (`.github/workflows/ci.yml`): `tsc --noEmit` sin errores y `vitest run` sin fallos.
+- **Antes del merge, en local, tiene que pasar todo lo que ejecuta la CI:** `npx tsc --noEmit`, `npx vitest run --maxWorkers=4` y `npm run test:scenarios`.
+- **Después del push, la CI de `main` tiene que quedar en verde** (`.github/workflows/ci.yml`). Si sale en rojo, arreglarlo es lo primero que se hace, antes de seguir con cualquier otra tarea.
 - **El build es estricto con TypeScript:** un error de tipos bloquea `next build`. No se vuelve a activar `ignoreBuildErrors`.
-- **Cada corrección de un bug lleva su test de regresión**, salvo que sea imposible y se explique en el PR.
+- **Cada corrección de un bug lleva su test de regresión**, salvo que sea imposible y se explique en el commit.
 - **Nada de lógica específica de una aventura en el código.** Nombres propios, conjuros concretos o spoilers van en el JSON de la aventura (por ejemplo `roleplay.hiddenIdentityTerms`).
 - **Las reglas del juego van en código, no en prompts.** Si una norma del prompt ("PROHIBIDO…") se puede comprobar en TypeScript, se mueve a la Capa 2 con su test.
 

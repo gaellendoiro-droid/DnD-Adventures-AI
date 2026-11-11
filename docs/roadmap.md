@@ -12,7 +12,7 @@ Este documento centraliza toda la planificación futura, características pendie
 >
 > **Congelado hasta superar el hito:** voz/TTS, música, mejoras del conversor PDF y mecánicas nuevas (ranuras de conjuro, comercio, niveles, acciones compuestas).
 >
-> **Cómo se trabaja:** una fase por rama, un PR por tarea, CI en verde para hacer merge (y, desde la Fase 1, también los escenarios de referencia). Revisión al final de cada fase para decidir si seguir o reordenar.
+> **Cómo se trabaja:** una rama por tarea; antes del merge a `main` pasan en local `tsc`, los tests y los escenarios; merge directo sin PR y la CI de `main` en verde tras el push (ver [Normas de Trabajo](./normas-de-trabajo.md)). Revisión al final de cada fase para decidir si seguir o reordenar.
 
 ### Fase 0 — Higiene del repositorio (1–2 días)
 - [x] **[TASK-066] Ordenar el trabajo sin commitear** en commits temáticos (rama `chore/fase-0-higiene`).

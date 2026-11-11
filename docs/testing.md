@@ -26,7 +26,7 @@ npm run test:coverage
 npx vitest run --maxWorkers=4
 ```
 
-> **Integración continua:** cada push a `main` y cada PR ejecutan `tsc --noEmit`, `vitest run --maxWorkers=4` y los escenarios narrativos en modo replay (`.github/workflows/ci.yml`). Si la CI está en rojo, no se hace merge.
+> **Integración continua:** cada push a `main` (y cada PR, si se abre alguno) ejecuta `tsc --noEmit`, `vitest run --maxWorkers=4` y los escenarios narrativos en modo replay (`.github/workflows/ci.yml`). Las mismas tres comprobaciones se ejecutan en local antes de hacer merge; si la CI de `main` sale en rojo, se arregla antes de seguir con otra tarea.
 
 ### Estructura del Directorio `tests/`
 - `tests/setup.ts`: Configura mocks de la API de Gemini/Genkit y silencia logs redundantes en consola.
