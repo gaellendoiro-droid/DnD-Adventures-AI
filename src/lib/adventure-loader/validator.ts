@@ -159,6 +159,13 @@ export function validateAdventureStructure(data: any): ValidationResult {
                 code: 'INVALID_STARTING_LOCATION',
             });
         }
+        if (data.settings?.startingLocationId && !locationIds.has(data.settings.startingLocationId)) {
+            errors.push({
+                path: 'settings.startingLocationId',
+                message: `El settings.startingLocationId '${data.settings.startingLocationId}' no corresponde a ninguna ubicación existente.`,
+                code: 'INVALID_STARTING_LOCATION',
+            });
+        }
 
     } catch (e: any) {
         logClient.error('CRITICAL: Error inside validator logic', { component: 'Validator' }, e);

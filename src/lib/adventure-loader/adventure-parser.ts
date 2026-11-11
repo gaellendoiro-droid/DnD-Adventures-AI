@@ -121,6 +121,10 @@ function sanitizeAdventureData(data: any): any {
             console.warn(`[Sanitizer] Invalid startingLocationId '${data.startingLocationId}' removed.`);
             delete data.startingLocationId;
         }
+        if (data.settings?.startingLocationId && !locationIds.has(data.settings.startingLocationId)) {
+            console.warn(`[Sanitizer] Invalid settings.startingLocationId '${data.settings.startingLocationId}' removed.`);
+            delete data.settings.startingLocationId;
+        }
     });
 
     return data;
