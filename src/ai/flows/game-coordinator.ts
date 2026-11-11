@@ -231,6 +231,23 @@ export const gameCoordinatorFlow = ai.defineFlow(
             interpreterLogs = result.debugLogs;
         }
 
+        if (interpretation.actionType === 'clarify') {
+            const clarificationMsg =
+                (interpretation as any).clarificationQuestion ||
+                `No he podido reconocer con seguridad tu acción («${playerAction}»). ¿Podrías aclararla o escribirla de otra forma?`;
+            return {
+                messages: [{
+                    sender: 'System',
+                    senderName: 'DM',
+                    content: `🤔 ${clarificationMsg}`,
+                }],
+                debugLogs: [...debugLogs, ...interpreterLogs, `ActionInterpreter requested clarification: ${clarificationMsg}`],
+                updatedParty: party,
+                inCombat,
+                turnIndex,
+            };
+        }
+
         if (inCombat) {
             const currentCombatant = input.initiativeOrder?.[turnIndex]?.characterName || 'Unknown';
             log.gameCoordinator('Processing combat turn', {

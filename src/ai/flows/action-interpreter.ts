@@ -33,6 +33,11 @@ const actionInterpreterPrompt = ai.definePrompt({
 1.  **PRIORITY 1: Out-of-Character (OOC) Check:**
     *   If the player's action starts with \`//\`, you MUST classify the action as 'ooc'. The 'targetId' is irrelevant. Stop here.
 
+1.5 **PRIORITY 1.5: Unrecognized, Corrupt, or Ambiguous Action ('clarify' - NO RANDOM GUESSING):**
+    *   **NEVER guess or invent an action (especially NEVER invent a \`skill_check\` or \`attack\`) when the main verb or intent of the player's action is unrecognizable, gibberish, or ambiguous.**
+    *   If the player wrote an unrecognized word or typo that makes their intention uncertain (or if the action makes no sense in the current scene), you MUST classify \`actionType\` as \`'clarify'\` and provide \`clarificationQuestion\` in Spanish (Spain), politely telling the player what wasn't understood and asking what they meant (e.g., *"No he reconocido la acción «Caojo». ¿Querías decir «Cojo el pergamino de sus fauces»?"*).
+    *   Stop here if the action is unrecognized or ambiguous.
+
 2.  **PRIORITY 2: Attack / Hostile Intent / Offensive Magic:**
     *   Analyze for a clear intent to attack OR initiate violence, OR cast an OFFENSIVE SPELL.
     *   **IMPORTANT:** This includes BOTH combat attacks AND surprise attacks on neutral/friendly NPCs or objects.
@@ -67,6 +72,8 @@ const actionInterpreterPrompt = ai.definePrompt({
     *     - Example: "Le pido cortésmente al guardia que nos deje pasar en nombre del alcalde" is Persuasion -> Classify as 'skill_check', targetId: "guardia".
     *     - Example: "Observo de cerca a Guz para ver si está nervioso o miente" is Insight -> Classify as 'skill_check', targetId: "Guz".
     *   **IMPORTANT EXCEPTION:** Casting a standard spell (like "detectar magia", "luz") is NOT a skill check usually (unless it says "try to cast"). If it's a utility spell, check PRIORITY 6 (Interaction) or 8 (Narrate). Only use 'skill_check' if the player explicitly frames it as a difficult attempt ("try to control the magic").
+    *   **CRITICAL EXCEPTION (TAKING OFFERED OR UNGUARDED ITEMS):** Taking, grabbing, or accepting an item that an NPC or animal is voluntarily offering (e.g., taking the scroll held in the sheep's jaws when the sheep offers it) or picking up an item in the room is **NEVER** a 'skill_check'. It is ALWAYS 'interact' (Priority 6). Never classify taking an offered object as Sleight of Hand / 'skill_check'.
+    *   **CRITICAL EXCEPTION (NORMAL QUESTIONS & CONVERSATION):** Asking open, informative, or friendly questions to an NPC or animal (e.g., "¿Quién eres?", "¿Qué te ha pasado?", "¿Quién te ha hecho esto y quién te persigue?", "¿Qué nos traes aquí?", "¿Qué ocurre?") or greeting/talking normally is **NEVER** a 'skill_check'. It is ALWAYS 'interact' (Priority 6). Only use 'skill_check' for dialogue when the player explicitly lies, threatens, tries to detect a lie, or tries to persuade a reluctant/hostile NPC to do something against their will.
     *   If detected, classify as 'skill_check'.
     *   Set 'targetId' to the target entity name or object if specified (e.g. "guardia", "cerradura", "Guz").
     *   Stop here.
@@ -74,7 +81,8 @@ const actionInterpreterPrompt = ai.definePrompt({
 3.5 **PRIORITY 3.5: Inventory Management (Drop / Give):**
     *   Analyze if the action describes dropping or discarding an item, OR transferring/giving an item to a companion.
     *   **Drop Item:** If the player wants to throw away, discard, drop, or leave an item on the floor (e.g., "tiro la llave al suelo", "suelto la poción de curación", "descarto la antorcha", "drop the sword"), you MUST classify the action as 'drop'. Set \`targetId\` to the item's name/ID (e.g., "llave-calabozo" or "pocion-curacion").
-    *   **Give Item:** If the player wants to give, pass, hand, or transfer an item to an ally in the party (e.g., "le doy la poción a Merryl", "pásale la llave a Elara", "le entrego el mapa a Galador", "give the scroll to Merryl"), you MUST classify the action as 'give'. Set \`targetId\` to the item's name/ID and set \`recipient\` to the companion's name (e.g., "Merryl", "Elara").
+    *   **Give Item:** If the player wants ONLY to give, pass, hand, or transfer an item to an ally in the party without ordering them to examine/identify/use/read it right away (e.g., "le doy la poción a Merryl", "pásale la llave a Elara", "le entrego el mapa a Galador", "give the scroll to Merryl"), you MUST classify the action as 'give'. Set \`targetId\` to the item's name/ID and set \`recipient\` to the companion's name (e.g., "Merryl", "Elara").
+    *   **Combined Give + Identify/Use/Read Order:** If the player gives an item (such as a scroll) to a companion AND in the same sentence asks or orders that companion to figure out what it is, examine, decipher, read, or use it (e.g., "Toma Merryl, todo tuyo. Intenta averiguar de qué se trata", "Le paso el pergamino a Merryl y le digo: 'Merryl, léelo por favor'"), classify the action as 'interact' (with \`targetId\` set to the item ID, e.g. "pergamino"), set \`assignedCompanion\` to that companion's name (e.g. "Merryl"), set \`recipient\` to that companion's name (e.g. "Merryl"), and set \`objectIntent\` to \`'identify'\` (if asked to figure out what it is / decipher / examine it) or \`'use'\` (if asked to read aloud / activate / cast it).
     *   Stop here.
 
 4.  **PRIORITY 4: Interaction with a Companion OR Proposal:**
@@ -152,6 +160,15 @@ Determine the player's intent based on the strict priority flow above.
 **IMPORTANT - RECIPIENT:**
 - If the player's action is classified as 'give' (transferring an item), YOU MUST set \`recipient\` to the exact name of the party companion receiving the item (e.g., "Merryl", "Elara"). It must match one of the companions in the party.
 - For all other action types, set \`recipient\` to null or undefined.
+
+**IMPORTANT - SEMANTIC OBJECT INTENT & PRONOUN RESOLUTION (\`objectIntent\` & \`targetId\`):**
+- **Pronoun & Elision Resolution for \`targetId\`:** Players often refer to an object from the immediate scene or recent conversation using pronouns, demonstratives, or metaphors instead of repeating its noun (e.g., "Parece mágico. Merryl mira a ver si eres capaz de descifrarlo", "échale un vistazo a eso", "¿qué significan esos garabatos?", "desata su poder"). You MUST inspect \`Recent History\` and \`Player's Party\` inventories to infer the object being referenced and set \`targetId\` to that object (e.g., "pergamino"). When a companion is asked to examine/decipher/use an object, \`assignedCompanion\` is the companion's name (e.g., "Merryl") and \`targetId\` MUST be the object (e.g., "pergamino"), NEVER the companion's name!
+- **Semantic Inference for \`objectIntent\`:** Whenever the player's action targets or refers to an item/scroll (no matter what verb, idiom, or phrasing they use, including confirmations like "de acuerdo, adelante" after a companion offers to inspect or read an item), classify the semantic intention in \`objectIntent\`:
+  - \`'take'\`: The player (or companion) wants to pick up, accept, grab, collect, or keep the object (e.g., "cojo el pergamino", "acepto lo que me ofrece la oveja", "me guardo el rollo").
+  - \`'identify'\`: The player (or companion) wants to examine, study, decipher, inspect, recognize the seal, or figure out what the object/scroll is or what magic it holds **without** casting or consuming it yet (e.g., "Merryl mira a ver si eres capaz de descifrarlo", "Toma Merryl, todo tuyo. Intenta averiguar de qué se trata", "Merryl intenta descifrar ese pergamino", "échale un ojo a las runas", "de acuerdo, adelante" when a companion just offered to recognize the seal before opening the scroll).
+  - \`'use'\`: The player (or companion) wants to activate, cast, invoke, channel, or read the scroll/item aloud to trigger its magical effect (e.g., "Merryl, léelo por favor", "pronuncio el conjuro del pergamino", "activo su magia", "úsalo", "de acuerdo, adelante" when a companion just offered to read/activate the already-identified scroll).
+  - \`'give'\`: The player only wants to hand/transfer the item to a companion without asking them to identify or use it yet.
+  - \`'drop'\`: The player wants to drop or discard the item.
 `,
 });
 
@@ -266,25 +283,31 @@ export const actionInterpreterFlow = ai.defineFlow(
                     };
                 }
 
-                // Default fallback: narrate
-                log.warn('Fallback defaulting to narrate', {
+                // Default fallback: pedir aclaración en lugar de inventar una acción aleatoria
+                log.warn('Fallback defaulting to clarify', {
                     module: 'AIFlow',
                     flow: 'actionInterpreter',
                 });
 
                 return {
-                    interpretation: { actionType: 'narrate' as const },
-                    debugLogs: ['Fallback: Defaulting to narrate'],
+                    interpretation: {
+                        actionType: 'clarify' as const,
+                        clarificationQuestion: `No se ha podido interpretar con seguridad tu acción («${input.playerAction}»). ¿Podrías reformularla o indicarme qué quieres hacer exactamente?`,
+                    },
+                    debugLogs: ['Fallback: Defaulting to clarify'],
                 };
             }
 
             let output = llmResponse.output;
 
             if (!output) {
-                const msg = "ActionInterpreter: AI returned null output. Defaulting to 'narrate'.";
+                const msg = "ActionInterpreter: AI returned null output. Defaulting to 'clarify'.";
                 log.error(msg, { module: 'AIFlow', flow: 'actionInterpreter' });
                 debugLogs.push(msg);
-                output = { actionType: 'narrate' as const };
+                output = {
+                    actionType: 'clarify' as const,
+                    clarificationQuestion: `No he podido reconocer tu acción («${input.playerAction}»). ¿Podrías escribirla de forma más clara?`,
+                };
             }
 
             // Post-processing to map title back to ID if a global move was detected

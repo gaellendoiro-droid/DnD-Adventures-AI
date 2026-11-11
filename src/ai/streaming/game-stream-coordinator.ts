@@ -15,6 +15,7 @@ import { oocAssistant } from '@/ai/flows/ooc-assistant';
 import { CombatInitiationService } from '@/lib/combat/combat-initiation-service';
 import { combatInitiationExpertTool } from '@/ai/tools/combat-initiation-expert';
 import { WorldStateManager } from '@/lib/game/world-state-manager';
+import { parseAIProviderError } from '@/lib/ai/ai-error-handler';
 
 /**
  * Helper generator to stream text with pacing.
@@ -145,6 +146,31 @@ export async function* gameStreamCoordinator(
 
         const { interpretation } = interpretationResult;
         yield createEvent('debug', { message: `Action: ${interpretation.actionType}` });
+
+        // Handle Unrecognized / Ambiguous Action ('clarify') without guessing or rolling dice
+        if (interpretation.actionType === 'clarify') {
+            const clarificationMsg =
+                interpretation.clarificationQuestion ||
+                `No he podido reconocer con seguridad tu acción («${playerAction}»). ¿Podrías aclararla o escribirla de otra forma?`;
+
+            yield* streamText(clarificationMsg, 'system');
+
+            yield createEvent('state_delta', {
+                updateType: 'merge',
+                data: {
+                    messages: [{
+                        id: `msg-clarify-${Date.now()}`,
+                        sender: 'System',
+                        senderName: 'DM',
+                        content: `🤔 ${clarificationMsg}`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }]
+                }
+            });
+
+            yield createEvent('stream_done', {});
+            return;
+        }
 
         // Handle OOC
         if (interpretation.actionType === 'ooc') {
@@ -557,9 +583,11 @@ export async function* gameStreamCoordinator(
 
     } catch (error: any) {
         log.error('StreamCoordinator Failed', error);
+        const aiError = parseAIProviderError(error);
         yield createEvent('error', {
-            code: 'COORDINATOR_ERROR',
-            message: error.message || 'Unknown error in coordinator',
+            code: aiError.code || 'COORDINATOR_ERROR',
+            message: aiError.userMessage || error.message || 'Unknown error in coordinator',
+            details: { aiError },
             isFatal: true
         });
     }

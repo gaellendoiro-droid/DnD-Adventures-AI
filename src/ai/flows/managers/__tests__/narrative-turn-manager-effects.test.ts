@@ -567,7 +567,7 @@ describe('NarrativeTurnManager - Active Effects Integration', () => {
             // 4. El systemFeedback debe explicar que se ha cogido
             expect(narrativeManager.narrativeExpert).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    systemFeedback: expect.stringContaining("Recoges el")
+                    systemFeedback: expect.stringContaining("recoge el pergamino")
                 })
             );
         });

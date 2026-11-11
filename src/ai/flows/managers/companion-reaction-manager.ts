@@ -141,6 +141,12 @@ export async function* processCompanionReactionsStreaming(
                     const isTargeted = interpretation.actionType === 'interact' &&
                         (interpretation.targetId === character.name || interpretation.targetId === 'Party' || interpretation.targetId === 'Group');
 
+                    // En interacciones con objetos o NPCs del entorno (!isTargeted), no interrumpir antes del DM (before_dm);
+                    // los compañeros reaccionarán después de que ocurra la acción (after_dm).
+                    if (interpretation.actionType === 'interact' && !isTargeted) {
+                        continue;
+                    }
+
                     // Boost probability if directly addressed or sticking to a plan
                     const probability = isTargeted ? 1.0 : PROBABILITY_BEFORE_DM;
 
@@ -200,16 +206,24 @@ export async function* processCompanionReactionsStreaming(
                         continue;
                     }
 
-                    if (Math.random() > PROBABILITY_AFTER_DM) {
+                    const isTargeted =
+                        (interpretation.actionType === 'interact' && interpretation.targetId === character.name) ||
+                        (interpretation as any).assignedCompanion?.toLowerCase() === character.name.toLowerCase() ||
+                        (interpretation as any).recipient?.toLowerCase() === character.name.toLowerCase() ||
+                        skillCheckResult?.characterName?.toLowerCase() === character.name.toLowerCase() ||
+                        playerAction.toLowerCase().includes(character.name.toLowerCase());
+
+                    const probability = isTargeted ? 1.0 : PROBABILITY_AFTER_DM;
+
+                    if (Math.random() > probability) {
                         yield { type: 'log', message: `Skipping reaction for ${character.name} (probability check failed)` };
                         continue;
                     }
 
-                    const isTargeted = interpretation.actionType === 'interact' && interpretation.targetId === character.name;
                     const dmNarrationContext = dmNarration
                         ? `\n\nDM narration (what just happened):\n"${dmNarration}"`
                         : '';
-                    const companionContext = `The player's action was: "${playerAction}"${dmNarrationContext}${isTargeted ? `\n\n(You are being directly addressed.)` : ''}${recentMemoryContext}`;
+                    const companionContext = `The player's action was: "${playerAction}"${dmNarrationContext}${isTargeted ? `\n\n(You were directly addressed or performed this action. Respond in character to the player about the outcome!)` : ''}${recentMemoryContext}`;
 
                     const companionResult = await companionExpertTool({
                         party: party,
@@ -322,6 +336,10 @@ export async function processCompanionReactions(
                     const isTargeted = interpretation.actionType === 'interact' &&
                         (interpretation.targetId === character.name || interpretation.targetId === 'Party' || interpretation.targetId === 'Group');
 
+                    if (interpretation.actionType === 'interact' && !isTargeted) {
+                        continue;
+                    }
+
                     const probability = isTargeted ? 1.0 : PROBABILITY_BEFORE_DM;
 
                     // Optimization: Probability check in code to avoid unnecessary API calls
@@ -371,18 +389,26 @@ export async function processCompanionReactions(
             for (const character of party) {
                 // Issue #26/#27: Skip dead/unconscious companions - they cannot react
                 if (canEntityReact(character)) {
+                    const isTargeted =
+                        (interpretation.actionType === 'interact' && interpretation.targetId === character.name) ||
+                        (interpretation as any).assignedCompanion?.toLowerCase() === character.name.toLowerCase() ||
+                        (interpretation as any).recipient?.toLowerCase() === character.name.toLowerCase() ||
+                        skillCheckResult?.characterName?.toLowerCase() === character.name.toLowerCase() ||
+                        playerAction.toLowerCase().includes(character.name.toLowerCase());
+
+                    const probability = isTargeted ? 1.0 : PROBABILITY_AFTER_DM;
+
                     // Optimization: Probability check in code to avoid unnecessary API calls
-                    if (Math.random() > PROBABILITY_AFTER_DM) {
+                    if (Math.random() > probability) {
                         localLog(`Skipping reaction for ${character.name} (probability check failed)`);
                         continue;
                     }
 
-                    const isTargeted = interpretation.actionType === 'interact' && interpretation.targetId === character.name;
                     // Include DM narration in context so companions react to the CURRENT SITUATION, not just the player's original action
                     const dmNarrationContext = dmNarration
                         ? `\n\nDM narration (what just happened):\n"${dmNarration}"`
                         : '';
-                    const companionContext = `The player's action was: "${playerAction}"${dmNarrationContext}${isTargeted ? `\n\n(You are being directly addressed.)` : ''}${recentMemoryContext}`;
+                    const companionContext = `The player's action was: "${playerAction}"${dmNarrationContext}${isTargeted ? `\n\n(You were directly addressed or performed this action. Respond in character to the player about the outcome!)` : ''}${recentMemoryContext}`;
 
                     const companionResult = await companionExpertTool({
                         party: party,

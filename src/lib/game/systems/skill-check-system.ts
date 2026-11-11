@@ -2,6 +2,7 @@ import { GameSystem, SystemContext } from './system-types';
 import { GameEvent } from '../events/event-schemas';
 import { skillCheckExpert } from '@/ai/flows/experts/skill-check-expert';
 import { resolveSkillCheck } from '@/lib/skills/skill-check-resolver';
+import { addEffectToCharacterInParty } from './effect-utils';
 
 export class SkillCheckSystem implements GameSystem {
   name = 'SkillCheckSystem';
@@ -100,6 +101,7 @@ export class SkillCheckSystem implements GameSystem {
         }
         for (const effect of pendingEffects) {
           context.worldState.globalFlags[effect] = true;
+          addEffectToCharacterInParty(context.party, actor.name, effect, 'Pergamino mágico');
           // Emitir evento de efecto activado
           context.enqueue({
             type: 'ConditionApplied', // o similar para alertar de que se activó
@@ -205,9 +207,51 @@ export class SkillCheckSystem implements GameSystem {
           }
 
           context.worldState.globalFlags[flag] = val;
+          if (flag.startsWith('identified_scroll_') && val === true) {
+            const effect = flag.replace('identified_scroll_', '');
+            const revealedName =
+              effect === 'speak_with_animals'
+                ? 'Pergamino de Hablar con los Animales'
+                : effect === 'detect_magic'
+                  ? 'Pergamino de Detectar Magia'
+                  : effect === 'comprehend_languages'
+                    ? 'Pergamino de Comprender Idiomas'
+                    : `Pergamino de ${effect}`;
+            for (const member of context.party) {
+              if (member.inventory) {
+                for (const item of member.inventory) {
+                  if (item.id === `scroll-${effect}` || /pergamino enrollado/i.test(item.name)) {
+                    item.name = revealedName;
+                    item.description = `Un pergamino mágico que contiene el conjuro ${revealedName.replace(/^Pergamino de /i, '')}.`;
+                  }
+                }
+              }
+            }
+          }
           if (flag.startsWith('consumed_scroll_') && val === true) {
             const effect = flag.replace('consumed_scroll_', '');
             context.party = this.consumeScrollFromPartyInventory(context.party, effect);
+          }
+        }
+      }
+
+      // Defensa en profundidad: si una prueba de Arcanos/Investigación sobre un pergamino tiene éxito aunque no viniera con pendingWorldStateFlags
+      if (
+        (selectedSkill === 'arcana' || selectedSkill === 'investigation') &&
+        (/pergamino|scroll|sello|runas/i.test(playerAction || '') || /pergamino|scroll/i.test(reasoning || ''))
+      ) {
+        if (!context.worldState.globalFlags) {
+          context.worldState.globalFlags = {};
+        }
+        for (const member of context.party) {
+          if (member.inventory) {
+            for (const item of member.inventory) {
+              if (item.id === 'scroll-speak_with_animals' || /pergamino enrollado/i.test(item.name || '')) {
+                context.worldState.globalFlags.identified_scroll_speak_with_animals = true;
+                item.name = 'Pergamino de Hablar con los Animales';
+                item.description = 'Un pergamino mágico que contiene el conjuro Hablar con los Animales.';
+              }
+            }
           }
         }
       }
@@ -244,8 +288,9 @@ export class SkillCheckSystem implements GameSystem {
       if (char.inventory) {
         const index = char.inventory.findIndex(
           (item: any) =>
-            /pergamino|scroll/i.test(item.name) &&
-            new RegExp(searchTerm, 'i').test(item.name)
+            item.id === `scroll-${spellEffect}` ||
+            (/pergamino|scroll/i.test(item.name) &&
+              new RegExp(searchTerm, 'i').test(item.name))
         );
         if (index !== -1) {
           char.inventory.splice(index, 1);

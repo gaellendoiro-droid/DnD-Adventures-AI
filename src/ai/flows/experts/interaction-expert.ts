@@ -61,15 +61,18 @@ Your job is to roleplay the NPCs. You speak for them, think for them, and react 
 {{#if skillCheckResult}}
 - **PRUEBA SOCIAL RESOLVIDA (Mecánica Obligatoria):**
   - **Habilidad comprobada:** {{skillCheckResult.skill}} (CD {{skillCheckResult.dc}})
-  - **Resultado del dado + bonos:** {{skillCheckResult.rollTotal}} (Resultado final: {{#if skillCheckResult.isCriticalSuccess}}ÉXITO CRÍTICO (El NPC reacciona con extrema condescendencia o revelación masiva de sus secretos/objetivos){{else}}{{#if skillCheckResult.isCriticalFailure}}FALLO CRÍTICO (El NPC se ofende profundamente, se vuelve hostil o sospecha de inmediato){{else}}{{#if skillCheckResult.isSuccess}}ÉXITO{{else}}FALLO{{/if}}{{/if}}{{/if}})
+  - **Resultado del dado + bonos:** {{skillCheckResult.rollTotal}} (Resultado final: {{#if skillCheckResult.isCriticalSuccess}}ÉXITO CRÍTICO{{else}}{{#if skillCheckResult.isCriticalFailure}}FALLO CRÍTICO{{else}}{{#if skillCheckResult.isSuccess}}ÉXITO{{else}}FALLO{{/if}}{{/if}}{{/if}})
   - **Justificación:** {{skillCheckResult.reasoning}}
-  **CRITICAL:** Esta interacción social dependió de una prueba mecánica y ha sido resuelta. Debes redactar la respuesta y actitud del NPC basándote estrictamente en el resultado de la tirada.
-  - **RESTRICCIÓN ABSOLUTA ANTE FALLO:** Si el resultado final es un FALLO o FALLO CRÍTICO, el NPC **NO DEBE** cooperar, ceder ni revelar ninguna información detallada, secreta, intenciones ocultas o nombres de objetos específicos que estén en la sección de secretos o lore (como el nombre o tipo exacto de un pergamino). Se cerrará en banda, desconfiará, se enfadará o reaccionará de forma contraria. Es imperativo que no filtres información protegida por el fallo.
-    **ATENCIÓN (SOBRE LA REGLA 9):** La restricción ante fallo prevalece y anula la obligación de nombrar o describir exactamente un objeto mágico o secreto. Si la tirada falló, el NPC no revelará que lleva un pergamino mágico de hablar con los animales ni su función, comportándose de forma críptica, a la defensiva o simplemente ocultándolo.
-  - **RESOLUCIÓN ANTE ÉXITO:** Si el resultado final es ÉXITO o ÉXITO CRÍTICO, el NPC cooperará, cederá o revelará la información o secreto pertinente de forma elocuente según los datos oficiales de la aventura.
-    * **DISTINCIÓN ENTRE IDENTIFICACIÓN Y ACTIVACIÓN (CRÍTICO):** 
-      - Si la tirada consistía únicamente en **identificar, descifrar, examinar o inspeccionar** un pergamino u objeto mágico (mediante Investigación, Arcanos, etc.), describe que el personaje comprende qué es el objeto pero **NO** narres que se activa, se consume, o que sus efectos mágicos entran en vigor en este turno. El objeto permanece inactivo.
-      - Si la tirada consistía en **usar, lanzar o activar** el pergamino para canalizar su magia, y el resultado es ÉXITO o ÉXITO CRÍTICO, narra que el pergamino se consume y que sus efectos mágicos (como la capacidad de hablar de la oveja si se activa "speak_with_animals") **SÍ** se activan y entran en vigor con éxito en este turno.
+  {{#if skillCheckResult.isSuccess}}
+  - **RESOLUCIÓN OBLIGATORIA ANTE ÉXITO ({{skillCheckResult.rollTotal}} vs CD {{skillCheckResult.dc}} — ¡ÉXITO!):**
+    * La tirada HA SIDO UN ÉXITO. El NPC cooperará o el personaje logrará su cometido según los datos oficiales de la aventura.
+    * **DISTINCIÓN ENTRE IDENTIFICACIÓN Y ACTIVACIÓN:**
+      - Si la tirada consistía únicamente en **identificar, descifrar, examinar o inspeccionar** un pergamino u objeto mágico, describe que el personaje comprende explícitamente qué es el objeto (revelando su nombre oficial), pero **NO** narres que se consume ni que sus efectos mágicos entran en vigor todavía.
+      - Si la tirada consistía en **usar, lanzar o activar** el pergamino para canalizar su magia, narra que el pergamino se consume y que sus efectos mágicos entran en vigor con éxito en este turno.
+  {{else}}
+  - **RESTRICCIÓN ABSOLUTA ANTE FALLO ({{skillCheckResult.rollTotal}} vs CD {{skillCheckResult.dc}} — FALLO):**
+    * El NPC **NO DEBE** cooperar ni revelar ninguna información detallada, secreta o nombres de objetos específicos (como el nombre o tipo exacto de un pergamino).
+  {{/if}}
 {{/if}}
 {{#if narrativeDirectives}}
 - **Directivas Narrativas (Obligatorio seguir en tu prosa):**

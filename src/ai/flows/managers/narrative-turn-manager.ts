@@ -38,6 +38,7 @@ import { SkillCheckSystem } from '@/lib/game/systems/skill-check-system';
 import { CombatSystem } from '@/lib/game/systems/combat-system';
 import { StatsSystem } from '@/lib/game/systems/stats-system';
 import { SystemContext } from '@/lib/game/systems/system-types';
+import { addEffectToCharacterInParty, isActiveMagicalOrStatusFlag } from '@/lib/game/systems/effect-utils';
 
 
 /**
@@ -183,6 +184,15 @@ export async function* executeNarrativeTurnStreaming(
         }
         localLog(`Rules Engine Intercepted action. System Feedback: "${systemFeedback}"`);
     } else {
+        if (
+            interpretation.actionType === 'skill_check' &&
+            /\b(pregunto|preguntarle|preguntamos|pregunta|hablo|hablarle|hablamos|digo|decirle|decimos)\b|¿/i.test(playerAction) &&
+            !/\b(engaño|engañar|miento|mentir|intimido|intimidar|amenazo|amenazar|persuado|persuadir|convenzo|convencer|agarro|sujeto|ato|domar)\b/i.test(playerAction)
+        ) {
+            interpretation.actionType = 'interact';
+            localLog('Normalized conversational question from skill_check to interact.');
+        }
+
         if (interpretation.activatedEffects && interpretation.activatedEffects.length > 0) {
             if (!updatedWorldState) {
                 updatedWorldState = { globalFlags: {} };
@@ -192,6 +202,7 @@ export async function* executeNarrativeTurnStreaming(
             }
             for (const effect of interpretation.activatedEffects) {
                 updatedWorldState.globalFlags[effect] = true;
+                addEffectToCharacterInParty(party, interpretation.assignedCompanion || party[0]?.name || '', effect);
                 localLog(`Activated spell/effect: ${effect}`);
             }
         }
@@ -200,7 +211,7 @@ export async function* executeNarrativeTurnStreaming(
     const activeEffects: string[] = [];
     if (updatedWorldState?.globalFlags) {
         for (const [key, value] of Object.entries(updatedWorldState.globalFlags)) {
-            if (value === true) {
+            if (value === true && isActiveMagicalOrStatusFlag(key)) {
                 activeEffects.push(key);
             }
         }
@@ -268,6 +279,7 @@ export async function* executeNarrativeTurnStreaming(
                 skill: interpretation.overrideSkill || undefined,
                 dc: interpretation.overrideDC || undefined,
                 assignedCompanion,
+                reasoning: systemFeedback,
                 playerAction,
                 conversationHistory: trimmedHistoryText,
                 pendingEffects,
@@ -358,6 +370,15 @@ export async function* executeNarrativeTurnStreaming(
             reasoning: payload.reasoning,
             characterName: payload.characterName,
         };
+        // Limpiar el systemFeedback previo a la tirada ("intenta leerlo...") para que prevalezca el resultado real de la tirada
+        systemFeedback = undefined;
+        yield {
+            type: 'logic_update',
+            data: {
+                updatedParty: party,
+                worldState: updatedWorldState
+            }
+        };
     }
 
     let finalLocationData = adventureData.locations.find((l: any) => l.id === locationId);
@@ -430,7 +451,7 @@ export async function* executeNarrativeTurnStreaming(
     activeEffects.length = 0;
     if (updatedWorldState?.globalFlags) {
         for (const [key, value] of Object.entries(updatedWorldState.globalFlags)) {
-            if (value === true) {
+            if (value === true && isActiveMagicalOrStatusFlag(key)) {
                 activeEffects.push(key);
             }
         }
@@ -453,6 +474,7 @@ export async function* executeNarrativeTurnStreaming(
         locationContext: JSON.stringify(explorationContext),
         presentEntities: resolvedEntities,
         activeEffects,
+        skillCheckResult: skillCheckResultData,
         worldState: updatedWorldState,
         currentLocationId: locationId,
         turnNumber: conversationHistory.length
@@ -491,7 +513,7 @@ export async function* executeNarrativeTurnStreaming(
     const isSocialTurn = (interpretation.actionType === 'interact' &&
         (interpretation.targetId === 'Party' || interpretation.targetId === 'Group' || party.some(p => p.name === interpretation.targetId)));
 
-    const shouldSuppressDM = (isSocialTurn && !newLocationId && !combatTrigger.shouldStartCombat) || combatTrigger.shouldStartCombat;
+    const shouldSuppressDM = (isSocialTurn && !newLocationId && !combatTrigger.shouldStartCombat && !skillCheckResultData && !systemFeedback) || combatTrigger.shouldStartCombat;
 
     // Sincronizar en caliente los interactuables de la localización con el worldState dinámico
     if (filteredLocationData.interactables && updatedWorldState) {
@@ -566,8 +588,12 @@ export async function* executeNarrativeTurnStreaming(
                 }
                 case 'DoorClosed':
                     return `- Se cerró la puerta en dirección '${e.payload.direction}'.`;
-                case 'ItemCollected':
-                    return `- ${e.payload.characterName} recogió el objeto '${e.payload.itemName}' (cantidad: ${e.payload.quantity}).`;
+                case 'ItemCollected': {
+                    const rawName = String(e.payload.itemName || '');
+                    const isUnidentifiedScroll = /pergamino de/i.test(rawName) && activeEffects.length === 0;
+                    const safeItemLabel = isUnidentifiedScroll ? 'el pergamino enrollado' : `'${rawName}'`;
+                    return `- ${e.payload.characterName} tomó ${safeItemLabel} (cantidad: ${e.payload.quantity}) y lo guardó consigo.`;
+                }
                 case 'TrapTriggered':
                     return `- ¡Se activó una trampa! ID: '${e.payload.hazardId}'.`;
                 case 'DamageApplied':
@@ -594,18 +620,33 @@ export async function* executeNarrativeTurnStreaming(
         activeEffects
     );
 
+    if (skillCheckResultData && narrativeDirectives.length > 0) {
+        systemFeedback = narrativeDirectives.join(' ');
+    }
+
+    const isScrollIdentifiedYet = Boolean(updatedWorldState?.globalFlags?.identified_scroll_speak_with_animals) || Boolean(updatedWorldState?.globalFlags?.speak_with_animals);
+    const rawLocationContextStr = JSON.stringify(filteredLocationData);
+    const rawAdventureLoreStr = adventureData.adventureLore ? JSON.stringify(adventureData.adventureLore) : undefined;
+
+    const maskUnidentifiedScrollText = (text?: string) => {
+        if (!text || isScrollIdentifiedYet) return text;
+        return text
+            .replace(/Pergamino de Hablar con (los )?Animales/gi, 'pergamino enrollado con runas arcanas')
+            .replace(/scroll of speak with animals/gi, 'sealed arcane scroll');
+    };
+
     const narrativeInput = {
         phase: (isAdventureStart ? 'combat_initiation' : 'normal') as 'combat_initiation' | 'normal',
         playerAction,
         locationId,
-        locationContext: JSON.stringify(filteredLocationData),
+        locationContext: maskUnidentifiedScrollText(rawLocationContextStr) || rawLocationContextStr,
         conversationHistory: finalHistory,
         interpretedAction: JSON.stringify(interpretation),
         deadEntities: deadEntities.length > 0 ? deadEntities.join(', ') : undefined,
         isKeyMoment: (newLocationId !== null && newLocationId !== currentLocationId) || interpretation.actionType === 'rest',
         systemFeedback: systemFeedback,
         explorationContext: explorationContext,
-        adventureLore: adventureData.adventureLore ? JSON.stringify(adventureData.adventureLore) : undefined,
+        adventureLore: maskUnidentifiedScrollText(rawAdventureLoreStr),
         // Hint for the Expert
         isSocialTurn: shouldSuppressDM,
         activeEffects,
@@ -736,9 +777,15 @@ export function generateNarrativeDirectives(
             case 'DoorClosed':
                 directives.push(`Describe que se cierra la puerta/verja en dirección '${e.payload.direction}'.`);
                 break;
-            case 'ItemCollected':
-                directives.push(`Describe que ${e.payload.characterName} recoge el objeto '${e.payload.itemName}' (cantidad: ${e.payload.quantity}) y lo guarda en su inventario. El objeto permanece inactivo en su mochila; no activa ninguna magia ni consume recursos.`);
+            case 'ItemCollected': {
+                const rawName = String(e.payload.itemName || '');
+                const isUnidentifiedScroll = /pergamino de/i.test(rawName) && activeEffects.length === 0;
+                const safeItemLabel = isUnidentifiedScroll ? 'el pergamino enrollado' : `el objeto '${rawName}'`;
+                directives.push(
+                    `Describe en 1-2 frases breves y naturales cómo ${e.payload.characterName} toma ${safeItemLabel} respetando dónde o quién lo tenía en el mensaje anterior del historial (ej. si un animal o NPC lo sujetaba en sus fauces/manos, lo toma de él). [PROHIBICIÓN SILENCIOSA - NO ESCRIBIR EN LA NARRACIÓN: no menciones el nombre del hechizo si no se ha leído, ni digas frases meta como "permanece inactivo", "no emite brillos", "no consume energía" o "queda registrado en el inventario"].`
+                );
                 break;
+            }
             case 'DamageApplied':
                 directives.push(`Describe que ${e.payload.targetName} sufre daño físico/mágico por valor de ${e.payload.amount} HP.`);
                 break;
@@ -746,15 +793,32 @@ export function generateNarrativeDirectives(
                 directives.push(`Describe que ${e.payload.targetName} recupera ${e.payload.amount} HP de salud.`);
                 break;
             case 'SkillCheckResolved': {
-                const { skill, dc, rollTotal, isSuccess, characterName } = e.payload;
-                const targetId = interpretation.targetId || '';
-                const isScrollUse = (interpretation.actionType === 'interact' || interpretation.actionType === 'skill_check') && /pergamino|scroll/i.test(targetId);
+                const { skill, dc, rollTotal, isSuccess, characterName, reasoning } = e.payload;
+                const targetId = String(interpretation.targetId || '');
+                const isScrollRelated = /^identify-scroll-|^cast-scroll-|pergamino|scroll/i.test(targetId) || /pergamino|scroll/i.test(String(reasoning || '')) || /pergamino|scroll/i.test(String(systemFeedback || ''));
+                const isScrollCast = /^cast-scroll-/i.test(targetId) || (isScrollRelated && activeEffects.includes('speak_with_animals') && !/^identify-scroll-/i.test(targetId));
+                const isScrollIdentify = /^identify-scroll-/i.test(targetId) || (isScrollRelated && !isScrollCast);
+                const isScrollUse = isScrollIdentify || isScrollCast;
                 
-                if (isScrollUse) {
+                const resolveScrollSpellTitle = (tId: string) => {
+                    if (/speak_with_animals|hablar con los animales/i.test(tId)) return 'Pergamino de Hablar con los Animales';
+                    if (/detect_magic|detectar magia/i.test(tId)) return 'Pergamino de Detectar Magia';
+                    if (/comprehend_languages|comprender idiomas/i.test(tId)) return 'Pergamino de Comprender Idiomas';
+                    return 'Pergamino de Hablar con los Animales';
+                };
+                const spellScrollTitle = resolveScrollSpellTitle(targetId);
+
+                if (isScrollIdentify) {
                     if (isSuccess) {
-                        directives.push(`Describe que ${characterName} lee el pergamino mágico y canaliza su energía con éxito (Arcanas CD ${dc}, resultado final: ${rollTotal}). La magia se activa y el efecto de comunicación animal o mágico entra en vigor.`);
+                        directives.push(`RESULTADO OBLIGATORIO (ÉXITO DE TIRADA): Describe en 1-2 frases que ${characterName} examina detenidamente las inscripciones arcanas del pergamino y las descifra con éxito (Arcanos CD ${dc}, resultado final: ${rollTotal}), descubriendo explícitamente que se trata de un '${spellScrollTitle}'. Aclara con naturalidad que ${characterName} sostiene aún el pergamino intacto en sus manos, listo por si decide leerlo en voz alta para activar el conjuro. PROHIBIDO decir que falla o que los símbolos se resisten.`);
                     } else {
-                        directives.push(`Describe que ${characterName} intenta leer el pergamino mágico pero falla al canalizar la energía (Arcanas CD ${dc}, resultado final: ${rollTotal}). La magia no se activa, el pergamino no se consume y el efecto sigue inactivo.`);
+                        directives.push(`RESULTADO OBLIGATORIO (FALLO DE TIRADA): Describe en 1-2 frases que ${characterName} examina las runas del pergamino pero le resultan indescifrables y NO consigue averiguar qué hechizo contiene (Arcanos CD ${dc}, resultado final: ${rollTotal}). El pergamino sigue siendo un misterio.`);
+                    }
+                } else if (isScrollUse) {
+                    if (isSuccess) {
+                        directives.push(`RESULTADO OBLIGATORIO (ÉXITO DE TIRADA): Describe en 1-2 frases que ${characterName} lee en voz alta el '${spellScrollTitle}' y canaliza su energía con éxito (Arcanos CD ${dc}, resultado final: ${rollTotal}). El pergamino se consume y el conjuro entra en vigor permitiendo hablar con los animales.`);
+                    } else {
+                        directives.push(`RESULTADO OBLIGATORIO (FALLO DE TIRADA): Describe en 1-2 frases que ${characterName} intenta leer el pergamino mágico pero falla al canalizar la energía (Arcanos CD ${dc}, resultado final: ${rollTotal}). La magia no se activa, el pergamino no se consume y su contenido sigue inactivo.`);
                     }
                 } else {
                     directives.push(`Describe que ${characterName} realiza una tirada de ${skill} (CD ${dc}) obteniendo un total de ${rollTotal}, resultando en ${isSuccess ? 'ÉXITO' : 'FALLO'}. Narra las consecuencias físicas o mentales en perfecta concordancia con este resultado.`);
@@ -776,11 +840,11 @@ export function generateNarrativeDirectives(
     // 2. Procesar intenciones de inventario no capturadas en los eventos de arriba
     if (directives.length === 0) {
         if (interpretation.actionType === 'give') {
-            directives.push(`Describe que ${interpretation.assignedCompanion || 'el personaje'} le da o transfiere el objeto '${interpretation.targetId}' a ${interpretation.recipient || 'su compañero'}. El objeto NO se lee, NO se activa y sus propiedades mágicas permanecen latentes.`);
+            directives.push(`Describe en 1-2 frases breves que ${interpretation.assignedCompanion || 'el personaje'} le entrega el objeto a ${interpretation.recipient || 'su compañero'}. [PROHIBICIÓN SILENCIOSA - NO ESCRIBIR EN LA NARRACIÓN: no inventes efectos mágicos ni menciones que "no se activa" o "permanece latente"].`);
         } else if (interpretation.actionType === 'drop') {
-            directives.push(`Describe que ${interpretation.assignedCompanion || 'el personaje'} suelta el objeto '${interpretation.targetId}' en el suelo. El objeto permanece inerte en el suelo y su magia sigue latente.`);
+            directives.push(`Describe en 1-2 frases breves que ${interpretation.assignedCompanion || 'el personaje'} deja el objeto en el suelo. [PROHIBICIÓN SILENCIOSA - NO ESCRIBIR EN LA NARRACIÓN: no menciones que "permanece inerte" ni que su magia sigue latente].`);
         } else if (interpretation.actionType === 'interact' && /pergamino|scroll/i.test(interpretation.targetId || '')) {
-            directives.push(`Describe que el personaje examina o manipula el pergamino de forma meramente física. No lo lee, no lo activa y no hay efectos mágicos en vigor.`);
+            directives.push(`Describe en 1-2 frases breves la acción física del personaje con el pergamino según la escena actual. [PROHIBICIÓN SILENCIOSA - NO ESCRIBIR EN LA NARRACIÓN: no reveles qué hechizo contiene si no se ha identificado ni digas frases como "no se libera magia"].`);
         }
     }
 

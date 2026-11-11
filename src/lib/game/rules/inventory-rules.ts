@@ -15,19 +15,6 @@ export class InventoryRuleModule implements RuleModule {
         const updatedWorldState = worldState ? JSON.parse(JSON.stringify(worldState)) : { locations: {}, globalFlags: {}, recentEvents: [] };
         const updatedParty = party ? JSON.parse(JSON.stringify(party)) : [];
 
-        const activeCharName = interpretation.assignedCompanion || updatedParty[0]?.name;
-        const activeChar = updatedParty.find((c: any) => c.name.toLowerCase() === activeCharName.toLowerCase());
-
-        if (!activeChar) {
-            return {
-                interpretation,
-                intercepted: true,
-                updatedParty,
-                updatedWorldState,
-                systemFeedback: `No se pudo encontrar al personaje activo '${activeCharName}' en el grupo.`
-            };
-        }
-
         const targetItemQuery = interpretation.targetId || '';
         if (!targetItemQuery) {
             return {
@@ -39,13 +26,43 @@ export class InventoryRuleModule implements RuleModule {
             };
         }
 
-        // Buscar el objeto en el inventario del personaje activo de forma robusta
-        const itemIndex = activeChar.inventory?.findIndex((it: any) => {
-            const idMatch = it.id.toLowerCase() === targetItemQuery.toLowerCase();
-            const nameMatch = it.name.toLowerCase().includes(targetItemQuery.toLowerCase()) || 
-                              targetItemQuery.toLowerCase().includes(it.name.toLowerCase());
-            return idMatch || nameMatch;
-        });
+        const matchesTargetItem = (it: any) => {
+            const q = targetItemQuery.toLowerCase();
+            const idMatch = it.id?.toLowerCase() === q;
+            const nameMatch = it.name?.toLowerCase().includes(q) || q.includes(it.name?.toLowerCase());
+            const scrollAlias = (/pergamino|scroll/i.test(q) && (/pergamino|scroll/i.test(it.name || '') || /scroll/i.test(it.id || '')));
+            return idMatch || nameMatch || scrollAlias;
+        };
+
+        const activeCharName =
+            (interpretation.actionType === 'give' &&
+                interpretation.assignedCompanion &&
+                interpretation.recipient &&
+                interpretation.assignedCompanion.toLowerCase() === interpretation.recipient.toLowerCase())
+                ? updatedParty[0]?.name
+                : (interpretation.assignedCompanion || updatedParty[0]?.name);
+
+        let activeChar = updatedParty.find((c: any) => c.name.toLowerCase() === activeCharName.toLowerCase());
+
+        if (!activeChar) {
+            return {
+                interpretation,
+                intercepted: true,
+                updatedParty,
+                updatedWorldState,
+                systemFeedback: `No se pudo encontrar al personaje activo '${activeCharName}' en el grupo.`
+            };
+        }
+
+        // Buscar el objeto en el inventario del personaje activo; si es 'give' y lo tiene otro miembro, usar al portador real
+        let itemIndex = activeChar.inventory?.findIndex(matchesTargetItem);
+        if ((itemIndex === undefined || itemIndex === -1) && interpretation.actionType === 'give') {
+            const holder = updatedParty.find((c: any) => c.inventory?.some(matchesTargetItem));
+            if (holder) {
+                activeChar = holder;
+                itemIndex = activeChar.inventory.findIndex(matchesTargetItem);
+            }
+        }
 
         if (itemIndex === undefined || itemIndex === -1) {
             return {

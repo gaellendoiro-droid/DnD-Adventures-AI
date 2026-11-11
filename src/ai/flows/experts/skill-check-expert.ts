@@ -108,9 +108,10 @@ Your goal is to translate a player's narrative intention into a concrete D&D 5e 
      - El jugador intenta cruzar sigilosamente por delante de unas criaturas salvajes. Si falla, es descubierto y las criaturas atacan de inmediato.
    - En tareas donde no hay peligro directo ni enemigos activos en escena (como abrir una cerradura en un templo abandonado o buscar un libro en una biblioteca), déjalo como 'false' o no lo incluyas.
 
-5. **NARRATION:**
-   - **Attempt:** Describe the character STARTING the action. Create suspense. Do NOT resolve it.
-   - **Success:** Describe a competent, successful outcome.
+5. **NARRATION & REASONING (STRICT GROUNDING):**
+   - **CRITICAL GROUNDING RULE:** You MUST base your \`reasoning\` and \`narrations\` **exclusively** on the provided \`playerAction\`, \`targetEntity\`, and \`locationContext\`. **NEVER** invent NPCs, guards, gates, doors, locks, or scenarios that are not explicitly present in \`playerAction\` or \`locationContext\`.
+   - **Attempt:** Describe the character STARTING the exact action requested. Create suspense. Do NOT resolve it.
+   - **Success:** Describe a competent, successful outcome of that exact action.
    - **Failure:** Describe a consequence or simply failing to achieve the goal.
    - **Criticals:** Add extra flair for Nat 20/Nat 1.
 

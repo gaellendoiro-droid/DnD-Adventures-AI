@@ -18,12 +18,14 @@ export const ActionInterpreterInputSchema = z.object({
 export type ActionInterpreterInput = z.infer<typeof ActionInterpreterInputSchema>;
 
 export const ActionInterpreterOutputSchema = z.object({
-  actionType: z.enum(['move', 'interact', 'attack', 'narrate', 'ooc', 'continue_turn', 'skill_check', 'drop', 'give']).describe("The interpreted type of the player's action. 'continue_turn' is used for step-by-step combat to advance to the next AI turn. 'skill_check' is for actions requiring a dice roll. 'drop' is for dropping an item. 'give' is for transferring an item to another character."),
+  actionType: z.enum(['move', 'interact', 'attack', 'narrate', 'ooc', 'continue_turn', 'skill_check', 'drop', 'give', 'clarify']).describe("The interpreted type of the player's action. 'continue_turn' is used for step-by-step combat to advance to the next AI turn. 'skill_check' is for actions requiring a dice roll. 'drop' is for dropping an item. 'give' is for transferring an item to another character. 'clarify' is used when the action is unrecognizable, gibberish, or too ambiguous to interpret safely without guessing."),
   targetId: z.string().optional().nullable().describe("The ID of the target for the action. For 'move', it's the destination ID. For 'attack', the entity ID. For 'interact', it's the specific interaction action name. For 'drop'/'give', it's the item ID or name."),
   stealthIntent: z.boolean().optional().describe("If true, the player explicitly expressed an intent to be stealthy, hide, or move quietly (e.g., 'I sneak to the door', 'Move quietly', 'Me escondo')."),
   activatedEffects: z.array(z.string()).optional().describe("Magical effects or spells activated by the action (e.g., ['speak_with_animals'])."),
   assignedCompanion: z.string().optional().nullable().describe("The name of the party companion assigned or ordered to perform this action (e.g., 'Merryl', 'Elara'), if the player explicitly delegated it to them. Otherwise null or undefined."),
   recipient: z.string().optional().nullable().describe("The name of the party companion receiving the item in 'give' actions (e.g., 'Merryl', 'Elara'). Otherwise null or undefined."),
+  objectIntent: z.enum(['take', 'identify', 'use', 'give', 'drop', 'other']).optional().nullable().describe("When the action involves an object, item, or scroll (explicitly named or implied via pronouns/context like 'descifrarlo', 'échale un ojo', 'úsalo'), the semantic intent over that object: 'take' (pick up, accept, grab), 'identify' (examine, decipher, study, figure out what it is without activating/consuming it), 'use' (read aloud to cast, activate, invoke, channel, consume), 'give' (hand over without using), or 'drop' (discard)."),
+  clarificationQuestion: z.string().optional().nullable().describe("When actionType is 'clarify', a brief, polite message in Spanish (Spain) explaining what was not understood and asking the player to clarify their intended action."),
 });
 
 export type ActionInterpreterOutput = z.infer<typeof ActionInterpreterOutputSchema>;
