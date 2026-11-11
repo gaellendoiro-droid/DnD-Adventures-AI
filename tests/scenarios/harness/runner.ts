@@ -218,6 +218,8 @@ export async function runScenario(def: ScenarioDefinition): Promise<ScenarioRepo
             throw new Error(`No existe cassette para "${def.id}". Grábalo con: npm run test:scenarios:record -- ${def.id}`);
         }
         process.env.GEMINI_MODEL = cassette.model;
+        // Mismo respaldo local que al grabar (o ninguno), para que las peticiones coincidan.
+        process.env.LOCAL_LLM_MODEL = cassette.localModel ?? '';
         process.env.GOOGLE_GENAI_API_KEY ||= 'replay-sin-clave';
         process.env.GEMINI_API_KEY ||= 'replay-sin-clave';
         process.env.GROQ_API_KEY ||= 'replay-sin-clave';

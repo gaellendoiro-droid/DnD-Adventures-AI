@@ -39,8 +39,10 @@ Para una guía paso a paso de instalación, configuración de variables de entor
    # Opcional: elegir modelo o activar Groq
    # GEMINI_MODEL=googleai/gemini-3.5-flash
    # GROQ_API_KEY=tu_api_key_groq
+   # Opcional: IA local con Ollama (respaldo gratuito e ilimitado)
+   # LOCAL_LLM_MODEL=qwen3.8:27b
    ```
-   Sin `GEMINI_MODEL`, se usa Groq si existe `GROQ_API_KEY` y, si no, `googleai/gemini-3.5-flash`.
+   Sin `GEMINI_MODEL`, se usa Groq si existe `GROQ_API_KEY` y, si no, `googleai/gemini-3.5-flash`. Con `LOCAL_LLM_MODEL`, un modelo local de [Ollama](https://ollama.com) toma el relevo cuando Groq agota su cuota (ver `docs/inicio-rapido.md`).
 
 3. **Iniciar el servidor de desarrollo:**
    ```bash
