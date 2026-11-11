@@ -330,15 +330,114 @@ export const TableSchema = z.object({
 });
 
 /**
+ * Referencia al pasaje del PDF original del que sale un dato (ver docs/nucleo-v2.md, §1).
+ */
+export const SourceRefSchema = z.object({
+    section: z.string().describe("Título de la sección del PDF, tal cual aparece en el original"),
+    page: z.number().optional().describe("Página del PDF"),
+});
+
+/**
+ * Prueba de habilidad que exige un objeto o una acción. `null` en `check` = sin tirada.
+ */
+export const SkillCheckRequirementSchema = z.object({
+    skill: z.string().describe("Habilidad en inglés de 5e (arcana, athletics, persuasion…) o característica"),
+    dc: z.number(),
+});
+
+/**
  * Schema for an Item.
+ *
+ * Los campos de mecánica son opcionales: si faltan, el motor aplica las REGLAS OFICIALES de 5e.
+ * Cuando el PDF establece algo distinto (p. ej. un pergamino que se activa solo con leerlo), el
+ * conversor lo recoge aquí y se marca con `exception: true`.
  */
 export const ItemSchema = z.object({
     id: z.string(),
     name: z.string(),
-    type: z.string().optional(), // Ej: "weapon", "potion", "key"
+    type: z.string().optional(), // Ej: "weapon", "potion", "key", "scroll", "wand"
     rarity: z.string().optional(),
     description: z.string().optional(),
     properties: z.any().optional(), // Objeto libre para propiedades mecánicas extra
+    spell: z.object({
+        id: z.string().describe("Identificador del conjuro en snake_case inglés (speak_with_animals, true_polymorph…)"),
+        name: z.string().describe("Nombre del conjuro en español"),
+    }).optional(),
+    identification: z.object({
+        method: z.enum(['obvious', 'label', 'check', 'identify_spell']).describe("obvious/label: se sabe qué es sin tirada (p. ej. un sello lo indica); check: exige tirada"),
+        check: SkillCheckRequirementSchema.optional(),
+    }).optional(),
+    activation: z.object({
+        method: z.enum(['read_aloud', 'command_word', 'attunement', 'consume', 'other']),
+        check: SkillCheckRequirementSchema.nullable().optional().describe("null = sin tirada (excepción del PDF); ausente = reglas oficiales"),
+        affects: z.enum(['user', 'party', 'target', 'area']).optional(),
+    }).optional(),
+    consumedOnUse: z.boolean().optional(),
+    charges: z.string().optional().describe("Cargas y recarga, tal como las da el PDF"),
+    rulesText: z.string().optional().describe("Reglas especiales del objeto según el PDF, en español"),
+    startsWith: z.object({
+        entityId: z.string().optional(),
+        locationId: z.string().optional(),
+        interactableId: z.string().optional(),
+        hidden: z.boolean().optional().describe("Hay que buscarlo para encontrarlo"),
+    }).optional().describe("Quién o dónde tiene el objeto al empezar"),
+    exception: z.boolean().optional().describe("El PDF se aparta aquí de las reglas oficiales de 5e"),
+    source: SourceRefSchema.optional(),
+});
+
+/**
+ * Condición que el motor evalúa SIN IA para saber si una escena empieza.
+ * Todas las propiedades presentes deben cumplirse (AND); `any` permite alternativas (OR).
+ */
+export type SceneCondition = {
+    all?: SceneCondition[];
+    any?: SceneCondition[];
+    flag?: string;
+    notFlag?: string;
+    atLocation?: string;
+    event?: SceneEvent;
+    target?: string;
+    afterTurns?: number;
+};
+export const SceneEventSchema = z.enum([
+    'adventure_start',    // al empezar la partida
+    'entered_location',   // target = locationId
+    'talked_to',          // target = entityId (hablar con una entidad que puede entender al grupo)
+    'attempted_leave',    // target = locationId que el grupo intenta abandonar
+    'entity_defeated',    // target = entityId
+    'combat_ended',
+    'item_obtained',      // target = itemId
+    'item_used',          // target = itemId
+    'scene_started',      // target = sceneId
+]);
+export type SceneEvent = z.infer<typeof SceneEventSchema>;
+export const SceneConditionSchema: z.ZodType<SceneCondition> = z.lazy(() => z.object({
+    all: z.array(SceneConditionSchema).optional(),
+    any: z.array(SceneConditionSchema).optional(),
+    flag: z.string().optional(),
+    notFlag: z.string().optional(),
+    atLocation: z.string().optional(),
+    event: SceneEventSchema.optional(),
+    target: z.string().optional(),
+    afterTurns: z.number().optional().describe("Turnos que deben pasar desde que se cumple el resto de la condición"),
+}));
+
+/**
+ * Escena de la aventura según el PDF: lo que el DM debe hacer, cuándo empieza y qué cambia.
+ * El narrador recibe `guidance` de la escena activa (núcleo v2, paso D).
+ */
+export const AdventureSceneSchema = z.object({
+    id: z.string(),
+    title: z.string(),
+    source: SourceRefSchema,
+    guidance: z.string().describe("Indicaciones del PDF para el DM, traducidas al español SIN resumir"),
+    guidanceOriginal: z.string().optional().describe("Texto original del PDF, para contrastar"),
+    locationIds: z.array(z.string()).optional(),
+    startsWhen: SceneConditionSchema.optional(),
+    onStart: z.object({
+        setFlags: z.array(z.string()).optional(),
+        clearFlags: z.array(z.string()).optional(),
+    }).optional(),
 });
 
 /**
@@ -373,6 +472,7 @@ export const AdventureDataSchema = z.object({
     startingLocationId: z.string().optional(), // Optional explicit starting location
     narrativeScenes: z.array(NarrativeSceneSchema).optional(),
     events: z.array(EventSchema).optional(),
+    scenes: z.array(AdventureSceneSchema).optional(),
     adventureLore: AdventureLoreSchema.optional(),
     settings: z.object({
         startingLocationId: z.string().optional(),

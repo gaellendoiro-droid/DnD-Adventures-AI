@@ -14,9 +14,10 @@
 export const LOCAL_PREFIX = 'local/';
 export const DEFAULT_LOCAL_BASE_URL = 'http://localhost:11434/v1';
 /** Un modelo local en una GPU doméstica tarda más que Groq: margen amplio antes de abortar. */
-export const LOCAL_TIMEOUT_MS = 180_000;
-/** Sin las cuotas de Groq, el modelo local puede escribir respuestas completas. */
-export const LOCAL_MAX_TOKENS = 2048;
+export const LOCAL_TIMEOUT_MS = 600_000; // respuestas largas del conversor (hasta LOCAL_MAX_TOKENS)
+/** Sin las cuotas de Groq, el modelo local puede escribir respuestas completas. Con 2048 la lista de
+ *  salas del conversor se truncaba; 8192 es del orden del límite por defecto de Gemini. */
+export const LOCAL_MAX_TOKENS = 8192;
 
 export interface LocalLlmConfig {
     model: string;

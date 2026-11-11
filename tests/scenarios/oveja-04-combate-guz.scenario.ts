@@ -1,7 +1,7 @@
 /**
  * Escenario: combate contra Guz y sus bestias en la plaza. PDF p. 2, "Shepherds, Crooks".
  *
- * Parte de una partida en la que Guz ya ha aparecido (guz_aparece activo), porque hoy el juego no
+ * Parte de una partida en la que Guz ya ha aparecido (su flag de presencia activo), porque hoy el juego no
  * activa ese flag por sí mismo (TASK-084). Protege el flujo completo de combate: inicio por
  * ataque del jugador, iniciativa, turnos automáticos de la IA, tiradas de ataque y estado.
  */

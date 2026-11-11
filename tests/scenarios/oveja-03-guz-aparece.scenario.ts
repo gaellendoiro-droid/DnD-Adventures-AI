@@ -3,12 +3,12 @@
  * "Shepherds, Crooks".
  *
  * Según el PDF, poco después de que Shinebright empiece a contar su historia se oyen aullidos y
- * llega Guz con tres lobos y un oso pardo. Hoy nada activa el flag `guz_aparece`, así que Guz nunca
+ * llega Guz con tres lobos y un oso pardo. Hoy el juego no evalúa la escena que activa su flag de presencia (`GUZ_FLAG`), así que Guz nunca
  * entra en escena (TASK-084): se registra como problema conocido.
  */
 import { describe, it, expect } from 'vitest';
 import { expectScenarioToPass, type ScenarioDefinition } from './harness/runner';
-import { OVEJA_ADVENTURE, TRAS_LEER_PERGAMINO } from './harness/fixtures';
+import { GUZ_FLAG, OVEJA_ADVENTURE, TRAS_LEER_PERGAMINO } from './harness/fixtures';
 import { PDF, cite } from '../adventures/wild-sheep-chase.pdf-spec';
 
 export const scenario: ScenarioDefinition = {
@@ -32,7 +32,7 @@ export const scenario: ScenarioDefinition = {
                     task: 'TASK-084',
                     description: `Guz debería llegar al empezar la historia: ${cite(PDF.opening.howlingInterrupts)}`,
                     check(turn, h) {
-                        expect(h.flag(turn.state, 'guz_aparece')).toBe(true);
+                        expect(h.flag(turn.state, GUZ_FLAG)).toBe(true);
                     },
                 },
             ],
@@ -45,7 +45,7 @@ export const scenario: ScenarioDefinition = {
                     task: 'TASK-084',
                     description: `Guz y sus bestias deberían cortar la salida de la plaza: ${cite(PDF.guz.trackersKnow)}`,
                     check(turn, h) {
-                        expect(h.flag(turn.state, 'guz_aparece')).toBe(true);
+                        expect(h.flag(turn.state, GUZ_FLAG)).toBe(true);
                         expect(turn.state.locationId).toBe('ciudad-o-pueblo');
                     },
                 },

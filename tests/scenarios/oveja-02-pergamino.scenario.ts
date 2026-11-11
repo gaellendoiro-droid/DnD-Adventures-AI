@@ -13,6 +13,7 @@
 import { describe, it, expect } from 'vitest';
 import { expectScenarioToPass, type ScenarioDefinition } from './harness/runner';
 import { PDF, cite } from '../adventures/wild-sheep-chase.pdf-spec';
+import { GUZ_FLAG } from './harness/fixtures';
 
 const SCROLL = /pergamino|scroll/i;
 
@@ -76,7 +77,7 @@ export const scenario: ScenarioDefinition = {
                     task: 'TASK-084',
                     description: `al empezar su historia deberían oírse aullidos y llegar Guz: ${cite(PDF.opening.howlingInterrupts)}`,
                     check(turn, h) {
-                        expect(h.flag(turn.state, 'guz_aparece')).toBe(true);
+                        expect(h.flag(turn.state, GUZ_FLAG)).toBe(true);
                     },
                 },
             ],
