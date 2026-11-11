@@ -29,6 +29,12 @@ Este documento centraliza toda la planificación futura, características pendie
 - [x] **[TASK-073] Comprobaciones de texto:** invariantes en todos los turnos (sin spoilers declarados en la aventura, sin restos técnicos, sin errores), coherencia narración-tirada en el escenario del pergamino, y CD en la narración como aviso mientras TASK-007 siga abierta.
 - [x] **[TASK-074] Modo grabado y modo en vivo:** `npm run test:scenarios` (replay, en la CI), `test:scenarios:record` y `test:scenarios:live`, con llamadas a la IA y latencia por turno en el informe.
 
+### 🔁 Rediseño del núcleo (decidido el 2026-11-11)
+Tras dos pruebas manuales, el usuario decidió **rehacer el núcleo del turno** en lugar de seguir parcheándolo, con un principio rector: **el PDF original es la verdad absoluta** y cada test se contrasta con él. El diseño está en [`docs/nucleo-v2.md`](./nucleo-v2.md) (pendiente de validar). Las Fases 2–4 de abajo se reorganizan en los pasos A–F de ese documento; sus tareas siguen siendo válidas como requisitos del núcleo nuevo.
+- [ ] **[TASK-093] Escenarios basados en el PDF:** reescribir los escenarios de la oveja escena a escena, citando el pasaje del PDF en cada expectativa. *Detectado:* `oveja-02-pergamino` exige una tirada de Arcanos para leer el pergamino, pero el PDF dice que basta con leerlo en voz alta y que el sello indica qué es.
+- [ ] **[TASK-094] Arreglos de la segunda prueba manual:** rama `fix/conjuro-persistente` (sin merge): regrabar `oveja-02` y `oveja-03` y grabar `oveja-06` cuando haya cuota de IA.
+- [ ] **[TASK-095] Núcleo v2:** pasos B–F de [`docs/nucleo-v2.md`](./nucleo-v2.md).
+
 ### Fase 2 — Un solo flujo de juego (semanas 2–3)
 - [ ] **[TASK-075] Unificar coordinadores:** `gameCoordinatorFlow` pasa a ser un envoltorio de `gameStreamCoordinator`.
 - [ ] **[TASK-076] No perder estado al entrar en combate:** el combate debe arrancar con el grupo y el `worldState` ya actualizados por el turno narrativo (y con los enemigos de la sala de destino).
