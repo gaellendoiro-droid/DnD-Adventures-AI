@@ -16,6 +16,18 @@ export const CharacterSummarySchema = z.object({
 });
 
 /**
+ * Representa un estado o efecto activo sobre un personaje (conjuro activo, condición de D&D 5e, bendición, etc.).
+ */
+export const CharacterEffectSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string().optional(),
+    type: z.enum(['buff', 'debuff', 'condition']).default('buff'),
+    source: z.string().optional(),
+    duration: z.string().optional(),
+});
+
+/**
  * The single source of truth for the FULL Character data structure.
  * Used for validation in AI tools and flows that need all details.
  */
@@ -110,6 +122,7 @@ export const CharacterSchema = z.object({
         successes: z.number().default(0),
         failures: z.number().default(0),
     }).optional(), // Tiradas de salvación contra la muerte
+    activeEffects: z.array(CharacterEffectSchema).optional(), // Estados y efectos mágicos activos
 });
 
 /**
@@ -236,6 +249,11 @@ export const EntityRoleplaySchema = z.object({
     goals: z.string(),
     secretsKnown: z.array(z.string()).optional(),
     communicationBarrier: z.string().optional(),
+    /** Términos que la IA no debe ver mientras la barrera de comunicación siga activa (ej. la identidad real de una criatura). */
+    hiddenIdentityTerms: z.array(z.object({
+        term: z.string(),
+        replacement: z.string(),
+    })).optional(),
     possessions: z.array(z.string()).optional(),
 });
 

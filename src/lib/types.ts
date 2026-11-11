@@ -1,9 +1,10 @@
 import { z } from 'zod';
-import { CharacterSchema, PartySchema, LocationSchema, ConnectionSchema, GameStateSchema, WorldStateSchema, SkillNameSchema, RollModeSchema, SkillCheckResultSchema } from './schemas';
+import { CharacterSchema, CharacterEffectSchema, PartySchema, LocationSchema, ConnectionSchema, GameStateSchema, WorldStateSchema, SkillNameSchema, RollModeSchema, SkillCheckResultSchema } from './schemas';
 import { D20RollResult } from './dice/dice-engine';
 
 // Infer the TypeScript types from the Zod schemas
 export type Character = z.infer<typeof CharacterSchema>;
+export type CharacterEffect = z.infer<typeof CharacterEffectSchema>;
 export type Party = z.infer<typeof PartySchema>;
 export type Location = z.infer<typeof LocationSchema>;
 export type Connection = z.infer<typeof ConnectionSchema>;
@@ -23,6 +24,7 @@ export interface GameMessage {
   originalContent?: string; // Store the raw markdown here
   timestamp: string;
   onRetry?: () => void;
+  aiError?: import('./ai/ai-error-handler').AIProviderErrorInfo;
 }
 
 export type DiceRollOutcome = 'crit' | 'success' | 'fail' | 'pifia' | 'neutral' | 'initiative' | 'victory' | 'defeat';
