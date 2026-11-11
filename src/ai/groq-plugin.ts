@@ -10,6 +10,7 @@
 
 import { Genkit, z } from 'genkit';
 import type { GenerateRequest, GenerateResponseData, Part } from 'genkit';
+import { extractJson } from 'genkit/extract';
 import { log } from '../lib/logger';
 import { extractRetryAfterSeconds } from '../lib/ai/ai-error-handler';
 import {
@@ -310,6 +311,15 @@ function extractJsonFromText(text: string): any | null {
     }
   }
 
+  // Último recurso: el extractor tolerante de Genkit (el mismo con el que luego valida la salida).
+  // Sin él, una respuesta que el JSON.parse estricto rechaza llegaba a Genkit sin sanear.
+  try {
+    const lenient = extractJson(cleaned);
+    if (lenient !== null && lenient !== undefined) return lenient;
+  } catch {
+    // Sin JSON aprovechable
+  }
+
   return null;
 }
 
@@ -330,8 +340,19 @@ function schemaAllowsNull(propSchema: any): boolean {
 /**
  * Sanitiza recursivamente un objeto JSON según el JSON Schema esperado por Genkit/Zod.
  */
-function sanitizeJsonForSchema(data: any, schema: any): any {
+export function sanitizeJsonForSchema(data: any, schema: any): any {
   if (!schema || data === null || data === undefined) return data;
+
+  // En modo JSON (`response_format: json_object`) la raíz tiene que ser un objeto, así que si el
+  // esquema pide una lista el modelo la envuelve: { "locations": [...] }. Se desenvuelve.
+  if (schema.type === 'array' && !Array.isArray(data) && typeof data === 'object') {
+    const itemKeys = Object.keys(schema.items?.properties ?? {});
+    const looksLikeItem = itemKeys.length > 0 && Object.keys(data).some((k) => itemKeys.includes(k));
+    const arrays = Object.values(data).filter(Array.isArray);
+    if (Array.isArray((data as any).items) && !itemKeys.includes('items')) data = (data as any).items;
+    else if (looksLikeItem) data = [data]; // un único elemento suelto
+    else if (arrays.length === 1) data = arrays[0];
+  }
 
   if (Array.isArray(data)) {
     const itemSchema = schema.items;
@@ -374,7 +395,7 @@ function sanitizeJsonForSchema(data: any, schema: any): any {
  * Convierte los mensajes de Genkit al formato estándar OpenAI Chat Completions,
  * aplicando compactación de JSON para minimizar el tamaño en tokens.
  */
-function toOpenAIMessages(request: GenerateRequest<any>): any[] {
+function toOpenAIMessages(request: GenerateRequest<any>, compact = true): any[] {
   const openAIMessages: any[] = [];
   const hasJsonSchema = Boolean(request.output?.schema || request.output?.format === 'json');
 
@@ -384,7 +405,9 @@ function toOpenAIMessages(request: GenerateRequest<any>): any[] {
       .map((p) => p.text!)
       .join('\n\n');
 
-    const textParts = compactPromptText(rawTextParts);
+    // La compactación existe por las cuotas de Groq; el modelo local recibe el prompt completo
+    // (p. ej. el conversor PDF → JSON necesita el texto entero de la aventura).
+    const textParts = compact ? compactPromptText(rawTextParts) : rawTextParts;
 
     if (msg.role === 'system') {
       openAIMessages.push({
@@ -436,7 +459,12 @@ function toOpenAIMessages(request: GenerateRequest<any>): any[] {
   }
 
   if (hasJsonSchema && request.output?.schema) {
-    const schemaInstruction = `\n\nIMPORTANT: Your final response MUST be a valid JSON object conforming strictly to the following JSON Schema. Do NOT wrap it in explanations. Omit optional properties instead of setting them to null unless null is explicitly allowed:\n\`\`\`json\n${JSON.stringify(request.output.schema)}\n\`\`\``;
+    const rootIsArray = (request.output.schema as any).type === 'array';
+    // En modo JSON la raíz tiene que ser un objeto: si el esquema es una lista se pide envuelta en
+    // {"items": [...]} con TODOS los elementos (si no, el modelo tiende a devolver solo el primero).
+    const schemaInstruction = rootIsArray
+      ? `\n\nIMPORTANT: Your final response MUST be a valid JSON object of the form {"items": [ ... ]}, where "items" contains ALL the elements (not just the first one), each conforming strictly to the "items" schema of the following JSON Schema. Do NOT wrap it in explanations. Omit optional properties instead of setting them to null unless null is explicitly allowed:\n\`\`\`json\n${JSON.stringify(request.output.schema)}\n\`\`\``
+      : `\n\nIMPORTANT: Your final response MUST be a valid JSON object conforming strictly to the following JSON Schema. Do NOT wrap it in explanations. Omit optional properties instead of setting them to null unless null is explicitly allowed:\n\`\`\`json\n${JSON.stringify(request.output.schema)}\n\`\`\``;
 
     let injected = false;
     for (let i = openAIMessages.length - 1; i >= 0; i--) {
@@ -514,6 +542,7 @@ function defineGroqModel(ai: Genkit, modelId: string, provider: Provider = 'groq
       }
 
       const messages = toOpenAIMessages(request);
+      const fullMessages = toOpenAIMessages(request, false);
       const hasJsonSchema = Boolean(request.output?.schema || request.output?.format === 'json');
       const tools = toOpenAITools(request.tools, hasJsonSchema);
 
@@ -533,7 +562,7 @@ function defineGroqModel(ai: Genkit, modelId: string, provider: Provider = 'groq
         const isLocal = target === 'local';
         const body: Record<string, any> = {
           model: currentModel,
-          messages,
+          messages: isLocal ? fullMessages : messages,
           temperature: request.config?.temperature ?? 0.7,
         };
 
@@ -548,7 +577,10 @@ function defineGroqModel(ai: Genkit, modelId: string, provider: Provider = 'groq
         // Ajustar max_tokens según el modelo: qwen tiene límite OTPM=1000, mientras que gpt-oss admite hasta 1200 sin truncar JSON
         const isQwen = currentModel.toLowerCase().includes('qwen');
         const defaultCap = isLocal ? LOCAL_MAX_TOKENS : isQwen ? 850 : 1200;
-        body.max_tokens = Math.min(request.config?.maxOutputTokens || defaultCap, defaultCap);
+        // Groq: tope por las cuotas. Local: el que pida la llamada (el conversor necesita respuestas largas).
+        body.max_tokens = isLocal
+          ? (request.config?.maxOutputTokens || defaultCap)
+          : Math.min(request.config?.maxOutputTokens || defaultCap, defaultCap);
 
         if (tools && tools.length > 0) {
           body.tools = tools;

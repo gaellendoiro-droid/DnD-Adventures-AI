@@ -24,12 +24,30 @@ const presentIds = (locId: string) => (location(locId)?.entitiesPresent ?? [])
     .map((e: any) => (typeof e === 'string' ? e : e.entityId));
 const count = (locId: string, entityId: string) => presentIds(locId).filter((id: string) => id === entityId).length;
 const scores = (id: string) => entity(id)?.stats?.abilityScores ?? {};
-const allItems = () => [
-    ...(data.items ?? []),
-    ...data.locations.flatMap((l: any) => (l.interactables ?? []).flatMap((i: any) => i.items ?? i.contents ?? [])),
-];
+const items = (): any[] => data.items ?? [];
+const itemsWithSpell = (spellId: string) => items().filter((i: any) => i.spell?.id === spellId);
+const scenes = (): any[] => data.scenes ?? [];
+const SHEEP = 'oveja-finethir-shinebright';
 const START = 'ciudad-o-pueblo';
-const TOWER = 'torre-de-noke';
+/**
+ * "Al llegar" a la casa: la localización a la que lleva el camino desde la ciudad (a dos pasos del
+ * inicio). Así la prueba sigue al PDF y no depende de cómo el conversor parta la casa en salas.
+ */
+const houseGround = () => {
+    const neighbours = (id: string) => (location(id)?.connections ?? []).map((c: any) => c.targetId);
+    const path = neighbours(START);
+    return path.flatMap(neighbours).find((id: string) => id !== START && !path.includes(id));
+};
+
+/** Condiciones de una escena y de las escenas de las que depende (scene_started), como texto. */
+const triggerChain = (scene: any, seen = new Set<string>()): string => {
+    if (!scene || seen.has(scene.id)) return '';
+    seen.add(scene.id);
+    const own = JSON.stringify(scene.startsWhen ?? {});
+    const parents = [...own.matchAll(/"event":"scene_started","target":"([^"]+)"/g)]
+        .map(m => triggerChain(scenes().find(s => s.id === m[1]), seen));
+    return [own, ...parents].join(' ');
+};
 
 const matches = (f: PdfFact, check: () => void) => it(cite(f), check);
 const knownGap = (task: string, f: PdfFact, check: () => void) => it.fails(`[${task}] ${cite(f)}`, check);
@@ -42,12 +60,29 @@ describe('La caza de la oveja salvaje: fidelidad del JSON al PDF', () => {
         matches(PDF.opening.sheepArrives, () => {
             expect(presentIds(START)).toContain('oveja-finethir-shinebright');
         });
-        knownGap('TASK-080', PDF.opening.readAloudActivates, () => {
-            // La excepción de la aventura debe estar en datos: un objeto pergamino que se activa al
-            // leerlo, sin tirada (hoy solo existe como texto en roleplay.possessions).
-            const scroll = allItems().find((i: any) => /pergamino|scroll/i.test(`${i.id} ${i.name}`));
+        matches(PDF.opening.sheepArrives, () => {
+            // "Normal en apariencia": hasta superar la barrera, el narrador no puede revelar quién es
+            // ni a quién persigue (TASK-086, términos generados por el conversor).
+            const terms = (entity(SHEEP).roleplay?.hiddenIdentityTerms ?? []).map((t: any) => t.term).join(' | ');
+            expect(terms).toMatch(/Finethir|Shinebright/);
+            expect(terms).toMatch(/Noke/);
+            expect(terms, 'el narrador escribe en español').toMatch(/Vara|Varita/);
+        });
+        matches(PDF.opening.sealNamesScroll, () => {
+            // El sello dice qué es el pergamino: no puede ser un término oculto.
+            const terms = (entity(SHEEP).roleplay?.hiddenIdentityTerms ?? []).map((t: any) => t.term).join(' | ');
+            expect(terms).not.toMatch(/hablar con (los )?animales|speak with animals/i);
+        });
+        matches(PDF.opening.readAloudActivates, () => {
+            // Excepción de la aventura en datos: el pergamino de la oveja se activa leyéndolo, sin tirada.
+            const scroll = itemsWithSpell('speak_with_animals').find((i: any) => i.startsWith?.entityId === SHEEP);
             expect(scroll).toBeDefined();
-            expect(scroll.requiresCheck).toBe(false);
+            expect(scroll.activation?.method).toBe('read_aloud');
+            expect(scroll.activation?.check).toBeNull();
+        });
+        matches(PDF.opening.sealNamesScroll, () => {
+            const scroll = itemsWithSpell('speak_with_animals').find((i: any) => i.startsWith?.entityId === SHEEP);
+            expect(['label', 'obvious']).toContain(scroll?.identification?.method);
         });
     });
 
@@ -56,16 +91,25 @@ describe('La caza de la oveja salvaje: fidelidad del JSON al PDF', () => {
             expect(count(START, 'guz-semiorco')).toBe(1);
             expect(count(START, 'lobo-polimorfo')).toBe(3);
             expect(count(START, 'oso-pardo-polimorfo')).toBe(1);
+            expect(entity('lobo-polimorfo').baseType).toBe('Wolf');
+            expect(entity('oso-pardo-polimorfo').baseType).toBe('Brown Bear');
         });
-        knownGap('TASK-084', PDF.opening.howlingInterrupts, () => {
-            // Un disparador en datos debe activar la presencia de Guz (hoy guz_aparece no lo activa nada).
-            expect(JSON.stringify(data)).toMatch(/"trigger"[^}]*guz_aparece|"setFlags"[^}]*guz_aparece/);
+        matches(PDF.opening.howlingInterrupts, () => {
+            // Una escena activa la presencia de Guz cuando el grupo habla con la oveja.
+            const presenceFlag = location(START).entitiesPresent
+                .find((e: any) => typeof e === 'object' && e.entityId === 'guz-semiorco')?.presenceFlag;
+            const scene = scenes().find(s => (s.onStart?.setFlags ?? []).includes(presenceFlag));
+            expect(scene, `ninguna escena activa ${presenceFlag}`).toBeDefined();
+            // "Poco después de que empiece a contar su historia": el disparador, directo o a través de
+            // escenas encadenadas (scene_started), es hablar con la oveja o usar su pergamino.
+            const sheepScroll = itemsWithSpell('speak_with_animals').find((i: any) => i.startsWith?.entityId === SHEEP)?.id;
+            expect(triggerChain(scene)).toMatch(new RegExp(`${SHEEP}${sheepScroll ? `|${sheepScroll}` : ''}`));
         });
         matches(PDF.guz.stats, () => {
             expect(entity('guz-semiorco').stats.ac).toBe(14);
             expect(entity('guz-semiorco').stats.hp).toBe(67);
         });
-        knownGap('TASK-091', PDF.guz.stats, () => {
+        matches(PDF.guz.stats, () => {
             expect(scores('guz-semiorco')).toMatchObject({ fuerza: 16, destreza: 12, constitución: 17, inteligencia: 8, sabiduría: 11, carisma: 8 });
             expect(entity('guz-semiorco').stats.actions.length).toBeGreaterThan(0);
         });
@@ -77,7 +121,7 @@ describe('La caza de la oveja salvaje: fidelidad del JSON al PDF', () => {
     });
 
     describe('La casa en el bosque', () => {
-        knownGap('TASK-085', PDF.house.path, () => {
+        matches(PDF.house.path, () => {
             // Desde la ciudad se debe poder llegar a la torre y recorrer sus plataformas.
             const reachable = new Set<string>([START]);
             let grew = true;
@@ -89,20 +133,21 @@ describe('La caza de la oveja salvaje: fidelidad del JSON al PDF', () => {
                     }
                 }
             }
-            for (const id of [TOWER, 'plataforma-central', 'plataforma-superior', 'retrete']) {
+            for (const id of [houseGround(), 'plataforma-central', 'plataforma-superior']) {
                 expect(reachable.has(id), id).toBe(true);
             }
         });
         matches(PDF.house.apes, () => {
-            expect(count(TOWER, 'simio-polimorfo')).toBe(3);
+            expect(count(houseGround(), 'simio-polimorfo')).toBe(3);
         });
         matches(PDF.house.bearOuthouse, () => {
-            expect(presentIds('retrete')).toContain('oso-pardo-polimorfo');
+            expect(presentIds(houseGround())).toContain('oso-pardo-polimorfo');
         });
-        knownGap('TASK-085', PDF.house.lockedDoor, () => {
-            const door = JSON.stringify(location('plataforma-central')) + JSON.stringify(location(TOWER));
-            expect(door).toMatch(/"dc"\s*:\s*14/);
-            expect(door).toMatch(/"dc"\s*:\s*12/);
+        matches(PDF.house.lockedDoor, () => {
+            // Las indicaciones del DM de la escena de la casa recogen las dos CD de la puerta.
+            const text = scenes().map(s => s.guidance).join('\n');
+            expect(text).toMatch(/CD\s*14/);
+            expect(text).toMatch(/CD\s*12/);
         });
     });
 
@@ -114,25 +159,28 @@ describe('La caza de la oveja salvaje: fidelidad del JSON al PDF', () => {
             expect(entity('ahmed-noke-mago-humano').stats.ac).toBe(12);
             expect(entity('ahmed-noke-mago-humano').stats.hp).toBe(55);
         });
-        knownGap('TASK-091', PDF.noke.stats, () => {
+        matches(PDF.noke.stats, () => {
             expect(scores('ahmed-noke-mago-humano')).toMatchObject({ fuerza: 9, destreza: 14, constitución: 12, inteligencia: 16, sabiduría: 12, carisma: 10 });
             expect(JSON.stringify(entity('ahmed-noke-mago-humano'))).toMatch(/rayo de escarcha|ray of frost/i);
         });
-        knownGap('TASK-091', PDF.noke.dragonStats, () => {
+        matches(PDF.noke.dragonStats, () => {
             expect(entity('cria-de-dragon-de-cama').stats.ac).toBe(16);
             expect(entity('cria-de-dragon-de-cama').stats.hp).toBe(75);
         });
     });
 
     describe('Desenlace', () => {
-        knownGap('TASK-080', PDF.ending.secondScroll, () => {
-            // Hoy solo es un texto en una interacción: debe ser un objeto recogible.
-            const interactables = location('plataforma-central').interactables ?? [];
-            expect(interactables.every((i: any) => typeof i.id === 'string' && i.id.length > 0)).toBe(true);
-            expect(allItems().some((i: any) => /pergamino|scroll/i.test(`${i.id} ${i.name}`))).toBe(true);
+        matches(PDF.ending.secondScroll, () => {
+            // Un segundo pergamino, escondido en la plataforma central.
+            const second = itemsWithSpell('speak_with_animals').find((i: any) => i.startsWith?.locationId === 'plataforma-central');
+            expect(second).toBeDefined();
+            expect(second.startsWith.hidden).toBe(true);
         });
-        knownGap('TASK-080', PDF.wand.useCheck, () => {
-            expect(allItems().some((i: any) => /vara|wand/i.test(`${i.id} ${i.name}`))).toBe(true);
+        matches(PDF.wand.useCheck, () => {
+            const wand = itemsWithSpell('true_polymorph').find((i: any) => i.type === 'wand');
+            expect(wand).toBeDefined();
+            expect(wand.startsWith?.entityId).toBe('ahmed-noke-mago-humano');
+            expect(wand.rulesText).toMatch(/17/);
         });
     });
 });

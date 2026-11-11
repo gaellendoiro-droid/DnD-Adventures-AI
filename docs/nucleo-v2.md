@@ -154,7 +154,7 @@ contrato de eventos hacia la interfaz. El juego actual sigue funcionando mientra
 | Paso | Qué | Resultado |
 |---|---|---|
 | **A** | Escenarios del PDF para toda la oveja, con citas | La vara de medir |
-| **B** | Conversor: objetos con mecánica, barreras, conocimiento, disparadores e indicaciones por escena; regenerar la oveja | El JSON recoge el PDF (TASK-080, 084, 085, 086) |
+| **B** ✅ | Conversor: objetos con mecánica, disparadores e indicaciones por escena, bloques de estadísticas, mapa completo, IDs estables; regenerar la oveja | El JSON recoge el PDF: la prueba de fidelidad pasa entera (TASK-080, 084, 085, 086, 091 en datos) |
 | **C** | Motor de reglas v2 con tests unitarios | Turnos deterministas sin IA |
 | **D** | Intérprete y narrador v2 con el paquete de hechos | Primer turno completo con `CORE_V2=1` |
 | **E** | Combate: se reutiliza el sistema actual, pero los participantes salen de los datos | TASK-088..091 |

@@ -2,9 +2,23 @@
  * Puntos de partida reutilizables para los escenarios de "La caza de la oveja salvaje"
  * (equivalen a cargar una partida guardada en ese momento de la aventura).
  */
+import fs from 'fs';
+import path from 'path';
 import type { ScenarioInitialState } from './runner';
 
 export const OVEJA_ADVENTURE = 'public/adventures/la-caza-de-la-oveja-salvaje/la-caza-de-la-oveja-salvaje.json';
+
+/**
+ * Flag que hace aparecer a Guz en la plaza. Su nombre lo pone el conversor, así que se lee del JSON
+ * (el `presenceFlag` de Guz en la sala inicial) en vez de fijarlo aquí.
+ */
+export const GUZ_FLAG: string = (() => {
+    const data = JSON.parse(fs.readFileSync(path.resolve(OVEJA_ADVENTURE), 'utf8'));
+    const plaza = data.locations.find((l: any) => l.id === 'ciudad-o-pueblo');
+    const guz = (plaza?.entitiesPresent ?? []).find((e: any) => typeof e === 'object' && e.entityId === 'guz-semiorco');
+    if (!guz?.presenceFlag) throw new Error('El JSON de la oveja no tiene a Guz condicionado en la plaza');
+    return guz.presenceFlag;
+})();
 
 /** Flags tras recoger el pergamino y que Merryl lo lea con éxito. */
 export const PERGAMINO_LEIDO_FLAGS = {
@@ -32,7 +46,7 @@ export const TRAS_LEER_PERGAMINO: ScenarioInitialState = {
 /** Guz, sus lobos y el oso acaban de llegar a la plaza reclamando a la oveja. */
 export const GUZ_EN_LA_PLAZA: ScenarioInitialState = {
     locationId: 'ciudad-o-pueblo',
-    globalFlags: { ...PERGAMINO_LEIDO_FLAGS, guz_aparece: true },
+    globalFlags: { ...PERGAMINO_LEIDO_FLAGS, [GUZ_FLAG]: true },
     history: [
         ...HISTORIA_PERGAMINO!,
         {

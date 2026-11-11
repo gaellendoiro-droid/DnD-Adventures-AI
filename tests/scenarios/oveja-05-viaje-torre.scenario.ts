@@ -1,9 +1,8 @@
 /**
  * Escenario: viaje desde la plaza hasta la torre de Noke. PDF p. 4, "The House in the Woods".
  *
- * Hoy el JSON de la aventura no tiene conexiones más allá de `la-casa-en-el-bosque`, así que
- * no se puede entrar en la torre ni recorrer sus plataformas (TASK-085): se registra como
- * problema conocido.
+ * Con el mapa del conversor v2 ya se llega del camino a la torre (TASK-085). Subir entre
+ * plataformas sigue registrado como problema conocido.
  */
 import { describe, it, expect } from 'vitest';
 import { expectScenarioToPass, type ScenarioDefinition } from './harness/runner';
@@ -44,15 +43,9 @@ export const scenario: ScenarioDefinition = {
         {
             action: 'Nos acercamos a la torre y entramos',
             intent: 'Desde el bosque se debería poder llegar a la torre.',
-            knownIssues: [
-                {
-                    task: 'TASK-085',
-                    description: `desde la-casa-en-el-bosque no hay conexión hacia la torre de Noke: ${cite(PDF.house.path)}`,
-                    check(turn) {
-                        expect(turn.state.locationId).toMatch(TOWER);
-                    },
-                },
-            ],
+            expect(turn) {
+                expect(turn.state.locationId, cite(PDF.house.path)).toMatch(TOWER);
+            },
         },
         {
             action: 'Subimos hasta la plataforma central',

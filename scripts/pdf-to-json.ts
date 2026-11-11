@@ -7,6 +7,18 @@ import { z } from 'genkit';
 import { AdventureDataSchema } from '@/lib/schemas';
 import { getMonsterStatsFromDndApi } from '@/lib/combat/monster-stats-parser';
 import { GEMINI_MODEL_NAME } from '@/ai/model-config';
+import {
+  applyStatBlock,
+  extractHiddenIdentityTerms,
+  fixCreatureCounts,
+  extractItems,
+  extractScenes,
+  extractStatBlocks,
+  repairUnreachableLocations,
+  reportContent,
+} from './converter/pdf-extras';
+import { addReturnConnections, presenceFlags } from '@/lib/adventure-loader/content-checks';
+import { remapIdsFromPrevious, resolveShortIds } from './converter/stable-ids';
 
 // Configurar variables de entorno
 dotenv.config();
@@ -46,8 +58,14 @@ async function generateWithRetry(options: any, maxRetries = 8, initialDelayMs = 
       const isRateLimit = errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('Quota') || errorMsg.includes('limit');
       const isTransient = errorMsg.includes('503') || errorMsg.includes('Service Unavailable') || errorMsg.includes('high demand') || errorMsg.includes('busy');
       
+      // El modelo a veces omite un campo obligatorio: otra generación suele cumplir el esquema.
+      const isSchemaError = errorMsg.includes('Schema validation failed');
+      if (isSchemaError && attempt < maxRetries) {
+        console.warn(`⚠️ La respuesta no cumple el esquema. Reintentando (${attempt}/${maxRetries})...`);
+        continue;
+      }
       if ((isRateLimit || isTransient) && attempt < maxRetries) {
-        if (attempt >= 2 && options.model === GEMINI_MODEL_NAME) {
+        if (attempt >= 2 && options.model === GEMINI_MODEL_NAME && String(GEMINI_MODEL_NAME).startsWith('googleai/')) {
           console.warn(`🔄 Cambiando a modelo fallback 'googleai/gemini-2.5-flash-lite' para evitar restricciones de cuota...`);
           options.model = 'googleai/gemini-2.5-flash-lite';
         }
@@ -895,7 +913,7 @@ async function main() {
 
   if (!pdfArg) {
     console.error('❌ Error: Debes especificar la ruta de un archivo PDF.');
-    console.log('Uso: npx tsx scripts/pdf-to-json.ts <ruta_al_archivo.pdf> [--id <adventure-id>] [--title "<Titulo>"]');
+    console.log('Uso: npx tsx scripts/pdf-to-json.ts <ruta_al_archivo.pdf> [--id <adventure-id>] [--title "<Titulo>"] [--reuse-ids <aventura-anterior.json>]');
     process.exit(1);
   }
 
@@ -910,6 +928,14 @@ async function main() {
 
   let customId = idOptIdx !== -1 ? args[idOptIdx + 1] : undefined;
   let customTitle = titleOptIdx !== -1 ? args[titleOptIdx + 1] : undefined;
+  const reuseIdx = args.indexOf('--reuse-ids');
+  const previousJsonPath = reuseIdx !== -1 ? args[reuseIdx + 1] : undefined;
+  const previousAdventure = previousJsonPath && fs.existsSync(previousJsonPath)
+    ? JSON.parse(fs.readFileSync(previousJsonPath, 'utf-8'))
+    : undefined;
+  if (previousJsonPath && !previousAdventure) {
+    console.warn(`⚠️ No se encontró "${previousJsonPath}": no se reutilizarán IDs.`);
+  }
 
   console.log(`📖 Leyendo PDF: "${pdfPath}"...`);
 
@@ -1098,6 +1124,70 @@ async function main() {
   // Alinear inteligentemente las entidades presentes en cada ubicación usando Gemini
   finalLocations = await alignEntitiesToLocationsWithGemini(finalLocations, finalEntities, toc.summary, toc.adventureLore);
 
+  // --- Núcleo v2, paso B: lo que la extracción general pierde del PDF ---
+  const workingData: any = {
+    settings: { startingLocationId: normalizeId(toc.startingLocationId) || finalLocations[0]?.id },
+    locations: finalLocations,
+    entities: finalEntities,
+  };
+
+  // IDs estables respecto a la versión anterior (partidas guardadas, escenarios de prueba)
+  if (previousAdventure) {
+    const renamed = remapIdsFromPrevious(workingData, previousAdventure);
+    console.log(`\n🔁 IDs reutilizados de la versión anterior: ${renamed.length}${renamed.length ? ` (${renamed.join(', ')})` : ''}`);
+  }
+
+  // Cantidades de criaturas iguales por sala, comprobadas con una pregunta concreta
+  const countChanges = await fixCreatureCounts(generateWithRetry, GEMINI_MODEL_NAME, fullText, workingData);
+  console.log(`
+🔢 Cantidades corregidas: ${countChanges.length ? countChanges.join(', ') : 'ninguna'}`);
+
+  // Los interactuables necesitan ID para poder referenciarlos (objetos escondidos, puertas…)
+  for (const loc of workingData.locations) {
+    for (const it of loc.interactables ?? []) {
+      if (!it.id && it.name) it.id = normalizeId(it.name);
+    }
+  }
+
+  // Estadísticas de los bloques del PDF (prevalecen sobre la API y la plantilla vacía)
+  const statBlocks = await extractStatBlocks(generateWithRetry, GEMINI_MODEL_NAME, fullText, workingData.entities);
+  for (const ent of workingData.entities) {
+    const block = statBlocks.get(ent.id);
+    if (!block) continue;
+    // El PDF dice qué monstruo usa como base. Solo se recarga la ficha si la extracción general no
+    // encontró una válida: el modelo a veces asocia el bloque a otra criatura y no debe pisar una buena.
+    const currentBaseIsValid = ent.baseType
+      ? Boolean(await getMonsterStatsFromDndApi(ent.baseType, false).catch(() => null))
+      : false;
+    if (block.baseCreature && !currentBaseIsValid
+        && block.baseCreature.toLowerCase() !== String(ent.baseType ?? '').toLowerCase()) {
+      const baseStats = await getMonsterStatsFromDndApi(block.baseCreature, true).catch(() => null);
+      if (baseStats) {
+        console.log(`   ↪️ "${ent.name}" usa las estadísticas de ${block.baseCreature} según el PDF (antes: ${ent.baseType || '—'})`);
+        ent.baseType = block.baseCreature;
+        ent.stats = baseStats;
+      }
+    }
+    ent.stats = applyStatBlock(ent.stats, block);
+  }
+
+  // Mapa completo: vuelta de cada conexión y reparación de lo inalcanzable
+  const returns = addReturnConnections(workingData);
+  const repaired = await repairUnreachableLocations(generateWithRetry, GEMINI_MODEL_NAME, fullText, workingData);
+  const returnsAfterRepair = addReturnConnections(workingData);
+  console.log(`   Conexiones de vuelta añadidas: ${returns + returnsAfterRepair}; conexiones reparadas: ${repaired}`);
+
+  // Objetos con mecánica y escenas con disparadores
+  const extractedItems = await extractItems(generateWithRetry, GEMINI_MODEL_NAME, fullText, workingData);
+  const extractedScenes = await extractScenes(generateWithRetry, GEMINI_MODEL_NAME, fullText, {
+    locations: workingData.locations,
+    entities: workingData.entities,
+    flags: [...presenceFlags(workingData)],
+    startingLocationId: workingData.settings.startingLocationId,
+  });
+  await extractHiddenIdentityTerms(generateWithRetry, GEMINI_MODEL_NAME, fullText, workingData.entities);
+  finalLocations = workingData.locations;
+
   // 4. Extracción de imágenes del PDF
   const mapsDestDir = path.join(process.cwd(), 'public', 'adventures', adventureId, 'maps');
   let mapFilesExist = false;
@@ -1167,7 +1257,7 @@ async function main() {
     levelRange: toc.levelRange,
     adventureLore: toc.adventureLore,
     settings: {
-      startingLocationId: normalizeId(toc.startingLocationId) || finalLocations[0]?.id || 'hub',
+      startingLocationId: workingData.settings.startingLocationId || finalLocations[0]?.id || 'hub', // ya con --reuse-ids aplicado
       initialPartySize: 4,
     },
     credits: {
@@ -1175,12 +1265,17 @@ async function main() {
       source: path.basename(pdfPath),
     },
     locations: finalLocations,
-    entities: finalEntities,
-    items: [], // Inicialmente vacío, el motor de hidratación llenará si los monstruos traen armas
+    entities: workingData.entities,
+    items: extractedItems,
+    scenes: extractedScenes,
   };
 
   // Limpiar referencias huérfanas
   adventureJSON = postProcessAdventure(adventureJSON);
+
+  const shortIds = resolveShortIds(adventureJSON);
+  if (shortIds.length) console.log(`   IDs abreviados resueltos: ${shortIds.join(', ')}`);
+  reportContent(adventureJSON);
 
   // 6. Validar con Zod
   console.log('\n🔍 Validando estructura de la aventura contra el esquema Zod...');

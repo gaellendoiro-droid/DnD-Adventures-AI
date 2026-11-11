@@ -51,8 +51,11 @@ describe('communication-barrier (genérico, sin datos fijos de aventura)', () =>
         for (const file of files) {
             const data = JSON.parse(fs.readFileSync(path.resolve(file), 'utf8'));
             const terms = collectHiddenIdentityTerms(data.entities);
-            expect(terms.map(t => t.term)).toContain('Finethir Shinebright');
-            expect(terms.map(t => t.term)).toContain('Ahmed Noke');
+            // El conversor da el nombre completo o cada parte por separado: ambos lo ocultan.
+            const joined = terms.map(t => t.term).join(' | ');
+            expect(joined).toMatch(/Finethir/);
+            expect(joined).toMatch(/Shinebright/);
+            expect(joined).toMatch(/Noke/);
             const sheep = data.entities.find((e: any) => e.roleplay?.hiddenIdentityTerms);
             const parsed = EntitySchema.safeParse(sheep);
             expect(parsed.success, file).toBe(true);
