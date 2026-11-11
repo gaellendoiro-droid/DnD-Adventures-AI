@@ -1,14 +1,18 @@
 /**
- * Escenario: el pergamino de Hablar con los Animales (La caza de la oveja salvaje).
+ * Escenario: el pergamino de Hablar con los Animales. PDF p. 2, "Baaaa-d News".
+ *
+ * Según el PDF, el pergamino (Modified) se activa con solo leerlo en voz alta, sin tirada, y todo
+ * el grupo oye a la oveja hablar. Es una EXCEPCIÓN de esta aventura a las reglas oficiales (que
+ * piden Arcanos a quien no tiene el conjuro en su clase) y debe llegar en datos (TASK-080). Hasta
+ * entonces el juego aplica la regla oficial y la diferencia se registra como problema conocido.
  *
  * Qué protege:
- *  - Merryl (Mago) no tiene el conjuro en su lista de clase: leerlo exige una tirada de Arcanos.
- *  - La narración respeta el resultado de esa tirada (éxito → se activa; fallo → no se activa).
- *  - El efecto activo se refleja en el estado (flag y efecto en la ficha del lector).
- *  - Antes de activarlo, la oveja no revela su identidad; después sí puede hablar.
+ *  - El conjuro queda activo y la oveja se presenta como Finethir Shinebright.
+ *  - Si hay tirada (regla oficial), la narración y el estado coinciden con el resultado.
  */
 import { describe, it, expect } from 'vitest';
 import { expectScenarioToPass, type ScenarioDefinition } from './harness/runner';
+import { PDF, cite } from '../adventures/wild-sheep-chase.pdf-spec';
 
 const SCROLL = /pergamino|scroll/i;
 
@@ -28,8 +32,18 @@ export const scenario: ScenarioDefinition = {
         },
         {
             action: 'Le paso el pergamino a Merryl y le digo: «Merryl, tú que eres maga, léelo, por favor»',
-            intent: 'Merryl hace una tirada de Arcanos; el resultado decide si el conjuro se activa.',
+            intent: 'Leído en voz alta, el conjuro se activa (PDF: sin tirada; hoy: Arcanos de Merryl).',
+            knownIssues: [
+                {
+                    task: 'TASK-080',
+                    description: `leer el pergamino no debería pedir tirada: ${cite(PDF.opening.readAloudActivates)}`,
+                    check(turn) {
+                        expect(turn.diceRolls).toHaveLength(0);
+                    },
+                },
+            ],
             expect(turn, h) {
+                expect(h.flag(turn.state, 'speak_with_animals'), cite(PDF.opening.readAloudActivates)).toBe(true);
                 expect(turn.diceRolls.length).toBeGreaterThanOrEqual(1);
                 const arcana = turn.diceRolls.find(r =>
                     /arcan/i.test(`${r.description ?? ''} ${JSON.stringify(r.skillCheckDetails ?? {})}`)
@@ -56,9 +70,19 @@ export const scenario: ScenarioDefinition = {
         },
         {
             action: 'Le pregunto a la oveja: «¿Quién eres y qué te ha pasado?»',
-            intent: 'Si el conjuro está activo, la oveja puede explicarse; si no, solo bala.',
+            intent: 'La oveja se presenta como Finethir Shinebright y pide ayuda para recuperar un artefacto.',
+            knownIssues: [
+                {
+                    task: 'TASK-084',
+                    description: `al empezar su historia deberían oírse aullidos y llegar Guz: ${cite(PDF.opening.howlingInterrupts)}`,
+                    check(turn, h) {
+                        expect(h.flag(turn.state, 'guz_aparece')).toBe(true);
+                    },
+                },
+            ],
             expect(turn, h) {
                 expect(turn.diceRolls).toHaveLength(0);
+                expect(turn.dmText, cite(PDF.opening.introducesHimself)).toMatch(/Finethir|Shinebright/);
                 // La invariante general de spoilers ya comprueba el caso sin conjuro activo.
                 expect(h.itemHolder(turn.state, /scroll-speak_with_animals/)).not.toBe('Galador');
             },

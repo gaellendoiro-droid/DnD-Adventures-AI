@@ -1,5 +1,5 @@
 /**
- * Escenario: viaje desde la plaza hasta la torre de Noke.
+ * Escenario: viaje desde la plaza hasta la torre de Noke. PDF p. 4, "The House in the Woods".
  *
  * Hoy el JSON de la aventura no tiene conexiones más allá de `la-casa-en-el-bosque`, así que
  * no se puede entrar en la torre ni recorrer sus plataformas (TASK-085): se registra como
@@ -8,6 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { expectScenarioToPass, type ScenarioDefinition } from './harness/runner';
 import { GUZ_DERROTADO, OVEJA_ADVENTURE } from './harness/fixtures';
+import { PDF, cite } from '../adventures/wild-sheep-chase.pdf-spec';
 
 const TOWER = /^(torre-de-noke|plataforma-|cabañas|retrete)/;
 
@@ -46,7 +47,7 @@ export const scenario: ScenarioDefinition = {
             knownIssues: [
                 {
                     task: 'TASK-085',
-                    description: 'desde la-casa-en-el-bosque no hay conexión hacia la torre de Noke',
+                    description: `desde la-casa-en-el-bosque no hay conexión hacia la torre de Noke: ${cite(PDF.house.path)}`,
                     check(turn) {
                         expect(turn.state.locationId).toMatch(TOWER);
                     },
@@ -59,7 +60,7 @@ export const scenario: ScenarioDefinition = {
             knownIssues: [
                 {
                     task: 'TASK-085',
-                    description: 'las plataformas de la torre no tienen conexiones entre sí',
+                    description: `las plataformas de la torre no tienen conexiones entre sí: ${cite(PDF.house.platforms)}`,
                     check(turn) {
                         expect(turn.state.locationId).toBe('plataforma-central');
                     },

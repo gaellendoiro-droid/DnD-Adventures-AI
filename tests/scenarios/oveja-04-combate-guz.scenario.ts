@@ -1,5 +1,5 @@
 /**
- * Escenario: combate contra Guz y sus bestias en la plaza.
+ * Escenario: combate contra Guz y sus bestias en la plaza. PDF p. 2, "Shepherds, Crooks".
  *
  * Parte de una partida en la que Guz ya ha aparecido (guz_aparece activo), porque hoy el juego no
  * activa ese flag por sí mismo (TASK-084). Protege el flujo completo de combate: inicio por
@@ -8,6 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { expectScenarioToPass, type ScenarioDefinition } from './harness/runner';
 import { GUZ_EN_LA_PLAZA, OVEJA_ADVENTURE } from './harness/fixtures';
+import { PDF, cite } from '../adventures/wild-sheep-chase.pdf-spec';
 
 const names = (order: any[]) => order.map(c => String(c.characterName ?? c.name ?? ''));
 
@@ -43,8 +44,11 @@ export const scenario: ScenarioDefinition = {
                 expect(turn.state.inCombat).toBe(true);
                 const order = names(turn.state.initiativeOrder);
                 expect(order.some(n => /galador/i.test(n))).toBe(true);
-                expect(order.some(n => /guz/i.test(n))).toBe(true);
+                expect(order.some(n => /guz/i.test(n)), cite(PDF.guz.attacksIfStalled)).toBe(true);
                 expect(turn.diceRolls.length).toBeGreaterThanOrEqual(1);
+                // Los tres lobos y el oso entran en combate con Guz.
+                expect(order.filter(n => /lobo/i.test(n)).length, cite(PDF.guz.wolves)).toBe(3);
+                expect(order.some(n => /oso/i.test(n)), cite(PDF.guz.bear)).toBe(true);
             },
             knownIssues: [
                 {
