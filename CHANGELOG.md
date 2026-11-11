@@ -11,7 +11,15 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ## [Unreleased]
 
+### Fixed
+- **🧭 Movimientos fallidos coherentes con la narración:** el evento `MoveFailed` ya llega al narrador (registro de hechos y directiva que prohíbe narrar la llegada a otro lugar), y "acercarse" a una entidad u objeto de la sala ya no se trata como un viaje fallido (`isTargetInCurrentLocation` en `navigation-system.ts`). Tests de regresión incluidos.
+
+### Removed
+- **🐑 Conversión duplicada de "The Wild Sheep Chase":** eliminada `la-persecucion-de-la-oveja-salvaje` (7 localizaciones, 1 conexión, 1 flag de presencia), que era menos completa que `la-caza-de-la-oveja-salvaje`.
+
 ### Added
+- **🎭 Escenarios de la oveja completados (TASK-071):** `oveja-03-guz-aparece`, `oveja-04-combate-guz` y `oveja-05-viaje-torre`, con estados iniciales tipo partida guardada (`fixtures.ts`), problemas conocidos enlazados a su tarea (`knownIssues` / `knownFailures`), invariantes nuevas (códigos de error en bruto, errores internos visibles, HP fuera de rango), borrado de identificadores de cuenta en las grabaciones, esperas aceleradas en replay y volcado de peticiones no grabadas para compararlas.
+- **📋 Nuevas tareas detectadas por los escenarios:** TASK-084 a TASK-092 en `docs/roadmap.md` (eventos de historia sin efecto en el estado, mapa incompleto del conversor, errores en el combate, llamada a la IA para convertir Markdown…).
 - **🎭 Banco de pruebas narrativo (Fase 1, TASK-071 a TASK-074):**
   - Motor de escenarios en `tests/scenarios/harness/` que juega partidas reales turno a turno con `gameStreamCoordinator` y un cliente simulado que aplica los `state_delta` como `GameView`.
   - Grabación y reproducción de las llamadas de red (cassettes) a nivel de `fetch`, válida para Gemini y Groq, sin guardar claves; dados con semilla y fecha congelada para que la reproducción sea determinista.
