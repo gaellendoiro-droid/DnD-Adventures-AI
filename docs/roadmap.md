@@ -22,7 +22,7 @@ Este documento centraliza toda la planificación futura, características pendie
 - [x] **[TASK-070] Normas de trabajo documentadas** en [`docs/normas-de-trabajo.md`](./normas-de-trabajo.md).
 
 ### Fase 1 — Banco de pruebas narrativo (semanas 1–2) ⭐ *prioridad principal*
-- [ ] **[TASK-071] Escenarios de referencia:** guiones de 10–30 acciones del jugador sobre la aventura de la oveja (encuentro, pergamino, persecución, combate con Guz, torre). *En curso:* hechos `oveja-01-encuentro` y `oveja-02-pergamino`; faltan persecución, combate con Guz y torre, y validar con el usuario los criterios de "turno correcto".
+- [ ] **[TASK-071] Escenarios de referencia:** guiones de 10–30 acciones del jugador sobre la aventura de la oveja (encuentro, pergamino, persecución, combate con Guz, torre). *En curso:* hechos `oveja-01-encuentro` y `oveja-02-pergamino`; faltan persecución, combate con Guz y torre. Criterios de "turno correcto" validados con el usuario el 2026-11-11 (ver `docs/testing.md` → *Qué se comprueba*).
 - [x] **[TASK-072] Comprobaciones de estado** tras cada paso (inventario, flags, localización, tiradas) mediante el cliente simulado de `tests/scenarios/harness/`.
 - [x] **[TASK-073] Comprobaciones de texto:** invariantes en todos los turnos (sin spoilers declarados en la aventura, sin restos técnicos, sin errores), coherencia narración-tirada en el escenario del pergamino, y CD en la narración como aviso mientras TASK-007 siga abierta.
 - [x] **[TASK-074] Modo grabado y modo en vivo:** `npm run test:scenarios` (replay, en la CI), `test:scenarios:record` y `test:scenarios:live`, con llamadas a la IA y latencia por turno en el informe.
