@@ -12,6 +12,11 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ## [Unreleased]
 
 ### Added
+- **⚙️ Motor de reglas v2, paso C del núcleo v2 (TASK-084, TASK-080), con `CORE_V2=1`:** nuevo `src/lib/game/core-v2/`, determinista, sin IA y sin nada propio de una aventura:
+  - **escenas:** al final de cada turno se evalúan `scenes[].startsWhen` (sucesos del turno, flags, sala, `all`/`any`, `afterTurns`), se aplican `onStart.setFlags/clearFlags` y se guarda la escena activa en `worldState.coreV2` para que el paso D pase su `guidance` al narrador. En la oveja, Guz y sus bestias llegan al pueblo el turno siguiente a leer el pergamino;
+  - **objetos con mecánica:** coger, dar, identificar y usar los `items[]` del JSON. `activation.check: null` = sin tirada (excepción del PDF), con valor = esa prueba, ausente = reglas oficiales del pergamino de conjuro (DMG: conjuro de tu lista sin tirada; de nivel superior, prueba de característica CD 10 + nivel; fuera de tu lista, ininteligible). Sustituye a `scroll-rules.ts` en las aventuras con `items[]` y no mira el texto del jugador;
+  - **puente al núcleo actual** (`legacy-bridge.ts`): los hechos pasan al inventario, a los efectos y a los flags que ya usa el juego, y las escenas también se evalúan tras el combate (entidad derrotada, fin del combate). Sin `CORE_V2` el juego no cambia.
+  Tests en `tests/unit/game/core-v2/` (34), con el disparador de Guz y el pergamino sin tirada sobre el JSON real de la oveja.
 - **🧩 Conversor PDF → JSON, paso B del núcleo v2:** el conversor extrae ahora, además de salas y criaturas:
   - **objetos con mecánica** (`items`): conjuro, cómo se identifica, cómo se activa y si exige tirada (`activation.check`: `null` = sin tirada por excepción del PDF; omitido = reglas oficiales), cargas, reglas especiales del PDF y quién lo tiene o dónde está escondido al empezar;
   - **escenas** (`scenes`) con la traducción fiel de las indicaciones del DM de cada sección y disparadores evaluables sin IA (`startsWhen`: hablar con alguien, entrar en un sitio, derrotar a alguien, usar un objeto, turnos después…) que activan los flags de presencia;

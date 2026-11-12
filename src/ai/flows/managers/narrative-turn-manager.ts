@@ -39,6 +39,8 @@ import { CombatSystem } from '@/lib/game/systems/combat-system';
 import { StatsSystem } from '@/lib/game/systems/stats-system';
 import { SystemContext } from '@/lib/game/systems/system-types';
 import { addEffectToCharacterInParty, isActiveMagicalOrStatusFlag } from '@/lib/game/systems/effect-utils';
+import { applyCoreV2EndOfTurn } from '@/lib/game/core-v2/legacy-bridge';
+import { isCoreV2Enabled } from '@/lib/game/core-v2/state';
 
 
 /**
@@ -341,6 +343,31 @@ export async function* executeNarrativeTurnStreaming(
     updatedWorldTime = systemContext.worldState.worldTime;
     if (systemContext.systemFeedback) {
         systemFeedback = systemContext.systemFeedback;
+    }
+
+    // Núcleo v2 (CORE_V2=1): completar objetos pendientes de tirada y avanzar las escenas del PDF
+    // antes de narrar, para que lo que cambien (p. ej. una entidad que llega) ya esté en el estado.
+    if (isCoreV2Enabled()) {
+        const endOfTurn = applyCoreV2EndOfTurn({
+            adventureData,
+            worldStateBefore: worldState,
+            worldStateAfter: updatedWorldState,
+            party,
+            locationBefore: currentLocationId,
+            locationAfter: locationId,
+            interpretation,
+        });
+        updatedWorldState = endOfTurn.worldState;
+        systemContext.worldState = updatedWorldState;
+        party = endOfTurn.party;
+        systemContext.party = party;
+        if (endOfTurn.startedSceneIds.length) {
+            localLog(`[CORE_V2] Escenas iniciadas: ${endOfTurn.startedSceneIds.join(', ')}. Activa: ${endOfTurn.activeScene?.id}`);
+        }
+        yield {
+            type: 'logic_update',
+            data: { worldState: updatedWorldState, updatedParty: party }
+        };
     }
 
     // Extraer combatTrigger
