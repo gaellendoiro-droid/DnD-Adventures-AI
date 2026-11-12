@@ -561,6 +561,33 @@ export const GameEventSchema = z.object({
 });
 
 /**
+ * Dónde está un objeto de la aventura (núcleo v2).
+ */
+export const ItemHolderSchema = z.object({
+    kind: z.enum(['character', 'entity', 'location', 'consumed', 'unplaced']),
+    id: z.string().optional(),
+    hidden: z.boolean().optional(),
+});
+
+/**
+ * Estado del motor de reglas v2 (paso C de docs/nucleo-v2.md). Solo lo usa `CORE_V2=1`.
+ */
+export const CoreV2StateSchema = z.object({
+    /** Turnos de jugador evaluados por el motor de escenas. */
+    turn: z.number().default(0),
+    /** Escena → turno en que empezó. Cada escena empieza como mucho una vez. */
+    startedScenes: z.record(z.string(), z.number()).default({}),
+    /** Última escena que empezó: su `guidance` es la que recibe el narrador. */
+    activeSceneId: z.string().optional(),
+    /** Condiciones con `afterTurns` ya cumplidas: clave → turno en que se cumplieron. */
+    latches: z.record(z.string(), z.number()).default({}),
+    /** Objeto de la aventura → quién o dónde lo tiene. */
+    itemHolders: z.record(z.string(), ItemHolderSchema).default({}),
+    /** Objetos cuya naturaleza conoce el grupo. */
+    identifiedItems: z.array(z.string()).default([]),
+});
+
+/**
  * EL OBJETO MAESTRO: WorldState
  */
 export const WorldStateSchema = z.object({
@@ -571,7 +598,8 @@ export const WorldStateSchema = z.object({
     }).optional(),
     locations: z.record(z.string(), LocationStateSchema),
     globalFlags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])).default({}),
-    recentEvents: z.array(GameEventSchema).default([])
+    recentEvents: z.array(GameEventSchema).default([]),
+    coreV2: CoreV2StateSchema.optional(),
 });
 
 // --- Skill & Dice Mechanics Schemas (New Phase) ---

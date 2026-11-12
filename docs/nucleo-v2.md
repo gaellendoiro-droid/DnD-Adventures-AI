@@ -155,12 +155,40 @@ contrato de eventos hacia la interfaz. El juego actual sigue funcionando mientra
 |---|---|---|
 | **A** | Escenarios del PDF para toda la oveja, con citas | La vara de medir |
 | **B** ✅ | Conversor: objetos con mecánica, disparadores e indicaciones por escena, bloques de estadísticas, mapa completo, IDs estables; regenerar la oveja | El JSON recoge el PDF: la prueba de fidelidad pasa entera (TASK-080, 084, 085, 086, 091 en datos) |
-| **C** | Motor de reglas v2 con tests unitarios | Turnos deterministas sin IA |
+| **C** ✅ | Motor de reglas v2 con tests unitarios (`src/lib/game/core-v2/`, ver §5.1) | Turnos deterministas sin IA |
 | **D** | Intérprete y narrador v2 con el paquete de hechos | Primer turno completo con `CORE_V2=1` |
 | **E** | Combate: se reutiliza el sistema actual, pero los participantes salen de los datos | TASK-088..091 |
 | **F** | Cuando v2 supere al actual en los escenarios: activarlo por defecto y borrar el núcleo viejo | Una sola ruta de código |
 
 Cada paso termina con sus tests en verde y su merge, como hasta ahora.
+
+### 5.1 Paso C: motor de reglas v2 (hecho, 2026-11-12)
+
+Módulo `src/lib/game/core-v2/`, funciones puras sin IA ni nada propio de una aventura:
+
+- **`scene-engine.ts`** — `advanceScenes` evalúa `scenes[].startsWhen` con los sucesos del turno
+  (`adventure_start`, `entered_location`, `talked_to`, `attempted_leave`, `entity_defeated`,
+  `combat_ended`, `item_obtained`, `item_used`, `scene_started`), flags, sala, `all`/`any` y
+  `afterTurns` (se anota el turno en que se cumple el resto y la escena empieza N turnos después).
+  Cada escena empieza una vez, aplica `onStart` y pasa a ser la **escena activa**
+  (`worldState.coreV2.activeSceneId`); `scene_started` encadena escenas en el mismo turno.
+- **`item-rules.ts`** — coger, dar, identificar y usar `items[]`. `activation.check: null` = sin
+  tirada (excepción del PDF); con valor = esa prueba; ausente = **reglas oficiales** del pergamino
+  de conjuro (DMG): conjuro de tu lista, sin tirada; de nivel superior al que puedes lanzar, prueba
+  de característica de lanzamiento CD 10 + nivel (si falla, el pergamino se pierde); fuera de tu
+  lista, ininteligible. Ojo: esto corrige lo que decía §3 ("tirada de Arcanos si no es de tu
+  clase"), que era la regla casera del núcleo actual, no la oficial. La identificación sin datos
+  exige descanso corto o *Identificar*.
+- **`spell-rules.ts`** — clases (español e inglés), nivel máximo de conjuro, característica de
+  lanzamiento y una tabla corta de conjuros del SRD. Un conjuro que no esté en la tabla devuelve
+  `unsupported` y el núcleo actual sigue a cargo.
+- **`legacy-bridge.ts`** — mientras llega el paso D: `ItemRuleModuleV2` sustituye a
+  `ScrollRuleModule` en las aventuras con `items[]` (sin mirar el texto del jugador) y
+  `applyCoreV2EndOfTurn` deduce los sucesos del turno y avanza las escenas, en el turno narrativo y
+  tras el combate. Las tiradas de habilidad las sigue resolviendo el sistema actual; las de
+  característica, el propio motor.
+
+Todo detrás de `CORE_V2=1`; sin la variable el juego no cambia.
 
 ## 6. Decisiones que necesito del usuario
 

@@ -18,6 +18,8 @@ import { combatNarrationExpertTool } from './combat/combat-narration-expert';
 import { CombatSession } from '@/lib/combat/combat-session';
 import { EnemyStateManager } from '@/lib/game/enemy-state-manager';
 import { WorldStateManager } from '@/lib/game/world-state-manager';
+import { applyCoreV2EndOfTurn } from '@/lib/game/core-v2/legacy-bridge';
+import { isCoreV2Enabled } from '@/lib/game/core-v2/state';
 
 /**
  * Dependencies interface for Dependency Injection in combatManagerTool.
@@ -262,6 +264,22 @@ export async function executeCombatManager(
             locationId,
             description
         });
+    }
+
+    // Núcleo v2 (CORE_V2=1): escenas que dependen del combate (entidades derrotadas, fin del combate).
+    if (isCoreV2Enabled() && finalWorldState && locationId) {
+        const { getAdventureData } = await import('@/app/game-state-actions');
+        const endOfTurn = applyCoreV2EndOfTurn({
+            adventureData: await getAdventureData(),
+            worldStateBefore: input.worldState,
+            worldStateAfter: finalWorldState,
+            party: output.updatedParty || input.party || [],
+            locationBefore: locationId,
+            locationAfter: locationId,
+            inCombatBefore: !!inCombat,
+            inCombatAfter: !!output.inCombat,
+        });
+        finalWorldState = endOfTurn.worldState;
     }
 
     return {
