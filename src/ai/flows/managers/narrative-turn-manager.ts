@@ -15,7 +15,7 @@
 
 import { log } from '@/lib/logger';
 import type { GameMessage, Character } from '@/lib/types';
-import { markdownToHtml } from '../markdown-to-html';
+import { markdownToHtml } from '@/lib/markdown-to-html';
 import { narrativeExpert } from '../narrative-manager';
 import { processCompanionReactions } from './companion-reaction-manager';
 import { isEntityOutOfCombat } from '@/lib/game/entity-status-utils';

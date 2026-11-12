@@ -19,7 +19,7 @@ vi.mock('@/lib/combat/combat-initializer');
 vi.mock('@/ai/flows/narrative-manager', () => ({
   narrativeExpert: vi.fn(),
 }));
-vi.mock('@/ai/flows/markdown-to-html', () => ({
+vi.mock('@/lib/markdown-to-html', () => ({
   markdownToHtml: vi.fn(),
 }));
 

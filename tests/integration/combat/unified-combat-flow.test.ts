@@ -15,7 +15,7 @@ vi.mock('@/lib/combat/rules-engine');
 vi.mock('@/ai/flows/narrative-manager', () => ({
   narrativeExpert: vi.fn(),
 }));
-vi.mock('@/ai/flows/markdown-to-html', () => ({
+vi.mock('@/lib/markdown-to-html', () => ({
   markdownToHtml: vi.fn(),
 }));
 

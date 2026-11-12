@@ -59,7 +59,7 @@ Tras dos pruebas manuales, el usuario decidió **rehacer el núcleo del turno** 
 ### Fase 4 — Menos llamadas a la IA por turno (semanas 5–6)
 - [ ] **[TASK-082] Medir y recortar a ≤ 3 llamadas por turno:** integrar el router en el intérprete, generar las reacciones de los compañeros en la misma llamada que la narración (u opcionales) y reservar el director para escenas clave.
 - [ ] **[TASK-083] Revisar el plugin de Groq** (rotación, límite de tokens) una vez reducidas las llamadas: simplificarlo o mantenerlo según los datos. *Detectado:* la compactación recorta el centro de los prompts (`...[context compacted]...`), así que el modelo puede perder instrucciones o contexto.
-- [ ] **[TASK-092] Markdown → HTML sin IA:** cada turno hace una llamada al modelo solo para convertir la narración de Markdown a HTML; se puede hacer con código, sin coste ni latencia.
+- [x] **[TASK-092] Markdown → HTML sin IA:** cada turno hacía una llamada al modelo solo para convertir la narración de Markdown a HTML. *Hecho:* conversión determinista en `src/lib/markdown-to-html.ts` (escapa todo el texto y aplica un subconjunto de Markdown; sin dependencias nuevas) y borrado el flujo `markdownToHtmlFlow`: una llamada menos por narración del DM (de 1 a 6 por escenario). *Pendiente:* los cassettes aún guardan esas llamadas; el arnés las ignora con aviso (`RETIRED_LLM_CALLS`) hasta que se regraben.
 
 > **Datos de partida medidos por los escenarios (2026-11-11, `groq/qwen/qwen3.8-27b`):** entre 3 y 14 llamadas a la IA por turno, con turnos de hasta 45 s.
 

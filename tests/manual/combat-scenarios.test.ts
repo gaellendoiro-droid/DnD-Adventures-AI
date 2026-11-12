@@ -26,7 +26,7 @@ vi.mock('../../src/ai/flows/narrative-manager', () => ({
     })
 }));
 
-vi.mock('../../src/ai/flows/markdown-to-html', () => ({
+vi.mock('../../src/lib/markdown-to-html', () => ({
     markdownToHtml: vi.fn().mockImplementation(async ({ markdown }) => ({ html: `<p>${markdown}</p>` }))
 }));
 

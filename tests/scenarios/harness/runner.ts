@@ -10,7 +10,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { CassetteRecorder, loadCassette, saveCassette, type ScenarioMode } from './cassette';
+import { CassetteRecorder, loadCassette, retiredCallFor, saveCassette, type ScenarioMode } from './cassette';
 import { enableDeterminism } from './determinism';
 import { applyStateDelta, nextMessageId, resetMessageCounter, type ClientState } from './client-state';
 import type { GameMessage } from '@/lib/types';
@@ -239,6 +239,8 @@ export async function runScenario(def: ScenarioDefinition): Promise<ScenarioRepo
     resetMessageCounter();
 
     const failures: string[] = [];
+    /** Avisos del arnés que no son fallos (p. ej. llamadas retiradas aún grabadas). */
+    const harnessNotes: string[] = [];
     const turns: TurnResult[] = [];
     let model = cassette?.model ?? '';
 
@@ -382,7 +384,16 @@ export async function runScenario(def: ScenarioDefinition): Promise<ScenarioRepo
         }
 
         if (mode === 'replay') {
-            const unused = recorder.unusedReplayInteractions();
+            const allUnused = recorder.unusedReplayInteractions();
+            const retired = new Map<string, number>();
+            const unused = allUnused.filter(it => {
+                const r = retiredCallFor(it);
+                if (r) retired.set(`[${r.task}] ${r.description}`, (retired.get(`[${r.task}] ${r.description}`) ?? 0) + 1);
+                return !r;
+            });
+            for (const [what, n] of retired) {
+                harnessNotes.push(`${what}: el cassette aún tiene ${n} llamada(s) que el juego ya no hace. Se ignoran; desaparecerán al regrabar.`);
+            }
             if (unused.length > 0) {
                 failures.push(
                     `El juego ya no hace ${unused.length} llamada(s) que sí estaban grabadas. ` +
@@ -405,7 +416,7 @@ export async function runScenario(def: ScenarioDefinition): Promise<ScenarioRepo
     // Fallos ya conocidos (registrados en el roadmap): pasan a aviso.
     const known = def.knownFailures ?? [];
     const realFailures: string[] = [];
-    const knownWarnings: string[] = [];
+    const knownWarnings: string[] = [...harnessNotes];
     for (const f of failures) {
         const k = known.find(kf => kf.match.test(f));
         if (k) knownWarnings.push(`[${k.task}] Problema conocido (${k.description}): ${f}`);

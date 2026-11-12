@@ -16,6 +16,25 @@ import path from 'path';
 
 export type ScenarioMode = 'replay' | 'record' | 'live';
 
+/**
+ * Llamadas a la IA que el juego ha dejado de hacer a propósito. Si siguen grabadas en un
+ * cassette antiguo, que sobren en replay no es un fallo: solo se avisa (hasta regrabarlo).
+ * Cada entrada reconoce la petición por un fragmento fijo de su prompt.
+ */
+export const RETIRED_LLM_CALLS: { task: string; description: string; promptMarker: string }[] = [
+    {
+        task: 'TASK-092',
+        description: 'conversión de Markdown a HTML (ahora es código)',
+        promptMarker: 'Convert the following Markdown text to HTML.',
+    },
+];
+
+/** Si la interacción grabada corresponde a una llamada retirada, la devuelve. */
+export function retiredCallFor(it: CassetteInteraction): (typeof RETIRED_LLM_CALLS)[number] | undefined {
+    const body = typeof it.request === 'string' ? it.request : JSON.stringify(it.request ?? '');
+    return RETIRED_LLM_CALLS.find(r => body.includes(r.promptMarker));
+}
+
 export interface CassetteInteraction {
     key: string;
     method: string;
