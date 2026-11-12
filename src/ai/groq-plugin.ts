@@ -19,6 +19,7 @@ import {
   LOCAL_TIMEOUT_MS,
   getLocalLlmConfig,
   localModelFromName,
+  localResponseFormat,
 } from './local-llm';
 
 type Provider = 'groq' | 'local';
@@ -395,7 +396,10 @@ export function sanitizeJsonForSchema(data: any, schema: any): any {
  * Convierte los mensajes de Genkit al formato estándar OpenAI Chat Completions,
  * aplicando compactación de JSON para minimizar el tamaño en tokens.
  */
-function toOpenAIMessages(request: GenerateRequest<any>, compact = true): any[] {
+function toOpenAIMessages(request: GenerateRequest<any>, target: Provider = 'groq'): any[] {
+  // La compactación existe por las cuotas de Groq; el modelo local recibe el prompt completo
+  // (p. ej. el conversor PDF → JSON necesita el texto entero de la aventura).
+  const compact = target === 'groq';
   const openAIMessages: any[] = [];
   const hasJsonSchema = Boolean(request.output?.schema || request.output?.format === 'json');
 
@@ -405,8 +409,6 @@ function toOpenAIMessages(request: GenerateRequest<any>, compact = true): any[] 
       .map((p) => p.text!)
       .join('\n\n');
 
-    // La compactación existe por las cuotas de Groq; el modelo local recibe el prompt completo
-    // (p. ej. el conversor PDF → JSON necesita el texto entero de la aventura).
     const textParts = compact ? compactPromptText(rawTextParts) : rawTextParts;
 
     if (msg.role === 'system') {
@@ -460,9 +462,12 @@ function toOpenAIMessages(request: GenerateRequest<any>, compact = true): any[] 
 
   if (hasJsonSchema && request.output?.schema) {
     const rootIsArray = (request.output.schema as any).type === 'array';
-    // En modo JSON la raíz tiene que ser un objeto: si el esquema es una lista se pide envuelta en
-    // {"items": [...]} con TODOS los elementos (si no, el modelo tiende a devolver solo el primero).
-    const schemaInstruction = rootIsArray
+    // En modo JSON (Groq) la raíz tiene que ser un objeto: si el esquema es una lista se pide envuelta
+    // en {"items": [...]} con TODOS los elementos (si no, el modelo tiende a devolver solo el primero).
+    // El modelo local usa salidas estructuradas (ver `localResponseFormat`), que admiten la lista tal cual.
+    const schemaInstruction = rootIsArray && target === 'local'
+      ? `\n\nIMPORTANT: Your final response MUST be a valid JSON array containing ALL the elements (not just the first one), conforming strictly to the following JSON Schema. Do NOT wrap it in explanations. Omit optional properties instead of setting them to null unless null is explicitly allowed:\n\`\`\`json\n${JSON.stringify(request.output.schema)}\n\`\`\``
+      : rootIsArray
       ? `\n\nIMPORTANT: Your final response MUST be a valid JSON object of the form {"items": [ ... ]}, where "items" contains ALL the elements (not just the first one), each conforming strictly to the "items" schema of the following JSON Schema. Do NOT wrap it in explanations. Omit optional properties instead of setting them to null unless null is explicitly allowed:\n\`\`\`json\n${JSON.stringify(request.output.schema)}\n\`\`\``
       : `\n\nIMPORTANT: Your final response MUST be a valid JSON object conforming strictly to the following JSON Schema. Do NOT wrap it in explanations. Omit optional properties instead of setting them to null unless null is explicitly allowed:\n\`\`\`json\n${JSON.stringify(request.output.schema)}\n\`\`\``;
 
@@ -542,7 +547,7 @@ function defineGroqModel(ai: Genkit, modelId: string, provider: Provider = 'groq
       }
 
       const messages = toOpenAIMessages(request);
-      const fullMessages = toOpenAIMessages(request, false);
+      const fullMessages = toOpenAIMessages(request, 'local');
       const hasJsonSchema = Boolean(request.output?.schema || request.output?.format === 'json');
       const tools = toOpenAITools(request.tools, hasJsonSchema);
 
@@ -585,7 +590,10 @@ function defineGroqModel(ai: Genkit, modelId: string, provider: Provider = 'groq
         if (tools && tools.length > 0) {
           body.tools = tools;
           body.tool_choice = 'auto';
-        } else if (hasJsonSchema && (isLocal || !isQwen)) {
+        } else if (hasJsonSchema && isLocal) {
+          // Salidas estructuradas de Ollama: el servidor obliga a cumplir el esquema.
+          body.response_format = localResponseFormat(request.output?.schema);
+        } else if (hasJsonSchema && !isQwen) {
           // En Qwen no forzamos response_format: json_object porque emite etiquetas <think> que hacen fallar al validador 400 de Groq;
           // nuestro post-procesador ya limpia <think> y extrae el JSON limpiamente.
           body.response_format = { type: 'json_object' };
