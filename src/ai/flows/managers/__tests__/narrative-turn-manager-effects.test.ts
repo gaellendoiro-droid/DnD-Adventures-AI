@@ -71,7 +71,7 @@ vi.mock('@/lib/skills/skill-check-resolver', () => ({
 }));
 
 // Markdown to HTML mock (ya que se usa en el mensaje final)
-vi.mock('../../markdown-to-html', () => ({
+vi.mock('@/lib/markdown-to-html', () => ({
     markdownToHtml: vi.fn().mockImplementation(async ({ markdown }) => ({ html: markdown }))
 }));
 

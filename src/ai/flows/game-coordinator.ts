@@ -10,7 +10,6 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { oocAssistant } from './ooc-assistant';
 import type { GameMessage } from '@/lib/types';
-import { markdownToHtml } from './markdown-to-html';
 import { narrativeExpert } from './narrative-manager';
 import { getAdventureData } from '@/app/game-state-actions';
 import { processCompanionReactions } from './managers/companion-reaction-manager';

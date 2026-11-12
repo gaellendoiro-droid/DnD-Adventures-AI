@@ -161,7 +161,7 @@ export async function executeCombatManager(
 
         // Lazy load heavy dependencies for initiation (if not provided via DI)
         const narrativeExpertToUse = deps.narrativeExpert || (await import('@/ai/flows/narrative-manager')).narrativeExpert;
-        const markdownToHtmlToUse = deps.markdownToHtml || (await import('@/ai/flows/markdown-to-html')).markdownToHtml;
+        const markdownToHtmlToUse = deps.markdownToHtml || (await import('@/lib/markdown-to-html')).markdownToHtml;
 
         // Create deps object with lazy-loaded dependencies
         const initDeps: CombatManagerDependencies = {

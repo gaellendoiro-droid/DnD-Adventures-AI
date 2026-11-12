@@ -53,7 +53,7 @@ vi.mock('../../src/ai/tools/combat/combat-narration-expert', () => ({
     })
 }));
 
-vi.mock('../../src/ai/flows/markdown-to-html', () => ({
+vi.mock('../../src/lib/markdown-to-html', () => ({
     markdownToHtml: vi.fn().mockImplementation((markdown) => Promise.resolve(markdown))
 }));
 

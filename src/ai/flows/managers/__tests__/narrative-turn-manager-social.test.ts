@@ -71,7 +71,7 @@ vi.mock('../../narrative-manager', () => ({
     narrativeExpert: vi.fn().mockResolvedValue({ dmNarration: "", debugLogs: [] }),
 }));
 
-vi.mock('../../markdown-to-html', () => ({
+vi.mock('@/lib/markdown-to-html', () => ({
     markdownToHtml: vi.fn().mockImplementation(async ({ markdown }) => ({ html: markdown }))
 }));
 
