@@ -21,6 +21,7 @@ export type CoreV2Fact =
     | { type: 'ItemTransferred'; itemId: string; from: ItemHolder; to: ItemHolder }
     | { type: 'ItemIdentified'; itemId: string; by?: string }
     | { type: 'CheckRequired'; itemId: string; actorId: string; purpose: 'activate' | 'identify'; check: CheckRequirement }
+    | { type: 'CheckRolled'; itemId: string; actorId: string; name: string; success: boolean }
     | { type: 'ItemUsed'; itemId: string; actorId: string }
     | { type: 'SpellActivated'; itemId: string; actorId: string; spellId: string; affects: 'user' | 'party' | 'target' | 'area' }
     | { type: 'ItemConsumed'; itemId: string }

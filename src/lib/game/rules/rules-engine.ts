@@ -25,6 +25,8 @@ export class GameRulesEngine {
         // Con CORE_V2=1, la regla fija de pergaminos solo se usa en aventuras sin items[] en los datos.
         const skipLegacyScrolls = isCoreV2Enabled() && Array.isArray(input.adventureData?.items) && input.adventureData.items.length > 0;
         for (const module of this.modules) {
+            // El intérprete v2 ya distingue el descanso: no se deduce del texto del jugador.
+            if (input.interpretation?.coreV2Action && module.name === 'RestRules' && input.interpretation.actionType !== 'rest') continue;
             if (skipLegacyScrolls && module.name === 'ScrollRules') continue;
             try {
                 if (module.canHandle(input)) {

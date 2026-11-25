@@ -156,7 +156,7 @@ contrato de eventos hacia la interfaz. El juego actual sigue funcionando mientra
 | **A** | Escenarios del PDF para toda la oveja, con citas | La vara de medir |
 | **B** ✅ | Conversor: objetos con mecánica, disparadores e indicaciones por escena, bloques de estadísticas, mapa completo, IDs estables; regenerar la oveja | El JSON recoge el PDF: la prueba de fidelidad pasa entera (TASK-080, 084, 085, 086, 091 en datos) |
 | **C** ✅ | Motor de reglas v2 con tests unitarios (`src/lib/game/core-v2/`, ver §5.1) | Turnos deterministas sin IA |
-| **D** | Intérprete y narrador v2 con el paquete de hechos | Primer turno completo con `CORE_V2=1` |
+| **D** ✅ | Intérprete y narrador v2 con el paquete de hechos | Primer turno completo con `CORE_V2=1` |
 | **E** | Combate: se reutiliza el sistema actual, pero los participantes salen de los datos | TASK-088..091 |
 | **F** | Cuando v2 supere al actual en los escenarios: activarlo por defecto y borrar el núcleo viejo | Una sola ruta de código |
 
@@ -189,6 +189,37 @@ Módulo `src/lib/game/core-v2/`, funciones puras sin IA ni nada propio de una av
   característica, el propio motor.
 
 Todo detrás de `CORE_V2=1`; sin la variable el juego no cambia.
+
+### 5.2 Paso D: intérprete y narrador v2 (hecho, 2026-11-25)
+
+Con `CORE_V2=1`, fuera de combate y en aventuras con `scenes[]` o `items[]`, el turno hace **2 llamadas**
+(3 si hay corrección):
+
+- **`actions.ts` + `ai/flows/core-v2/interpreter-v2.ts`** — el esquema se construye en cada turno con los
+  IDs reales; lo que no encaja pasa a `clarify`. `//` (fuera de personaje) no gasta llamada.
+  `toLegacyInterpretation` es el único contacto con los sistemas actuales.
+- **`fact-packet.ts` + `secrets.ts`** — hechos en lenguaje llano y sin CD, presentes, guía de la escena e
+  historial recortados por código. Los pasajes con términos aún ocultos se eliminan, no se sustituyen.
+- **`narrator-v2.ts` + `narration-validator.ts`** — narración y reacciones en una llamada; si el validador
+  la rechaza, una corrección y después una versión segura escrita por código.
+
+Solo una respuesta con mal formato se convierte en pregunta; un fallo de cuota, red o configuración se
+muestra como error.
+
+Límites conocidos:
+- El combate y su inicio siguen con las llamadas actuales (paso E).
+- Las pruebas sin datos usan CD 15 (dificultad media); faltan CD por dato de la aventura.
+- Lanzar conjuros propios fuera de combate no tiene aún acción en v2.
+- Puertas, llaves y objetos comunes pasan por los sistemas actuales, que miran el texto del jugador.
+- Solo se va a salidas contiguas: un viaje de varias salas se hace paso a paso.
+- La `guidance` de cada escena trae la sección entera del PDF (hasta 12.000 caracteres, con sucesos
+  posteriores). Se quitan las fichas y se le prohíbe adelantarse, pero lo correcto es acotarla en el
+  conversor. Con Groq se recorta a 4.500 caracteres.
+
+Pruebas en vivo con `qwen3.8:27b` (sin grabar): `oveja-01`, `oveja-02` y `oveja-07`, 2 llamadas por turno
+fuera de combate. El único fallo fue la expectativa de `oveja-02` que exige una tirada al leer el
+pergamino: es del núcleo actual y contradice el PDF. Los escenarios aún no tienen cassettes con
+`CORE_V2=1`.
 
 ## 6. Decisiones que necesito del usuario
 

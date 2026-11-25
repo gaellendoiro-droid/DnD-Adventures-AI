@@ -1,3 +1,4 @@
+import type { CoreV2Fact } from '../core-v2/facts';
 import { Character, GameMessage } from '../../types';
 
 export interface RulesEngineInput {
@@ -20,6 +21,8 @@ export interface RulesEngineResult {
     pendingEffects?: string[];
     pendingWorldStateFlags?: Record<string, any>;
     events?: any[];
+    /** Hechos del motor v2 (CORE_V2=1), para el paquete del narrador. */
+    coreV2Facts?: CoreV2Fact[];
 }
 
 export interface RuleModule {
