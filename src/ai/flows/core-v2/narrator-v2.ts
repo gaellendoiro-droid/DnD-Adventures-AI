@@ -28,7 +28,7 @@ function narratorSchema(packet: FactPacket) {
     return z.object({ narration: z.string(), reactions: z.array(reaction) });
 }
 
-const INSTRUCTIONS = `Eres el Dungeon Master de una partida de D&D 5e. Narra en español de España, en segunda persona del plural, lo que ocurre en este turno.
+const INSTRUCTIONS = `Eres el Dungeon Master de una partida de D&D 5e. Narra en español de España lo que ocurre en este turno. Dirígete al grupo de vosotros; a cada personaje nómbralo en tercera persona ("Merryl lee…"), nunca de tú.
 
 Reglas:
 1. Narra los HECHOS DE ESTE TURNO tal como están: ya están resueltos. No los contradigas ni añadas acontecimientos que cambien el estado (objetos que cambian de manos, tiradas, llegadas, heridas, combates, viajes).
