@@ -39,7 +39,10 @@ import { CombatSystem } from '@/lib/game/systems/combat-system';
 import { StatsSystem } from '@/lib/game/systems/stats-system';
 import { SystemContext } from '@/lib/game/systems/system-types';
 import { addEffectToCharacterInParty, isActiveMagicalOrStatusFlag } from '@/lib/game/systems/effect-utils';
-import { applyCoreV2EndOfTurn } from '@/lib/game/core-v2/legacy-bridge';
+import { applyCoreV2EndOfTurn, defeatedEntityIds, presentEntityIds, type EndOfTurnResult } from '@/lib/game/core-v2/legacy-bridge';
+import { buildFactPacket } from '@/lib/game/core-v2/fact-packet';
+import type { ActionV2 } from '@/lib/game/core-v2/actions';
+import { narrateV2, narratorLimits } from '../core-v2/narrator-v2';
 import { isCoreV2Enabled } from '@/lib/game/core-v2/state';
 
 
@@ -57,6 +60,8 @@ export interface NarrativeTurnInput {
         overrideDC?: number;
         assignedCompanion?: string | null;
         recipient?: string | null;
+        /** Acción del intérprete v2 (CORE_V2=1): el turno lo narra el narrador v2. */
+        coreV2Action?: ActionV2;
     };
     party: Character[];
     currentLocationId: string;
@@ -187,6 +192,7 @@ export async function* executeNarrativeTurnStreaming(
         localLog(`Rules Engine Intercepted action. System Feedback: "${systemFeedback}"`);
     } else {
         if (
+            !interpretation.coreV2Action &&
             interpretation.actionType === 'skill_check' &&
             /\b(pregunto|preguntarle|preguntamos|pregunta|hablo|hablarle|hablamos|digo|decirle|decimos)\b|¿/i.test(playerAction) &&
             !/\b(engaño|engañar|miento|mentir|intimido|intimidar|amenazo|amenazar|persuado|persuadir|convenzo|convencer|agarro|sujeto|ato|domar)\b/i.test(playerAction)
@@ -347,8 +353,9 @@ export async function* executeNarrativeTurnStreaming(
 
     // Núcleo v2 (CORE_V2=1): completar objetos pendientes de tirada y avanzar las escenas del PDF
     // antes de narrar, para que lo que cambien (p. ej. una entidad que llega) ya esté en el estado.
+    let coreV2EndOfTurn: EndOfTurnResult | undefined;
     if (isCoreV2Enabled()) {
-        const endOfTurn = applyCoreV2EndOfTurn({
+        const endOfTurn = coreV2EndOfTurn = applyCoreV2EndOfTurn({
             adventureData,
             worldStateBefore: worldState,
             worldStateAfter: updatedWorldState,
@@ -482,6 +489,67 @@ export async function* executeNarrativeTurnStreaming(
                 activeEffects.push(key);
             }
         }
+    }
+
+    // Núcleo v2 (paso D): una sola llamada narra el turno a partir del paquete de hechos.
+    if (interpretation.coreV2Action && coreV2EndOfTurn) {
+        if (!combatTrigger.shouldStartCombat) {
+            const deadIds = new Set(defeatedEntityIds(currentLocationEnemies));
+            const limits = narratorLimits();
+            const packet = buildFactPacket({
+                playerText: playerAction,
+                action: interpretation.coreV2Action,
+                adventureData,
+                location: filteredLocationData,
+                party,
+                state: coreV2EndOfTurn.worldState.coreV2,
+                flags: updatedWorldState?.globalFlags || {},
+                presentEntityIds: presentEntityIds(adventureData, locationId, updatedWorldState?.globalFlags).filter(id => !deadIds.has(id)),
+                facts: [...(rulesEngineResult.coreV2Facts || []), ...coreV2EndOfTurn.facts],
+                events: dispatchResult.processedEvents,
+                systemFeedback,
+                activeScene: coreV2EndOfTurn.activeScene,
+                activeEffects: party.flatMap(c => (c.activeEffects || []).map(ef => `${ef.name} (${c.name})`)),
+                history: conversationHistory.slice(-6).map(formatMessageForTranscript).join('\n'),
+                selectedCharacterName,
+                ...limits,
+            });
+            const narrated = await narrateV2(packet);
+            localLog(`[CORE_V2] Narrador: ${narrated.calls} llamada(s)${narrated.safe ? ', versión segura' : ''}${narrated.problems.length ? ` (${narrated.problems.map(p => p.kind).join(', ')})` : ''}`);
+
+            if (narrated.result.narration) {
+                const { html } = await markdownToHtml({ markdown: narrated.result.narration });
+                messages.push({ sender: 'DM' as const, content: html, originalContent: narrated.result.narration });
+                yield { type: 'dm_narration', content: narrated.result.narration, originalContent: narrated.result.narration };
+            }
+            for (const reaction of narrated.result.reactions) {
+                const companion = party.find(c => String(c.id) === reaction.companionId);
+                if (!companion) continue;
+                const message: GameMessage = {
+                    id: `reaction-${Date.now()}-${companion.name}`,
+                    sender: 'Character',
+                    senderName: companion.name,
+                    characterColor: companion.color,
+                    content: reaction.text,
+                    originalContent: reaction.text,
+                    timestamp: new Date().toLocaleTimeString(),
+                };
+                messages.push(message);
+                yield { type: 'companion_reaction', message };
+            }
+        }
+        return {
+            messages,
+            debugLogs,
+            nextLocationId: newLocationId,
+            updatedParty: party,
+            updatedWorldTime,
+            updatedExplorationState: currentGameState.exploration,
+            combatTriggerResult: combatTrigger.shouldStartCombat ? combatTrigger : undefined,
+            updatedOpenDoors: Object.keys(updatedOpenDoors).length > 0 ? updatedOpenDoors : undefined,
+            diceRolls: generatedDiceRolls.length > 0 ? generatedDiceRolls : undefined,
+            updatedWorldState,
+        };
     }
 
     // 3. Companion Reactions (Before DM)

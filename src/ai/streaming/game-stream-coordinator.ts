@@ -3,6 +3,12 @@ import { createEvent } from '@/lib/streaming/protocol';
 import { GameStreamEvent } from '@/lib/streaming/types';
 import { GameState } from '@/ai/flows/schemas';
 import { actionInterpreter } from '@/ai/flows/action-interpreter';
+import { interpretActionV2 } from '@/ai/flows/core-v2/interpreter-v2';
+import { buildActionOptions, hasCoreV2Data, toLegacyInterpretation } from '@/lib/game/core-v2/actions';
+import { trimHistory } from '@/lib/game/core-v2/fact-packet';
+import { defeatedEntityIds } from '@/lib/game/core-v2/legacy-bridge';
+import { ensureCoreV2State, isCoreV2Enabled } from '@/lib/game/core-v2/state';
+import { dropSentencesWith, unrevealedTerms } from '@/lib/game/core-v2/secrets';
 import { narrativeManagerStream } from './narrative-manager-stream';
 import { executeNarrativeTurn, executeNarrativeTurnStreaming } from '@/ai/flows/managers/narrative-turn-manager';
 import { combatManagerTool } from '@/ai/tools/combat-manager';
@@ -137,15 +143,38 @@ export async function* gameStreamCoordinator(
             }
         }
 
-        const interpretationResult = await actionInterpreter({
-            playerAction,
-            locationContext: JSON.stringify(enrichedLocationData),
-            party: party.map(p => ({ ...p, id: (p as any).id || p.name })), // Slim party
-            updatedEnemies: currentLocationEnemies,
-            conversationHistory: historyTranscript
-        });
-
-        const { interpretation } = interpretationResult;
+        // Núcleo v2 (CORE_V2=1), fuera de combate: el intérprete elige entre listas cerradas de IDs.
+        // El combate sigue con el intérprete actual hasta el paso E.
+        const useCoreV2 = isCoreV2Enabled() && hasCoreV2Data(adventureData) && !input.inCombat;
+        let interpretation: any;
+        if (useCoreV2 && playerAction.trim().startsWith('//')) {
+            interpretation = { actionType: 'ooc', targetId: null };
+        } else if (useCoreV2) {
+            const flags = input.worldState?.globalFlags || {};
+            const options = buildActionOptions({
+                adventureData,
+                location: enrichedLocationData,
+                party,
+                state: ensureCoreV2State((input.worldState as any)?.coreV2, adventureData),
+                flags,
+                selectedCharacterId: (input as any).selectedCharacterId,
+                absentEntityIds: defeatedEntityIds(currentLocationEnemies),
+            });
+            const action = await interpretActionV2({ playerText: playerAction, options, history: trimHistory(historyTranscript, 1500) });
+            if (action.type === 'clarify' && action.question) {
+                action.question = dropSentencesWith(action.question, unrevealedTerms(adventureData.entities, flags)) || undefined;
+            }
+            interpretation = toLegacyInterpretation(action, options, adventureData.items);
+        } else {
+            const interpretationResult = await actionInterpreter({
+                playerAction,
+                locationContext: JSON.stringify(enrichedLocationData),
+                party: party.map(p => ({ ...p, id: (p as any).id || p.name })), // Slim party
+                updatedEnemies: currentLocationEnemies,
+                conversationHistory: historyTranscript
+            });
+            interpretation = interpretationResult.interpretation;
+        }
         yield createEvent('debug', { message: `Action: ${interpretation.actionType}` });
 
         // Handle Unrecognized / Ambiguous Action ('clarify') without guessing or rolling dice

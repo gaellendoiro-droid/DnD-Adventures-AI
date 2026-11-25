@@ -66,7 +66,7 @@ export function presentEntityIds(adventureData: any, locationId: string, flags: 
     return [...new Set(ids)];
 }
 
-function buildContext(adventureData: any, state: CoreV2State, party: any[], locationId: string, flags: Flags): ItemRuleContext {
+export function buildContext(adventureData: any, state: CoreV2State, party: any[], locationId: string, flags: Flags): ItemRuleContext {
     return {
         items: (adventureData?.items || []) as AdventureItem[],
         state,
@@ -162,6 +162,11 @@ function selectItemAction(input: RulesEngineInput): SelectedItemAction | undefin
         return { intent, item, actor, recipientId, ctx, state };
     }
 
+    // El intérprete v2 ya dice quién actúa.
+    const v2ActorId = interpretation.coreV2Action?.actorId;
+    const v2Actor = v2ActorId ? party.find((c: any) => c.id === v2ActorId) : undefined;
+    if (v2Actor) return { intent, item, actor: v2Actor, ctx, state };
+
     // Quién actúa: quien recibe el objeto ("Merryl, tómalo y léelo") o el compañero al que se
     // le ordena; si no, quien lo tiene; si no, el personaje que habla. El núcleo actual rellena
     // `assignedCompanion` con el personaje del jugador cuando la IA no nombra a nadie, así que ese
@@ -172,7 +177,7 @@ function selectItemAction(input: RulesEngineInput): SelectedItemAction | undefin
     return { intent, item, actor, ctx, state };
 }
 
-function displayName(item: AdventureItem, identified: boolean): string {
+export function displayName(item: AdventureItem, identified: boolean): string {
     if (identified) return item.name;
     switch (item.type) {
         case 'scroll': return 'Pergamino sin identificar';
@@ -346,7 +351,7 @@ export class ItemRuleModuleV2 implements RuleModule {
                     ? completeIdentification({ ...ctx, state }, item.id, toActor(actor), roll.success)
                     : completeItemUse({ ...ctx, state }, item.id, toActor(actor), roll.success, check);
                 state = after.state;
-                facts = facts.concat(after.facts);
+                facts = facts.concat({ type: 'CheckRolled', itemId: item.id, actorId: actor.id, name: check.name, success: roll.success }, after.facts);
             } else {
                 interpretation.actionType = 'skill_check';
                 interpretation.overrideSkill = check.name;
@@ -389,6 +394,7 @@ export class ItemRuleModuleV2 implements RuleModule {
             pendingEffects,
             pendingWorldStateFlags,
             events,
+            coreV2Facts: facts,
         };
     }
 }
@@ -421,6 +427,15 @@ function baseEntityId(enemy: any): string {
 function isDown(enemy: any): boolean {
     const hp = typeof enemy?.hp === 'object' ? enemy.hp?.current : enemy?.hp;
     return enemy?.status === 'dead' || enemy?.status === 'unconscious' || (typeof hp === 'number' && hp <= 0);
+}
+
+/**
+ * Entidades presentes ya fuera de juego. Varias criaturas pueden compartir ID en los datos (tres
+ * lobos): la entidad solo falta cuando han caído todas.
+ */
+export function defeatedEntityIds(enemies: any[]): string[] {
+    const standing = new Set(enemies.filter(e => !isDown(e)).map(baseEntityId));
+    return [...new Set(enemies.filter(isDown).map(baseEntityId))].filter(id => id && !standing.has(id));
 }
 
 /** Sucesos del turno (para `SceneCondition.event`) a partir del estado antes y después. */
